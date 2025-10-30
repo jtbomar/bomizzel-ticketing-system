@@ -1,0 +1,47 @@
+{
+  "name": "bomizzel-ticketing-system",
+  "version": "1.0.0",
+  "description": "Comprehensive ticketing system with customer portal and employee dashboard",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "test": "npm run test --workspaces",
+    "test:unit": "npm run test:unit --workspace=backend && npm run test:components --workspace=frontend",
+    "test:integration": "npm run test:integration --workspace=backend",
+    "test:e2e": "npm run test:e2e --workspace=frontend",
+    "test:security": "npm run test:security --workspace=backend",
+    "test:performance": "npm run test:performance --workspace=backend",
+    "test:coverage": "npm run test:coverage --workspaces",
+    "test:all": "npm run test:all --workspace=backend && npm run test --workspace=frontend",
+    "lint": "npm run lint --workspaces",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "docker:prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "db:migrate": "npm run migrate --workspace=backend",
+    "db:seed": "npm run seed --workspace=backend",
+    "db:backup": "./scripts/db-backup.sh",
+    "db:restore": "./scripts/db-restore.sh",
+    "setup:dev": "./scripts/setup-dev.sh",
+    "setup:monitoring": "./monitoring/setup-monitoring.sh",
+    "health:check": "./scripts/health-check.sh",
+    "dev:reset": "./scripts/reset-dev.sh"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

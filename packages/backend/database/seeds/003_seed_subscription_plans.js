@@ -1,0 +1,140 @@
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> } 
+ */
+exports.seed = async function(knex) {
+  // Deletes ALL existing entries
+  await knex('subscription_plans').del();
+  
+  // Insert subscription plans with the 5 pricing tiers
+  await knex('subscription_plans').insert([
+    {
+      id: knex.raw('gen_random_uuid()'),
+      name: 'Free Tier',
+      slug: 'free-tier',
+      price: 0.00,
+      currency: 'USD',
+      billing_interval: 'month',
+      active_ticket_limit: 100,
+      completed_ticket_limit: 100,
+      total_ticket_limit: 200,
+      features: JSON.stringify([
+        'Basic ticketing functionality',
+        '100 active tickets',
+        '100 completed tickets',
+        'Email support',
+        'Basic reporting'
+      ]),
+      trial_days: 0,
+      is_active: true,
+      sort_order: 1,
+      description: 'Perfect for individuals and small teams getting started with ticket management.',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    },
+    {
+      id: knex.raw('gen_random_uuid()'),
+      name: 'Starter',
+      slug: 'starter',
+      price: 10.00,
+      currency: 'USD',
+      billing_interval: 'month',
+      active_ticket_limit: 500,
+      completed_ticket_limit: 500,
+      total_ticket_limit: 1000,
+      features: JSON.stringify([
+        'All Free Tier features',
+        '1,000 total tickets',
+        'Priority email support',
+        'Advanced reporting',
+        'Custom fields',
+        'File attachments'
+      ]),
+      trial_days: 14,
+      is_active: true,
+      sort_order: 2,
+      description: 'Ideal for growing teams that need more capacity and advanced features.',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    },
+    {
+      id: knex.raw('gen_random_uuid()'),
+      name: 'Professional',
+      slug: 'professional',
+      price: 50.00,
+      currency: 'USD',
+      billing_interval: 'month',
+      active_ticket_limit: 5000,
+      completed_ticket_limit: 5000,
+      total_ticket_limit: 10000,
+      features: JSON.stringify([
+        'All Starter features',
+        '10,000 total tickets',
+        'Team management',
+        'Advanced workflows',
+        'API access',
+        'Integration support',
+        'Phone support'
+      ]),
+      trial_days: 14,
+      is_active: true,
+      sort_order: 3,
+      description: 'Perfect for professional teams requiring advanced workflow management.',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    },
+    {
+      id: knex.raw('gen_random_uuid()'),
+      name: 'Business',
+      slug: 'business',
+      price: 100.00,
+      currency: 'USD',
+      billing_interval: 'month',
+      active_ticket_limit: 25000,
+      completed_ticket_limit: 25000,
+      total_ticket_limit: 50000,
+      features: JSON.stringify([
+        'All Professional features',
+        '50,000 total tickets',
+        'Advanced analytics',
+        'Custom integrations',
+        'Dedicated account manager',
+        'SLA management',
+        'White-label options'
+      ]),
+      trial_days: 14,
+      is_active: true,
+      sort_order: 4,
+      description: 'Designed for large organizations with high-volume ticket management needs.',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    },
+    {
+      id: knex.raw('gen_random_uuid()'),
+      name: 'Enterprise',
+      slug: 'enterprise',
+      price: 200.00,
+      currency: 'USD',
+      billing_interval: 'month',
+      active_ticket_limit: -1, // Unlimited
+      completed_ticket_limit: -1, // Unlimited
+      total_ticket_limit: -1, // Unlimited
+      features: JSON.stringify([
+        'All Business features',
+        'Unlimited tickets',
+        'Enterprise security',
+        'Custom development',
+        'On-premise deployment options',
+        'Advanced compliance features',
+        '24/7 premium support',
+        'Automatic archival'
+      ]),
+      trial_days: 14,
+      is_active: true,
+      sort_order: 5,
+      description: 'Enterprise-grade solution with unlimited capacity and premium support.',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    }
+  ]);
+};

@@ -1,0 +1,11 @@
+export { BaseModel } from './BaseModel';
+export { User } from './User';
+export { Company } from './Company';
+export { Team } from './Team';
+export { Queue } from './Queue';
+export { CustomField } from './CustomField';
+export { Ticket } from './Ticket';
+export { TicketNote } from './TicketNote';
+export { FileAttachment } from './FileAttachment';
+export { TicketHistory } from './TicketHistory';
+export { EmailTemplate } from './EmailTemplate';

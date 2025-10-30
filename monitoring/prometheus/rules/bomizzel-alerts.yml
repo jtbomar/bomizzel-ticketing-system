@@ -1,0 +1,194 @@
+groups:
+  - name: bomizzel-application
+    rules:
+      # Application Health Alerts
+      - alert: ApplicationDown
+        expr: up{job="bomizzel-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bomizzel backend application is down"
+          description: "The Bomizzel backend application has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for the last 5 minutes."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for the last 5 minutes."
+
+      # Database Alerts
+      - alert: DatabaseDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database has been down for more than 1 minute."
+
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value | humanizePercentage }} of maximum."
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_database_tup_returned[5m]) / rate(pg_stat_database_tup_fetched[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database queries are slow"
+          description: "Database query efficiency is low: {{ $value | humanizePercentage }}."
+
+      # Redis Alerts
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been down for more than 1 minute."
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }} of maximum."
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}."
+
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} ({{ $labels.mountpoint }})."
+
+  - name: bomizzel-business-metrics
+    rules:
+      # Business Logic Alerts
+      - alert: HighTicketCreationRate
+        expr: rate(tickets_created_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High ticket creation rate"
+          description: "Ticket creation rate is {{ $value }} tickets per second."
+
+      - alert: LowTicketResolutionRate
+        expr: rate(tickets_resolved_total[1h]) < 0.1
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low ticket resolution rate"
+          description: "Ticket resolution rate is {{ $value }} tickets per second over the last hour."
+
+      - alert: QueueBacklogHigh
+        expr: queue_backlog_total > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High queue backlog"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} tickets in backlog."
+
+      # Authentication Alerts
+      - alert: HighFailedLoginRate
+        expr: rate(auth_failed_attempts_total[5m]) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High failed login rate"
+          description: "Failed login rate is {{ $value }} attempts per second."
+
+      - alert: SuspiciousActivity
+        expr: rate(auth_failed_attempts_total[1m]) > 20
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Suspicious authentication activity"
+          description: "Very high failed login rate detected: {{ $value }} attempts per second."
+
+  - name: bomizzel-infrastructure
+    rules:
+      # File System Alerts
+      - alert: HighFileUploadRate
+        expr: rate(file_uploads_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "High file upload rate"
+          description: "File upload rate is {{ $value }} files per second."
+
+      - alert: FileUploadErrors
+        expr: rate(file_upload_errors_total[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "File upload errors detected"
+          description: "File upload error rate is {{ $value }} errors per second."
+
+      # Email System Alerts
+      - alert: EmailDeliveryFailures
+        expr: rate(email_delivery_failures_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Email delivery failures"
+          description: "Email delivery failure rate is {{ $value }} failures per second."
+
+      - alert: EmailQueueBacklog
+        expr: email_queue_size > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Email queue backlog"
+          description: "Email queue has {{ $value }} messages pending."
