@@ -12,10 +12,15 @@ const PORT = process.env.PORT || 5000;
 
 // Basic middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: [
+    'http://localhost:3000',
+    'http://192.168.0.117:3000',
+    /^http:\/\/192\.168\.0\.\d+:3000$/
+  ],
   credentials: true,
 }));
 app.use(express.json());
+
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
@@ -32,6 +37,11 @@ app.get('/api/health', (_req: Request, res: Response) => {
     message: 'Bomizzel API is running',
     timestamp: new Date().toISOString()
   });
+});
+
+// Test endpoint to debug
+app.get('/api/test', (_req: Request, res: Response) => {
+  res.json({ message: 'Test endpoint working' });
 });
 
 // Mock user data (from database seeds)

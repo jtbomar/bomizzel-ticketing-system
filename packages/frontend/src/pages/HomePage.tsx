@@ -51,8 +51,11 @@ const HomePage: React.FC = () => {
           </div>
           
           <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
-            <Link to="/register" className="btn-primary text-lg px-8 py-3">
-              Get Started for Free
+            <Link to="/company-register" className="btn-primary text-lg px-8 py-3">
+              Start Your Company Trial
+            </Link>
+            <Link to="/register" className="btn-outline text-lg px-8 py-3">
+              Join Existing Company
             </Link>
             <Link to="/pricing" className="btn-outline text-lg px-8 py-3">
               View Pricing Plans

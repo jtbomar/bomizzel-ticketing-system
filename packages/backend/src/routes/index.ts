@@ -21,11 +21,13 @@ import usageAlertRoutes from './usageAlerts';
 import billingRoutes from './billing';
 import subscriptionAnalyticsRoutes from './subscriptionAnalytics';
 import ticketArchivalRoutes from './ticketArchival';
+import companyRegistrationRoutes from './companyRegistration';
 
 const router = Router();
 
 // Mount route modules
 router.use('/auth', authRoutes);
+router.use('/company-registration', companyRegistrationRoutes);
 router.use('/users', userRoutes);
 router.use('/companies', companyRoutes);
 router.use('/teams', teamRoutes);

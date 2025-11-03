@@ -9,6 +9,8 @@ import PricingPage from './pages/PricingPage'
 import CustomerDashboard from './pages/CustomerDashboard'
 import SimpleEmployeeDashboard from './pages/SimpleEmployeeDashboard'
 import SimpleAdminDashboard from './pages/SimpleAdminDashboard'
+import TestAPI from './TestAPI'
+import CompanyRegistrationPage from './pages/CompanyRegistrationPage'
 
 
 
@@ -24,9 +26,11 @@ function App() {
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/company-register" element={<CompanyRegistrationPage />} />
             <Route path="/customer" element={<CustomerDashboard />} />
             <Route path="/employee" element={<SimpleEmployeeDashboard />} />
             <Route path="/admin" element={<SimpleAdminDashboard />} />
+            <Route path="/test" element={<TestAPI />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
