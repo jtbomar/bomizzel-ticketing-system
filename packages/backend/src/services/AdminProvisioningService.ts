@@ -233,8 +233,8 @@ export class AdminProvisioningService {
     const subscription = await CustomerSubscription.create({
       user_id: userId,
       company_id: companyId,
-      plan_id: request.planId || null,
-      status: request.trialDays ? 'trialing' : 'active',
+      plan_id: request.planId || 'ec16f41b-6991-4562-a8f1-9cdd519049bf', // Default to Enterprise plan
+      status: request.trialDays ? 'trial' : 'active',
       current_period_start: startDate,
       current_period_end: currentPeriodEnd,
       trial_end: trialEndDate,
@@ -310,9 +310,9 @@ export class AdminProvisioningService {
     status?: string;
   } = {}) {
     try {
-      // This would query the database for provisioned customers
-      // For now, returning a placeholder structure
-      const customers = await CustomerSubscription.db('customer_subscriptions as cs')
+      // Query the database for provisioned customers
+      const { db } = require('../config/database');
+      const customers = await db('customer_subscriptions as cs')
         .join('companies as c', 'cs.company_id', 'c.id')
         .join('users as u', 'cs.user_id', 'u.id')
         .where('cs.is_custom', true)
