@@ -113,7 +113,6 @@ export class AdminProvisioningService {
         password_hash: hashedPassword,
         first_name: request.adminFirstName,
         last_name: request.adminLastName,
-        phone: request.adminPhone,
         role: 'admin',
         is_active: true,
         email_verified: true, // Auto-verify for provisioned accounts
