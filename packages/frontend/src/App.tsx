@@ -16,6 +16,7 @@ import StatusPriorityConfig from './components/StatusPriorityConfig';
 import AdminStatusConfig from './components/AdminStatusConfig';
 import TestTicketForm from './pages/TestTicketForm';
 import ColorPickerDemo from './pages/ColorPickerDemo';
+import AdminCustomerProvisioning from './pages/AdminCustomerProvisioning';
 
 function App() {
   return (
@@ -32,6 +33,7 @@ function App() {
             <Route path="/employee" element={<SimpleEmployeeDashboard />} />
             <Route path="/admin" element={<SimpleAdminDashboard />} />
             <Route path="/admin/layouts" element={<TicketLayoutManagement />} />
+            <Route path="/admin/provisioning" element={<AdminCustomerProvisioning />} />
 
             <Route path="/create-ticket" element={<CreateTicketPage />} />
             <Route path="/test-ticket-form" element={<TestTicketForm />} />
