@@ -13,17 +13,21 @@
 
 ---
 
-## 🚀 How to Access Your Admin Dashboard
+## 🚀 How to Access Your BSI Admin Dashboard
 
-### Step 1: Login
-1. Go to: http://localhost:3000/login
+### Step 1: Login to BSI Admin Portal
+1. Go to: **http://localhost:3000/bsi/login** (NOT the regular /login!)
 2. Enter your email: `jeffrey.t.bomar@gmail.com`
 3. Enter your password: `BomizzelAdmin2024!`
-4. Click "Login"
+4. Click "Sign in to BSI Admin"
 
-### Step 2: Access Admin Dashboard
+### Step 2: Access BSI Admin Dashboard
 After login, you'll be automatically redirected to:
-- **Admin Dashboard:** http://localhost:3000/admin
+- **BSI Admin Dashboard:** http://localhost:3000/bsi/dashboard
+
+⚠️ **IMPORTANT:** 
+- **http://localhost:3000/bsi/login** - For YOU (Jeff) to manage Bomizzel customers
+- **http://localhost:3000/login** - For CUSTOMERS to use their ticketing system
 
 This dashboard shows you:
 - Total customers
@@ -37,7 +41,7 @@ This dashboard shows you:
 ## 📋 What You Can Do
 
 ### 1. Provision New Customers
-**URL:** http://localhost:3000/admin/provisioning
+**URL:** http://localhost:3000/bsi/provisioning
 
 When a company wants to buy Bomizzel:
 1. Click "Provision New Customer" button
@@ -65,7 +69,7 @@ When a company wants to buy Bomizzel:
 - You see the temporary password (save it to send to them!)
 
 ### 2. View All Customers
-**URL:** http://localhost:3000/admin/provisioning (Provisioned Customers tab)
+**URL:** http://localhost:3000/bsi/provisioning (Provisioned Customers tab)
 
 See all your customers:
 - Company name
@@ -93,7 +97,7 @@ From the customer list:
    - Agree on pricing
 
 2. **Provision Their Account:**
-   - Login to your admin dashboard
+   - Login to your BSI admin dashboard at http://localhost:3000/bsi/login
    - Click "Provision New Customer"
    - Enter their details and custom limits
    - Set their pricing
@@ -176,7 +180,7 @@ Let's say ABC Appliance wants to buy Bomizzel:
 - 30-day trial
 
 **Steps:**
-1. Login to http://localhost:3000/admin
+1. Login to http://localhost:3000/bsi/login
 2. Click "Provision New Customer"
 3. Fill in:
    ```
