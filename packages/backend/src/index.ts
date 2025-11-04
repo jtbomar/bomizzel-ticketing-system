@@ -103,7 +103,7 @@ app.get('/api/test', (_req: Request, res: Response) => {
 // Mock user data (from database seeds)
 const users = [
   {
-    id: '550e8400-e29b-41d4-a716-446655440000',
+    id: '1d005c4e-9c40-4a34-ae93-4272069e334e', // Real database ID
     email: 'jeffrey.t.bomar@gmail.com',
     password: 'BomizzelAdmin2024!',
     firstName: 'Jeff',
