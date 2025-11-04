@@ -123,7 +123,7 @@ router.post('/save', authenticate, async (req, res, next) => {
  * GET /api/search/saved
  * Get user's saved searches
  */
-router.get('/saved', auth, async (req, res, next) => {
+router.get('/saved', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const savedSearches = await AdvancedSearchService.getSavedSearches(userId);

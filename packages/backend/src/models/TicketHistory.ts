@@ -203,8 +203,14 @@ export class TicketHistory extends BaseModel {
         ? {
             id: row.user_id,
             firstName: row.user_first_name,
-            lastName: row.user_last_name,
-            email: row.user_email,
+            lastName: row.user_last_name || '',
+            email: row.user_email || '',
+            role: 'unknown',
+            isActive: true,
+            emailVerified: false,
+            preferences: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
           }
         : undefined,
     };

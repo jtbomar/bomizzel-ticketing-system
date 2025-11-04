@@ -94,7 +94,7 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
     const contentType = req.get('Content-Type');
 
     if (!contentType) {
-      return res.status(400).json({
+      res.status(400).json({
         error: {
           code: 'MISSING_CONTENT_TYPE',
           message: 'Content-Type header is required',
@@ -102,6 +102,7 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
           requestId: req.id || 'unknown',
         },
       });
+      return;
     }
 
     // Allow JSON and multipart form data
@@ -114,7 +115,7 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
     const isValidType = allowedTypes.some((type) => contentType.toLowerCase().startsWith(type));
 
     if (!isValidType) {
-      return res.status(415).json({
+      res.status(415).json({
         error: {
           code: 'UNSUPPORTED_MEDIA_TYPE',
           message: 'Unsupported Content-Type',
@@ -122,6 +123,7 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
           requestId: req.id || 'unknown',
         },
       });
+      return;
     }
   }
 
@@ -136,7 +138,7 @@ export const limitRequestSize = (maxSize: number = 10 * 1024 * 1024) => {
     const contentLength = req.get('Content-Length');
 
     if (contentLength && parseInt(contentLength, 10) > maxSize) {
-      return res.status(413).json({
+      res.status(413).json({
         error: {
           code: 'PAYLOAD_TOO_LARGE',
           message: `Request body too large. Maximum size is ${maxSize} bytes`,
@@ -144,6 +146,7 @@ export const limitRequestSize = (maxSize: number = 10 * 1024 * 1024) => {
           requestId: req.id || 'unknown',
         },
       });
+      return;
     }
 
     next();

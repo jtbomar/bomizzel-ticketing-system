@@ -98,13 +98,13 @@ export const authRateLimiter = createRateLimiter({
 export const generalRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
   maxRequests: 100, // 100 requests per 15 minutes
-  keyGenerator: (req) => req.ip,
+  keyGenerator: (req) => req.ip || 'unknown',
 });
 
 export const strictRateLimiter = createRateLimiter({
   windowMs: 60 * 1000, // 1 minute
   maxRequests: 10, // 10 requests per minute
-  keyGenerator: (req) => req.ip,
+  keyGenerator: (req) => req.ip || 'unknown',
 });
 
 export const fileUploadRateLimiter = createRateLimiter({

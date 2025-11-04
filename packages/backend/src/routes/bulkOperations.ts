@@ -87,7 +87,7 @@ router.post('/status', authenticate, validateRequest(bulkStatusUpdateSchema), as
  */
 router.post(
   '/priority',
-  auth,
+  authenticate,
   validateRequest(bulkPriorityUpdateSchema),
   async (req, res, next) => {
     try {
@@ -167,7 +167,7 @@ router.delete('/delete', authenticate, validateRequest(bulkDeleteSchema), async 
  * GET /api/bulk/history
  * Get bulk operation history for current user
  */
-router.get('/history', auth, async (req, res, next) => {
+router.get('/history', authenticate, async (req, res, next) => {
   try {
     const performedById = req.user!.id;
     const { limit, offset, action } = req.query;

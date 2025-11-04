@@ -52,7 +52,7 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
       },
       userAgent: req.get('User-Agent'),
       userId: req.user?.id,
-      ip: req.ip,
+      ip: req.ip || 'unknown',
       timestamp: new Date().toISOString(),
     };
 
