@@ -311,8 +311,7 @@ export class AdminProvisioningService {
   } = {}) {
     try {
       // Query the database for provisioned customers
-      const { db } = require('../config/database');
-      const customers = await db('customer_subscriptions as cs')
+      const customers = await CustomerSubscription.db('customer_subscriptions as cs')
         .join('companies as c', 'cs.company_id', 'c.id')
         .join('users as u', 'cs.user_id', 'u.id')
         .where('cs.is_custom', true)
@@ -335,7 +334,7 @@ export class AdminProvisioningService {
       return customers.map((customer: any) => ({
         subscriptionId: customer.subscription_id,
         status: customer.status,
-        limits: customer.limits ? JSON.parse(customer.limits) : {},
+        limits: customer.limits || {},
         currentPeriod: {
           start: customer.current_period_start,
           end: customer.current_period_end
@@ -352,7 +351,12 @@ export class AdminProvisioningService {
       }));
 
     } catch (error) {
-      logger.error('Failed to get provisioned customers', { error });
+      console.error('Failed to get provisioned customers - DETAILED ERROR:', error);
+      logger.error('Failed to get provisioned customers', { 
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }
