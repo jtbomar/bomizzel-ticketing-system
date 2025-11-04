@@ -23,6 +23,15 @@ app.use(
 );
 app.use(express.json());
 
+// Import and mount API routes
+try {
+  const routes = require('./routes').default;
+  app.use('/api', routes);
+  console.log('✅ API routes registered successfully');
+} catch (error) {
+  console.warn('⚠️ Could not register API routes:', error);
+}
+
 // Simple company profile endpoints for testing
 app.get('/api/company-registration/profile', (req: Request, res: Response) => {
   console.log('GET /api/company-registration/profile called');

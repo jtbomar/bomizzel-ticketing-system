@@ -22,12 +22,16 @@ import billingRoutes from './billing';
 import subscriptionAnalyticsRoutes from './subscriptionAnalytics';
 import ticketArchivalRoutes from './ticketArchival';
 import companyRegistrationRoutes from './companyRegistration';
+import enhancedRegistrationRoutes from './enhancedRegistration';
+import adminProvisioningRoutes from './adminProvisioning';
 
 const router = Router();
 
 // Mount route modules
 router.use('/auth', authRoutes);
+router.use('/auth', enhancedRegistrationRoutes); // Enhanced registration endpoints
 router.use('/company-registration', companyRegistrationRoutes);
+router.use('/admin/provisioning', adminProvisioningRoutes); // Admin provisioning endpoints
 router.use('/users', userRoutes);
 router.use('/companies', companyRoutes);
 router.use('/teams', teamRoutes);
@@ -57,6 +61,8 @@ router.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
+      enhancedRegistration: '/api/auth/register-enhanced',
+      adminProvisioning: '/api/admin/provisioning',
       users: '/api/users',
       companies: '/api/companies',
       teams: '/api/teams',
