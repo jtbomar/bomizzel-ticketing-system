@@ -150,7 +150,8 @@ router.get(
   validate(companySearchSchema, 'query'),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { query, limit } = req.query as { query: string; limit?: number };
+      const query = req.query.query as string;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       
       const companies = await EnhancedRegistrationService.searchCompanies(query, limit);
       
@@ -252,16 +253,31 @@ router.post(
       const { v4: uuidv4 } = require('uuid');
       
       const verificationToken = uuidv4();
-      await User.update(user.id, {
-        verificationToken,
-        verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-      });
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      await User.setEmailVerificationToken(user.id, verificationToken, expiresAt);
       
-      await EmailService.sendVerificationEmail({
-        to: user.email,
-        firstName: user.firstName,
-        verificationUrl: `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`
-      });
+      const htmlBody = `
+        <h2>Verify Your Email Address</h2>
+        <p>Hi ${user.first_name},</p>
+        <p>Please click the link below to verify your email address:</p>
+        <p><a href="${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}">Verify Email Address</a></p>
+        <p>This link will expire in 24 hours.</p>
+      `;
+      const textBody = `
+        Verify Your Email Address
+        Hi ${user.first_name},
+        Please visit the following link to verify your email address:
+        ${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}
+        This link will expire in 24 hours.
+      `;
+      
+      await EmailService.sendNotificationEmail(
+        [user.email],
+        'Verify Your Email Address - Bomizzel',
+        htmlBody,
+        textBody,
+        { type: 'email_verification_resend', userId: user.id }
+      );
       
       res.json({
         success: true,
