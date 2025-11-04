@@ -99,16 +99,7 @@ export class AdminProvisioningService {
         name: request.companyName,
         domain: request.companyDomain,
         description: request.companyDescription,
-        is_active: true,
-        created_by: provisionedBy,
-        settings: JSON.stringify({
-          allowSelfRegistration: true,
-          requireApproval: false,
-          defaultRole: 'member',
-          provisioned: true,
-          provisionedBy,
-          provisionedAt: new Date().toISOString()
-        })
+        is_active: true
       });
 
       // 4. Generate temporary password for admin
@@ -126,7 +117,6 @@ export class AdminProvisioningService {
         role: 'admin',
         is_active: true,
         email_verified: true, // Auto-verify for provisioned accounts
-        created_by: provisionedBy,
         preferences: {
           theme: 'light',
           notifications: {
