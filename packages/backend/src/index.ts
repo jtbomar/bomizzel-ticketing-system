@@ -103,6 +103,14 @@ app.get('/api/test', (_req: Request, res: Response) => {
 // Mock user data (from database seeds)
 const users = [
   {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    email: 'jeffrey.t.bomar@gmail.com',
+    password: 'BomizzelAdmin2024!',
+    firstName: 'Jeff',
+    lastName: 'Bomar',
+    role: 'admin',
+  },
+  {
     id: '550e8400-e29b-41d4-a716-446655440001',
     email: 'admin@bomizzel.com',
     password: 'password123', // In real app, this would be hashed
