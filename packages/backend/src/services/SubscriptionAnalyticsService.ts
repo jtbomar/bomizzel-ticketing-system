@@ -299,7 +299,7 @@ export class SubscriptionAnalyticsService {
       const trialToPaidConversions = await db('customer_subscriptions')
         .whereBetween('updated_at', [startDate, endDate])
         .where('status', 'active')
-        .where('plan_id', '!=', freeTierPlanId)
+        .whereNot('plan_id', freeTierPlanId)
         .whereNotNull('trial_end')
         .count('* as count')
         .first();
@@ -309,7 +309,7 @@ export class SubscriptionAnalyticsService {
         .join('customer_subscriptions as cs2', 'cs1.user_id', 'cs2.user_id')
         .where('cs1.plan_id', freeTierPlanId)
         .where('cs1.status', 'cancelled')
-        .where('cs2.plan_id', '!=', freeTierPlanId)
+        .whereNot('cs2.plan_id', freeTierPlanId)
         .where('cs2.status', 'active')
         .whereBetween('cs2.created_at', [startDate, endDate])
         .count('* as count')
@@ -461,7 +461,7 @@ export class SubscriptionAnalyticsService {
       const totalActiveStartCount = parseInt(String(totalActiveStart?.count || '0'));
       const newSubscriptionsCount = parseInt(String(newSubscriptions?.count || '0'));
       const churnedSubscriptionsCount = parseInt(churnedSubscriptionsData?.count || '0');
-      const totalActiveEndCount = parseInt(totalActiveEnd?.count || '0');
+      const totalActiveEndCount = parseInt(String(totalActiveEnd?.count || '0'));
       const churnedRevenue = parseFloat(churnedSubscriptionsData?.churned_revenue || '0');
       const avgChurnedValue = parseFloat(churnedSubscriptionsData?.avg_churned_value || '0');
 
@@ -640,9 +640,9 @@ export class SubscriptionAnalyticsService {
         .count('* as count')
         .first();
 
-      const newCustomersCount = parseInt(newCustomers?.count || '0');
-      const churnedCustomersCount = parseInt(churnedCustomers?.count || '0');
-      const totalCustomersCount = parseInt(totalCustomers?.count || '0');
+      const newCustomersCount = parseInt(String(newCustomers?.count || '0'));
+      const churnedCustomersCount = parseInt(String(churnedCustomers?.count || '0'));
+      const totalCustomersCount = parseInt(String(totalCustomers?.count || '0'));
 
       // Calculate metrics
       const averageRevenuePerUser =

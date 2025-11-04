@@ -92,13 +92,14 @@ router.delete('/cache/:pattern', async (req: Request, res: Response, next: NextF
     const { pattern } = req.params;
 
     if (!pattern || pattern.length < 3) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: {
           code: 'INVALID_PATTERN',
           message: 'Pattern must be at least 3 characters long',
         },
       });
+      return;
     }
 
     const deletedCount = await CacheService.delPattern(pattern);

@@ -10,7 +10,7 @@ import { User } from '@/models/User';
 import { authenticate } from '@/middleware/auth';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { validateRequest } from '@/utils/validation';
+import { validateRequest, validate } from '@/utils/validation';
 import Joi from 'joi';
 
 const router = express.Router();
@@ -42,7 +42,7 @@ const retryPaymentSchema = Joi.object({
 router.post(
   '/setup-intent',
   authenticate,
-  validateRequest(createSetupIntentSchema),
+  validate(createSetupIntentSchema),
   async (req, res, next) => {
     try {
       const userId = req.user!.id;
@@ -82,7 +82,7 @@ router.post(
 router.post(
   '/checkout-session',
   authenticate,
-  validateRequest(createCheckoutSessionSchema),
+  validate(createCheckoutSessionSchema),
   async (req, res, next) => {
     try {
       const userId = req.user!.id;
@@ -180,7 +180,7 @@ router.get('/payment-methods', authenticate, async (req, res, next): Promise<voi
 router.put(
   '/payment-method',
   authenticate,
-  validateRequest(updatePaymentMethodSchema),
+  validate(updatePaymentMethodSchema),
   async (req, res, next) => {
     try {
       const userId = req.user!.id;
@@ -301,7 +301,7 @@ router.get('/upcoming-invoice', authenticate, async (req, res, next) => {
 router.post(
   '/retry-payment',
   authenticate,
-  validateRequest(retryPaymentSchema),
+  validate(retryPaymentSchema),
   async (req, res, next) => {
     try {
       const { invoiceId } = req.body;

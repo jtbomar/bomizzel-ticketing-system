@@ -67,13 +67,14 @@ router.get(
 
       const queue = await Queue.getQueueWithTicketCount(queueId);
       if (!queue) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           error: {
             code: 'QUEUE_NOT_FOUND',
             message: 'Queue not found',
           },
         });
+        return;
       }
 
       res.json({

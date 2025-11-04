@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AdvancedSearchService } from '../services/AdvancedSearchService';
-import { validateRequest } from '../utils/validation';
+import { validateRequest, validate } from '../utils/validation';
 import Joi from 'joi';
 
 const router = Router();
@@ -68,7 +68,7 @@ router.get('/fields/:teamId', authenticate, async (req, res, next): Promise<void
  * POST /api/search/tickets
  * Perform advanced ticket search
  */
-router.post('/tickets', authenticate, validateRequest(advancedSearchSchema), async (req, res, next) => {
+router.post('/tickets', authenticate, validate(advancedSearchSchema), async (req, res, next) => {
   try {
     const searchRequest = req.body;
     const userId = req.user!.id;

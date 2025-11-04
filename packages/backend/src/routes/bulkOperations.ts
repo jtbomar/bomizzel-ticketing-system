@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { BulkOperationsService } from '../services/BulkOperationsService';
-import { validateRequest } from '../utils/validation';
+import { validateRequest, validate } from '../utils/validation';
 import Joi from 'joi';
 
 const router = Router();
@@ -35,7 +35,7 @@ const bulkMoveSchema = Joi.object({
  * POST /api/bulk/assign
  * Bulk assign tickets to an employee
  */
-router.post('/assign', authenticate, validateRequest(bulkAssignSchema), async (req, res, next) => {
+router.post('/assign', authenticate, validate(bulkAssignSchema), async (req, res, next) => {
   try {
     const { ticketIds, assignedToId } = req.body;
     const performedById = req.user!.id;
@@ -60,7 +60,7 @@ router.post('/assign', authenticate, validateRequest(bulkAssignSchema), async (r
  * POST /api/bulk/status
  * Bulk update ticket status
  */
-router.post('/status', authenticate, validateRequest(bulkStatusUpdateSchema), async (req, res, next) => {
+router.post('/status', authenticate, validate(bulkStatusUpdateSchema), async (req, res, next) => {
   try {
     const { ticketIds, status } = req.body;
     const performedById = req.user!.id;
@@ -88,7 +88,7 @@ router.post('/status', authenticate, validateRequest(bulkStatusUpdateSchema), as
 router.post(
   '/priority',
   authenticate,
-  validateRequest(bulkPriorityUpdateSchema),
+  validate(bulkPriorityUpdateSchema),
   async (req, res, next) => {
     try {
       const { ticketIds, priority } = req.body;
@@ -115,7 +115,7 @@ router.post(
  * POST /api/bulk/move
  * Bulk move tickets to a different queue
  */
-router.post('/move', authenticate, validateRequest(bulkMoveSchema), async (req, res, next) => {
+router.post('/move', authenticate, validate(bulkMoveSchema), async (req, res, next) => {
   try {
     const { ticketIds, queueId } = req.body;
     const performedById = req.user!.id;
@@ -142,7 +142,7 @@ router.post('/move', authenticate, validateRequest(bulkMoveSchema), async (req, 
  * DELETE /api/bulk/delete
  * Bulk delete tickets (soft delete)
  */
-router.delete('/delete', authenticate, validateRequest(bulkDeleteSchema), async (req, res, next) => {
+router.delete('/delete', authenticate, validate(bulkDeleteSchema), async (req, res, next) => {
   try {
     const { ticketIds } = req.body;
     const performedById = req.user!.id;
