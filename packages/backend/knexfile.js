@@ -28,9 +28,9 @@ module.exports = {
     connection: {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 5432,
-      database: process.env.DB_NAME + '_test' || 'bomizzel_db_test',
-      user: process.env.DB_USER || 'bomizzel_user',
-      password: process.env.DB_PASSWORD || 'bomizzel_password',
+      database: process.env.DB_NAME || 'bomizzel_test',
+      user: process.env.DB_USER || 'test_user',
+      password: process.env.DB_PASSWORD || 'test_password',
     },
     pool: {
       min: 2,

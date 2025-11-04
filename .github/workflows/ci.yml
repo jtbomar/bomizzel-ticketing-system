@@ -110,26 +110,51 @@ jobs:
         run: npm run migrate --workspace=backend
         env:
           NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bomizzel_test
+          DB_USER: test_user
+          DB_PASSWORD: test_password
 
       - name: Run unit tests
         run: npm run test:unit --workspace=backend
         env:
           NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bomizzel_test
+          DB_USER: test_user
+          DB_PASSWORD: test_password
 
       - name: Run integration tests
         run: npm run test:integration --workspace=backend
         env:
           NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bomizzel_test
+          DB_USER: test_user
+          DB_PASSWORD: test_password
 
       - name: Run security tests
         run: npm run test:security --workspace=backend
         env:
           NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bomizzel_test
+          DB_USER: test_user
+          DB_PASSWORD: test_password
 
       - name: Generate test coverage
         run: npm run test:coverage --workspace=backend
         env:
           NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bomizzel_test
+          DB_USER: test_user
+          DB_PASSWORD: test_password
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
