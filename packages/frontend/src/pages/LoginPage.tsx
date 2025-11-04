@@ -22,14 +22,9 @@ const LoginPage: React.FC = () => {
     try {
       await login(formData.email, formData.password);
       
-      // Navigate based on user role (will be determined by login)
-      if (formData.email.includes('admin')) {
-        navigate('/admin');
-      } else if (formData.email.includes('employee')) {
-        navigate('/employee');
-      } else {
-        navigate('/customer');
-      }
+      // The AuthContext will handle setting the user
+      // Navigate to employee/agent view by default (users can navigate to admin if needed)
+      navigate('/employee');
     } catch (err: any) {
       setError(err.message);
     }

@@ -4,9 +4,24 @@ import apiService from '../services/api';
 
 interface AgentProfileProps {
   onClose: () => void;
+  boardSettings?: {
+    autoRefresh: boolean;
+    dragAndDrop: boolean;
+    showPriorityArrows: boolean;
+    refreshInterval: number;
+    defaultView: 'kanban' | 'list';
+    ticketsPerColumn: number;
+    showTicketIds: boolean;
+    showAssignee: boolean;
+  };
+  onBoardSettingsChange?: (settings: any) => void;
 }
 
-const AgentProfile: React.FC<AgentProfileProps> = ({ onClose }) => {
+const AgentProfile: React.FC<AgentProfileProps> = ({ 
+  onClose, 
+  boardSettings,
+  onBoardSettingsChange 
+}) => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -29,6 +44,17 @@ const AgentProfile: React.FC<AgentProfileProps> = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  const [localBoardSettings, setLocalBoardSettings] = useState(boardSettings || {
+    autoRefresh: true,
+    dragAndDrop: true,
+    showPriorityArrows: true,
+    refreshInterval: 30,
+    defaultView: 'kanban' as 'kanban' | 'list',
+    ticketsPerColumn: 0,
+    showTicketIds: true,
+    showAssignee: true,
+  });
 
   const handleProfilePictureChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -115,6 +141,11 @@ const AgentProfile: React.FC<AgentProfileProps> = ({ onClose }) => {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
         });
+      }
+      
+      // Save board settings
+      if (onBoardSettingsChange) {
+        onBoardSettingsChange(localBoardSettings);
       }
       
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -338,7 +369,108 @@ const AgentProfile: React.FC<AgentProfileProps> = ({ onClose }) => {
           </div>
         )} 
        {activeTab === 'preferences' && (
-          <div className="space-y-6">
+          <div className="space-y-8">
+            {/* Board Settings */}
+            <div>
+              <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Dashboard Settings</h4>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Auto Refresh</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Automatically refresh ticket data</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={localBoardSettings.autoRefresh}
+                        onChange={(e) => setLocalBoardSettings(prev => ({ ...prev, autoRefresh: e.target.checked }))}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Drag & Drop</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Enable drag and drop for tickets</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={localBoardSettings.dragAndDrop}
+                        onChange={(e) => setLocalBoardSettings(prev => ({ ...prev, dragAndDrop: e.target.checked }))}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Priority Arrows</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Show priority adjustment arrows</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={localBoardSettings.showPriorityArrows}
+                        onChange={(e) => setLocalBoardSettings(prev => ({ ...prev, showPriorityArrows: e.target.checked }))}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Show Ticket IDs</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Display ticket ID numbers</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={localBoardSettings.showTicketIds}
+                        onChange={(e) => setLocalBoardSettings(prev => ({ ...prev, showTicketIds: e.target.checked }))}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">Show Assignee</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Display who tickets are assigned to</div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={localBoardSettings.showAssignee}
+                        onChange={(e) => setLocalBoardSettings(prev => ({ ...prev, showAssignee: e.target.checked }))}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default View</label>
+                    <select 
+                      className="w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      value={localBoardSettings.defaultView}
+                      onChange={(e) => setLocalBoardSettings(prev => ({ ...prev, defaultView: e.target.value as 'kanban' | 'list' }))}
+                    >
+                      <option value="kanban">Kanban Board</option>
+                      <option value="list">List View</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notification Settings */}
             <div>
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Preferences</h4>
               <div className="space-y-4">

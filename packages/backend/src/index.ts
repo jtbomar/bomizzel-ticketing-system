@@ -21,6 +21,40 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Simple company profile endpoints for testing
+app.get('/api/company-registration/profile', (req: Request, res: Response) => {
+  console.log('GET /api/company-registration/profile called');
+  console.log('Authorization header:', req.headers.authorization);
+  
+  res.json({
+    success: true,
+    data: {
+      id: '1',
+      name: 'Test Company',
+      domain: 'test.com',
+      description: 'Test company description',
+      timezone: 'UTC',
+      dateFormat: 'MM/DD/YYYY',
+      timeFormat: '12',
+      currency: 'USD',
+      language: 'en',
+      allowPublicRegistration: false,
+      requireEmailVerification: true,
+    }
+  });
+});
+
+app.put('/api/company-registration/profile', (req: Request, res: Response) => {
+  console.log('Company profile update:', req.body);
+  res.json({
+    success: true,
+    message: 'Company profile updated successfully',
+    data: {
+      ...req.body,
+      id: '1',
+    }
+  });
+});
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
@@ -905,6 +939,135 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
     data: mockPlans
   });
 });
+
+// Mock ticket layout endpoints for testing
+app.get('/api/ticket-layouts', (req: Request, res: Response) => {
+  const { teamId } = req.query;
+  console.log('GET /api/ticket-layouts called for team:', teamId);
+  
+  // Mock layouts data
+  const mockLayouts = [
+    {
+      id: '1',
+      teamId: teamId,
+      name: 'General Support',
+      description: 'Standard support ticket form',
+      layoutConfig: {
+        gridColumns: 12,
+        gridRows: 10,
+        theme: 'default'
+      },
+      isDefault: true,
+      isActive: true,
+      sortOrder: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      fields: [
+        {
+          id: '1',
+          layoutId: '1',
+          fieldName: 'category',
+          fieldLabel: 'Category',
+          fieldType: 'picklist',
+          fieldConfig: {
+            options: [
+              { value: 'technical', label: 'Technical Support', isDefault: true },
+              { value: 'billing', label: 'Billing' },
+              { value: 'general', label: 'General Inquiry' },
+              { value: 'feature', label: 'Feature Request' }
+            ]
+          },
+          isRequired: true,
+          sortOrder: 0,
+          gridPositionX: 0,
+          gridPositionY: 0,
+          gridWidth: 6,
+          gridHeight: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]
+    }
+  ];
+  
+  res.json({ layouts: mockLayouts });
+});
+
+app.get('/api/ticket-layouts/team/:teamId/default', (req: Request, res: Response) => {
+  const { teamId } = req.params;
+  console.log('GET default layout for team:', teamId);
+  
+  const mockLayout = {
+    layout: {
+      id: '1',
+      teamId: teamId,
+      name: 'General Support',
+      description: 'Standard support ticket form',
+      layoutConfig: {
+        gridColumns: 12,
+        gridRows: 10,
+        theme: 'default'
+      },
+      isDefault: true,
+      isActive: true,
+      sortOrder: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    fields: [
+      {
+        id: '1',
+        layoutId: '1',
+        fieldName: 'category',
+        fieldLabel: 'Category',
+        fieldType: 'picklist',
+        fieldConfig: {
+          options: [
+            { value: 'technical', label: 'Technical Support', isDefault: true },
+            { value: 'billing', label: 'Billing' },
+            { value: 'general', label: 'General Inquiry' },
+            { value: 'feature', label: 'Feature Request' }
+          ]
+        },
+        isRequired: true,
+        sortOrder: 0,
+        gridPositionX: 0,
+        gridPositionY: 0,
+        gridWidth: 6,
+        gridHeight: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ]
+  };
+  
+  res.json(mockLayout);
+});
+
+app.post('/api/ticket-layouts', (req: Request, res: Response) => {
+  console.log('POST /api/ticket-layouts called with:', req.body);
+  
+  const mockResponse = {
+    layout: {
+      id: Date.now().toString(),
+      ...req.body,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    fields: req.body.fields || []
+  };
+  
+  res.status(201).json(mockResponse);
+});
+
+// Import and register routes (commented out due to compilation issues)
+// try {
+//   const ticketLayoutRoutes = require('./routes/ticketLayouts');
+//   app.use('/api/ticket-layouts', ticketLayoutRoutes.default);
+//   console.log('🎨 Ticket layout routes registered');
+// } catch (error) {
+//   console.warn('⚠️ Could not register ticket layout routes:', error);
+// }
 
 // Import and register subscription routes (commented out for now to avoid dependency issues)
 // try {

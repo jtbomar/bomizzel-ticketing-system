@@ -1,9 +1,10 @@
 import { Company } from '@/models/Company';
 import { User } from '@/models/User';
-import { AuthService } from '@/services/AuthService';
 import { EmailService } from '@/services/EmailService';
 import { AppError } from '@/middleware/errorHandler';
 import { db } from '@/config/database';
+import { JWTUtils } from '@/utils/jwt';
+import bcrypt from 'bcryptjs';
 
 export interface CompanyRegistrationData {
   // Company basic info
@@ -102,19 +103,19 @@ export class CompanyRegistrationService {
       if (data.domain) {
         const existingCompany = await Company.findByDomain(data.domain);
         if (existingCompany) {
-          throw new AppError('Company domain already exists', 400);
+          throw new AppError('Company domain already exists', 400, 'DOMAIN_EXISTS');
         }
       }
       
       const existingCompanyByName = await Company.findByName(data.companyName);
       if (existingCompanyByName) {
-        throw new AppError('Company name already exists', 400);
+        throw new AppError('Company name already exists', 400, 'COMPANY_EXISTS');
       }
       
       // Check if admin email already exists
       const existingUser = await User.findByEmail(data.adminEmail);
       if (existingUser) {
-        throw new AppError('Admin email already exists', 400);
+        throw new AppError('Admin email already exists', 400, 'EMAIL_EXISTS');
       }
       
       // Calculate trial end date (30 days from now)
@@ -167,18 +168,39 @@ export class CompanyRegistrationService {
       const company = await trx('companies').insert(companyData).returning('*');
       const createdCompany = company[0];
       
-      // Create admin user
-      const adminUserData = {
+      // Create admin user directly
+      const hashedPassword = await bcrypt.hash(data.adminPassword, 12);
+      
+      const [adminUserRecord] = await trx('users').insert({
         first_name: data.adminFirstName,
         last_name: data.adminLastName,
         email: data.adminEmail,
-        password: data.adminPassword,
+        password_hash: hashedPassword,
         role: 'admin',
         is_active: true,
-        email_verified: true, // Auto-verify admin user
-      };
+        email_verified: true,
+      }).returning('*');
       
-      const adminUser = await AuthService.register(adminUserData, trx);
+      // Generate tokens for the admin user
+      const tokens = JWTUtils.generateTokenPair({
+        userId: adminUserRecord.id,
+        email: adminUserRecord.email,
+        role: adminUserRecord.role,
+      });
+      
+      const adminUser = {
+        user: {
+          id: adminUserRecord.id,
+          email: adminUserRecord.email,
+          firstName: adminUserRecord.first_name,
+          lastName: adminUserRecord.last_name,
+          role: adminUserRecord.role,
+        },
+        tokens: {
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        },
+      };
       
       // Associate admin user with company as owner
       await trx('user_company_associations').insert({
@@ -212,7 +234,10 @@ export class CompanyRegistrationService {
           await EmailService.sendWelcomeEmail(
             data.adminEmail,
             `${data.adminFirstName} ${data.adminLastName}`,
-            data.companyName
+            'Trial Plan',
+            ['5 Users', '100 Tickets/Month', '30-Day Trial'],
+            true,
+            30
           );
         } catch (emailError) {
           console.warn('Failed to send welcome email:', emailError);
@@ -242,7 +267,7 @@ export class CompanyRegistrationService {
     // Verify user has permission to update company
     const isOwnerOrAdmin = await this.verifyCompanyPermission(userId, companyId, ['owner', 'admin']);
     if (!isOwnerOrAdmin) {
-      throw new AppError('Insufficient permissions to update company profile', 403);
+      throw new AppError('Insufficient permissions to update company profile', 403, 'INSUFFICIENT_PERMISSIONS');
     }
     
     const updateData: any = {};
@@ -315,7 +340,7 @@ export class CompanyRegistrationService {
     const company = await db('companies').where('id', companyId).first();
     
     if (!company) {
-      throw new AppError('Company not found', 404);
+      throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');
     }
     
     return this.formatCompanyProfile(company);

@@ -47,13 +47,13 @@ const SimpleLoginPage: React.FC = () => {
         
         // Redirect based on user role
         if (data.user.role === 'admin') {
-          window.location.href = '/admin';
-        } else if (data.user.role === 'user') {
+          window.location.href = '/employee'; // Admins go to agent view first
+        } else if (data.user.role === 'employee' || data.user.role === 'user') {
           window.location.href = '/employee';
         } else if (data.user.role === 'customer') {
           window.location.href = '/customer';
         } else {
-          window.location.href = '/admin'; // Default fallback
+          window.location.href = '/employee'; // Default to agent view
         }
       } else {
         setError(data.error || data.message || 'Login failed');

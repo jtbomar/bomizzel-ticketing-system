@@ -50,7 +50,7 @@ const HomePage: React.FC = () => {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-8">
             <Link to="/company-register" className="btn-primary text-lg px-8 py-3">
               Start Your Company Trial
             </Link>
@@ -59,6 +59,25 @@ const HomePage: React.FC = () => {
             </Link>
             <Link to="/pricing" className="btn-outline text-lg px-8 py-3">
               View Pricing Plans
+            </Link>
+          </div>
+
+          {/* Demo Section */}
+          <div className="mb-16 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              🎨 Try Our Interactive Features
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Try our simple color picker - type hex codes or drag to select colors for statuses and priorities
+            </p>
+            <Link 
+              to="/color-picker-demo" 
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM7 3H5a2 2 0 00-2 2v12a4 4 0 004 4h2M9 3h10a2 2 0 012 2v12a4 4 0 01-4 4H9" />
+              </svg>
+              <span>Try Color Picker</span>
             </Link>
           </div>
 
