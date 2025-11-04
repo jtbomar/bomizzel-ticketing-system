@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 
 export abstract class BaseModel {
   protected static tableName: string;
-  protected static db = db;
+  public static db = db;
 
   static get query(): Knex.QueryBuilder {
     return this.db(this.tableName);
