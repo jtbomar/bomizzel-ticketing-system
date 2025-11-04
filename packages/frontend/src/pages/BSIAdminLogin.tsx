@@ -24,7 +24,13 @@ const BSIAdminLogin: React.FC = () => {
       const { token, user } = response.data;
 
       // Check if user is BSI admin (from Bomizzel Services Inc.)
-      if (user.role !== 'admin' || !email.includes('bomizzel')) {
+      // Allow Jeff Bomar's email and any @bomizzel.com emails
+      const isBSIAdmin = user.role === 'admin' && 
+        (email === 'jeffrey.t.bomar@gmail.com' || 
+         email.includes('@bomizzel.com') || 
+         email.includes('bomizzel'));
+      
+      if (!isBSIAdmin) {
         setError('Access denied. This portal is for Bomizzel Services Inc. administrators only.');
         setLoading(false);
         return;

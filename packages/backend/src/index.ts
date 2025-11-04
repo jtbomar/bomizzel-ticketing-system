@@ -152,10 +152,10 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
+    // Generate JWT token with proper format (including type: 'access')
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || 'fallback-secret',
+      { userId: user.id, email: user.email, role: user.role, type: 'access' },
+      process.env.JWT_SECRET || 'your-super-secret-jwt-key',
       { expiresIn: '24h' }
     );
 
