@@ -190,7 +190,8 @@ router.get(
       logger.error('Get custom field error:', error);
 
       if (error instanceof Error && error.message.includes('not found')) {
-        return res.status(404).json({ error: error.message });
+        res.status(404).json({ error: error.message });
+        return;
       }
 
       res.status(500).json({
@@ -217,9 +218,10 @@ router.put(
 
       // Only team leads and admins can update custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        return res
+        res
           .status(403)
           .json({ error: 'Only team leads and admins can update custom fields' });
+        return;
       }
 
       const field = await CustomFieldService.updateCustomField(fieldId, teamId, updates);
@@ -232,7 +234,8 @@ router.put(
       logger.error('Update custom field error:', error);
 
       if (error instanceof Error && error.message.includes('not found')) {
-        return res.status(404).json({ error: error.message });
+        res.status(404).json({ error: error.message });
+        return;
       }
 
       res.status(400).json({
@@ -257,9 +260,10 @@ router.delete(
 
       // Only team leads and admins can delete custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        return res
+        res
           .status(403)
           .json({ error: 'Only team leads and admins can delete custom fields' });
+        return;
       }
 
       await CustomFieldService.deleteCustomField(fieldId, teamId);
@@ -272,7 +276,8 @@ router.delete(
       logger.error('Delete custom field error:', error);
 
       if (error instanceof Error && error.message.includes('not found')) {
-        return res.status(404).json({ error: error.message });
+        res.status(404).json({ error: error.message });
+        return;
       }
 
       res.status(500).json({
@@ -299,9 +304,10 @@ router.put(
 
       // Only team leads and admins can reorder custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        return res
+        res
           .status(403)
           .json({ error: 'Only team leads and admins can reorder custom fields' });
+        return;
       }
 
       await CustomFieldService.reorderCustomFields(teamId, fieldOrders);

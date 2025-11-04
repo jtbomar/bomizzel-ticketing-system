@@ -63,13 +63,14 @@ router.post(
         );
 
         if (!renderedTemplate) {
-          return res.status(404).json({
+          res.status(404).json({
             success: false,
             error: {
               code: 'TEMPLATE_NOT_FOUND',
               message: 'Email template not found',
             },
           });
+          return;
         }
 
         finalSubject = renderedTemplate.subject;
@@ -79,13 +80,14 @@ router.post(
 
       // Validate that we have at least one body type
       if (!finalHtmlBody && !finalTextBody) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'MISSING_BODY',
             message: 'Either htmlBody or textBody is required',
           },
         });
+        return;
       }
 
       const emailRequest: SendEmailRequest = {
@@ -224,7 +226,7 @@ router.post(
       });
 
       if (!validation.isValid) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'INVALID_TEMPLATE',
@@ -232,6 +234,7 @@ router.post(
             details: validation.errors,
           },
         });
+        return;
       }
 
       const template = await EmailTemplateService.createTemplate(templateData);
