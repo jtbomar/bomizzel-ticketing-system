@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { CompanyService } from '@/services/CompanyService';
 import { authenticate, authorize, authorizeCompanyMember } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
+import Joi from 'joi';
 import {
   createCompanySchema,
   updateCompanySchema,
@@ -101,7 +102,7 @@ router.get('/search', authenticate, async (req, res, next) => {
 router.get(
   '/:companyId',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema }), 'params'),
   authorizeCompanyMember,
   async (req, res, next) => {
     try {
@@ -122,7 +123,7 @@ router.put(
   '/:companyId',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema }), 'params'),
   validate(updateCompanySchema),
   async (req, res, next) => {
     try {
@@ -147,7 +148,7 @@ router.delete(
   '/:companyId',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
       const { companyId } = req.params;
@@ -169,7 +170,7 @@ router.delete(
 router.get(
   '/:companyId/users',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema }), 'params'),
   authorizeCompanyMember,
   async (req, res, next) => {
     try {
@@ -190,7 +191,7 @@ router.post(
   '/:companyId/users',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema }), 'params'),
   validate(addUserToCompanySchema),
   async (req, res, next) => {
     try {
@@ -216,7 +217,7 @@ router.delete(
   '/:companyId/users/:userId',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema, userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
       const { companyId, userId } = req.params;
@@ -239,7 +240,7 @@ router.put(
   '/:companyId/users/:userId/role',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ companyId: uuidSchema, userId: uuidSchema }), 'params'),
   validate(updateUserCompanyRoleSchema),
   async (req, res, next) => {
     try {

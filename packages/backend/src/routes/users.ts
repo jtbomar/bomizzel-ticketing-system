@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { UserService } from '@/services/UserService';
 import { authenticate, authorize, authorizeOwnerOrAdmin } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
+import Joi from 'joi';
 import { updateUserSchema, paginationSchema, uuidSchema } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
 
@@ -78,7 +79,7 @@ router.get('/search', authenticate, async (req, res, next) => {
 router.get(
   '/:userId',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
@@ -98,7 +99,7 @@ router.get(
 router.put(
   '/:userId',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   validate(updateUserSchema),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
@@ -134,7 +135,7 @@ router.post(
   '/:userId/deactivate',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
@@ -162,7 +163,7 @@ router.post(
   '/:userId/reactivate',
   authenticate,
   authorize('admin'),
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
@@ -184,7 +185,7 @@ router.post(
 router.get(
   '/:userId/companies',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
@@ -204,7 +205,7 @@ router.get(
 router.get(
   '/:userId/teams',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
@@ -224,7 +225,7 @@ router.get(
 router.put(
   '/:userId/preferences',
   authenticate,
-  validate(uuidSchema, 'params'),
+  validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
