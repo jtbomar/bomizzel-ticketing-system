@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { BulkOperationsService } from '../services/BulkOperationsService';
 import { validateRequest } from '../utils/validation';
 import Joi from 'joi';
@@ -35,7 +35,7 @@ const bulkMoveSchema = Joi.object({
  * POST /api/bulk/assign
  * Bulk assign tickets to an employee
  */
-router.post('/assign', auth, validateRequest(bulkAssignSchema), async (req, res, next) => {
+router.post('/assign', authenticate, validateRequest(bulkAssignSchema), async (req, res, next) => {
   try {
     const { ticketIds, assignedToId } = req.body;
     const performedById = req.user!.id;
@@ -60,7 +60,7 @@ router.post('/assign', auth, validateRequest(bulkAssignSchema), async (req, res,
  * POST /api/bulk/status
  * Bulk update ticket status
  */
-router.post('/status', auth, validateRequest(bulkStatusUpdateSchema), async (req, res, next) => {
+router.post('/status', authenticate, validateRequest(bulkStatusUpdateSchema), async (req, res, next) => {
   try {
     const { ticketIds, status } = req.body;
     const performedById = req.user!.id;
@@ -115,7 +115,7 @@ router.post(
  * POST /api/bulk/move
  * Bulk move tickets to a different queue
  */
-router.post('/move', auth, validateRequest(bulkMoveSchema), async (req, res, next) => {
+router.post('/move', authenticate, validateRequest(bulkMoveSchema), async (req, res, next) => {
   try {
     const { ticketIds, queueId } = req.body;
     const performedById = req.user!.id;
@@ -142,7 +142,7 @@ router.post('/move', auth, validateRequest(bulkMoveSchema), async (req, res, nex
  * DELETE /api/bulk/delete
  * Bulk delete tickets (soft delete)
  */
-router.delete('/delete', auth, validateRequest(bulkDeleteSchema), async (req, res, next) => {
+router.delete('/delete', authenticate, validateRequest(bulkDeleteSchema), async (req, res, next) => {
   try {
     const { ticketIds } = req.body;
     const performedById = req.user!.id;
@@ -191,7 +191,7 @@ router.get('/history', auth, async (req, res, next) => {
  * POST /api/bulk/validate-access
  * Validate ticket access for bulk operations
  */
-router.post('/validate-access', auth, async (req, res, next) => {
+router.post('/validate-access', authenticate, async (req, res, next) => {
   try {
     const { ticketIds } = req.body;
     const userId = req.user!.id;

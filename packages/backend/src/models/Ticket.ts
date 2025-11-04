@@ -120,7 +120,7 @@ export class Ticket extends BaseModel {
         assignedById,
         'assigned',
         'assigned_to_id',
-        null,
+        undefined,
         assignedToId
       );
     }
@@ -142,7 +142,7 @@ export class Ticket extends BaseModel {
         'unassigned',
         'assigned_to_id',
         currentTicket.assigned_to_id,
-        null
+        undefined
       );
     }
 
@@ -210,7 +210,7 @@ export class Ticket extends BaseModel {
     const ticket = await this.update(ticketId, { custom_field_values: customFieldValues });
 
     if (ticket) {
-      await this.addHistory(ticketId, updatedById, 'updated', 'custom_field_values', null, null, {
+      await this.addHistory(ticketId, updatedById, 'updated', 'custom_field_values', undefined, undefined, {
         customFieldValues,
       });
     }

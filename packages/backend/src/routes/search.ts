@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 import { AdvancedSearchService } from '../services/AdvancedSearchService';
 import { validateRequest } from '../utils/validation';
 import Joi from 'joi';
@@ -42,7 +42,7 @@ const advancedSearchSchema = Joi.object({
  * GET /api/search/fields/:teamId
  * Get searchable fields for a team
  */
-router.get('/fields/:teamId', auth, async (req, res, next) => {
+router.get('/fields/:teamId', authenticate, async (req, res, next) => {
   try {
     const { teamId } = req.params;
 
@@ -68,7 +68,7 @@ router.get('/fields/:teamId', auth, async (req, res, next) => {
  * POST /api/search/tickets
  * Perform advanced ticket search
  */
-router.post('/tickets', auth, validateRequest(advancedSearchSchema), async (req, res, next) => {
+router.post('/tickets', authenticate, validateRequest(advancedSearchSchema), async (req, res, next) => {
   try {
     const searchRequest = req.body;
     const userId = req.user!.id;
@@ -96,7 +96,7 @@ router.post('/tickets', auth, validateRequest(advancedSearchSchema), async (req,
  * POST /api/search/save
  * Save a search query for later use
  */
-router.post('/save', auth, async (req, res, next) => {
+router.post('/save', authenticate, async (req, res, next) => {
   try {
     const { name, searchRequest } = req.body;
     const userId = req.user!.id;

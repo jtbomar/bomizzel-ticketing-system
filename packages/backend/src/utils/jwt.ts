@@ -20,11 +20,11 @@ const JWT_REFRESH_EXPIRES_IN = process.env['JWT_REFRESH_EXPIRES_IN'] || '7d';
 
 export class JWTUtils {
   static generateAccessToken(payload: Omit<JWTPayload, 'type'>): string {
-    return jwt.sign({ ...payload, type: 'access' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign({ ...payload, type: 'access' as const }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   }
 
   static generateRefreshToken(payload: Omit<JWTPayload, 'type'>): string {
-    return jwt.sign({ ...payload, type: 'refresh' }, JWT_REFRESH_SECRET, {
+    return jwt.sign({ ...payload, type: 'refresh' as const }, JWT_REFRESH_SECRET, {
       expiresIn: JWT_REFRESH_EXPIRES_IN,
     });
   }

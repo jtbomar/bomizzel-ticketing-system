@@ -183,7 +183,11 @@ export class TicketHistory extends BaseModel {
   /**
    * Convert database row to model
    */
-  static toModel(row: TicketHistoryTable): TicketHistoryModel {
+  static toModel(row: TicketHistoryTable & { 
+    user_first_name?: string; 
+    user_last_name?: string; 
+    user_email?: string; 
+  }): TicketHistoryModel {
     return {
       id: row.id,
       ticketId: row.ticket_id,
@@ -192,7 +196,7 @@ export class TicketHistory extends BaseModel {
       fieldName: row.field_name,
       oldValue: row.old_value,
       newValue: row.new_value,
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      metadata: row.metadata,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       user: row.user_first_name

@@ -43,7 +43,7 @@ export class Queue extends BaseModel {
 
     return {
       ...queue,
-      ticketCount: parseInt(ticketCount?.count || '0', 10),
+      ticketCount: parseInt(String(ticketCount?.count || '0'), 10),
     };
   }
 

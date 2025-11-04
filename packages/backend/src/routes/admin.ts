@@ -27,7 +27,7 @@ router.get(
       isActive: { type: 'boolean', required: false },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { page, limit, role, search, isActive } = req.query;
 
@@ -104,7 +104,7 @@ router.put(
       },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { userId } = req.params;
       const { role } = req.body;
@@ -150,7 +150,7 @@ router.put(
       isActive: { type: 'boolean', required: true },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { userId } = req.params;
       const { isActive } = req.body;
@@ -202,7 +202,7 @@ router.post(
       teamId: { type: 'string', required: false, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { firstName, lastName, email, password, role, teamId } = req.body;
       const createdById = req.user?.id;
@@ -264,7 +264,7 @@ router.put(
       teamId: { type: 'string', required: false, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { userId } = req.params;
       const updateData = req.body;
@@ -298,7 +298,7 @@ router.put(
  * GET /admin/stats/roles
  * Get role statistics (admin only)
  */
-router.get('/stats/roles', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.get('/stats/roles', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const stats = await UserRoleService.getRoleStats();
 

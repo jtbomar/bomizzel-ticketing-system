@@ -236,9 +236,11 @@ interface ValidationField {
   maxLength?: number;
   min?: number;
   max?: number;
-  format?: 'uuid' | 'email' | 'url';
+  format?: 'uuid' | 'email' | 'url' | 'date';
+  pattern?: string;
   enum?: string[];
   nullable?: boolean;
+  items?: ValidationField;
 }
 
 interface ValidationSchema {
