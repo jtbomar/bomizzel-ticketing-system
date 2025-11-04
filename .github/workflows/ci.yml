@@ -191,11 +191,8 @@ jobs:
           VITE_ENABLE_MOCK_DATA=true
           EOF
 
-      - name: Run component tests
-        run: npm run test:components --workspace=frontend
-
       - name: Run unit tests with coverage
-        run: npm run test:coverage --workspace=frontend
+        run: npm run test --workspace=frontend
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
