@@ -111,12 +111,13 @@ router.put(
       const updatedById = req.user?.id;
 
       if (!updatedById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       const user = await UserRoleService.updateUserRole(userId, role, updatedById);
@@ -157,12 +158,13 @@ router.put(
       const updatedById = req.user?.id;
 
       if (!updatedById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       const user = await UserRoleService.updateUserStatus(userId, isActive, updatedById);
@@ -208,12 +210,13 @@ router.post(
       const createdById = req.user?.id;
 
       if (!createdById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       const user = await UserRoleService.createUser({
@@ -271,12 +274,13 @@ router.put(
       const updatedById = req.user?.id;
 
       if (!updatedById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       const user = await UserRoleService.updateUser(userId, updateData, updatedById);

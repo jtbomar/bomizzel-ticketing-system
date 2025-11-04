@@ -212,7 +212,7 @@ export class UsageTracking extends BaseModel {
     const results = await query;
     const counts: Record<string, number> = {};
 
-    results.forEach((result) => {
+    results.forEach((result: any) => {
       counts[result.action] = parseInt(result.count.toString());
     });
 

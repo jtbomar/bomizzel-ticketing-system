@@ -205,7 +205,7 @@ export class TicketHistory extends BaseModel {
             firstName: row.user_first_name,
             lastName: row.user_last_name || '',
             email: row.user_email || '',
-            role: 'unknown',
+            role: 'customer' as const,
             isActive: true,
             emailVerified: false,
             preferences: {},

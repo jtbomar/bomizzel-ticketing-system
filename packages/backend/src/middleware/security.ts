@@ -60,7 +60,7 @@ export const validateOrigin = (req: Request, res: Response, next: NextFunction):
       path: req.path,
     });
 
-    return res.status(403).json({
+    res.status(403).json({
       error: {
         code: 'FORBIDDEN_ORIGIN',
         message: 'Request from unauthorized origin',
@@ -68,6 +68,7 @@ export const validateOrigin = (req: Request, res: Response, next: NextFunction):
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   next();
@@ -80,7 +81,7 @@ export const validateMethod = (req: Request, res: Response, next: NextFunction):
   const allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
 
   if (!allowedMethods.includes(req.method)) {
-    return res.status(405).json({
+    res.status(405).json({
       error: {
         code: 'METHOD_NOT_ALLOWED',
         message: `Method ${req.method} not allowed`,
@@ -88,6 +89,7 @@ export const validateMethod = (req: Request, res: Response, next: NextFunction):
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   next();
@@ -106,7 +108,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
       path: req.path,
     });
 
-    return res.status(400).json({
+    res.status(400).json({
       error: {
         code: 'MISSING_USER_AGENT',
         message: 'User-Agent header is required',
@@ -114,6 +116,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   // Block known malicious user agents
@@ -137,7 +140,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
       path: req.path,
     });
 
-    return res.status(403).json({
+    res.status(403).json({
       error: {
         code: 'BLOCKED_USER_AGENT',
         message: 'Access denied',
@@ -145,6 +148,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   next();
@@ -154,7 +158,7 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
  * IP whitelist/blacklist middleware
  */
 export const ipFilter = (req: Request, res: Response, next: NextFunction): void => {
-  const clientIP = req.ip;
+  const clientIP = req.ip || 'unknown';
 
   // Get IP blacklist from environment or use default
   const blacklistedIPs = (process.env['IP_BLACKLIST'] || '').split(',').filter(Boolean);
@@ -165,7 +169,7 @@ export const ipFilter = (req: Request, res: Response, next: NextFunction): void 
       path: req.path,
     });
 
-    return res.status(403).json({
+    res.status(403).json({
       error: {
         code: 'IP_BLOCKED',
         message: 'Access denied',
@@ -173,6 +177,7 @@ export const ipFilter = (req: Request, res: Response, next: NextFunction): void 
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   next();

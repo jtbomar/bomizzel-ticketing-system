@@ -275,7 +275,7 @@ export const handleFileUploadError = (
     let message = 'File upload error';
     let code = 'FILE_UPLOAD_ERROR';
 
-    switch (error.code) {
+    switch (error.code as string) {
       case 'LIMIT_FILE_SIZE':
         message = `File too large. Maximum size is ${MAX_FILE_SIZE} bytes`;
         code = 'FILE_TOO_LARGE';
@@ -305,7 +305,7 @@ export const handleFileUploadError = (
       ip: req.ip,
     });
 
-    return res.status(400).json({
+    res.status(400).json({
       error: {
         code,
         message,
@@ -313,10 +313,11 @@ export const handleFileUploadError = (
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   if (error.message) {
-    return res.status(400).json({
+    res.status(400).json({
       error: {
         code: 'FILE_VALIDATION_ERROR',
         message: error.message,
@@ -324,6 +325,7 @@ export const handleFileUploadError = (
         requestId: req.id || 'unknown',
       },
     });
+    return;
   }
 
   next(error);
