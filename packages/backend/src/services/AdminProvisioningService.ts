@@ -332,7 +332,7 @@ export class AdminProvisioningService {
         .limit(options.limit || 50)
         .offset(options.offset || 0);
 
-      return customers.map(customer => ({
+      return customers.map((customer: any) => ({
         subscriptionId: customer.subscription_id,
         status: customer.status,
         limits: customer.limits ? JSON.parse(customer.limits) : {},
