@@ -70,7 +70,7 @@ const validateValuesSchema = Joi.object({
 });
 
 // Middleware to check team access
-const checkTeamAccess = async (req: Request, res: Response, next: Function) => {
+const checkTeamAccess = async (req: Request, res: Response, next: Function): Promise<void> => {
   try {
     const user = req.user;
 
@@ -97,7 +97,7 @@ const checkTeamAccess = async (req: Request, res: Response, next: Function) => {
  * GET /custom-fields/teams/:teamId
  * Get all custom fields for a team
  */
-router.get('/teams/:teamId', authenticate, checkTeamAccess, async (req: Request, res: Response) => {
+router.get('/teams/:teamId', authenticate, checkTeamAccess, async (req: Request, res: Response): Promise<void> => {
   try {
     const { teamId } = req.params;
 
@@ -125,7 +125,7 @@ router.post(
   authenticate,
   checkTeamAccess,
   validate(createCustomFieldSchema),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
       const fieldData = req.body;
@@ -171,7 +171,7 @@ router.get(
   '/:fieldId/teams/:teamId',
   authenticate,
   checkTeamAccess,
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { fieldId, teamId } = req.params;
 
@@ -205,7 +205,7 @@ router.put(
   authenticate,
   checkTeamAccess,
   validate(updateCustomFieldSchema),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { fieldId, teamId } = req.params;
       const updates = req.body;
@@ -246,7 +246,7 @@ router.delete(
   '/:fieldId/teams/:teamId',
   authenticate,
   checkTeamAccess,
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { fieldId, teamId } = req.params;
 
@@ -287,7 +287,7 @@ router.put(
   authenticate,
   checkTeamAccess,
   validate(reorderFieldsSchema),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
       const { fieldOrders } = req.body;
@@ -324,7 +324,7 @@ router.post(
   '/teams/:teamId/validate',
   authenticate,
   validate(validateValuesSchema),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
       const { values } = req.body;

@@ -95,7 +95,7 @@ export class AdvancedSearchService {
         type: 'custom',
         options: customField.type === 'picklist' ? customField.options : undefined,
         searchable: true,
-        sortable: customField.type !== 'string' || customField.type === 'picklist',
+        sortable: customField.type !== 'string' && customField.type !== 'textarea',
       });
     }
 

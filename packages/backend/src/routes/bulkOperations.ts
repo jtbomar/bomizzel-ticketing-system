@@ -191,7 +191,7 @@ router.get('/history', authenticate, async (req, res, next) => {
  * POST /api/bulk/validate-access
  * Validate ticket access for bulk operations
  */
-router.post('/validate-access', authenticate, async (req, res, next) => {
+router.post('/validate-access', authenticate, async (req, res, next): Promise<void> => {
   try {
     const { ticketIds } = req.body;
     const userId = req.user!.id;

@@ -87,7 +87,7 @@ router.get('/cache', async (req: Request, res: Response, next: NextFunction) => 
  * Clear cache by pattern
  * DELETE /monitoring/cache/:pattern
  */
-router.delete('/cache/:pattern', async (req: Request, res: Response, next: NextFunction) => {
+router.delete('/cache/:pattern', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { pattern } = req.params;
 

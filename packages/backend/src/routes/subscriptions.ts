@@ -114,7 +114,7 @@ router.get(
  * GET /subscriptions/current
  * Get current user's subscription details with usage statistics
  */
-router.get('/current', authenticate, async (req, res, next) => {
+router.get('/current', authenticate, async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
     const subscriptionDetails = await SubscriptionService.getUserSubscription(userId);
@@ -124,7 +124,7 @@ router.get('/current', authenticate, async (req, res, next) => {
       const freePlans = await SubscriptionService.getAvailablePlans();
       const freePlan = freePlans.find((plan) => plan.slug === 'free-tier');
 
-      return res.json({
+      res.json({
         success: true,
         data: {
           subscription: null,
@@ -148,6 +148,7 @@ router.get('/current', authenticate, async (req, res, next) => {
           },
         },
       });
+      return;
     }
 
     res.json({

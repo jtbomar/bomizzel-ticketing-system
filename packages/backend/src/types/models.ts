@@ -227,7 +227,9 @@ export type TicketAction =
   | 'closed'
   | 'reopened'
   | 'archived'
-  | 'restored';
+  | 'restored'
+  | 'deleted'
+  | 'moved';
 
 // Request/Response types
 export interface CreateUserRequest {

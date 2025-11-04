@@ -406,7 +406,7 @@ export class CompanyService {
 
       const companies = await searchQuery.limit(limit).orderBy('name', 'asc');
 
-      return companies.map((company) => Company.toModel(company));
+      return companies.map((company: any) => Company.toModel(company));
     } catch (error) {
       logger.error('Search companies error:', error);
       throw new AppError('Failed to search companies', 500, 'SEARCH_COMPANIES_FAILED');

@@ -21,7 +21,7 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     const layouts = await ticketLayoutService.getLayoutsByTeam(teamId as string);
-    return res.json({ layouts });
+    res.json({ layouts });
   } catch (error) {
     console.error('Error fetching ticket layouts:', error);
     return res.status(500).json({ error: 'Failed to fetch ticket layouts' });

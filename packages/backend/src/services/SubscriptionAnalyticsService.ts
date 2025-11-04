@@ -161,8 +161,8 @@ export class SubscriptionAnalyticsService {
         mrr: Math.round(totalMrr * 100) / 100,
         currency,
         activeSubscriptions: activeSubscriptions.length,
-        newSubscriptions: parseInt(newSubscriptions?.count || '0'),
-        churnedSubscriptions: parseInt(churnedSubscriptions?.count || '0'),
+        newSubscriptions: parseInt(String(newSubscriptions?.count || '0')),
+        churnedSubscriptions: parseInt(String(churnedSubscriptions?.count || '0')),
         upgrades,
         downgrades,
         netMrrGrowth: Math.round(netMrrGrowth * 100) / 100,
@@ -315,11 +315,11 @@ export class SubscriptionAnalyticsService {
         .count('* as count')
         .first();
 
-      const totalSignupsCount = parseInt(totalSignups?.count || '0');
-      const freeTrialStartsCount = parseInt(freeTrialStarts?.count || '0');
-      const trialToFreeTierCount = parseInt(trialToFreeTierConversions?.count || '0');
-      const trialToPaidCount = parseInt(trialToPaidConversions?.count || '0');
-      const freeTierToPaidCount = parseInt(freeTierToPaidConversions?.count || '0');
+      const totalSignupsCount = parseInt(String(totalSignups?.count || '0'));
+      const freeTrialStartsCount = parseInt(String(freeTrialStarts?.count || '0'));
+      const trialToFreeTierCount = parseInt(String(trialToFreeTierConversions?.count || '0'));
+      const trialToPaidCount = parseInt(String(trialToPaidConversions?.count || '0'));
+      const freeTierToPaidCount = parseInt(String(freeTierToPaidConversions?.count || '0'));
 
       // Calculate conversion rates
       const trialConversionRate =
@@ -440,26 +440,26 @@ export class SubscriptionAnalyticsService {
         .first();
 
       // Get churned subscriptions during the month
-      const churnedSubscriptionsData = await BaseModel.db('customer_subscriptions as cs')
+      const churnedSubscriptionsData = await CustomerSubscription.db('customer_subscriptions as cs')
         .join('subscription_plans as sp', 'cs.plan_id', 'sp.id')
         .whereBetween('cs.cancelled_at', [startDate, endDate])
         .select(
-          BaseModel.db.raw('COUNT(*) as count'),
-          BaseModel.db.raw('SUM(sp.price) as churned_revenue'),
-          BaseModel.db.raw('AVG(sp.price) as avg_churned_value')
+          CustomerSubscription.db.raw('COUNT(*) as count'),
+          CustomerSubscription.db.raw('SUM(sp.price) as churned_revenue'),
+          CustomerSubscription.db.raw('AVG(sp.price) as avg_churned_value')
         )
         .first();
 
       // Get active subscriptions at end of month
-      const totalActiveEnd = await BaseModel.db('customer_subscriptions')
+      const totalActiveEnd = await CustomerSubscription.db('customer_subscriptions')
         .where('status', 'active')
         .where('created_at', '<=', endDate)
         .whereRaw('(cancelled_at IS NULL OR cancelled_at > ?)', [endDate])
         .count('* as count')
         .first();
 
-      const totalActiveStartCount = parseInt(totalActiveStart?.count || '0');
-      const newSubscriptionsCount = parseInt(newSubscriptions?.count || '0');
+      const totalActiveStartCount = parseInt(String(totalActiveStart?.count || '0'));
+      const newSubscriptionsCount = parseInt(String(newSubscriptions?.count || '0'));
       const churnedSubscriptionsCount = parseInt(churnedSubscriptionsData?.count || '0');
       const totalActiveEndCount = parseInt(totalActiveEnd?.count || '0');
       const churnedRevenue = parseFloat(churnedSubscriptionsData?.churned_revenue || '0');
@@ -522,7 +522,7 @@ export class SubscriptionAnalyticsService {
       const averageUsageByPlan: UsageAnalytics['averageUsageByPlan'] = [];
 
       // Get customers with high usage (would need actual usage tracking data)
-      const highUsageCustomers = await BaseModel.db('users as u')
+      const highUsageCustomers = await User.db('users as u')
         .join('customer_subscriptions as cs', 'u.id', 'cs.user_id')
         .join('subscription_plans as sp', 'cs.plan_id', 'sp.id')
         .where('cs.status', 'active')
@@ -622,18 +622,18 @@ export class SubscriptionAnalyticsService {
       const billingStats = await BillingRecord.getRevenueStats(startDate, endDate);
 
       // Get customer stats
-      const newCustomers = await BaseModel.db('customer_subscriptions')
+      const newCustomers = await CustomerSubscription.db('customer_subscriptions')
         .whereBetween('created_at', [startDate, endDate])
         .whereIn('status', ['active', 'trial'])
         .count('* as count')
         .first();
 
-      const churnedCustomers = await BaseModel.db('customer_subscriptions')
+      const churnedCustomers = await CustomerSubscription.db('customer_subscriptions')
         .whereBetween('cancelled_at', [startDate, endDate])
         .count('* as count')
         .first();
 
-      const totalCustomers = await BaseModel.db('customer_subscriptions')
+      const totalCustomers = await CustomerSubscription.db('customer_subscriptions')
         .where('status', 'active')
         .where('created_at', '<=', endDate)
         .whereRaw('(cancelled_at IS NULL OR cancelled_at > ?)', [endDate])

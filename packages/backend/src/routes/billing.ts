@@ -131,17 +131,18 @@ router.post(
  * Get customer payment methods
  * GET /api/billing/payment-methods
  */
-router.get('/payment-methods', authenticate, async (req, res, next) => {
+router.get('/payment-methods', authenticate, async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
 
     // Get user's subscription to find Stripe customer ID
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription?.stripe_customer_id) {
-      return res.json({
+      res.json({
         success: true,
         data: [],
       });
+      return;
     }
 
     // Get payment methods from Stripe
@@ -235,7 +236,7 @@ router.delete('/payment-method/:paymentMethodId', authenticate, async (req, res,
  * Get billing history (invoices)
  * GET /api/billing/invoices
  */
-router.get('/invoices', authenticate, async (req, res, next) => {
+router.get('/invoices', authenticate, async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -243,10 +244,11 @@ router.get('/invoices', authenticate, async (req, res, next) => {
     // Get user's subscription to find Stripe customer ID
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription?.stripe_customer_id) {
-      return res.json({
+      res.json({
         success: true,
         data: [],
       });
+      return;
     }
 
     // Get invoices from Stripe
@@ -401,14 +403,14 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
  * Get billing summary for user
  * GET /api/billing/summary
  */
-router.get('/summary', authenticate, async (req, res, next) => {
+router.get('/summary', authenticate, async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
 
     // Get subscription details
     const subscriptionDetails = await SubscriptionService.getUserSubscription(userId);
     if (!subscriptionDetails) {
-      return res.json({
+      res.json({
         success: true,
         data: {
           hasSubscription: false,
@@ -417,6 +419,7 @@ router.get('/summary', authenticate, async (req, res, next) => {
           paymentMethods: [],
         },
       });
+      return;
     }
 
     let upcomingInvoice = null;
@@ -501,17 +504,18 @@ router.get('/history', authenticate, async (req, res, next) => {
  * Get failed payments for retry
  * GET /api/billing/failed-payments
  */
-router.get('/failed-payments', authenticate, async (req, res, next) => {
+router.get('/failed-payments', authenticate, async (req, res, next): Promise<void> => {
   try {
     const userId = req.user!.id;
 
     // Get user's subscription
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription) {
-      return res.json({
+      res.json({
         success: true,
         data: [],
       });
+      return;
     }
 
     // Get failed payments for this subscription

@@ -143,7 +143,7 @@ export class ReportingService {
 
       let averageResolutionTime = 0;
       if (resolutionTimes.length > 0) {
-        const totalResolutionTime = resolutionTimes.reduce((sum, ticket) => {
+        const totalResolutionTime = resolutionTimes.reduce((sum: number, ticket: any) => {
           const created = new Date(ticket.created_at);
           const resolved = new Date(ticket.updated_at);
           return sum + (resolved.getTime() - created.getTime());
@@ -156,15 +156,15 @@ export class ReportingService {
         openTickets: openCount,
         closedTickets: closedCount,
         averageResolutionTime: Math.round(averageResolutionTime * 100) / 100,
-        ticketsByStatus: ticketsByStatus.map((s) => ({
+        ticketsByStatus: ticketsByStatus.map((s: any) => ({
           status: s.status,
           count: parseInt(s.count, 10),
         })),
-        ticketsByPriority: ticketsByPriority.map((p) => ({
+        ticketsByPriority: ticketsByPriority.map((p: any) => ({
           priority: p.priority?.toString() || 'unset',
           count: parseInt(p.count, 10),
         })),
-        ticketsByTeam: ticketsByTeam.map((t) => ({
+        ticketsByTeam: ticketsByTeam.map((t: any) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           count: parseInt(t.count, 10),
@@ -224,11 +224,11 @@ export class ReportingService {
       return {
         totalUsers: totalCount,
         activeUsers: activeCount,
-        usersByRole: usersByRole.map((r) => ({
+        usersByRole: usersByRole.map((r: any) => ({
           role: r.role,
           count: parseInt(r.count, 10),
         })),
-        recentRegistrations: recentRegistrations.map((r) => ({
+        recentRegistrations: recentRegistrations.map((r: any) => ({
           date: r.date,
           count: parseInt(r.count, 10),
         })),
@@ -284,12 +284,12 @@ export class ReportingService {
       return {
         totalTeams: totalCount,
         activeTeams: activeCount,
-        teamMembershipStats: teamMembershipStats.map((t) => ({
+        teamMembershipStats: teamMembershipStats.map((t: any) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           memberCount: parseInt(t.memberCount, 10),
         })),
-        customFieldUsage: customFieldUsage.map((t) => ({
+        customFieldUsage: customFieldUsage.map((t: any) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           fieldCount: parseInt(t.fieldCount, 10),
@@ -406,7 +406,7 @@ export class ReportingService {
 
     let csv = headers.join(',') + '\n';
 
-    tickets.forEach((ticket) => {
+    tickets.forEach((ticket: any) => {
       const row = [
         ticket.id,
         `"${ticket.title?.replace(/"/g, '""') || ''}"`,
@@ -456,7 +456,7 @@ export class ReportingService {
 
     let csv = headers.join(',') + '\n';
 
-    users.forEach((user) => {
+    users.forEach((user: any) => {
       const row = [
         user.id,
         user.email,

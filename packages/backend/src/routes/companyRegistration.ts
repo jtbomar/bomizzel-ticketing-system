@@ -133,7 +133,7 @@ router.post('/register', validate(companyRegistrationSchema), async (req, res, n
  * GET /api/company-registration/profile
  * Get current user's company profile
  */
-router.get('/profile', authenticate, async (req, res, next) => {
+router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
   try {
     // Get user's primary company (first one they're associated with)
     const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
@@ -164,7 +164,7 @@ router.put(
   '/profile',
   authenticate,
   validate(companyProfileUpdateSchema),
-  async (req, res, next) => {
+  async (req, res, next): Promise<void> => {
     try {
       // Get user's primary company
       const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);

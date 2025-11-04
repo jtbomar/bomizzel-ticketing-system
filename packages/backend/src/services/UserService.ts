@@ -60,7 +60,7 @@ export class UserService {
       // Get paginated results
       const users = await searchQuery.limit(limit).offset(offset).orderBy('created_at', 'desc');
 
-      const userModels = users.map((user) => User.toModel(user));
+      const userModels = users.map((user: any) => User.toModel(user));
 
       return {
         data: userModels,
@@ -331,7 +331,7 @@ export class UserService {
 
       const users = await searchQuery.limit(limit).orderBy('first_name', 'asc');
 
-      return users.map((user) => User.toModel(user));
+      return users.map((user: any) => User.toModel(user));
     } catch (error) {
       logger.error('Search users error:', error);
       throw new AppError('Failed to search users', 500, 'SEARCH_USERS_FAILED');

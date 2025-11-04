@@ -33,7 +33,7 @@ router.post(
       references: { type: 'array', required: false },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { ticketId } = req.params;
       const {
@@ -142,7 +142,7 @@ router.post(
       additionalData: { type: 'object', required: false },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { ticketId } = req.params;
       const { type, recipients, message, additionalData } = req.body;
@@ -212,7 +212,7 @@ router.post(
       variables: { type: 'array', required: false },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const templateData = req.body;
 
@@ -257,7 +257,7 @@ router.get(
       activeOnly: { type: 'boolean', required: false },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { activeOnly } = req.query;
 
@@ -287,7 +287,7 @@ router.get(
       templateId: { type: 'string', required: true, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { templateId } = req.params;
 
@@ -332,7 +332,7 @@ router.put(
       isActive: { type: 'boolean', required: false },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { templateId } = req.params;
       const updates = req.body;
@@ -370,7 +370,7 @@ router.delete(
       templateId: { type: 'string', required: true, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { templateId } = req.params;
 
@@ -410,7 +410,7 @@ router.post(
       variables: { type: 'object', required: false },
     },
   }),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { templateId } = req.params;
       const { variables } = req.body;

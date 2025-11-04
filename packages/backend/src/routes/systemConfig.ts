@@ -10,7 +10,7 @@ const router = Router();
  * GET /system/settings
  * Get all system settings (admin only)
  */
-router.get('/settings', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.get('/settings', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const settings = await SystemConfigService.getAllSettings();
 
@@ -39,7 +39,7 @@ router.get(
       category: { type: 'string', required: true },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { category } = req.params;
 
@@ -82,7 +82,7 @@ router.put(
       },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { settings } = req.body;
       const userId = req.user?.id;
@@ -124,7 +124,7 @@ router.delete(
       key: { type: 'string', required: true },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { key } = req.params;
       const userId = req.user?.id;
@@ -157,7 +157,7 @@ router.delete(
  * GET /system/config/export
  * Export system configuration (admin only)
  */
-router.get('/config/export', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.get('/config/export', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     const config = await SystemConfigService.exportConfig();
 
@@ -188,7 +188,7 @@ router.post(
       config: { type: 'object', required: true },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { config } = req.body;
       const userId = req.user?.id;

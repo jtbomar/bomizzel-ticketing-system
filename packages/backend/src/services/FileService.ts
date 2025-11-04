@@ -331,7 +331,7 @@ export class FileService {
       return thumbnailPath;
     } catch (error) {
       console.error('Failed to generate thumbnail:', error);
-      return undefined;
+      throw new Error('Thumbnail generation failed');
     }
   }
 }

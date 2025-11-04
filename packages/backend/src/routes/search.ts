@@ -42,7 +42,7 @@ const advancedSearchSchema = Joi.object({
  * GET /api/search/fields/:teamId
  * Get searchable fields for a team
  */
-router.get('/fields/:teamId', authenticate, async (req, res, next) => {
+router.get('/fields/:teamId', authenticate, async (req, res, next): Promise<void> => {
   try {
     const { teamId } = req.params;
 
@@ -96,7 +96,7 @@ router.post('/tickets', authenticate, validateRequest(advancedSearchSchema), asy
  * POST /api/search/save
  * Save a search query for later use
  */
-router.post('/save', authenticate, async (req, res, next) => {
+router.post('/save', authenticate, async (req, res, next): Promise<void> => {
   try {
     const { name, searchRequest } = req.body;
     const userId = req.user!.id;

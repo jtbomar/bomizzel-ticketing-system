@@ -23,7 +23,7 @@ router.get(
       assignedToId: { type: 'string', required: false, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { startDate, endDate, teamId, status, assignedToId } = req.query;
       const userId = req.user?.id;
@@ -78,7 +78,7 @@ router.get(
  * GET /reports/users
  * Generate user analytics report (admin only)
  */
-router.get('/users', authenticate, validateRequest({}), async (req: Request, res: Response) => {
+router.get('/users', authenticate, validateRequest({}), async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
 
@@ -109,7 +109,7 @@ router.get('/users', authenticate, validateRequest({}), async (req: Request, res
  * GET /reports/teams
  * Generate team analytics report
  */
-router.get('/teams', authenticate, requireEmployee, async (req: Request, res: Response) => {
+router.get('/teams', authenticate, requireEmployee, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
 
@@ -154,7 +154,7 @@ router.get(
       status: { type: 'string', required: false },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { dataType } = req.params;
       const { startDate, endDate, teamId, status } = req.query;

@@ -61,7 +61,7 @@ router.get(
       id: { type: 'string', required: true, format: 'uuid' },
     },
   }),
-  async (req, res, next) => {
+  async (req, res, next): Promise<void> => {
     try {
       const queueId = req.params.id;
 
@@ -138,7 +138,7 @@ router.get(
           // Admins and team leads can see all queues
           const allQueues = await Queue.query.where('is_active', true);
           queues = await Promise.all(
-            allQueues.map((queue) => Queue.getQueueWithTicketCount(queue.id))
+            allQueues.map((queue: any) => Queue.getQueueWithTicketCount(queue.id))
           );
         }
       }
