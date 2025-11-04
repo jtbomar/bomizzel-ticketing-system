@@ -105,7 +105,7 @@ router.get(
         noteId,
         user.id,
         user.role,
-        user.companyIds || []
+        [] // TODO: Add companyIds to user object or fetch from UserService
       );
 
       if (!hasAccess) {

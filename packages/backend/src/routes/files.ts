@@ -24,6 +24,10 @@ router.post(
       const { ticketId, noteId } = req.body;
       const userId = req.user?.id;
 
+      if (!userId) {
+        throw new ValidationError('User authentication required');
+      }
+
       if (!ticketId) {
         throw new ValidationError('Ticket ID is required');
       }
@@ -52,6 +56,10 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id;
+
+    if (!userId) {
+      throw new ValidationError('User authentication required');
+    }
 
     const { attachment, filePath } = await FileService.getFile(id, userId);
 
@@ -89,6 +97,10 @@ router.get('/:id/info', async (req: Request, res: Response, next: NextFunction) 
     const { id } = req.params;
     const userId = req.user?.id;
 
+    if (!userId) {
+      throw new ValidationError('User authentication required');
+    }
+
     const { attachment } = await FileService.getFile(id, userId);
 
     res.json({
@@ -107,6 +119,10 @@ router.get('/:id/thumbnail', async (req: Request, res: Response, next: NextFunct
   try {
     const { id } = req.params;
     const userId = req.user?.id;
+
+    if (!userId) {
+      throw new ValidationError('User authentication required');
+    }
 
     const { attachment, thumbnailPath } = await FileService.getThumbnail(id, userId);
 
@@ -143,6 +159,10 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
     const { id } = req.params;
     const userId = req.user?.id;
 
+    if (!userId) {
+      throw new ValidationError('User authentication required');
+    }
+
     await FileService.deleteFile(id, userId);
 
     res.json({
@@ -163,6 +183,10 @@ router.get(
     try {
       const { ticketId } = req.params;
       const userId = req.user?.id;
+
+      if (!userId) {
+        throw new ValidationError('User authentication required');
+      }
 
       const attachments = await FileService.getTicketAttachments(ticketId, userId);
 
