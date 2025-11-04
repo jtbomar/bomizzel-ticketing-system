@@ -44,8 +44,9 @@ const ProvisionedCustomersList: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
       const response = await axios.get(
-        'http://localhost:5000/api/admin/provisioning/customers',
+        `${apiUrl}/api/admin/provisioning/customers`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -63,8 +64,9 @@ const ProvisionedCustomersList: React.FC = () => {
   const handleUpdateLimits = async (subscriptionId: string) => {
     try {
       const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
       await axios.put(
-        `http://localhost:5000/api/admin/provisioning/subscriptions/${subscriptionId}/limits`,
+        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}/limits`,
         updateLimits,
         {
           headers: {

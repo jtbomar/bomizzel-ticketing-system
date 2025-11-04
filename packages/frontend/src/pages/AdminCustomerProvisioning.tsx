@@ -108,8 +108,9 @@ const AdminCustomerProvisioning: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
       const response = await axios.post(
-        'http://localhost:5000/api/admin/provisioning/customers',
+        `${apiUrl}/api/admin/provisioning/customers`,
         formData,
         {
           headers: {

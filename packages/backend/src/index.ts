@@ -30,6 +30,17 @@ try {
   console.log('✅ API routes registered successfully');
 } catch (error) {
   console.warn('⚠️ Could not register API routes:', error);
+  
+  // Try to register critical routes individually
+  try {
+    const adminProvisioningRoutes = require('./routes/adminProvisioning').default;
+    const enhancedRegistrationRoutes = require('./routes/enhancedRegistration').default;
+    app.use('/api/admin/provisioning', adminProvisioningRoutes);
+    app.use('/api/auth', enhancedRegistrationRoutes);
+    console.log('✅ Admin provisioning and enhanced registration routes registered');
+  } catch (err) {
+    console.error('❌ Failed to register provisioning routes:', err);
+  }
 }
 
 // Simple company profile endpoints for testing

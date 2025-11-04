@@ -17,6 +17,7 @@ import AdminStatusConfig from './components/AdminStatusConfig';
 import TestTicketForm from './pages/TestTicketForm';
 import ColorPickerDemo from './pages/ColorPickerDemo';
 import AdminCustomerProvisioning from './pages/AdminCustomerProvisioning';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
 function App() {
   return (
@@ -31,7 +32,8 @@ function App() {
             <Route path="/company-register" element={<CompanyRegistrationPage />} />
             <Route path="/customer" element={<CustomerDashboard />} />
             <Route path="/employee" element={<SimpleEmployeeDashboard />} />
-            <Route path="/admin" element={<SimpleAdminDashboard />} />
+            <Route path="/admin" element={<SuperAdminDashboard />} />
+            <Route path="/admin/dashboard" element={<SimpleAdminDashboard />} />
             <Route path="/admin/layouts" element={<TicketLayoutManagement />} />
             <Route path="/admin/provisioning" element={<AdminCustomerProvisioning />} />
 
