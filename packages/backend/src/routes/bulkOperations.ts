@@ -198,10 +198,11 @@ router.post('/validate-access', authenticate, async (req, res, next): Promise<vo
     const userRole = req.user!.role;
 
     if (!Array.isArray(ticketIds) || ticketIds.length === 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'ticketIds must be a non-empty array',
       });
+      return;
     }
 
     const result = await BulkOperationsService.validateTicketAccess(ticketIds, userId, userRole);

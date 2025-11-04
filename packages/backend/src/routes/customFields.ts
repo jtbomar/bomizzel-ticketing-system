@@ -75,12 +75,14 @@ const checkTeamAccess = async (req: Request, res: Response, next: Function): Pro
     const user = req.user;
 
     if (!user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      res.status(401).json({ error: 'Authentication required' });
+      return;
     }
 
     // Only employees, team leads, and admins can access team custom fields
     if (!['employee', 'team_lead', 'admin'].includes(user.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
+      res.status(403).json({ error: 'Insufficient permissions' });
+      return;
     }
 
     // TODO: Add team membership validation when TeamService is available
@@ -132,9 +134,10 @@ router.post(
 
       // Only team leads and admins can create custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        return res
+        res
           .status(403)
           .json({ error: 'Only team leads and admins can create custom fields' });
+        return;
       }
 
       const field = await CustomFieldService.createCustomField(teamId, fieldData);
@@ -148,10 +151,12 @@ router.post(
 
       if (error instanceof Error) {
         if (error.message.includes('already exists')) {
-          return res.status(409).json({ error: error.message });
+          res.status(409).json({ error: error.message });
+          return;
         }
         if (error.message.includes('not found')) {
-          return res.status(404).json({ error: error.message });
+          res.status(404).json({ error: error.message });
+          return;
         }
       }
 

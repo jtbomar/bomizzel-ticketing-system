@@ -139,10 +139,11 @@ router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
     const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
 
     if (userCompanies.length === 0) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'No company found for user',
       });
+      return;
     }
 
     const companyProfile = await CompanyRegistrationService.getCompanyProfile(userCompanies[0].id);
@@ -170,10 +171,11 @@ router.put(
       const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
 
       if (userCompanies.length === 0) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'No company found for user',
         });
+        return;
       }
 
       const updatedProfile = await CompanyRegistrationService.updateCompanyProfile(
