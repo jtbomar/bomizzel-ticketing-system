@@ -26,58 +26,61 @@ export const useRealTimeQueue = (options: UseRealTimeQueueOptions) => {
   } = options;
 
   // Handle real-time notifications
-  const handleNotification = useCallback((notification: any) => {
-    const { type, data } = notification;
+  const handleNotification = useCallback(
+    (notification: any) => {
+      const { type, data } = notification;
 
-    switch (type) {
-      case 'ticket:created':
-        if (onTicketCreated && (!queueId || data.ticket.queueId === queueId)) {
-          onTicketCreated(data.ticket);
-        }
-        break;
+      switch (type) {
+        case 'ticket:created':
+          if (onTicketCreated && (!queueId || data.ticket.queueId === queueId)) {
+            onTicketCreated(data.ticket);
+          }
+          break;
 
-      case 'ticket:updated':
-        if (onTicketUpdated && (!queueId || data.ticket.queueId === queueId)) {
-          onTicketUpdated(data.ticket);
-        }
-        break;
+        case 'ticket:updated':
+          if (onTicketUpdated && (!queueId || data.ticket.queueId === queueId)) {
+            onTicketUpdated(data.ticket);
+          }
+          break;
 
-      case 'ticket:assigned':
-        if (onTicketAssigned && (!queueId || data.ticket.queueId === queueId)) {
-          onTicketAssigned(data.ticket);
-        }
-        break;
+        case 'ticket:assigned':
+          if (onTicketAssigned && (!queueId || data.ticket.queueId === queueId)) {
+            onTicketAssigned(data.ticket);
+          }
+          break;
 
-      case 'ticket:status_changed':
-        if (onTicketStatusChanged && (!queueId || data.ticket.queueId === queueId)) {
-          onTicketStatusChanged(data.ticket);
-        }
-        break;
+        case 'ticket:status_changed':
+          if (onTicketStatusChanged && (!queueId || data.ticket.queueId === queueId)) {
+            onTicketStatusChanged(data.ticket);
+          }
+          break;
 
-      case 'ticket:priority_changed':
-        if (onTicketPriorityChanged && (!queueId || data.ticket.queueId === queueId)) {
-          onTicketPriorityChanged(data.ticket);
-        }
-        break;
+        case 'ticket:priority_changed':
+          if (onTicketPriorityChanged && (!queueId || data.ticket.queueId === queueId)) {
+            onTicketPriorityChanged(data.ticket);
+          }
+          break;
 
-      case 'queue:metrics_updated':
-        if (onQueueMetricsUpdated && (!queueId || data.queue.id === queueId)) {
-          onQueueMetricsUpdated(data.metrics);
-        }
-        break;
+        case 'queue:metrics_updated':
+          if (onQueueMetricsUpdated && (!queueId || data.queue.id === queueId)) {
+            onQueueMetricsUpdated(data.metrics);
+          }
+          break;
 
-      default:
-        break;
-    }
-  }, [
-    queueId,
-    onTicketCreated,
-    onTicketUpdated,
-    onTicketAssigned,
-    onTicketStatusChanged,
-    onTicketPriorityChanged,
-    onQueueMetricsUpdated,
-  ]);
+        default:
+          break;
+      }
+    },
+    [
+      queueId,
+      onTicketCreated,
+      onTicketUpdated,
+      onTicketAssigned,
+      onTicketStatusChanged,
+      onTicketPriorityChanged,
+      onQueueMetricsUpdated,
+    ]
+  );
 
   // Subscribe to socket events
   useEffect(() => {

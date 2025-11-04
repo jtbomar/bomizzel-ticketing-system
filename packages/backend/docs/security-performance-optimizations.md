@@ -14,6 +14,7 @@ This document outlines the security and performance optimizations implemented in
 - **Request Size Limiting**: Limits request body size to prevent DoS attacks
 
 **Features**:
+
 - Recursive object sanitization
 - HTML entity encoding
 - Script tag removal
@@ -30,6 +31,7 @@ This document outlines the security and performance optimizations implemented in
 - **Strict Endpoints**: 10 requests per minute for sensitive operations
 
 **Features**:
+
 - Redis-based rate limiting
 - User-specific and IP-based limits
 - Configurable windows and thresholds
@@ -46,6 +48,7 @@ This document outlines the security and performance optimizations implemented in
 - **Origin Validation**: Validates request origins
 
 **Features**:
+
 - Comprehensive security headers
 - Origin whitelist validation
 - User agent filtering
@@ -63,6 +66,7 @@ This document outlines the security and performance optimizations implemented in
 - **Size Limits**: Configurable file size limits
 
 **Features**:
+
 - MIME type whitelist
 - File signature validation
 - Malicious pattern detection
@@ -85,6 +89,7 @@ This document outlines the security and performance optimizations implemented in
 **Implementation**: `database/migrations/020_add_performance_indexes.js`
 
 **Indexes Added**:
+
 - **Tickets**: Company + Status + Created, Assigned + Status, Queue + Priority
 - **Users**: Role + Active, Created date
 - **Associations**: User-Company, Team memberships
@@ -95,6 +100,7 @@ This document outlines the security and performance optimizations implemented in
 - **History**: Ticket + Created, Changed by, Action type
 
 **Benefits**:
+
 - Faster ticket queries by status and assignment
 - Optimized user lookups by role
 - Improved association queries
@@ -105,6 +111,7 @@ This document outlines the security and performance optimizations implemented in
 **Implementation**: `src/utils/cache.ts`
 
 **Cache Strategies**:
+
 - **Short-term**: 1 minute for frequently changing data
 - **Medium-term**: 5 minutes for moderately stable data
 - **Long-term**: 1 hour for rarely changing data
@@ -112,6 +119,7 @@ This document outlines the security and performance optimizations implemented in
 - **Metrics**: 1 minute for dashboard data
 
 **Cached Data**:
+
 - User profiles and associations
 - Ticket details and relationships
 - Custom fields and team configurations
@@ -119,6 +127,7 @@ This document outlines the security and performance optimizations implemented in
 - Search results
 
 **Features**:
+
 - Redis-based caching
 - Cache-aside pattern
 - Automatic cache invalidation
@@ -129,6 +138,7 @@ This document outlines the security and performance optimizations implemented in
 **Implementation**: `src/middleware/performanceMonitoring.ts`
 
 **Metrics Tracked**:
+
 - Request response times
 - Memory usage per request
 - Database query performance
@@ -136,6 +146,7 @@ This document outlines the security and performance optimizations implemented in
 - CPU usage monitoring
 
 **Features**:
+
 - Real-time performance tracking
 - Slow request alerting (>2 seconds)
 - Memory usage alerts (>100MB increase)
@@ -147,6 +158,7 @@ This document outlines the security and performance optimizations implemented in
 **Implementation**: `QueryPerformanceMonitor` class
 
 **Features**:
+
 - Automatic query timing
 - Slow query detection (>1 second)
 - Query performance logging
@@ -158,6 +170,7 @@ This document outlines the security and performance optimizations implemented in
 **Implementation**: `src/utils/logger.ts`
 
 **Log Categories**:
+
 - **Security**: Authentication, authorization, blocked requests
 - **Performance**: Response times, memory usage, slow queries
 - **Database**: Query execution, connection issues
@@ -165,6 +178,7 @@ This document outlines the security and performance optimizations implemented in
 - **Business**: Application logic events
 
 **Features**:
+
 - Structured JSON logging
 - Log rotation and archival
 - Separate log files by category
@@ -178,6 +192,7 @@ This document outlines the security and performance optimizations implemented in
 **Endpoint**: `/api/monitoring/performance`
 
 **Provides**:
+
 - Recent request metrics
 - Slow query alerts
 - Memory and CPU usage
@@ -188,6 +203,7 @@ This document outlines the security and performance optimizations implemented in
 **Endpoint**: `/api/monitoring/health`
 
 **Provides**:
+
 - System uptime
 - Memory usage
 - CPU usage
@@ -198,6 +214,7 @@ This document outlines the security and performance optimizations implemented in
 **Endpoint**: `/api/monitoring/cache`
 
 **Features**:
+
 - Cache status monitoring
 - Cache clearing by pattern
 - Cache statistics

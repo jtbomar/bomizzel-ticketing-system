@@ -15,10 +15,7 @@ export class CustomerSubscription extends BaseModel {
   }
 
   static async findActiveSubscription(userId: string): Promise<CustomerSubscriptionTable | null> {
-    const result = await this.query
-      .where('user_id', userId)
-      .where('status', 'active')
-      .first();
+    const result = await this.query.where('user_id', userId).where('status', 'active').first();
     return result || null;
   }
 
@@ -60,7 +57,7 @@ export class CustomerSubscription extends BaseModel {
   }
 
   static async upgradeSubscription(
-    subscriptionId: string, 
+    subscriptionId: string,
     newPlanId: string,
     effectiveDate?: Date
   ): Promise<CustomerSubscriptionTable | null> {
@@ -109,12 +106,12 @@ export class CustomerSubscription extends BaseModel {
   }
 
   static async findExpiredTrials(): Promise<CustomerSubscriptionTable[]> {
-    return this.query
-      .where('status', 'trial')
-      .where('trial_end', '<', new Date());
+    return this.query.where('status', 'trial').where('trial_end', '<', new Date());
   }
 
-  static async findExpiringSubscriptions(daysAhead: number = 7): Promise<CustomerSubscriptionTable[]> {
+  static async findExpiringSubscriptions(
+    daysAhead: number = 7
+  ): Promise<CustomerSubscriptionTable[]> {
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() + daysAhead);
 
@@ -189,17 +186,17 @@ export class CustomerSubscription extends BaseModel {
     });
   }
 
-  static async findByStripeSubscriptionId(stripeSubscriptionId: string): Promise<CustomerSubscriptionTable | null> {
-    const result = await this.query
-      .where('stripe_subscription_id', stripeSubscriptionId)
-      .first();
+  static async findByStripeSubscriptionId(
+    stripeSubscriptionId: string
+  ): Promise<CustomerSubscriptionTable | null> {
+    const result = await this.query.where('stripe_subscription_id', stripeSubscriptionId).first();
     return result || null;
   }
 
-  static async findByStripeCustomerId(stripeCustomerId: string): Promise<CustomerSubscriptionTable[]> {
-    return this.query
-      .where('stripe_customer_id', stripeCustomerId)
-      .orderBy('created_at', 'desc');
+  static async findByStripeCustomerId(
+    stripeCustomerId: string
+  ): Promise<CustomerSubscriptionTable[]> {
+    return this.query.where('stripe_customer_id', stripeCustomerId).orderBy('created_at', 'desc');
   }
 
   // Convert database record to API model
@@ -218,8 +215,10 @@ export class CustomerSubscription extends BaseModel {
       paymentMethodId: subscription.payment_method_id,
       stripeSubscriptionId: subscription.stripe_subscription_id,
       stripeCustomerId: subscription.stripe_customer_id,
-      metadata: typeof subscription.metadata === 'string' ? 
-        JSON.parse(subscription.metadata) : subscription.metadata,
+      metadata:
+        typeof subscription.metadata === 'string'
+          ? JSON.parse(subscription.metadata)
+          : subscription.metadata,
       createdAt: subscription.created_at,
       updatedAt: subscription.updated_at,
     };

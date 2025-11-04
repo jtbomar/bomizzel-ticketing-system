@@ -214,9 +214,9 @@ export interface TicketHistory {
   user?: User;
 }
 
-export type TicketAction = 
+export type TicketAction =
   | 'created'
-  | 'updated' 
+  | 'updated'
   | 'assigned'
   | 'unassigned'
   | 'status_changed'

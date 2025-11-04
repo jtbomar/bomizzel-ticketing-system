@@ -1,26 +1,21 @@
-
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import { ThemeProvider } from './contexts/ThemeContext'
-import HomePage from './pages/HomePage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import PricingPage from './pages/PricingPage'
-import CustomerDashboard from './pages/CustomerDashboard'
-import SimpleEmployeeDashboard from './pages/SimpleEmployeeDashboard'
-import SimpleAdminDashboard from './pages/SimpleAdminDashboard'
-import TicketLayoutManagement from './pages/TicketLayoutManagement'
-import CreateTicketPage from './pages/CreateTicketPage'
-import TestAPI from './TestAPI'
-import CompanyRegistrationPage from './pages/CompanyRegistrationPage'
-import StatusPriorityConfig from './components/StatusPriorityConfig'
-import AdminStatusConfig from './components/AdminStatusConfig'
-import TestTicketForm from './pages/TestTicketForm'
-import ColorPickerDemo from './pages/ColorPickerDemo'
-
-
-
-
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import PricingPage from './pages/PricingPage';
+import CustomerDashboard from './pages/CustomerDashboard';
+import SimpleEmployeeDashboard from './pages/SimpleEmployeeDashboard';
+import SimpleAdminDashboard from './pages/SimpleAdminDashboard';
+import TicketLayoutManagement from './pages/TicketLayoutManagement';
+import CreateTicketPage from './pages/CreateTicketPage';
+import TestAPI from './TestAPI';
+import CompanyRegistrationPage from './pages/CompanyRegistrationPage';
+import StatusPriorityConfig from './components/StatusPriorityConfig';
+import AdminStatusConfig from './components/AdminStatusConfig';
+import TestTicketForm from './pages/TestTicketForm';
+import ColorPickerDemo from './pages/ColorPickerDemo';
 
 function App() {
   return (
@@ -47,7 +42,7 @@ function App() {
         </div>
       </AuthProvider>
     </ThemeProvider>
-  )
+  );
 }
 
-export default App
+export default App;

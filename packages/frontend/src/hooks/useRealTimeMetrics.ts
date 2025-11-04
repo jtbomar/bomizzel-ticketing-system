@@ -19,14 +19,14 @@ export const useRealTimeMetrics = (queueIds: string[] = []) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const metricsPromises = queueIds.map(queueId => 
+
+      const metricsPromises = queueIds.map((queueId) =>
         apiService.getQueueMetrics(queueId).catch(() => null)
       );
-      
+
       const results = await Promise.all(metricsPromises);
       const validMetrics = results.filter(Boolean) as QueueMetrics[];
-      
+
       setMetrics(validMetrics);
     } catch (err) {
       setError('Failed to load metrics');
@@ -48,11 +48,11 @@ export const useRealTimeMetrics = (queueIds: string[] = []) => {
     const handleMetricsUpdate = (notification: any) => {
       if (notification.type === 'queue:metrics_updated') {
         const { queue, metrics: updatedMetrics } = notification.data;
-        
+
         // Update metrics for the specific queue
-        setMetrics(prev => {
-          const existingIndex = prev.findIndex(m => m.queueId === queue.id);
-          
+        setMetrics((prev) => {
+          const existingIndex = prev.findIndex((m) => m.queueId === queue.id);
+
           if (existingIndex >= 0) {
             // Update existing metrics
             const newMetrics = [...prev];
@@ -62,7 +62,7 @@ export const useRealTimeMetrics = (queueIds: string[] = []) => {
             // Add new metrics if queue is in our watch list
             return [...prev, updatedMetrics];
           }
-          
+
           return prev;
         });
       }
@@ -79,12 +79,12 @@ export const useRealTimeMetrics = (queueIds: string[] = []) => {
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    queueIds.forEach(queueId => {
+    queueIds.forEach((queueId) => {
       socket.emit('join_queue', queueId);
     });
 
     return () => {
-      queueIds.forEach(queueId => {
+      queueIds.forEach((queueId) => {
         socket.emit('leave_queue', queueId);
       });
     };

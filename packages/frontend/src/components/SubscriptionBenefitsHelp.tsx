@@ -9,50 +9,60 @@ interface SubscriptionBenefitsHelpProps {
 
 const SubscriptionBenefitsHelp: React.FC<SubscriptionBenefitsHelpProps> = ({
   currentPlan = 'Free',
-  className = ''
+  className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const planBenefits = {
-    'Free': {
+    Free: {
       tickets: '200 total tickets (100 active + 100 completed)',
-      features: ['Basic ticket management', 'Email notifications', 'File attachments']
+      features: ['Basic ticket management', 'Email notifications', 'File attachments'],
     },
-    'Starter': {
+    Starter: {
       tickets: '1,000 total tickets',
-      features: ['Everything in Free', 'Priority support', 'Custom fields', 'Basic reporting']
+      features: ['Everything in Free', 'Priority support', 'Custom fields', 'Basic reporting'],
     },
-    'Professional': {
+    Professional: {
       tickets: '10,000 total tickets',
-      features: ['Everything in Starter', 'Advanced reporting', 'Team collaboration', 'API access']
+      features: ['Everything in Starter', 'Advanced reporting', 'Team collaboration', 'API access'],
     },
-    'Business': {
+    Business: {
       tickets: '50,000 total tickets',
-      features: ['Everything in Professional', 'Advanced analytics', 'Custom integrations', 'SLA management']
+      features: [
+        'Everything in Professional',
+        'Advanced analytics',
+        'Custom integrations',
+        'SLA management',
+      ],
     },
-    'Enterprise': {
+    Enterprise: {
       tickets: 'Unlimited tickets',
-      features: ['Everything in Business', 'Dedicated support', 'Custom deployment', 'Advanced security']
-    }
+      features: [
+        'Everything in Business',
+        'Dedicated support',
+        'Custom deployment',
+        'Advanced security',
+      ],
+    },
   };
 
   const upgradeReasons = [
     {
       title: 'Scale Your Operations',
-      description: 'Handle more customer requests without worrying about limits'
+      description: 'Handle more customer requests without worrying about limits',
     },
     {
       title: 'Advanced Features',
-      description: 'Access powerful tools for team collaboration and reporting'
+      description: 'Access powerful tools for team collaboration and reporting',
     },
     {
       title: 'Better Support',
-      description: 'Get priority support and faster response times'
+      description: 'Get priority support and faster response times',
     },
     {
       title: 'Future-Proof',
-      description: 'Grow your business without platform constraints'
-    }
+      description: 'Grow your business without platform constraints',
+    },
   ];
 
   if (!isOpen) {
@@ -70,17 +80,15 @@ const SubscriptionBenefitsHelp: React.FC<SubscriptionBenefitsHelpProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setIsOpen(false)} />
+        <div
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          onClick={() => setIsOpen(false)}
+        />
 
         <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">
-              Subscription Benefits
-            </h3>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-gray-400 hover:text-gray-500"
-            >
+            <h3 className="text-lg font-medium text-gray-900">Subscription Benefits</h3>
+            <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-500">
               <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
@@ -93,12 +101,14 @@ const SubscriptionBenefitsHelp: React.FC<SubscriptionBenefitsHelpProps> = ({
                 {planBenefits[currentPlan as keyof typeof planBenefits]?.tickets}
               </p>
               <ul className="space-y-1">
-                {planBenefits[currentPlan as keyof typeof planBenefits]?.features.map((feature, index) => (
-                  <li key={index} className="flex items-center text-sm text-blue-800">
-                    <CheckIcon className="h-4 w-4 text-blue-600 mr-2" />
-                    {feature}
-                  </li>
-                ))}
+                {planBenefits[currentPlan as keyof typeof planBenefits]?.features.map(
+                  (feature, index) => (
+                    <li key={index} className="flex items-center text-sm text-blue-800">
+                      <CheckIcon className="h-4 w-4 text-blue-600 mr-2" />
+                      {feature}
+                    </li>
+                  )
+                )}
               </ul>
             </div>
 
@@ -121,10 +131,13 @@ const SubscriptionBenefitsHelp: React.FC<SubscriptionBenefitsHelpProps> = ({
               <div className="space-y-3">
                 {Object.entries(planBenefits).map(([planName, benefits]) => {
                   if (planName === currentPlan) return null;
-                  
-                  const isHigherTier = ['Starter', 'Professional', 'Business', 'Enterprise'].indexOf(planName) > 
-                                     ['Free', 'Starter', 'Professional', 'Business', 'Enterprise'].indexOf(currentPlan);
-                  
+
+                  const isHigherTier =
+                    ['Starter', 'Professional', 'Business', 'Enterprise'].indexOf(planName) >
+                    ['Free', 'Starter', 'Professional', 'Business', 'Enterprise'].indexOf(
+                      currentPlan
+                    );
+
                   if (!isHigherTier) return null;
 
                   return (
@@ -135,7 +148,10 @@ const SubscriptionBenefitsHelp: React.FC<SubscriptionBenefitsHelpProps> = ({
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {benefits.features.slice(0, 3).map((feature, index) => (
-                          <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                          >
                             {feature}
                           </span>
                         ))}

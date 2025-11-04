@@ -57,7 +57,7 @@ describe('Performance Load Tests', () => {
   describe('Concurrent Ticket Creation', () => {
     it('should handle 50 concurrent ticket creations', async () => {
       const startTime = Date.now();
-      
+
       const ticketPromises = Array.from({ length: 50 }, (_, i) => {
         const token = customerTokens[i % customerTokens.length];
         return request(app)
@@ -76,14 +76,14 @@ describe('Performance Load Tests', () => {
       const duration = endTime - startTime;
 
       // All requests should succeed
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
       });
 
       // Performance assertion: should complete within 10 seconds
       expect(duration).toBeLessThan(10000);
-      
+
       // Calculate average response time
       const avgResponseTime = duration / responses.length;
       expect(avgResponseTime).toBeLessThan(200); // Average under 200ms per request
@@ -106,17 +106,19 @@ describe('Performance Load Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
       });
 
       expect(duration).toBeLessThan(5000); // Should complete within 5 seconds
-      
+
       const avgResponseTime = duration / responses.length;
       expect(avgResponseTime).toBeLessThan(50); // Average under 50ms per request
 
-      console.log(`Retrieved tickets 100 times in ${duration}ms (avg: ${avgResponseTime}ms per request)`);
+      console.log(
+        `Retrieved tickets 100 times in ${duration}ms (avg: ${avgResponseTime}ms per request)`
+      );
     }, 10000);
   });
 
@@ -140,11 +142,11 @@ describe('Performance Load Tests', () => {
 
       // Test search performance on large dataset
       const startTime = Date.now();
-      
+
       const response = await request(app)
         .get('/api/tickets')
         .set('Authorization', `Bearer ${customerTokens[0]}`)
-        .query({ 
+        .query({
           query: 'Performance',
           limit: 50,
           page: 1,
@@ -178,13 +180,13 @@ describe('Performance Load Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(200);
         expect(response.body.token).toBeDefined();
       });
 
       expect(duration).toBeLessThan(5000);
-      
+
       const avgResponseTime = duration / responses.length;
       expect(avgResponseTime).toBeLessThan(100);
 
@@ -196,7 +198,7 @@ describe('Performance Load Tests', () => {
     it('should handle multiple WebSocket connections', async () => {
       // This would test WebSocket connection limits and message broadcasting
       // For now, we'll test the HTTP endpoints that support real-time features
-      
+
       const startTime = Date.now();
 
       const metricsPromises = Array.from({ length: 20 }, (_, i) => {
@@ -211,7 +213,7 @@ describe('Performance Load Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
       });
@@ -235,7 +237,7 @@ describe('Performance Load Tests', () => {
           companyId: companyId,
           teamId: teamId,
         });
-      
+
       testTicketId = response.body.data.id;
     });
 
@@ -245,7 +247,7 @@ describe('Performance Load Tests', () => {
       const uploadPromises = Array.from({ length: 10 }, (_, i) => {
         const token = customerTokens[i % customerTokens.length];
         const fileContent = Buffer.from(`Test file content ${i}`.repeat(100)); // ~2KB file
-        
+
         return request(app)
           .post(`/api/tickets/${testTicketId}/files`)
           .set('Authorization', `Bearer ${token}`)
@@ -256,7 +258,7 @@ describe('Performance Load Tests', () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
 
-      responses.forEach(response => {
+      responses.forEach((response) => {
         expect(response.status).toBe(201);
         expect(response.body.success).toBe(true);
       });
@@ -274,7 +276,7 @@ describe('Performance Load Tests', () => {
       // Perform many operations
       const operations = Array.from({ length: 100 }, async (_, i) => {
         const token = customerTokens[i % customerTokens.length];
-        
+
         // Create ticket
         const createResponse = await request(app)
           .post('/api/tickets')
@@ -318,7 +320,7 @@ describe('Performance Load Tests', () => {
       const memoryIncreaseMB = memoryIncrease / 1024 / 1024;
 
       console.log(`Memory increase: ${memoryIncreaseMB.toFixed(2)}MB`);
-      
+
       // Memory increase should be reasonable (less than 100MB for this test)
       expect(memoryIncreaseMB).toBeLessThan(100);
     }, 30000);

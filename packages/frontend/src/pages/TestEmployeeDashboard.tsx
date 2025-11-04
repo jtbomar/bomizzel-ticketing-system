@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 
 const TestEmployeeDashboard: React.FC = () => {
   const [activeView, setActiveView] = useState<'kanban' | 'list'>('kanban');
-  
+
   const mockTickets = [
     { id: 1, title: 'Login Issue', status: 'Open', priority: 'High', customer: 'John Doe' },
-    { id: 2, title: 'Feature Request', status: 'In Progress', priority: 'Medium', customer: 'Jane Smith' },
+    {
+      id: 2,
+      title: 'Feature Request',
+      status: 'In Progress',
+      priority: 'Medium',
+      customer: 'Jane Smith',
+    },
     { id: 3, title: 'Bug Report', status: 'Resolved', priority: 'Low', customer: 'Bob Wilson' },
   ];
 
@@ -24,8 +30,8 @@ const TestEmployeeDashboard: React.FC = () => {
                 <button
                   onClick={() => setActiveView('kanban')}
                   className={`px-4 py-2 text-sm font-medium rounded-l-md border ${
-                    activeView === 'kanban' 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    activeView === 'kanban'
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -34,8 +40,8 @@ const TestEmployeeDashboard: React.FC = () => {
                 <button
                   onClick={() => setActiveView('list')}
                   className={`px-4 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
-                    activeView === 'list' 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    activeView === 'list'
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -72,7 +78,7 @@ const TestEmployeeDashboard: React.FC = () => {
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">{status}</dt>
                       <dd className="text-lg font-medium text-gray-900">
-                        {mockTickets.filter(t => t.status === status).length}
+                        {mockTickets.filter((t) => t.status === status).length}
                       </dd>
                     </dl>
                   </div>
@@ -102,17 +108,26 @@ const TestEmployeeDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className={`text-xs font-medium ${
-                        ticket.priority === 'High' ? 'text-red-600' :
-                        ticket.priority === 'Medium' ? 'text-yellow-600' : 'text-green-600'
-                      }`}>
+                      <span
+                        className={`text-xs font-medium ${
+                          ticket.priority === 'High'
+                            ? 'text-red-600'
+                            : ticket.priority === 'Medium'
+                              ? 'text-yellow-600'
+                              : 'text-green-600'
+                        }`}
+                      >
                         {ticket.priority}
                       </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        ticket.status === 'Open' ? 'bg-red-100 text-red-800' :
-                        ticket.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          ticket.status === 'Open'
+                            ? 'bg-red-100 text-red-800'
+                            : ticket.status === 'In Progress'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                        }`}
+                      >
                         {ticket.status}
                       </span>
                     </div>

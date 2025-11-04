@@ -30,20 +30,20 @@ export interface LayoutField {
   updatedAt: Date;
 }
 
-export type FieldType = 
-  | 'text' 
-  | 'textarea' 
-  | 'rich_text' 
-  | 'number' 
-  | 'currency' 
-  | 'date' 
-  | 'datetime' 
-  | 'picklist' 
-  | 'multi_picklist' 
-  | 'checkbox' 
-  | 'radio' 
-  | 'email' 
-  | 'phone' 
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'rich_text'
+  | 'number'
+  | 'currency'
+  | 'date'
+  | 'datetime'
+  | 'picklist'
+  | 'multi_picklist'
+  | 'checkbox'
+  | 'radio'
+  | 'email'
+  | 'phone'
   | 'url';
 
 export interface LayoutConfig {

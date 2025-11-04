@@ -14,13 +14,15 @@ export abstract class BaseModel {
     return result || null;
   }
 
-  static async findAll(options: {
-    limit?: number;
-    offset?: number;
-    orderBy?: string;
-    orderDirection?: 'asc' | 'desc';
-    where?: Record<string, any>;
-  } = {}): Promise<any[]> {
+  static async findAll(
+    options: {
+      limit?: number;
+      offset?: number;
+      orderBy?: string;
+      orderDirection?: 'asc' | 'desc';
+      where?: Record<string, any>;
+    } = {}
+  ): Promise<any[]> {
     let query = this.query;
 
     if (options.where) {
@@ -62,7 +64,7 @@ export abstract class BaseModel {
 
   static async count(where?: Record<string, any>): Promise<number> {
     let query = this.query.count('* as count');
-    
+
     if (where) {
       query = query.where(where);
     }
@@ -84,24 +86,24 @@ export abstract class BaseModel {
   // Utility method to convert snake_case to camelCase
   protected static toCamelCase(obj: Record<string, any>): Record<string, any> {
     const result: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
       const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
       result[camelKey] = value;
     }
-    
+
     return result;
   }
 
   // Utility method to convert camelCase to snake_case
   protected static toSnakeCase(obj: Record<string, any>): Record<string, any> {
     const result: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(obj)) {
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
       result[snakeKey] = value;
     }
-    
+
     return result;
   }
 }

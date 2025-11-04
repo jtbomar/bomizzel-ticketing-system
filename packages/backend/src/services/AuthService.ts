@@ -5,12 +5,7 @@ import { JWTUtils, TokenPair } from '@/utils/jwt';
 import { CryptoUtils } from '@/utils/crypto';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
-  CreateUserRequest, 
-  LoginRequest, 
-  LoginResponse, 
-  User as UserModel 
-} from '@/types/models';
+import { CreateUserRequest, LoginRequest, LoginResponse, User as UserModel } from '@/types/models';
 import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
 
@@ -18,7 +13,9 @@ export class AuthService {
   /**
    * Register a new user
    */
-  static async register(userData: CreateUserRequest): Promise<{ user: UserModel; tokens: TokenPair }> {
+  static async register(
+    userData: CreateUserRequest
+  ): Promise<{ user: UserModel; tokens: TokenPair }> {
     try {
       // Check if user already exists
       const existingUser = await User.findByEmail(userData.email);
@@ -43,7 +40,7 @@ export class AuthService {
       if (user.role === 'customer') {
         try {
           let planId = userData.selectedPlanId;
-          
+
           // If no plan selected, default to Free Tier
           if (!planId) {
             const freeTierPlan = await SubscriptionPlan.getFreeTier();
@@ -58,8 +55,8 @@ export class AuthService {
               startTrial: userData.startTrial || false,
               metadata: {
                 registrationSource: 'direct_signup',
-                userAgent: 'web'
-              }
+                userAgent: 'web',
+              },
             });
 
             // Get plan details for welcome email
@@ -67,9 +64,9 @@ export class AuthService {
             if (plan) {
               try {
                 // Send welcome email based on subscription plan
-                const planFeatures = typeof plan.features === 'string' ? 
-                  JSON.parse(plan.features) : plan.features;
-                
+                const planFeatures =
+                  typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features;
+
                 await EmailService.sendWelcomeEmail(
                   user.email,
                   `${user.first_name} ${user.last_name}`.trim(),
@@ -83,14 +80,14 @@ export class AuthService {
                   userId: user.id,
                   planId,
                   planName: plan.name,
-                  isTrialPlan: userData.startTrial && plan.trial_days > 0
+                  isTrialPlan: userData.startTrial && plan.trial_days > 0,
                 });
               } catch (emailError) {
                 // Log email error but don't fail registration
                 logger.error('Failed to send welcome email during registration', {
                   userId: user.id,
                   planId,
-                  error: emailError
+                  error: emailError,
                 });
               }
             }
@@ -98,7 +95,7 @@ export class AuthService {
             logger.info(`Subscription created during registration`, {
               userId: user.id,
               planId,
-              startTrial: userData.startTrial
+              startTrial: userData.startTrial,
             });
           }
         } catch (subscriptionError) {
@@ -106,9 +103,9 @@ export class AuthService {
           logger.error('Failed to create subscription during registration', {
             userId: user.id,
             selectedPlanId: userData.selectedPlanId,
-            error: subscriptionError
+            error: subscriptionError,
           });
-          
+
           // We could optionally create a default free subscription here
           // or handle this in a background job
         }
@@ -227,7 +224,11 @@ export class AuthService {
     try {
       const user = await User.findByEmailVerificationToken(token);
       if (!user) {
-        throw new AppError('Invalid or expired verification token', 400, 'INVALID_VERIFICATION_TOKEN');
+        throw new AppError(
+          'Invalid or expired verification token',
+          400,
+          'INVALID_VERIFICATION_TOKEN'
+        );
       }
 
       await User.verifyEmail(user.id);
@@ -298,7 +299,11 @@ export class AuthService {
   /**
    * Change password for authenticated user
    */
-  static async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  static async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -334,7 +339,7 @@ export class AuthService {
       }
 
       const userModel = User.toModel(userWithCompanies);
-      
+
       return {
         ...userModel,
         companies: userWithCompanies.companies,
@@ -351,11 +356,14 @@ export class AuthService {
   /**
    * Update user profile
    */
-  static async updateProfile(userId: string, updateData: {
-    firstName?: string;
-    lastName?: string;
-    preferences?: any;
-  }): Promise<UserModel> {
+  static async updateProfile(
+    userId: string,
+    updateData: {
+      firstName?: string;
+      lastName?: string;
+      preferences?: any;
+    }
+  ): Promise<UserModel> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -365,9 +373,9 @@ export class AuthService {
       const updatedUser = await User.update(userId, {
         first_name: updateData.firstName,
         last_name: updateData.lastName,
-        preferences: updateData.preferences ? 
-          { ...user.preferences, ...updateData.preferences } : 
-          user.preferences,
+        preferences: updateData.preferences
+          ? { ...user.preferences, ...updateData.preferences }
+          : user.preferences,
       });
 
       if (!updatedUser) {
@@ -414,13 +422,13 @@ export class AuthService {
         startTrial: false,
         metadata: {
           source: 'auto_assignment',
-          reason: 'ensure_subscription'
-        }
+          reason: 'ensure_subscription',
+        },
       });
 
       logger.info('Free Tier subscription auto-created for user', {
         userId,
-        planId: freeTierPlan.id
+        planId: freeTierPlan.id,
       });
     } catch (error) {
       logger.error('Error ensuring user subscription', { userId, error });
@@ -431,7 +439,11 @@ export class AuthService {
   /**
    * Associate user with company
    */
-  static async associateWithCompany(userId: string, companyId: string, role: string = 'member'): Promise<void> {
+  static async associateWithCompany(
+    userId: string,
+    companyId: string,
+    role: string = 'member'
+  ): Promise<void> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -446,7 +458,11 @@ export class AuthService {
       // Check if association already exists
       const isAlreadyAssociated = await Company.isUserInCompany(userId, companyId);
       if (isAlreadyAssociated) {
-        throw new AppError('User is already associated with this company', 409, 'ALREADY_ASSOCIATED');
+        throw new AppError(
+          'User is already associated with this company',
+          409,
+          'ALREADY_ASSOCIATED'
+        );
       }
 
       await Company.addUserToCompany(userId, companyId, role);

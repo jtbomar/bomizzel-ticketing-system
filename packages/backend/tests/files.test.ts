@@ -50,9 +50,7 @@ describe('File Routes', () => {
     });
 
     it('should return 400 when no file provided', async () => {
-      const response = await request(app)
-        .post('/files/upload')
-        .field('ticketId', 'ticket-123');
+      const response = await request(app).post('/files/upload').field('ticketId', 'ticket-123');
 
       expect(response.status).toBe(400);
       expect(response.body.error.message).toBe('No file provided');
@@ -84,8 +82,7 @@ describe('File Routes', () => {
         filePath: 'uploads/test.jpg',
       });
 
-      const response = await request(app)
-        .get('/files/attachment-123/info');
+      const response = await request(app).get('/files/attachment-123/info');
 
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual(mockAttachment);
@@ -96,8 +93,7 @@ describe('File Routes', () => {
     it('should delete file successfully', async () => {
       mockFileService.deleteFile.mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .delete('/files/attachment-123');
+      const response = await request(app).delete('/files/attachment-123');
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('File deleted successfully');
@@ -122,8 +118,7 @@ describe('File Routes', () => {
 
       mockFileService.getTicketAttachments.mockResolvedValue(mockAttachments as any);
 
-      const response = await request(app)
-        .get('/files/tickets/ticket-123/attachments');
+      const response = await request(app).get('/files/tickets/ticket-123/attachments');
 
       expect(response.status).toBe(200);
       expect(response.body.data).toEqual(mockAttachments);

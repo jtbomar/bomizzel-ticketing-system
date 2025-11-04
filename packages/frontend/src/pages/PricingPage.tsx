@@ -116,8 +116,8 @@ const PricingPage: React.FC = () => {
             Choose Your <span className="text-primary-600">Perfect Plan</span>
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Scale your support operations with flexible pricing that grows with your business. 
-            From startups to enterprise, we have the right solution for your team.
+            Scale your support operations with flexible pricing that grows with your business. From
+            startups to enterprise, we have the right solution for your team.
           </p>
           <div className="inline-flex items-center bg-white rounded-full px-6 py-2 shadow-sm">
             <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
@@ -151,9 +151,7 @@ const PricingPage: React.FC = () => {
                     <span className="text-4xl font-bold text-gray-900">
                       {formatPrice(plan.price)}
                     </span>
-                    {plan.price > 0 && (
-                      <span className="text-gray-500 ml-1">/month</span>
-                    )}
+                    {plan.price > 0 && <span className="text-gray-500 ml-1">/month</span>}
                   </div>
                   <p className="text-gray-600 text-sm">{plan.description}</p>
                 </div>
@@ -165,11 +163,15 @@ const PricingPage: React.FC = () => {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Active Tickets:</span>
-                        <span className="font-medium">{formatTicketLimit(plan.limits.activeTickets)}</span>
+                        <span className="font-medium">
+                          {formatTicketLimit(plan.limits.activeTickets)}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Completed Tickets:</span>
-                        <span className="font-medium">{formatTicketLimit(plan.limits.completedTickets)}</span>
+                        <span className="font-medium">
+                          {formatTicketLimit(plan.limits.completedTickets)}
+                        </span>
                       </div>
                       <div className="flex justify-between border-t pt-2">
                         <span className="text-gray-900 font-medium">Total Tickets:</span>
@@ -195,10 +197,7 @@ const PricingPage: React.FC = () => {
                 </div>
 
                 {/* CTA Button */}
-                <Link
-                  to={`/register?plan=${plan.slug}`}
-                  className={getPlanButtonStyle(index)}
-                >
+                <Link to={`/register?plan=${plan.slug}`} className={getPlanButtonStyle(index)}>
                   {getPlanButtonText(plan)}
                 </Link>
               </div>
@@ -217,52 +216,62 @@ const PricingPage: React.FC = () => {
                 What happens when I reach my ticket limit?
               </h3>
               <p className="text-gray-600 text-sm">
-                When you reach your active ticket limit, you won't be able to create new tickets until you complete some existing ones or upgrade your plan. You can always complete existing tickets regardless of your completed ticket limit.
+                When you reach your active ticket limit, you won't be able to create new tickets
+                until you complete some existing ones or upgrade your plan. You can always complete
+                existing tickets regardless of your completed ticket limit.
               </p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">
                 Can I upgrade or downgrade my plan anytime?
               </h3>
               <p className="text-gray-600 text-sm">
-                Yes! You can upgrade your plan at any time and the changes take effect immediately. Downgrades take effect at the end of your current billing cycle to ensure you don't lose access to features you've paid for.
+                Yes! You can upgrade your plan at any time and the changes take effect immediately.
+                Downgrades take effect at the end of your current billing cycle to ensure you don't
+                lose access to features you've paid for.
               </p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-6 shadow-sm">
-              <h3 className="font-semibold text-gray-900 mb-3">
-                How does the free trial work?
-              </h3>
+              <h3 className="font-semibold text-gray-900 mb-3">How does the free trial work?</h3>
               <p className="text-gray-600 text-sm">
-                All paid plans include a 14-day free trial with full access to all features. No credit card required to start. You can cancel anytime during the trial period without being charged.
+                All paid plans include a 14-day free trial with full access to all features. No
+                credit card required to start. You can cancel anytime during the trial period
+                without being charged.
               </p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">
                 What payment methods do you accept?
               </h3>
               <p className="text-gray-600 text-sm">
-                We accept all major credit cards (Visa, MasterCard, American Express) and process payments securely through Stripe. All billing is monthly and you can update your payment method anytime.
+                We accept all major credit cards (Visa, MasterCard, American Express) and process
+                payments securely through Stripe. All billing is monthly and you can update your
+                payment method anytime.
               </p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">
                 Is there a setup fee or long-term contract?
               </h3>
               <p className="text-gray-600 text-sm">
-                No setup fees and no long-term contracts required. All plans are billed monthly and you can cancel anytime. We believe in earning your business every month with great service.
+                No setup fees and no long-term contracts required. All plans are billed monthly and
+                you can cancel anytime. We believe in earning your business every month with great
+                service.
               </p>
             </div>
-            
+
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">
                 What happens to my data if I cancel?
               </h3>
               <p className="text-gray-600 text-sm">
-                Your data remains accessible for 30 days after cancellation, giving you time to export or migrate. We can also provide data exports in standard formats upon request.
+                Your data remains accessible for 30 days after cancellation, giving you time to
+                export or migrate. We can also provide data exports in standard formats upon
+                request.
               </p>
             </div>
           </div>
@@ -274,7 +283,8 @@ const PricingPage: React.FC = () => {
             Ready to Transform Your Support Operations?
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join thousands of teams who trust Bomizzel to manage their customer support efficiently and professionally.
+            Join thousands of teams who trust Bomizzel to manage their customer support efficiently
+            and professionally.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register" className="btn-primary text-lg px-8 py-3">

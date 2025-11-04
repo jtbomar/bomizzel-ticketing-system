@@ -8,12 +8,11 @@ const ToastContainer: React.FC = () => {
 
   // Convert notifications to toasts for high-priority items
   useEffect(() => {
-    const newNotifications = notifications.filter(n => 
-      n.priority === 'high' && 
-      !toasts.some(t => t.id === n.id)
+    const newNotifications = notifications.filter(
+      (n) => n.priority === 'high' && !toasts.some((t) => t.id === n.id)
     );
 
-    newNotifications.forEach(notification => {
+    newNotifications.forEach((notification) => {
       const toast: Toast = {
         id: notification.id,
         type: getToastType(notification.type),
@@ -22,7 +21,7 @@ const ToastContainer: React.FC = () => {
         duration: 5000,
       };
 
-      setToasts(prev => [...prev, toast]);
+      setToasts((prev) => [...prev, toast]);
     });
   }, [notifications, toasts]);
 
@@ -41,7 +40,7 @@ const ToastContainer: React.FC = () => {
   };
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   if (toasts.length === 0) {
@@ -50,12 +49,8 @@ const ToastContainer: React.FC = () => {
 
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map(toast => (
-        <ToastNotification
-          key={toast.id}
-          toast={toast}
-          onRemove={removeToast}
-        />
+      {toasts.map((toast) => (
+        <ToastNotification key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
     </div>
   );

@@ -22,10 +22,7 @@ export class Queue extends BaseModel {
   }
 
   static async findByTeam(teamId: string): Promise<QueueTable[]> {
-    return this.query
-      .where('team_id', teamId)
-      .where('is_active', true)
-      .orderBy('name', 'asc');
+    return this.query.where('team_id', teamId).where('is_active', true).orderBy('name', 'asc');
   }
 
   static async findByAssignee(assignedToId: string): Promise<QueueTable[]> {
@@ -52,16 +49,20 @@ export class Queue extends BaseModel {
 
   static async getTeamQueuesWithMetrics(teamId: string): Promise<any[]> {
     const queues = await this.findByTeam(teamId);
-    
+
     const queuesWithMetrics = await Promise.all(
       queues.map(async (queue) => {
         const metrics = await this.db('tickets')
           .where('queue_id', queue.id)
           .select(
             this.db.raw('COUNT(*) as total_tickets'),
-            this.db.raw('COUNT(CASE WHEN status = \'open\' THEN 1 END) as open_tickets'),
-            this.db.raw('COUNT(CASE WHEN assigned_to_id IS NOT NULL THEN 1 END) as assigned_tickets'),
-            this.db.raw('COUNT(CASE WHEN status IN (\'resolved\', \'closed\') THEN 1 END) as resolved_tickets')
+            this.db.raw("COUNT(CASE WHEN status = 'open' THEN 1 END) as open_tickets"),
+            this.db.raw(
+              'COUNT(CASE WHEN assigned_to_id IS NOT NULL THEN 1 END) as assigned_tickets'
+            ),
+            this.db.raw(
+              "COUNT(CASE WHEN status IN ('resolved', 'closed') THEN 1 END) as resolved_tickets"
+            )
           )
           .first();
 
@@ -81,14 +82,14 @@ export class Queue extends BaseModel {
   }
 
   static async assignToEmployee(queueId: string, employeeId: string): Promise<QueueTable | null> {
-    return this.update(queueId, { 
+    return this.update(queueId, {
       assigned_to_id: employeeId,
       type: 'employee',
     });
   }
 
   static async unassignFromEmployee(queueId: string): Promise<QueueTable | null> {
-    return this.update(queueId, { 
+    return this.update(queueId, {
       assigned_to_id: null,
       type: 'unassigned',
     });

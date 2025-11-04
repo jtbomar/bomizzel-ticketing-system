@@ -31,22 +31,34 @@ export class TicketStatusService {
       // Check if user has permission to manage team statuses
       const isTeamLead = await Team.isTeamLead(createdById, teamId);
       const user = await User.findById(createdById);
-      
+
       if (!isTeamLead && user?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can manage ticket statuses', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can manage ticket statuses',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       // Check if status name already exists for this team
       const existingStatus = await TicketStatus.findByTeamAndName(teamId, statusData.name);
       if (existingStatus) {
-        throw new AppError('Status with this name already exists for this team', 409, 'STATUS_NAME_EXISTS');
+        throw new AppError(
+          'Status with this name already exists for this team',
+          409,
+          'STATUS_NAME_EXISTS'
+        );
       }
 
       // If this is set as default, ensure no other default exists
       if (statusData.isDefault) {
         const currentDefault = await TicketStatus.getDefaultStatus(teamId);
         if (currentDefault) {
-          throw new AppError('Team already has a default status. Update the existing default first.', 409, 'DEFAULT_STATUS_EXISTS');
+          throw new AppError(
+            'Team already has a default status. Update the existing default first.',
+            409,
+            'DEFAULT_STATUS_EXISTS'
+          );
         }
       }
 
@@ -55,7 +67,9 @@ export class TicketStatusService {
         ...statusData,
       });
 
-      logger.info(`Ticket status created: ${status.name} for team ${teamId} by user ${createdById}`);
+      logger.info(
+        `Ticket status created: ${status.name} for team ${teamId} by user ${createdById}`
+      );
 
       return TicketStatus.toModel(status);
     } catch (error) {
@@ -78,7 +92,7 @@ export class TicketStatusService {
       }
 
       const statuses = await TicketStatus.findByTeam(teamId);
-      return statuses.map(status => TicketStatus.toModel(status));
+      return statuses.map((status) => TicketStatus.toModel(status));
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
@@ -113,16 +127,27 @@ export class TicketStatusService {
       // Check if user has permission to manage team statuses
       const isTeamLead = await Team.isTeamLead(updatedById, status.team_id);
       const user = await User.findById(updatedById);
-      
+
       if (!isTeamLead && user?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can manage ticket statuses', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can manage ticket statuses',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       // Check for name conflicts (if name is being updated)
       if (updateData.name && updateData.name !== status.name) {
-        const existingStatus = await TicketStatus.findByTeamAndName(status.team_id, updateData.name);
+        const existingStatus = await TicketStatus.findByTeamAndName(
+          status.team_id,
+          updateData.name
+        );
         if (existingStatus) {
-          throw new AppError('Status with this name already exists for this team', 409, 'STATUS_NAME_EXISTS');
+          throw new AppError(
+            'Status with this name already exists for this team',
+            409,
+            'STATUS_NAME_EXISTS'
+          );
         }
       }
 
@@ -133,27 +158,27 @@ export class TicketStatusService {
 
       // Prepare update data
       const updateFields: any = {};
-      
+
       if (updateData.name !== undefined) {
         updateFields.name = updateData.name;
       }
-      
+
       if (updateData.label !== undefined) {
         updateFields.label = updateData.label;
       }
-      
+
       if (updateData.color !== undefined) {
         updateFields.color = updateData.color;
       }
-      
+
       if (updateData.order !== undefined) {
         updateFields.order = updateData.order;
       }
-      
+
       if (updateData.isClosed !== undefined) {
         updateFields.is_closed = updateData.isClosed;
       }
-      
+
       if (updateData.isActive !== undefined) {
         updateFields.is_active = updateData.isActive;
       }
@@ -188,9 +213,13 @@ export class TicketStatusService {
       // Check if user has permission to manage team statuses
       const isTeamLead = await Team.isTeamLead(deletedById, status.team_id);
       const user = await User.findById(deletedById);
-      
+
       if (!isTeamLead && user?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can manage ticket statuses', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can manage ticket statuses',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       // Check if status is being used by any tickets
@@ -202,7 +231,11 @@ export class TicketStatusService {
         .first();
 
       if (ticketCount && parseInt(ticketCount.count, 10) > 0) {
-        throw new AppError('Cannot delete status that is being used by tickets', 409, 'STATUS_IN_USE');
+        throw new AppError(
+          'Cannot delete status that is being used by tickets',
+          409,
+          'STATUS_IN_USE'
+        );
       }
 
       // Soft delete by setting is_active to false
@@ -235,9 +268,13 @@ export class TicketStatusService {
       // Check if user has permission to manage team statuses
       const isTeamLead = await Team.isTeamLead(updatedById, teamId);
       const user = await User.findById(updatedById);
-      
+
       if (!isTeamLead && user?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can manage ticket statuses', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can manage ticket statuses',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       await TicketStatus.updateOrder(teamId, statusOrders);
@@ -255,7 +292,9 @@ export class TicketStatusService {
   /**
    * Get status statistics for a team
    */
-  static async getStatusStats(teamId: string): Promise<{ statusId: string; name: string; label: string; ticketCount: number }[]> {
+  static async getStatusStats(
+    teamId: string
+  ): Promise<{ statusId: string; name: string; label: string; ticketCount: number }[]> {
     try {
       const team = await Team.findById(teamId);
       if (!team) {

@@ -12,10 +12,7 @@ describe('Authentication Endpoints', () => {
         lastName: 'User',
       };
 
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send(userData)
-        .expect(201);
+      const response = await request(app).post('/api/auth/register').send(userData).expect(201);
 
       expect(response.body.message).toBe('User registered successfully');
       expect(response.body.user).toMatchObject({
@@ -37,15 +34,10 @@ describe('Authentication Endpoints', () => {
       };
 
       // Register first user
-      await request(app)
-        .post('/api/auth/register')
-        .send(userData);
+      await request(app).post('/api/auth/register').send(userData);
 
       // Try to register with same email
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send(userData)
-        .expect(409);
+      const response = await request(app).post('/api/auth/register').send(userData).expect(409);
 
       expect(response.body.error.code).toBe('USER_EXISTS');
     });
@@ -123,14 +115,12 @@ describe('Authentication Endpoints', () => {
 
     beforeEach(async () => {
       // Register and get token
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'password123',
-          firstName: 'Test',
-          lastName: 'User',
-        });
+      const response = await request(app).post('/api/auth/register').send({
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+      });
 
       authToken = response.body.token;
     });
@@ -150,9 +140,7 @@ describe('Authentication Endpoints', () => {
     });
 
     it('should not get profile without token', async () => {
-      const response = await request(app)
-        .get('/api/auth/profile')
-        .expect(401);
+      const response = await request(app).get('/api/auth/profile').expect(401);
 
       expect(response.body.error.code).toBe('MISSING_TOKEN');
     });
@@ -172,14 +160,12 @@ describe('Authentication Endpoints', () => {
 
     beforeEach(async () => {
       // Register and get refresh token
-      const response = await request(app)
-        .post('/api/auth/register')
-        .send({
-          email: 'test@example.com',
-          password: 'password123',
-          firstName: 'Test',
-          lastName: 'User',
-        });
+      const response = await request(app).post('/api/auth/register').send({
+        email: 'test@example.com',
+        password: 'password123',
+        firstName: 'Test',
+        lastName: 'User',
+      });
 
       refreshToken = response.body.refreshToken;
     });

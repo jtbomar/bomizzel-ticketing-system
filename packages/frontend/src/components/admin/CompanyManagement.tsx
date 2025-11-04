@@ -33,7 +33,7 @@ const CompanyManagement: React.FC = () => {
   const [newCompany, setNewCompany] = useState({
     name: '',
     domain: '',
-    description: ''
+    description: '',
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ const CompanyManagement: React.FC = () => {
   const fetchCompanies = async () => {
     try {
       setLoading(true);
-      
+
       // Mock companies data for now
       const mockCompanies = [
         {
@@ -52,7 +52,7 @@ const CompanyManagement: React.FC = () => {
           domain: 'acme.com',
           description: 'A leading technology company',
           customerCount: 15,
-          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+          createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
         },
         {
           id: '660e8400-e29b-41d4-a716-446655440002',
@@ -60,7 +60,7 @@ const CompanyManagement: React.FC = () => {
           domain: 'techstart.com',
           description: 'Innovative startup company',
           customerCount: 8,
-          createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+          createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
         },
         {
           id: '660e8400-e29b-41d4-a716-446655440003',
@@ -68,8 +68,8 @@ const CompanyManagement: React.FC = () => {
           domain: 'globalsolutions.com',
           description: 'International consulting firm',
           customerCount: 25,
-          createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
-        }
+          createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+        },
       ];
 
       let filteredCompanies = mockCompanies;
@@ -77,10 +77,11 @@ const CompanyManagement: React.FC = () => {
       // Apply search filter
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
-        filteredCompanies = filteredCompanies.filter(company => 
-          company.name.toLowerCase().includes(searchLower) ||
-          company.domain.toLowerCase().includes(searchLower) ||
-          company.description.toLowerCase().includes(searchLower)
+        filteredCompanies = filteredCompanies.filter(
+          (company) =>
+            company.name.toLowerCase().includes(searchLower) ||
+            company.domain.toLowerCase().includes(searchLower) ||
+            company.description.toLowerCase().includes(searchLower)
         );
       }
 
@@ -94,7 +95,7 @@ const CompanyManagement: React.FC = () => {
   };
 
   const handleFilterChange = (key: keyof CompanyFilters, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleAddCompany = async (e: React.FormEvent) => {
@@ -102,15 +103,15 @@ const CompanyManagement: React.FC = () => {
     try {
       // In a real app, this would call an API endpoint to create the company
       console.log('Adding company:', newCompany);
-      
+
       // For now, just show success and refresh
       alert(`Company "${newCompany.name}" would be created with domain: ${newCompany.domain}`);
-      
+
       setShowAddModal(false);
       setNewCompany({
         name: '',
         domain: '',
-        description: ''
+        description: '',
       });
       fetchCompanies();
     } catch (err) {
@@ -150,9 +151,7 @@ const CompanyManagement: React.FC = () => {
       <div className="bg-white/5 p-4 rounded-lg border border-white/10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-white mb-1">
-              Search
-            </label>
+            <label className="block text-sm font-medium text-white mb-1">Search</label>
             <div className="relative">
               <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-3 text-gray-400" />
               <input
@@ -181,7 +180,10 @@ const CompanyManagement: React.FC = () => {
       {/* Companies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {companies.map((company) => (
-          <div key={company.id} className="bg-white/5 rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all duration-200">
+          <div
+            key={company.id}
+            className="bg-white/5 rounded-lg p-6 border border-white/10 hover:bg-white/10 transition-all duration-200"
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center">
                 <div className="h-10 w-10 bg-cyan-500/20 rounded-lg flex items-center justify-center mr-3">
@@ -196,13 +198,11 @@ const CompanyManagement: React.FC = () => {
                 <PencilIcon className="h-4 w-4" />
               </button>
             </div>
-            
+
             <p className="text-white/80 text-sm mb-4">{company.description}</p>
-            
+
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white/60">
-                {company.customerCount} customers
-              </span>
+              <span className="text-white/60">{company.customerCount} customers</span>
               <span className="text-white/60">
                 Created {new Date(company.createdAt).toLocaleDateString()}
               </span>
@@ -235,41 +235,37 @@ const CompanyManagement: React.FC = () => {
 
             <form onSubmit={handleAddCompany} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Company Name
-                </label>
+                <label className="block text-sm font-medium text-white mb-1">Company Name</label>
                 <input
                   type="text"
                   required
                   value={newCompany.name}
-                  onChange={(e) => setNewCompany(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setNewCompany((prev) => ({ ...prev, name: e.target.value }))}
                   className="block w-full rounded-md bg-white/10 border border-white/20 text-white placeholder-white/60 shadow-sm focus:border-cyan-400 focus:ring-cyan-400 sm:text-sm px-3 py-2"
                   placeholder="Acme Corporation"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Domain
-                </label>
+                <label className="block text-sm font-medium text-white mb-1">Domain</label>
                 <input
                   type="text"
                   required
                   value={newCompany.domain}
-                  onChange={(e) => setNewCompany(prev => ({ ...prev, domain: e.target.value }))}
+                  onChange={(e) => setNewCompany((prev) => ({ ...prev, domain: e.target.value }))}
                   className="block w-full rounded-md bg-white/10 border border-white/20 text-white placeholder-white/60 shadow-sm focus:border-cyan-400 focus:ring-cyan-400 sm:text-sm px-3 py-2"
                   placeholder="acme.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-white mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={newCompany.description}
-                  onChange={(e) => setNewCompany(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setNewCompany((prev) => ({ ...prev, description: e.target.value }))
+                  }
                   className="block w-full rounded-md bg-white/10 border border-white/20 text-white placeholder-white/60 shadow-sm focus:border-cyan-400 focus:ring-cyan-400 sm:text-sm px-3 py-2"
                   placeholder="Brief description of the company..."
                 />

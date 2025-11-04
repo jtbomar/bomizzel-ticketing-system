@@ -10,7 +10,7 @@ const auth = (req: any, res: any, next: any) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
@@ -35,7 +35,7 @@ router.post('/:ticketId/archive', auth, async (req: any, res: any) => {
 
     res.json({
       success: true,
-      message: 'Ticket archived successfully'
+      message: 'Ticket archived successfully',
     });
   } catch (error) {
     console.error('Error archiving ticket:', error);
@@ -57,7 +57,7 @@ router.post('/:ticketId/restore', auth, async (req: any, res: any) => {
 
     res.json({
       success: true,
-      message: 'Ticket restored successfully'
+      message: 'Ticket restored successfully',
     });
   } catch (error) {
     console.error('Error restoring ticket:', error);
@@ -84,8 +84,8 @@ router.post('/archive/bulk', auth, async (req: any, res: any) => {
         successful: ticketIds,
         failed: [],
         totalProcessed: ticketIds.length,
-        archivedCount: ticketIds.length
-      }
+        archivedCount: ticketIds.length,
+      },
     });
   } catch (error) {
     console.error('Error bulk archiving tickets:', error);
@@ -108,13 +108,13 @@ router.get('/archive/suggestions', auth, async (req: any, res: any) => {
         completedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
         daysSinceCompletion: 45,
         canArchive: true,
-        reason: 'Completed over 30 days ago'
-      }
+        reason: 'Completed over 30 days ago',
+      },
     ];
 
     res.json({
       success: true,
-      data: suggestions
+      data: suggestions,
     });
   } catch (error) {
     console.error('Error getting archival suggestions:', error);
@@ -137,13 +137,13 @@ router.get('/archivable', auth, async (req: any, res: any) => {
         resolvedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
         closedAt: null,
         updatedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-        canArchive: true
-      }
+        canArchive: true,
+      },
     ];
 
     res.json({
       success: true,
-      data: tickets
+      data: tickets,
     });
   } catch (error) {
     console.error('Error getting archivable tickets:', error);
@@ -168,8 +168,8 @@ router.get('/archived', auth, async (req: any, res: any) => {
         archived_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
         created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
         submitter_id: 'user1',
-        company_id: 'company1'
-      }
+        company_id: 'company1',
+      },
     ];
 
     res.json({
@@ -179,8 +179,8 @@ router.get('/archived', auth, async (req: any, res: any) => {
         page: parseInt(page),
         limit: parseInt(limit),
         total: tickets.length,
-        totalPages: 1
-      }
+        totalPages: 1,
+      },
     });
   } catch (error) {
     console.error('Error searching archived tickets:', error);
@@ -200,12 +200,12 @@ router.get('/archive/stats', auth, async (req: any, res: any) => {
       archivedThisMonth: 3,
       archivedThisYear: 12,
       oldestArchived: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-      newestArchived: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+      newestArchived: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
     res.json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     console.error('Error getting archival stats:', error);
@@ -232,7 +232,7 @@ router.get('/archive/auto-suggestions', auth, async (req: any, res: any) => {
           status: 'resolved',
           completedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
           daysSinceCompletion: 45,
-          priority: 'high' as const
+          priority: 'high' as const,
         },
         {
           ticketId: 'bb0e8400-e29b-41d4-a716-446655440002',
@@ -240,7 +240,7 @@ router.get('/archive/auto-suggestions', auth, async (req: any, res: any) => {
           status: 'completed',
           completedAt: new Date(Date.now() - 35 * 24 * 60 * 60 * 1000),
           daysSinceCompletion: 35,
-          priority: 'medium' as const
+          priority: 'medium' as const,
         },
         {
           ticketId: 'bb0e8400-e29b-41d4-a716-446655440003',
@@ -248,25 +248,25 @@ router.get('/archive/auto-suggestions', auth, async (req: any, res: any) => {
           status: 'closed',
           completedAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
           daysSinceCompletion: 25,
-          priority: 'low' as const
-        }
+          priority: 'low' as const,
+        },
       ],
       usageInfo: {
         current: 85,
         limit: 100,
-        percentage: 85
+        percentage: 85,
       },
       automationAvailable: role === 'admin' || role === 'enterprise_user', // Mock Enterprise check
       automationConfig: {
         enabled: true,
         daysAfterCompletion: 30,
-        nextRunDate: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      }
+        nextRunDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
     };
 
     res.json({
       success: true,
-      data: suggestions
+      data: suggestions,
     });
   } catch (error) {
     console.error('Error getting auto suggestions:', error);
@@ -286,7 +286,7 @@ router.post('/archive/run-automation', auth, async (req: any, res: any) => {
     if (role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Only administrators can run automated archival'
+        message: 'Only administrators can run automated archival',
       });
     }
 
@@ -294,13 +294,13 @@ router.post('/archive/run-automation', auth, async (req: any, res: any) => {
     const result = {
       processedSubscriptions: 5,
       totalTicketsArchived: 23,
-      subscriptionResults: []
+      subscriptionResults: [],
     };
 
     res.json({
       success: true,
       message: `Automated archival completed. Processed ${result.processedSubscriptions} subscriptions and archived ${result.totalTicketsArchived} tickets.`,
-      data: result
+      data: result,
     });
   } catch (error) {
     console.error('Error running automation:', error);
@@ -325,14 +325,14 @@ router.get('/archive/auto-config', auth, async (req: any, res: any) => {
         daysAfterCompletion: 30,
         maxTicketsPerRun: 50,
         onlyWhenApproachingLimits: false,
-        limitThreshold: 0
+        limitThreshold: 0,
       },
-      planName: role === 'admin' || role === 'enterprise_user' ? 'Enterprise' : 'Professional'
+      planName: role === 'admin' || role === 'enterprise_user' ? 'Enterprise' : 'Professional',
     };
 
     res.json({
       success: true,
-      data: config
+      data: config,
     });
   } catch (error) {
     console.error('Error getting auto-archival config:', error);
@@ -353,7 +353,7 @@ router.post('/archive/auto-config', auth, async (req: any, res: any) => {
     if (role !== 'admin' && role !== 'enterprise_user') {
       return res.status(403).json({
         success: false,
-        message: 'Automatic archival configuration is only available for Enterprise plans'
+        message: 'Automatic archival configuration is only available for Enterprise plans',
       });
     }
 
@@ -363,13 +363,13 @@ router.post('/archive/auto-config', auth, async (req: any, res: any) => {
       daysAfterCompletion: daysAfterCompletion || 30,
       maxTicketsPerRun: maxTicketsPerRun || 50,
       onlyWhenApproachingLimits: false,
-      limitThreshold: 0
+      limitThreshold: 0,
     };
 
     res.json({
       success: true,
       message: 'Automatic archival configuration updated successfully',
-      data: { config }
+      data: { config },
     });
   } catch (error) {
     console.error('Error configuring auto-archival:', error);
@@ -390,7 +390,7 @@ router.post('/archive/trigger-immediate', auth, async (req: any, res: any) => {
     if (role !== 'admin' && role !== 'enterprise_user') {
       return res.status(403).json({
         success: false,
-        message: 'Immediate archival is only available for Enterprise plans'
+        message: 'Immediate archival is only available for Enterprise plans',
       });
     }
 
@@ -402,8 +402,8 @@ router.post('/archive/trigger-immediate', auth, async (req: any, res: any) => {
       message: `Archived ${archivedCount} tickets successfully`,
       data: {
         archivedCount,
-        errors: []
-      }
+        errors: [],
+      },
     });
   } catch (error) {
     console.error('Error triggering immediate archival:', error);
@@ -427,14 +427,14 @@ router.get('/archive/automation-status', auth, async (req: any, res: any) => {
       lastRunResults: {
         processedSubscriptions: 3,
         totalTicketsArchived: 15,
-        errors: 0
+        errors: 0,
       },
-      available: role === 'admin' || role === 'enterprise_user'
+      available: role === 'admin' || role === 'enterprise_user',
     };
 
     res.json({
       success: true,
-      data: status
+      data: status,
     });
   } catch (error) {
     console.error('Error getting automation status:', error);

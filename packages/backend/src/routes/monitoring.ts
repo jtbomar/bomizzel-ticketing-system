@@ -17,7 +17,7 @@ router.use(authorize('admin'));
 router.get('/performance', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const metrics = await getPerformanceMetrics();
-    
+
     res.json({
       success: true,
       data: metrics,
@@ -35,7 +35,7 @@ router.get('/health', async (req: Request, res: Response, next: NextFunction) =>
   try {
     const memUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
@@ -51,7 +51,7 @@ router.get('/health', async (req: Request, res: Response, next: NextFunction) =>
         system: Math.round((cpuUsage.system / 1000000) * 100) / 100,
       },
     };
-    
+
     res.json({
       success: true,
       data: health,
@@ -73,7 +73,7 @@ router.get('/cache', async (req: Request, res: Response, next: NextFunction) => 
       status: 'connected',
       timestamp: new Date().toISOString(),
     };
-    
+
     res.json({
       success: true,
       data: cacheStatus,
@@ -90,7 +90,7 @@ router.get('/cache', async (req: Request, res: Response, next: NextFunction) => 
 router.delete('/cache/:pattern', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { pattern } = req.params;
-    
+
     if (!pattern || pattern.length < 3) {
       return res.status(400).json({
         success: false,
@@ -100,16 +100,16 @@ router.delete('/cache/:pattern', async (req: Request, res: Response, next: NextF
         },
       });
     }
-    
+
     const deletedCount = await CacheService.delPattern(pattern);
-    
+
     enhancedLogger.security('Cache cleared by admin', {
       pattern,
       deletedCount,
       adminId: req.user?.id,
       ip: req.ip,
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -134,7 +134,7 @@ router.get('/security-logs', async (req: Request, res: Response, next: NextFunct
       message: 'Security logs would be retrieved from log files or logging service',
       timestamp: new Date().toISOString(),
     };
-    
+
     res.json({
       success: true,
       data: logs,

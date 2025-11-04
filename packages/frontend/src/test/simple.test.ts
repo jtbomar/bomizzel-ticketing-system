@@ -14,6 +14,6 @@ describe('Simple Frontend Test', () => {
   it('should handle array operations', () => {
     const arr = [1, 2, 3, 4, 5];
     expect(arr.length).toBe(5);
-    expect(arr.filter(n => n > 3)).toEqual([4, 5]);
+    expect(arr.filter((n) => n > 3)).toEqual([4, 5]);
   });
 });

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ExclamationTriangleIcon, 
+import {
+  ExclamationTriangleIcon,
   ArchiveBoxIcon,
   ClockIcon,
   CheckCircleIcon,
-  XMarkIcon
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 
@@ -37,17 +37,23 @@ interface ArchivalSuggestionsData {
 // Helper functions
 const getPriorityColor = (priority: 'high' | 'medium' | 'low') => {
   switch (priority) {
-    case 'high': return 'text-red-600 bg-red-50';
-    case 'medium': return 'text-yellow-600 bg-yellow-50';
-    case 'low': return 'text-green-600 bg-green-50';
+    case 'high':
+      return 'text-red-600 bg-red-50';
+    case 'medium':
+      return 'text-yellow-600 bg-yellow-50';
+    case 'low':
+      return 'text-green-600 bg-green-50';
   }
 };
 
 const getPriorityIcon = (priority: 'high' | 'medium' | 'low') => {
   switch (priority) {
-    case 'high': return <ExclamationTriangleIcon className="h-4 w-4" />;
-    case 'medium': return <ClockIcon className="h-4 w-4" />;
-    case 'low': return <CheckCircleIcon className="h-4 w-4" />;
+    case 'high':
+      return <ExclamationTriangleIcon className="h-4 w-4" />;
+    case 'medium':
+      return <ClockIcon className="h-4 w-4" />;
+    case 'low':
+      return <CheckCircleIcon className="h-4 w-4" />;
   }
 };
 
@@ -60,7 +66,7 @@ export const ArchivalSuggestions: React.FC = () => {
   const [automationConfig, setAutomationConfig] = useState({
     enabled: true,
     daysAfterCompletion: 30,
-    maxTicketsPerRun: 50
+    maxTicketsPerRun: 50,
   });
   const [configuringAutomation, setConfiguringAutomation] = useState(false);
   const [triggeringImmediate, setTriggeringImmediate] = useState(false);
@@ -83,18 +89,22 @@ export const ArchivalSuggestions: React.FC = () => {
 
   const handleArchiveTicket = async (ticketId: string) => {
     try {
-      setArchiving(prev => new Set(prev).add(ticketId));
+      setArchiving((prev) => new Set(prev).add(ticketId));
       await api.post(`/tickets/${ticketId}/archive`);
-      
+
       // Remove the archived ticket from suggestions
-      setSuggestionsData(prev => prev ? {
-        ...prev,
-        suggestions: prev.suggestions.filter(s => s.ticketId !== ticketId)
-      } : null);
+      setSuggestionsData((prev) =>
+        prev
+          ? {
+              ...prev,
+              suggestions: prev.suggestions.filter((s) => s.ticketId !== ticketId),
+            }
+          : null
+      );
     } catch (error) {
       console.error('Error archiving ticket:', error);
     } finally {
-      setArchiving(prev => {
+      setArchiving((prev) => {
         const newSet = new Set(prev);
         newSet.delete(ticketId);
         return newSet;
@@ -106,12 +116,16 @@ export const ArchivalSuggestions: React.FC = () => {
     try {
       setArchiving(new Set(ticketIds));
       await api.post('/tickets/archive/bulk', { ticketIds });
-      
+
       // Remove all archived tickets from suggestions
-      setSuggestionsData(prev => prev ? {
-        ...prev,
-        suggestions: prev.suggestions.filter(s => !ticketIds.includes(s.ticketId))
-      } : null);
+      setSuggestionsData((prev) =>
+        prev
+          ? {
+              ...prev,
+              suggestions: prev.suggestions.filter((s) => !ticketIds.includes(s.ticketId)),
+            }
+          : null
+      );
     } catch (error) {
       console.error('Error bulk archiving tickets:', error);
     } finally {
@@ -123,7 +137,7 @@ export const ArchivalSuggestions: React.FC = () => {
     try {
       setConfiguringAutomation(true);
       await api.post('/tickets/archive/auto-config', automationConfig);
-      
+
       // Refresh suggestions to get updated automation config
       await fetchSuggestions();
       setShowAutomationConfig(false);
@@ -139,12 +153,12 @@ export const ArchivalSuggestions: React.FC = () => {
       setTriggeringImmediate(true);
       const response = await api.post('/tickets/archive/trigger-immediate', {
         daysAfterCompletion: automationConfig.daysAfterCompletion,
-        maxTickets: automationConfig.maxTicketsPerRun
+        maxTickets: automationConfig.maxTicketsPerRun,
       });
-      
+
       // Refresh suggestions after immediate archival
       await fetchSuggestions();
-      
+
       // Show success message
       alert(`Successfully archived ${response.data.data.archivedCount} tickets`);
     } catch (error) {
@@ -154,8 +168,6 @@ export const ArchivalSuggestions: React.FC = () => {
       setTriggeringImmediate(false);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -175,9 +187,15 @@ export const ArchivalSuggestions: React.FC = () => {
     return null;
   }
 
-  const { suggestions, reason, usageInfo, automationAvailable, automationConfig: serverAutomationConfig } = suggestionsData;
-  const highPrioritySuggestions = suggestions.filter(s => s.priority === 'high');
-  const otherSuggestions = suggestions.filter(s => s.priority !== 'high');
+  const {
+    suggestions,
+    reason,
+    usageInfo,
+    automationAvailable,
+    automationConfig: serverAutomationConfig,
+  } = suggestionsData;
+  const highPrioritySuggestions = suggestions.filter((s) => s.priority === 'high');
+  const otherSuggestions = suggestions.filter((s) => s.priority !== 'high');
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -186,16 +204,11 @@ export const ArchivalSuggestions: React.FC = () => {
           <div className="flex items-center">
             <ArchiveBoxIcon className="h-6 w-6 text-blue-600 mr-3" />
             <div>
-              <h3 className="text-lg font-medium text-gray-900">
-                Archival Suggestions
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900">Archival Suggestions</h3>
               <p className="text-sm text-gray-600 mt-1">{reason}</p>
             </div>
           </div>
-          <button
-            onClick={() => setDismissed(true)}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={() => setDismissed(true)} className="text-gray-400 hover:text-gray-600">
             <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
@@ -207,9 +220,7 @@ export const ArchivalSuggestions: React.FC = () => {
             <span className="font-medium">
               {usageInfo.current} / {usageInfo.limit === -1 ? '∞' : usageInfo.limit}
               {usageInfo.limit !== -1 && (
-                <span className="text-gray-500 ml-1">
-                  ({Math.round(usageInfo.percentage)}%)
-                </span>
+                <span className="text-gray-500 ml-1">({Math.round(usageInfo.percentage)}%)</span>
               )}
             </span>
           </div>
@@ -218,9 +229,11 @@ export const ArchivalSuggestions: React.FC = () => {
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full ${
-                    usageInfo.percentage >= 95 ? 'bg-red-500' :
-                    usageInfo.percentage >= 85 ? 'bg-yellow-500' :
-                    'bg-blue-500'
+                    usageInfo.percentage >= 95
+                      ? 'bg-red-500'
+                      : usageInfo.percentage >= 85
+                        ? 'bg-yellow-500'
+                        : 'bg-blue-500'
                   }`}
                   style={{ width: `${Math.min(usageInfo.percentage, 100)}%` }}
                 ></div>
@@ -238,7 +251,7 @@ export const ArchivalSuggestions: React.FC = () => {
                 High Priority ({highPrioritySuggestions.length})
               </h4>
               <button
-                onClick={() => handleBulkArchive(highPrioritySuggestions.map(s => s.ticketId))}
+                onClick={() => handleBulkArchive(highPrioritySuggestions.map((s) => s.ticketId))}
                 disabled={archiving.size > 0}
                 className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-50"
               >
@@ -266,7 +279,9 @@ export const ArchivalSuggestions: React.FC = () => {
                 Other Suggestions ({otherSuggestions.length})
               </h4>
               <button
-                onClick={() => handleBulkArchive(otherSuggestions.slice(0, 10).map(s => s.ticketId))}
+                onClick={() =>
+                  handleBulkArchive(otherSuggestions.slice(0, 10).map((s) => s.ticketId))
+                }
                 disabled={archiving.size > 0}
                 className="text-sm bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700 disabled:opacity-50"
               >
@@ -300,9 +315,7 @@ export const ArchivalSuggestions: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                <h4 className="text-sm font-medium text-gray-900">
-                  Enterprise Automation
-                </h4>
+                <h4 className="text-sm font-medium text-gray-900">Enterprise Automation</h4>
                 <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                   Available
                 </span>
@@ -323,10 +336,9 @@ export const ArchivalSuggestions: React.FC = () => {
                     Automatic Archival {serverAutomationConfig?.enabled ? 'Enabled' : 'Disabled'}
                   </p>
                   <p className="text-xs text-blue-700 mt-1">
-                    {serverAutomationConfig?.enabled 
+                    {serverAutomationConfig?.enabled
                       ? `Tickets older than ${serverAutomationConfig.daysAfterCompletion} days will be automatically archived`
-                      : 'Configure automatic archival to manage your tickets effortlessly'
-                    }
+                      : 'Configure automatic archival to manage your tickets effortlessly'}
                   </p>
                   {serverAutomationConfig?.nextRunDate && (
                     <p className="text-xs text-blue-600 mt-1">
@@ -370,17 +382,19 @@ export const ArchivalSuggestions: React.FC = () => {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Configure Automatic Archival
                   </h3>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <label className="flex items-center">
                         <input
                           type="checkbox"
                           checked={automationConfig.enabled}
-                          onChange={(e) => setAutomationConfig(prev => ({
-                            ...prev,
-                            enabled: e.target.checked
-                          }))}
+                          onChange={(e) =>
+                            setAutomationConfig((prev) => ({
+                              ...prev,
+                              enabled: e.target.checked,
+                            }))
+                          }
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                         <span className="ml-2 text-sm text-gray-700">
@@ -398,10 +412,12 @@ export const ArchivalSuggestions: React.FC = () => {
                         min="1"
                         max="365"
                         value={automationConfig.daysAfterCompletion}
-                        onChange={(e) => setAutomationConfig(prev => ({
-                          ...prev,
-                          daysAfterCompletion: parseInt(e.target.value) || 30
-                        }))}
+                        onChange={(e) =>
+                          setAutomationConfig((prev) => ({
+                            ...prev,
+                            daysAfterCompletion: parseInt(e.target.value) || 30,
+                          }))
+                        }
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -415,10 +431,12 @@ export const ArchivalSuggestions: React.FC = () => {
                         min="1"
                         max="1000"
                         value={automationConfig.maxTicketsPerRun}
-                        onChange={(e) => setAutomationConfig(prev => ({
-                          ...prev,
-                          maxTicketsPerRun: parseInt(e.target.value) || 50
-                        }))}
+                        onChange={(e) =>
+                          setAutomationConfig((prev) => ({
+                            ...prev,
+                            maxTicketsPerRun: parseInt(e.target.value) || 50,
+                          }))
+                        }
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -455,24 +473,20 @@ interface SuggestionItemProps {
   isArchiving: boolean;
 }
 
-const SuggestionItem: React.FC<SuggestionItemProps> = ({
-  suggestion,
-  onArchive,
-  isArchiving
-}) => {
+const SuggestionItem: React.FC<SuggestionItemProps> = ({ suggestion, onArchive, isArchiving }) => {
   return (
     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
       <div className="flex-1 min-w-0">
         <div className="flex items-center">
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-3 ${
-            getPriorityColor(suggestion.priority)
-          }`}>
+          <span
+            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mr-3 ${getPriorityColor(
+              suggestion.priority
+            )}`}
+          >
             {getPriorityIcon(suggestion.priority)}
             <span className="ml-1 capitalize">{suggestion.priority}</span>
           </span>
-          <h5 className="text-sm font-medium text-gray-900 truncate">
-            {suggestion.title}
-          </h5>
+          <h5 className="text-sm font-medium text-gray-900 truncate">{suggestion.title}</h5>
         </div>
         <div className="mt-1 flex items-center text-xs text-gray-500">
           <span className="capitalize">{suggestion.status}</span>
@@ -500,4 +514,3 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
     </div>
   );
 };
-

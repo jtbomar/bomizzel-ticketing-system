@@ -16,15 +16,11 @@ export class BillingRecord extends BaseModel {
   protected static tableName = 'billing_records';
 
   static async findBySubscriptionId(subscriptionId: string): Promise<BillingRecordTable[]> {
-    return this.query
-      .where('subscription_id', subscriptionId)
-      .orderBy('billing_date', 'desc');
+    return this.query.where('subscription_id', subscriptionId).orderBy('billing_date', 'desc');
   }
 
   static async findByStripeInvoiceId(stripeInvoiceId: string): Promise<BillingRecordTable | null> {
-    const result = await this.query
-      .where('stripe_invoice_id', stripeInvoiceId)
-      .first();
+    const result = await this.query.where('stripe_invoice_id', stripeInvoiceId).first();
     return result || null;
   }
 
@@ -62,7 +58,7 @@ export class BillingRecord extends BaseModel {
     metadata?: Record<string, any>;
   }): Promise<BillingRecordTable> {
     const amountRemaining = recordData.amountDue - (recordData.amountPaid || 0);
-    
+
     return this.create({
       subscription_id: recordData.subscriptionId,
       stripe_invoice_id: recordData.stripeInvoiceId,
@@ -176,10 +172,18 @@ export class BillingRecord extends BaseModel {
     const stats = await this.db(this.tableName)
       .whereBetween('billing_date', [startDate, endDate])
       .select(
-        this.db.raw('SUM(CASE WHEN status = ? THEN amount_paid ELSE 0 END) as total_revenue', ['paid']),
+        this.db.raw('SUM(CASE WHEN status = ? THEN amount_paid ELSE 0 END) as total_revenue', [
+          'paid',
+        ]),
         this.db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as paid_invoices', ['paid']),
-        this.db.raw('SUM(CASE WHEN status IN (?, ?) THEN amount_due ELSE 0 END) as pending_revenue', ['open', 'draft']),
-        this.db.raw('COUNT(CASE WHEN status = ? AND attempt_count > 0 THEN 1 END) as failed_payments', ['open']),
+        this.db.raw(
+          'SUM(CASE WHEN status IN (?, ?) THEN amount_due ELSE 0 END) as pending_revenue',
+          ['open', 'draft']
+        ),
+        this.db.raw(
+          'COUNT(CASE WHEN status = ? AND attempt_count > 0 THEN 1 END) as failed_payments',
+          ['open']
+        ),
         this.db.raw('? as currency', ['usd'])
       )
       .first();
@@ -193,12 +197,14 @@ export class BillingRecord extends BaseModel {
     };
   }
 
-  static async getMonthlyRevenue(year: number): Promise<Array<{
-    month: number;
-    revenue: number;
-    invoiceCount: number;
-    currency: string;
-  }>> {
+  static async getMonthlyRevenue(year: number): Promise<
+    Array<{
+      month: number;
+      revenue: number;
+      invoiceCount: number;
+      currency: string;
+    }>
+  > {
     const results = await this.db(this.tableName)
       .whereRaw('EXTRACT(YEAR FROM billing_date) = ?', [year])
       .where('status', 'paid')
@@ -211,7 +217,7 @@ export class BillingRecord extends BaseModel {
       .groupByRaw('EXTRACT(MONTH FROM billing_date)')
       .orderByRaw('EXTRACT(MONTH FROM billing_date)');
 
-    return results.map(row => ({
+    return results.map((row) => ({
       month: parseInt(row.month),
       revenue: parseInt(row.revenue),
       invoiceCount: parseInt(row.invoice_count),
@@ -251,10 +257,9 @@ export class BillingRecord extends BaseModel {
       paymentMethodId: record.payment_method_id,
       attemptCount: record.attempt_count,
       failureReason: record.failure_reason,
-      lineItems: typeof record.line_items === 'string' ? 
-        JSON.parse(record.line_items) : record.line_items,
-      metadata: typeof record.metadata === 'string' ? 
-        JSON.parse(record.metadata) : record.metadata,
+      lineItems:
+        typeof record.line_items === 'string' ? JSON.parse(record.line_items) : record.line_items,
+      metadata: typeof record.metadata === 'string' ? JSON.parse(record.metadata) : record.metadata,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };

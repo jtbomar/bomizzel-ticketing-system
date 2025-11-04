@@ -31,7 +31,7 @@ export class AutomatedArchivalService {
     daysAfterCompletion: 30,
     maxTicketsPerRun: 100,
     onlyWhenApproachingLimits: true,
-    limitThreshold: 80 // 80% of limit
+    limitThreshold: 80, // 80% of limit
   };
 
   /**
@@ -41,13 +41,13 @@ export class AutomatedArchivalService {
     config: Partial<AutoArchivalConfig> = {}
   ): Promise<AutoArchivalResult> {
     const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
-    
+
     if (!finalConfig.enabled) {
       logger.info('Automated archival is disabled');
       return {
         processedSubscriptions: 0,
         totalTicketsArchived: 0,
-        subscriptionResults: []
+        subscriptionResults: [],
       };
     }
 
@@ -56,44 +56,43 @@ export class AutomatedArchivalService {
     const result: AutoArchivalResult = {
       processedSubscriptions: 0,
       totalTicketsArchived: 0,
-      subscriptionResults: []
+      subscriptionResults: [],
     };
 
     try {
       // Get all active Enterprise subscriptions
       const enterpriseSubscriptions = await this.getEnterpriseSubscriptions();
-      
+
       for (const subscription of enterpriseSubscriptions) {
         try {
           const subscriptionResult = await this.processSubscriptionArchival(
             subscription,
             finalConfig
           );
-          
+
           result.subscriptionResults.push(subscriptionResult);
           result.totalTicketsArchived += subscriptionResult.ticketsArchived;
           result.processedSubscriptions++;
-          
         } catch (error) {
           logger.error('Error processing subscription for automated archival', {
             subscriptionId: subscription.id,
             userId: subscription.user_id,
-            error
+            error,
           });
-          
+
           result.subscriptionResults.push({
             subscriptionId: subscription.id,
             userId: subscription.user_id,
             planName: 'Unknown',
             ticketsArchived: 0,
-            errors: [error instanceof Error ? error.message : 'Unknown error']
+            errors: [error instanceof Error ? error.message : 'Unknown error'],
           });
         }
       }
 
       logger.info('Automated archival run completed', {
         processedSubscriptions: result.processedSubscriptions,
-        totalTicketsArchived: result.totalTicketsArchived
+        totalTicketsArchived: result.totalTicketsArchived,
       });
 
       return result;
@@ -121,7 +120,7 @@ export class AutomatedArchivalService {
       userId: subscription.user_id,
       planName: 'Enterprise',
       ticketsArchived: 0,
-      errors: []
+      errors: [],
     };
 
     try {
@@ -129,15 +128,16 @@ export class AutomatedArchivalService {
       if (config.onlyWhenApproachingLimits) {
         const usage = await UsageTrackingService.getCurrentUsage(subscription.user_id);
         const plan = { completed_ticket_limit: 100 }; // Mock plan
-        
+
         if (plan && plan.completed_ticket_limit > 0) {
-          const completedUsagePercentage = (usage.completedTickets / plan.completed_ticket_limit) * 100;
-          
+          const completedUsagePercentage =
+            (usage.completedTickets / plan.completed_ticket_limit) * 100;
+
           if (completedUsagePercentage < config.limitThreshold) {
             logger.debug('Subscription not approaching limits, skipping archival', {
               subscriptionId: subscription.id,
               completedUsagePercentage,
-              threshold: config.limitThreshold
+              threshold: config.limitThreshold,
             });
             return result;
           }
@@ -154,18 +154,20 @@ export class AutomatedArchivalService {
       const archivableTickets = await Ticket.findArchivable({
         limit: config.maxTicketsPerRun,
         olderThanDays: config.daysAfterCompletion,
-        companyIds: user.role === 'customer' ? 
-          (await User.getUserCompanies(user.id)).map(uc => uc.companyId) : 
-          undefined,
-        teamIds: user.role === 'employee' ? 
-          (await User.getUserTeams(user.id)).map(ut => ut.teamId) : 
-          undefined
+        companyIds:
+          user.role === 'customer'
+            ? (await User.getUserCompanies(user.id)).map((uc) => uc.companyId)
+            : undefined,
+        teamIds:
+          user.role === 'employee'
+            ? (await User.getUserTeams(user.id)).map((ut) => ut.teamId)
+            : undefined,
       });
 
       if (archivableTickets.length === 0) {
         logger.debug('No archivable tickets found for subscription', {
           subscriptionId: subscription.id,
-          userId: subscription.user_id
+          userId: subscription.user_id,
         });
         return result;
       }
@@ -176,23 +178,25 @@ export class AutomatedArchivalService {
           await TicketArchivalService.archiveTicket(
             ticket.id,
             'system', // System user for automated archival
-            'admin'   // Admin role for system operations
+            'admin' // Admin role for system operations
           );
           result.ticketsArchived++;
-          
+
           logger.debug('Ticket automatically archived', {
             ticketId: ticket.id,
             subscriptionId: subscription.id,
-            userId: subscription.user_id
+            userId: subscription.user_id,
           });
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          (result.errors as string[]).push(`Failed to archive ticket ${ticket.id}: ${errorMessage}`);
-          
+          (result.errors as string[]).push(
+            `Failed to archive ticket ${ticket.id}: ${errorMessage}`
+          );
+
           logger.error('Failed to archive ticket during automated run', {
             ticketId: ticket.id,
             subscriptionId: subscription.id,
-            error
+            error,
           });
         }
       }
@@ -242,7 +246,7 @@ export class AutomatedArchivalService {
           reason: 'No active subscription found',
           suggestions: [],
           usageInfo: { current: 0, limit: 0, percentage: 0 },
-          automationAvailable: false
+          automationAvailable: false,
         };
       }
 
@@ -256,7 +260,7 @@ export class AutomatedArchivalService {
           reason: 'Unlimited plan - no archival needed',
           suggestions: [],
           usageInfo: { current: usage.completedTickets, limit: -1, percentage: 0 },
-          automationAvailable: true
+          automationAvailable: true,
         };
       }
 
@@ -264,7 +268,7 @@ export class AutomatedArchivalService {
       const usageInfo = {
         current: usage.completedTickets,
         limit: completedLimit,
-        percentage: usagePercentage
+        percentage: usagePercentage,
       };
 
       // Only suggest if approaching limits (75% or more)
@@ -274,7 +278,7 @@ export class AutomatedArchivalService {
           reason: 'Usage below threshold for archival suggestions',
           suggestions: [],
           usageInfo,
-          automationAvailable: true
+          automationAvailable: true,
         };
       }
 
@@ -285,29 +289,31 @@ export class AutomatedArchivalService {
         50 // Limit suggestions to 50 tickets
       );
 
-      const suggestions = archivableTickets.map(ticket => {
-        const completedAt = ticket.resolved_at || ticket.closed_at || ticket.updated_at;
-        const daysSinceCompletion = Math.floor(
-          (Date.now() - new Date(completedAt).getTime()) / (1000 * 60 * 60 * 24)
-        );
+      const suggestions = archivableTickets
+        .map((ticket) => {
+          const completedAt = ticket.resolved_at || ticket.closed_at || ticket.updated_at;
+          const daysSinceCompletion = Math.floor(
+            (Date.now() - new Date(completedAt).getTime()) / (1000 * 60 * 60 * 24)
+          );
 
-        // Determine priority based on age and usage percentage
-        let priority: 'high' | 'medium' | 'low' = 'low';
-        if (usagePercentage >= 95 || daysSinceCompletion > 90) {
-          priority = 'high';
-        } else if (usagePercentage >= 85 || daysSinceCompletion > 60) {
-          priority = 'medium';
-        }
+          // Determine priority based on age and usage percentage
+          let priority: 'high' | 'medium' | 'low' = 'low';
+          if (usagePercentage >= 95 || daysSinceCompletion > 90) {
+            priority = 'high';
+          } else if (usagePercentage >= 85 || daysSinceCompletion > 60) {
+            priority = 'medium';
+          }
 
-        return {
-          ticketId: ticket.id,
-          title: ticket.title,
-          status: ticket.status,
-          completedAt: new Date(completedAt),
-          daysSinceCompletion,
-          priority
-        };
-      }).sort((a, b) => b.daysSinceCompletion - a.daysSinceCompletion); // Oldest first
+          return {
+            ticketId: ticket.id,
+            title: ticket.title,
+            status: ticket.status,
+            completedAt: new Date(completedAt),
+            daysSinceCompletion,
+            priority,
+          };
+        })
+        .sort((a, b) => b.daysSinceCompletion - a.daysSinceCompletion); // Oldest first
 
       let reason = 'Usage is within normal range';
       if (usagePercentage >= 95) {
@@ -320,11 +326,13 @@ export class AutomatedArchivalService {
 
       // Check if user has Enterprise plan for automation
       const isEnterprisePlan = true; // Mock for demo
-      const automationConfig = isEnterprisePlan ? {
-        enabled: true,
-        daysAfterCompletion: 30,
-        nextRunDate: new Date(Date.now() + 24 * 60 * 60 * 1000) // Next day
-      } : undefined;
+      const automationConfig = isEnterprisePlan
+        ? {
+            enabled: true,
+            daysAfterCompletion: 30,
+            nextRunDate: new Date(Date.now() + 24 * 60 * 60 * 1000), // Next day
+          }
+        : undefined;
 
       return {
         shouldSuggestArchival: suggestions.length > 0,
@@ -332,7 +340,7 @@ export class AutomatedArchivalService {
         suggestions,
         usageInfo,
         automationAvailable: isEnterprisePlan,
-        automationConfig
+        automationConfig,
       };
     } catch (error) {
       logger.error('Error getting archival suggestions for user', { userId, error });
@@ -346,26 +354,26 @@ export class AutomatedArchivalService {
   static async scheduleAutomatedArchival(): Promise<void> {
     try {
       logger.info('Running scheduled automated archival');
-      
+
       const result = await this.runAutomatedArchival({
         enabled: true,
         daysAfterCompletion: 30,
         maxTicketsPerRun: 50,
         onlyWhenApproachingLimits: true,
-        limitThreshold: 80
+        limitThreshold: 80,
       });
 
       logger.info('Scheduled automated archival completed', {
         processedSubscriptions: result.processedSubscriptions,
-        totalTicketsArchived: result.totalTicketsArchived
+        totalTicketsArchived: result.totalTicketsArchived,
       });
 
       // Log any errors
-      const subscriptionsWithErrors = result.subscriptionResults.filter(s => s.errors.length > 0);
+      const subscriptionsWithErrors = result.subscriptionResults.filter((s) => s.errors.length > 0);
       if (subscriptionsWithErrors.length > 0) {
         logger.warn('Some subscriptions had errors during automated archival', {
           subscriptionsWithErrors: subscriptionsWithErrors.length,
-          totalErrors: subscriptionsWithErrors.reduce((sum, s) => sum + s.errors.length, 0)
+          totalErrors: subscriptionsWithErrors.reduce((sum, s) => sum + s.errors.length, 0),
         });
       }
     } catch (error) {
@@ -395,7 +403,7 @@ export class AutomatedArchivalService {
       if (!subscription) {
         return {
           success: false,
-          message: 'No subscription found for user'
+          message: 'No subscription found for user',
         };
       }
 
@@ -405,24 +413,24 @@ export class AutomatedArchivalService {
         daysAfterCompletion: config.daysAfterCompletion || 30,
         maxTicketsPerRun: config.maxTicketsPerRun || 50,
         onlyWhenApproachingLimits: false, // Enterprise users get full automation
-        limitThreshold: 0 // No threshold for Enterprise
+        limitThreshold: 0, // No threshold for Enterprise
       };
 
       logger.info('Enterprise auto-archival configured', {
         userId,
-        config: finalConfig
+        config: finalConfig,
       });
 
       return {
         success: true,
         message: 'Automatic archival configuration updated successfully',
-        config: finalConfig
+        config: finalConfig,
       };
     } catch (error) {
       logger.error('Error configuring Enterprise auto-archival', { userId, error });
       return {
         success: false,
-        message: 'Failed to configure automatic archival'
+        message: 'Failed to configure automatic archival',
       };
     }
   }
@@ -443,12 +451,12 @@ export class AutomatedArchivalService {
       }
 
       const isEnterprise = true; // Simplified for demo
-      
+
       if (!isEnterprise) {
         return {
           available: false,
           enabled: false,
-          planName: 'Standard'
+          planName: 'Standard',
         };
       }
 
@@ -458,14 +466,14 @@ export class AutomatedArchivalService {
         daysAfterCompletion: 30,
         maxTicketsPerRun: 50,
         onlyWhenApproachingLimits: false,
-        limitThreshold: 0
+        limitThreshold: 0,
       };
 
       return {
         available: true,
         enabled: config.enabled,
         config,
-        planName: 'Enterprise'
+        planName: 'Enterprise',
       };
     } catch (error) {
       logger.error('Error getting auto-archival config', { userId, error });
@@ -494,7 +502,7 @@ export class AutomatedArchivalService {
       if (!subscription) {
         return {
           success: false,
-          message: 'Immediate archival is only available for Enterprise plans'
+          message: 'Immediate archival is only available for Enterprise plans',
         };
       }
 
@@ -503,7 +511,7 @@ export class AutomatedArchivalService {
         daysAfterCompletion: options.daysAfterCompletion || 30,
         maxTicketsPerRun: options.maxTickets || 100,
         onlyWhenApproachingLimits: false,
-        limitThreshold: 0
+        limitThreshold: 0,
       };
 
       const result = await this.processSubscriptionArchival(subscription, config);
@@ -512,13 +520,13 @@ export class AutomatedArchivalService {
         success: true,
         message: `Archived ${result.ticketsArchived} tickets successfully`,
         archivedCount: result.ticketsArchived,
-        errors: result.errors
+        errors: result.errors,
       };
     } catch (error) {
       logger.error('Error triggering immediate archival', { userId, error });
       return {
         success: false,
-        message: 'Failed to trigger immediate archival'
+        message: 'Failed to trigger immediate archival',
       };
     }
   }
@@ -543,8 +551,8 @@ export class AutomatedArchivalService {
         ...sub,
         plan: {
           name: sub.plan_name,
-          completed_ticket_limit: sub.completed_ticket_limit
-        }
+          completed_ticket_limit: sub.completed_ticket_limit,
+        },
       }));
     } catch (error) {
       logger.error('Error getting Enterprise subscriptions', { error });

@@ -135,9 +135,7 @@ export class TicketHistory extends BaseModel {
   ): Promise<TicketHistoryTable[]> {
     const { limit = 20, teamId, includeUser = false, includeTicket = false } = options;
 
-    let query = this.db(this.tableName)
-      .orderBy('created_at', 'desc')
-      .limit(limit);
+    let query = this.db(this.tableName).orderBy('created_at', 'desc').limit(limit);
 
     if (teamId) {
       query = query
@@ -177,9 +175,7 @@ export class TicketHistory extends BaseModel {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
 
-    const deletedCount = await this.db(this.tableName)
-      .where('created_at', '<', cutoffDate)
-      .del();
+    const deletedCount = await this.db(this.tableName).where('created_at', '<', cutoffDate).del();
 
     return deletedCount;
   }
@@ -199,12 +195,14 @@ export class TicketHistory extends BaseModel {
       metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
-      user: row.user_first_name ? {
-        id: row.user_id,
-        firstName: row.user_first_name,
-        lastName: row.user_last_name,
-        email: row.user_email,
-      } : undefined,
+      user: row.user_first_name
+        ? {
+            id: row.user_id,
+            firstName: row.user_first_name,
+            lastName: row.user_last_name,
+            email: row.user_email,
+          }
+        : undefined,
     };
   }
 }

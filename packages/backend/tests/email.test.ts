@@ -68,12 +68,15 @@ describe('Email API', () => {
     queueId = queue.id;
 
     // Create test ticket
-    const ticket = await TicketService.createTicket({
-      title: 'Test Ticket for Email',
-      description: 'Test ticket description',
-      companyId,
-      teamId,
-    }, employeeId);
+    const ticket = await TicketService.createTicket(
+      {
+        title: 'Test Ticket for Email',
+        description: 'Test ticket description',
+        companyId,
+        teamId,
+      },
+      employeeId
+    );
     ticketId = ticket.id;
 
     // Mock EmailService methods

@@ -34,14 +34,17 @@ export class BillingService {
   ): Promise<BillingRecordModel> {
     try {
       // Find the subscription
-      const subscriptionId = typeof (stripeInvoice as any).subscription === 'string' ? 
-        (stripeInvoice as any).subscription : (stripeInvoice as any).subscription?.id;
-      
+      const subscriptionId =
+        typeof (stripeInvoice as any).subscription === 'string'
+          ? (stripeInvoice as any).subscription
+          : (stripeInvoice as any).subscription?.id;
+
       if (!subscriptionId) {
         throw new AppError('Invoice has no associated subscription', 400);
       }
 
-      const localSubscription = await CustomerSubscription.findByStripeSubscriptionId(subscriptionId);
+      const localSubscription =
+        await CustomerSubscription.findByStripeSubscriptionId(subscriptionId);
       if (!localSubscription) {
         throw new AppError('Local subscription not found', 404);
       }
@@ -51,7 +54,7 @@ export class BillingService {
       if (existingRecord) {
         logger.info('Billing record already exists for invoice', {
           invoiceId: stripeInvoice.id,
-          recordId: existingRecord.id
+          recordId: existingRecord.id,
         });
         return BillingRecord.toModel(existingRecord);
       }
@@ -79,7 +82,7 @@ export class BillingService {
       }
 
       // Extract line items
-      const lineItems: BillingLineItem[] = stripeInvoice.lines.data.map(line => ({
+      const lineItems: BillingLineItem[] = stripeInvoice.lines.data.map((line) => ({
         id: line.id,
         description: line.description || '',
         amount: line.amount,
@@ -93,8 +96,10 @@ export class BillingService {
       const billingRecord = await BillingRecord.createBillingRecord({
         subscriptionId: localSubscription.id,
         stripeInvoiceId: stripeInvoice.id,
-        stripePaymentIntentId: typeof (stripeInvoice as any).payment_intent === 'object' ? 
-          (stripeInvoice as any).payment_intent?.id : (stripeInvoice as any).payment_intent || undefined,
+        stripePaymentIntentId:
+          typeof (stripeInvoice as any).payment_intent === 'object'
+            ? (stripeInvoice as any).payment_intent?.id
+            : (stripeInvoice as any).payment_intent || undefined,
         invoiceNumber: stripeInvoice.number || undefined,
         status,
         amountDue: stripeInvoice.amount_due,
@@ -102,12 +107,15 @@ export class BillingService {
         currency: stripeInvoice.currency,
         billingDate: new Date(stripeInvoice.created * 1000),
         dueDate: stripeInvoice.due_date ? new Date(stripeInvoice.due_date * 1000) : undefined,
-        paidAt: stripeInvoice.status_transitions?.paid_at ? 
-          new Date(stripeInvoice.status_transitions.paid_at * 1000) : undefined,
+        paidAt: stripeInvoice.status_transitions?.paid_at
+          ? new Date(stripeInvoice.status_transitions.paid_at * 1000)
+          : undefined,
         hostedInvoiceUrl: stripeInvoice.hosted_invoice_url || undefined,
         invoicePdfUrl: stripeInvoice.invoice_pdf || undefined,
-        paymentMethodId: typeof stripeInvoice.default_payment_method === 'string' ? 
-          stripeInvoice.default_payment_method : undefined,
+        paymentMethodId:
+          typeof stripeInvoice.default_payment_method === 'string'
+            ? stripeInvoice.default_payment_method
+            : undefined,
         lineItems,
         metadata: stripeInvoice.metadata || {},
       });
@@ -116,14 +124,14 @@ export class BillingService {
         invoiceId: stripeInvoice.id,
         recordId: billingRecord.id,
         amount: stripeInvoice.amount_due,
-        status
+        status,
       });
 
       return BillingRecord.toModel(billingRecord);
     } catch (error) {
       logger.error('Error creating billing record from Stripe invoice', {
         invoiceId: stripeInvoice.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -169,35 +177,58 @@ export class BillingService {
       if (status === 'paid') {
         const updateOptions = {
           amountPaid: stripeInvoice.amount_paid,
-          paidAt: (stripeInvoice as any).status_transitions?.paid_at ? 
-            new Date((stripeInvoice as any).status_transitions.paid_at * 1000) : new Date(),
-          paymentMethodId: typeof (stripeInvoice as any).default_payment_method === 'string' ? 
-            (stripeInvoice as any).default_payment_method : undefined,
-          stripePaymentIntentId: typeof (stripeInvoice as any).payment_intent === 'object' ? 
-            (stripeInvoice as any).payment_intent?.id : (stripeInvoice as any).payment_intent || undefined,
+          paidAt: (stripeInvoice as any).status_transitions?.paid_at
+            ? new Date((stripeInvoice as any).status_transitions.paid_at * 1000)
+            : new Date(),
+          paymentMethodId:
+            typeof (stripeInvoice as any).default_payment_method === 'string'
+              ? (stripeInvoice as any).default_payment_method
+              : undefined,
+          stripePaymentIntentId:
+            typeof (stripeInvoice as any).payment_intent === 'object'
+              ? (stripeInvoice as any).payment_intent?.id
+              : (stripeInvoice as any).payment_intent || undefined,
         };
-        updatedRecord = await BillingRecord.updatePaymentStatus(existingRecord.id, status, updateOptions);
+        updatedRecord = await BillingRecord.updatePaymentStatus(
+          existingRecord.id,
+          status,
+          updateOptions
+        );
       } else if (status === 'void') {
         const updateOptions = {
           voidedAt: new Date(),
-          stripePaymentIntentId: typeof (stripeInvoice as any).payment_intent === 'object' ? 
-            (stripeInvoice as any).payment_intent?.id : (stripeInvoice as any).payment_intent || undefined,
+          stripePaymentIntentId:
+            typeof (stripeInvoice as any).payment_intent === 'object'
+              ? (stripeInvoice as any).payment_intent?.id
+              : (stripeInvoice as any).payment_intent || undefined,
         };
-        updatedRecord = await BillingRecord.updatePaymentStatus(existingRecord.id, status, updateOptions);
+        updatedRecord = await BillingRecord.updatePaymentStatus(
+          existingRecord.id,
+          status,
+          updateOptions
+        );
       } else if (status === 'uncollectible') {
         const updateOptions = {
-          stripePaymentIntentId: typeof (stripeInvoice as any).payment_intent === 'object' ? 
-            (stripeInvoice as any).payment_intent?.id : (stripeInvoice as any).payment_intent || undefined,
+          stripePaymentIntentId:
+            typeof (stripeInvoice as any).payment_intent === 'object'
+              ? (stripeInvoice as any).payment_intent?.id
+              : (stripeInvoice as any).payment_intent || undefined,
         };
-        updatedRecord = await BillingRecord.updatePaymentStatus(existingRecord.id, status, updateOptions);
+        updatedRecord = await BillingRecord.updatePaymentStatus(
+          existingRecord.id,
+          status,
+          updateOptions
+        );
       } else {
         // For draft and open status, just update basic fields
         updatedRecord = await BillingRecord.update(existingRecord.id, {
           status,
           amount_paid: stripeInvoice.amount_paid,
           amount_remaining: stripeInvoice.amount_due - stripeInvoice.amount_paid,
-          stripe_payment_intent_id: typeof (stripeInvoice as any).payment_intent === 'object' ? 
-            (stripeInvoice as any).payment_intent?.id : (stripeInvoice as any).payment_intent || undefined,
+          stripe_payment_intent_id:
+            typeof (stripeInvoice as any).payment_intent === 'object'
+              ? (stripeInvoice as any).payment_intent?.id
+              : (stripeInvoice as any).payment_intent || undefined,
         });
       }
 
@@ -218,14 +249,14 @@ export class BillingService {
         invoiceId: stripeInvoice.id,
         recordId: existingRecord.id,
         oldStatus: existingRecord.status,
-        newStatus: status
+        newStatus: status,
       });
 
       return BillingRecord.toModel(updatedRecord);
     } catch (error) {
       logger.error('Error updating billing record from Stripe invoice', {
         invoiceId: stripeInvoice.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -240,11 +271,11 @@ export class BillingService {
   ): Promise<BillingRecordModel[]> {
     try {
       const records = await BillingRecord.getCustomerBillingHistory(subscriptionId, limit);
-      return records.map(record => BillingRecord.toModel(record));
+      return records.map((record) => BillingRecord.toModel(record));
     } catch (error) {
       logger.error('Error getting billing history', {
         subscriptionId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -267,7 +298,7 @@ export class BillingService {
     } catch (error) {
       logger.error('Error getting user billing history', {
         userId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -309,7 +340,7 @@ export class BillingService {
       logger.info('Retried failed payment', {
         invoiceId,
         recordId: billingRecord.id,
-        result: result.status
+        result: result.status,
       });
 
       return {
@@ -320,7 +351,7 @@ export class BillingService {
     } catch (error) {
       logger.error('Error retrying failed payment', {
         invoiceId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
       return {
@@ -337,10 +368,10 @@ export class BillingService {
   static async getPendingPayments(): Promise<BillingRecordModel[]> {
     try {
       const records = await BillingRecord.findPendingPayments();
-      return records.map(record => BillingRecord.toModel(record));
+      return records.map((record) => BillingRecord.toModel(record));
     } catch (error) {
       logger.error('Error getting pending payments', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -352,10 +383,10 @@ export class BillingService {
   static async getFailedPayments(): Promise<BillingRecordModel[]> {
     try {
       const records = await BillingRecord.findFailedPayments();
-      return records.map(record => BillingRecord.toModel(record));
+      return records.map((record) => BillingRecord.toModel(record));
     } catch (error) {
       logger.error('Error getting failed payments', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -364,17 +395,14 @@ export class BillingService {
   /**
    * Get revenue statistics
    */
-  static async getRevenueStats(
-    startDate: Date,
-    endDate: Date
-  ): Promise<BillingStats> {
+  static async getRevenueStats(startDate: Date, endDate: Date): Promise<BillingStats> {
     try {
       return await BillingRecord.getRevenueStats(startDate, endDate);
     } catch (error) {
       logger.error('Error getting revenue stats', {
         startDate,
         endDate,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -383,18 +411,20 @@ export class BillingService {
   /**
    * Get monthly revenue for a year
    */
-  static async getMonthlyRevenue(year: number): Promise<Array<{
-    month: number;
-    revenue: number;
-    invoiceCount: number;
-    currency: string;
-  }>> {
+  static async getMonthlyRevenue(year: number): Promise<
+    Array<{
+      month: number;
+      revenue: number;
+      invoiceCount: number;
+      currency: string;
+    }>
+  > {
     try {
       return await BillingRecord.getMonthlyRevenue(year);
     } catch (error) {
       logger.error('Error getting monthly revenue', {
         year,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -406,15 +436,15 @@ export class BillingService {
   static async processInvoicePaymentSucceeded(stripeInvoice: Stripe.Invoice): Promise<void> {
     try {
       await this.updateBillingRecordFromStripeInvoice(stripeInvoice);
-      
+
       logger.info('Processed invoice payment succeeded', {
         invoiceId: stripeInvoice.id,
-        amount: stripeInvoice.amount_paid
+        amount: stripeInvoice.amount_paid,
       });
     } catch (error) {
       logger.error('Error processing invoice payment succeeded', {
         invoiceId: stripeInvoice.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -426,21 +456,21 @@ export class BillingService {
   static async processInvoicePaymentFailed(stripeInvoice: Stripe.Invoice): Promise<void> {
     try {
       const billingRecord = await this.updateBillingRecordFromStripeInvoice(stripeInvoice);
-      
+
       // Record the failed attempt
       await BillingRecord.recordPaymentAttempt(
         billingRecord.id,
         'Payment failed - will retry automatically'
       );
-      
+
       logger.info('Processed invoice payment failed', {
         invoiceId: stripeInvoice.id,
-        attemptCount: stripeInvoice.attempt_count
+        attemptCount: stripeInvoice.attempt_count,
       });
     } catch (error) {
       logger.error('Error processing invoice payment failed', {
         invoiceId: stripeInvoice.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -467,19 +497,14 @@ export class BillingService {
       const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-      const [
-        currentMonth,
-        previousMonth,
-        pendingPayments,
-        failedPayments,
-        monthlyTrend
-      ] = await Promise.all([
-        this.getRevenueStats(currentMonthStart, currentMonthEnd),
-        this.getRevenueStats(previousMonthStart, previousMonthEnd),
-        BillingRecord.findPendingPayments(),
-        BillingRecord.findFailedPayments(),
-        this.getMonthlyRevenue(now.getFullYear())
-      ]);
+      const [currentMonth, previousMonth, pendingPayments, failedPayments, monthlyTrend] =
+        await Promise.all([
+          this.getRevenueStats(currentMonthStart, currentMonthEnd),
+          this.getRevenueStats(previousMonthStart, previousMonthEnd),
+          BillingRecord.findPendingPayments(),
+          BillingRecord.findFailedPayments(),
+          this.getMonthlyRevenue(now.getFullYear()),
+        ]);
 
       return {
         currentMonth,
@@ -489,12 +514,12 @@ export class BillingService {
         monthlyTrend: monthlyTrend.map(({ month, revenue, invoiceCount }) => ({
           month,
           revenue,
-          invoiceCount
-        }))
+          invoiceCount,
+        })),
       };
     } catch (error) {
       logger.error('Error getting billing summary', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }

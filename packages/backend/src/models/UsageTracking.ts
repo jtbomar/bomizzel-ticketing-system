@@ -44,7 +44,8 @@ export class UsageTracking extends BaseModel {
 
   static async getCurrentUsageStats(subscriptionId: string): Promise<UsageStats> {
     // Get current active tickets count
-    const activeTicketsResult = await this.db.raw(`
+    const activeTicketsResult = await this.db.raw(
+      `
       SELECT COUNT(DISTINCT ticket_id) as count
       FROM usage_tracking ut1
       WHERE ut1.subscription_id = ?
@@ -62,10 +63,13 @@ export class UsageTracking extends BaseModel {
         AND ut3.action IN ('completed', 'archived', 'deleted')
         AND ut3.action_timestamp > ut1.action_timestamp
       )
-    `, [subscriptionId, subscriptionId]);
+    `,
+      [subscriptionId, subscriptionId]
+    );
 
     // Get completed tickets count (not archived)
-    const completedTicketsResult = await this.db.raw(`
+    const completedTicketsResult = await this.db.raw(
+      `
       SELECT COUNT(DISTINCT ticket_id) as count
       FROM usage_tracking ut1
       WHERE ut1.subscription_id = ?
@@ -83,10 +87,13 @@ export class UsageTracking extends BaseModel {
         AND ut3.action IN ('archived', 'deleted')
         AND ut3.action_timestamp > ut1.action_timestamp
       )
-    `, [subscriptionId, subscriptionId]);
+    `,
+      [subscriptionId, subscriptionId]
+    );
 
     // Get total tickets count (active + completed, excluding archived/deleted)
-    const totalTicketsResult = await this.db.raw(`
+    const totalTicketsResult = await this.db.raw(
+      `
       SELECT COUNT(DISTINCT ticket_id) as count
       FROM usage_tracking ut1
       WHERE ut1.subscription_id = ?
@@ -104,7 +111,9 @@ export class UsageTracking extends BaseModel {
         AND ut3.action IN ('archived', 'deleted')
         AND ut3.action_timestamp > ut1.action_timestamp
       )
-    `, [subscriptionId, subscriptionId]);
+    `,
+      [subscriptionId, subscriptionId]
+    );
 
     const activeTickets = parseInt(activeTicketsResult.rows[0]?.count || '0');
     const completedTickets = parseInt(completedTicketsResult.rows[0]?.count || '0');
@@ -134,12 +143,12 @@ export class UsageTracking extends BaseModel {
     const ticketActions = new Map<string, string>();
 
     // Process actions chronologically to get final state
-    usage.reverse().forEach(record => {
+    usage.reverse().forEach((record) => {
       ticketActions.set(record.ticket_id, record.action);
     });
 
     // Count tickets by their final action in the period
-    ticketActions.forEach(action => {
+    ticketActions.forEach((action) => {
       switch (action) {
         case 'created':
           activeTickets++;
@@ -164,9 +173,7 @@ export class UsageTracking extends BaseModel {
   }
 
   static async getTicketHistory(ticketId: string): Promise<UsageTrackingTable[]> {
-    return this.query
-      .where('ticket_id', ticketId)
-      .orderBy('action_timestamp', 'asc');
+    return this.query.where('ticket_id', ticketId).orderBy('action_timestamp', 'asc');
   }
 
   static async getRecentActivity(
@@ -205,7 +212,7 @@ export class UsageTracking extends BaseModel {
     const results = await query;
     const counts: Record<string, number> = {};
 
-    results.forEach(result => {
+    results.forEach((result) => {
       counts[result.action] = parseInt(result.count.toString());
     });
 
@@ -222,8 +229,7 @@ export class UsageTracking extends BaseModel {
       previousStatus: record.previous_status,
       newStatus: record.new_status,
       actionTimestamp: record.action_timestamp,
-      metadata: typeof record.metadata === 'string' ? 
-        JSON.parse(record.metadata) : record.metadata,
+      metadata: typeof record.metadata === 'string' ? JSON.parse(record.metadata) : record.metadata,
       createdAt: record.created_at,
       updatedAt: record.updated_at,
     };

@@ -25,6 +25,7 @@ packages/
 ### 1. Unit Tests
 
 **Backend Services (`*Service.test.ts`)**
+
 - TicketService: Core ticket management logic
 - UserService: User profile and preference management
 - AuthService: Authentication and authorization
@@ -32,6 +33,7 @@ packages/
 - EmailService: Email template and sending logic
 
 **Frontend Components (`components/*.test.tsx`)**
+
 - KanbanBoard: Drag-and-drop ticket management
 - CreateTicketForm: Dynamic form with custom fields
 - TicketListView: List-based ticket display
@@ -40,6 +42,7 @@ packages/
 ### 2. Integration Tests
 
 **API Endpoint Tests (`*.test.ts`)**
+
 - Authentication endpoints (register, login, refresh)
 - Ticket CRUD operations
 - User and company management
@@ -48,6 +51,7 @@ packages/
 - Email integration
 
 **Workflow Tests (`integration/*.test.ts`)**
+
 - Complete ticket lifecycle (creation → assignment → resolution)
 - Custom field configuration and usage
 - Multi-company user workflows
@@ -57,6 +61,7 @@ packages/
 ### 3. End-to-End Tests
 
 **Customer Workflows (`e2e/customerWorkflow.test.tsx`)**
+
 - Customer registration and login
 - Ticket creation with custom fields
 - Multi-company ticket management
@@ -64,6 +69,7 @@ packages/
 - Ticket status tracking
 
 **Employee Workflows (`e2e/employeeWorkflow.test.tsx`)**
+
 - Employee dashboard navigation
 - Kanban vs List view switching
 - Ticket assignment and status updates
@@ -73,6 +79,7 @@ packages/
 ### 4. Performance Tests
 
 **Load Testing (`performance/loadTest.test.ts`)**
+
 - Concurrent ticket creation (50+ simultaneous)
 - High-volume ticket retrieval
 - Database query performance with large datasets
@@ -81,6 +88,7 @@ packages/
 - Memory usage monitoring
 
 **Performance Benchmarks:**
+
 - Ticket creation: <200ms average response time
 - Ticket search: <1000ms for 1000+ tickets
 - Concurrent logins: <100ms average
@@ -89,6 +97,7 @@ packages/
 ### 5. Security Tests
 
 **Authentication Security (`security/authSecurity.test.ts`)**
+
 - JWT token validation and expiration
 - Invalid token rejection
 - Authorization boundary testing
@@ -96,6 +105,7 @@ packages/
 - Session management security
 
 **Input Validation Security**
+
 - SQL injection prevention
 - XSS attack prevention
 - File upload security
@@ -184,11 +194,13 @@ export default defineConfig({
 ## Test Data Management
 
 ### Database Setup
+
 - Automated migration and seeding for test database
 - Transaction-based test isolation
 - Cleanup between test runs
 
 ### Mock Data
+
 - Realistic test data for all entities
 - Consistent data relationships
 - Performance test datasets (1000+ records)
@@ -196,12 +208,14 @@ export default defineConfig({
 ## Continuous Integration
 
 ### Pre-commit Hooks
+
 ```bash
 # Run linting and unit tests before commit
 npm run lint && npm run test:unit
 ```
 
 ### CI Pipeline
+
 ```bash
 # Full test suite execution
 npm run test:all
@@ -220,17 +234,20 @@ npm run lint
 ## Test Maintenance
 
 ### Adding New Tests
+
 1. Follow existing naming conventions
 2. Include both positive and negative test cases
 3. Mock external dependencies appropriately
 4. Update this documentation
 
 ### Test Data Updates
+
 1. Update seed files for new features
 2. Maintain test data consistency
 3. Consider performance impact of large datasets
 
 ### Performance Benchmarks
+
 1. Update benchmarks for new features
 2. Monitor performance regression
 3. Adjust timeouts as needed
@@ -240,6 +257,7 @@ npm run lint
 ### Common Issues
 
 **Database Connection Errors**
+
 ```bash
 # Ensure test database is running
 npm run docker:up
@@ -247,11 +265,13 @@ npm run db:setup
 ```
 
 **Test Timeouts**
+
 - Increase timeout for performance tests
 - Check for hanging promises
 - Verify database cleanup
 
 **Mock Issues**
+
 - Clear mocks between tests
 - Verify mock implementations
 - Check for mock leakage
@@ -278,6 +298,7 @@ npx jest tests/ticketService.test.ts --verbose
 ## Metrics and Reporting
 
 The test suite provides comprehensive metrics:
+
 - Code coverage percentages
 - Test execution times
 - Performance benchmarks

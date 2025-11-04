@@ -17,10 +17,10 @@ export class MetricsService {
       }
 
       const metrics = await this.calculateQueueMetrics(queueId);
-      
+
       // Broadcast the updated metrics
       notificationService.notifyQueueMetricsUpdated(Queue.toModel(queue), metrics);
-      
+
       return metrics;
     } catch (error) {
       logger.error('Error updating queue metrics:', error);
@@ -39,23 +39,23 @@ export class MetricsService {
 
     // Get all tickets in the queue
     const allTickets = await Ticket.findByQueue(queueId);
-    
+
     // Calculate basic counts
     const totalTickets = allTickets.length;
-    const openTickets = allTickets.filter(t => t.status === 'open').length;
-    const assignedTickets = allTickets.filter(t => t.assigned_to_id !== null).length;
-    const resolvedTickets = allTickets.filter(t => t.resolved_at !== null).length;
+    const openTickets = allTickets.filter((t) => t.status === 'open').length;
+    const assignedTickets = allTickets.filter((t) => t.assigned_to_id !== null).length;
+    const resolvedTickets = allTickets.filter((t) => t.resolved_at !== null).length;
 
     // Calculate status breakdown
     const statusBreakdown: Record<string, number> = {};
-    allTickets.forEach(ticket => {
+    allTickets.forEach((ticket) => {
       statusBreakdown[ticket.status] = (statusBreakdown[ticket.status] || 0) + 1;
     });
 
     // Calculate average resolution time (in hours)
-    const resolvedTicketsWithTime = allTickets.filter(t => t.resolved_at && t.created_at);
+    const resolvedTicketsWithTime = allTickets.filter((t) => t.resolved_at && t.created_at);
     let averageResolutionTime = 0;
-    
+
     if (resolvedTicketsWithTime.length > 0) {
       const totalResolutionTime = resolvedTicketsWithTime.reduce((sum, ticket) => {
         const createdAt = new Date(ticket.created_at);
@@ -63,7 +63,7 @@ export class MetricsService {
         const resolutionTimeHours = (resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
         return sum + resolutionTimeHours;
       }, 0);
-      
+
       averageResolutionTime = totalResolutionTime / resolvedTicketsWithTime.length;
     }
 
@@ -84,7 +84,7 @@ export class MetricsService {
    */
   static async calculateTeamMetrics(teamId: string): Promise<QueueMetrics[]> {
     const queues = await Queue.findByTeam(teamId);
-    const metricsPromises = queues.map(queue => this.calculateQueueMetrics(queue.id));
+    const metricsPromises = queues.map((queue) => this.calculateQueueMetrics(queue.id));
     return Promise.all(metricsPromises);
   }
 
@@ -94,7 +94,7 @@ export class MetricsService {
   static async updateAllQueueMetrics(): Promise<void> {
     try {
       const allQueues = await Queue.findAll();
-      const updatePromises = allQueues.map(queue => this.updateQueueMetrics(queue.id));
+      const updatePromises = allQueues.map((queue) => this.updateQueueMetrics(queue.id));
       await Promise.all(updatePromises);
       logger.info(`Updated metrics for ${allQueues.length} queues`);
     } catch (error) {
@@ -107,9 +107,9 @@ export class MetricsService {
    */
   static startPeriodicMetricsUpdate(intervalMinutes: number = 5): NodeJS.Timeout {
     const intervalMs = intervalMinutes * 60 * 1000;
-    
+
     logger.info(`Starting periodic metrics updates every ${intervalMinutes} minutes`);
-    
+
     return setInterval(() => {
       this.updateAllQueueMetrics();
     }, intervalMs);

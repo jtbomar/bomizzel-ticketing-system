@@ -35,7 +35,7 @@ export class User extends BaseModel {
     role?: 'customer' | 'employee' | 'team_lead' | 'admin';
   }): Promise<UserTable> {
     const hashedPassword = await bcrypt.hash(userData.password, 12);
-    
+
     const user = await this.create({
       email: userData.email.toLowerCase(),
       password_hash: hashedPassword,
@@ -67,14 +67,18 @@ export class User extends BaseModel {
 
   static async updatePassword(userId: string, newPassword: string): Promise<void> {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await this.update(userId, { 
+    await this.update(userId, {
       password_hash: hashedPassword,
       password_reset_token: null,
       password_reset_expires_at: null,
     });
   }
 
-  static async setEmailVerificationToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+  static async setEmailVerificationToken(
+    userId: string,
+    token: string,
+    expiresAt: Date
+  ): Promise<void> {
     await this.update(userId, {
       email_verification_token: token,
       email_verification_expires_at: expiresAt,
@@ -89,14 +93,20 @@ export class User extends BaseModel {
     });
   }
 
-  static async setPasswordResetToken(userId: string, token: string, expiresAt: Date): Promise<void> {
+  static async setPasswordResetToken(
+    userId: string,
+    token: string,
+    expiresAt: Date
+  ): Promise<void> {
     await this.update(userId, {
       password_reset_token: token,
       password_reset_expires_at: expiresAt,
     });
   }
 
-  static async findWithCompanies(userId: string): Promise<(UserTable & { companies: UserCompanyAssociation[] }) | null> {
+  static async findWithCompanies(
+    userId: string
+  ): Promise<(UserTable & { companies: UserCompanyAssociation[] }) | null> {
     const user = await this.findById(userId);
     if (!user) return null;
 
@@ -105,7 +115,7 @@ export class User extends BaseModel {
       .where('uca.user_id', userId)
       .select(
         'uca.user_id as userId',
-        'uca.company_id as companyId', 
+        'uca.company_id as companyId',
         'uca.role',
         'uca.created_at as createdAt',
         'c.id as company.id',
@@ -119,7 +129,7 @@ export class User extends BaseModel {
 
     return {
       ...user,
-      companies: companies.map(c => ({
+      companies: companies.map((c) => ({
         userId: c.userId,
         companyId: c.companyId,
         role: c.role,
@@ -137,11 +147,13 @@ export class User extends BaseModel {
     };
   }
 
-  static async findActiveUsers(options: {
-    role?: string;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<UserTable[]> {
+  static async findActiveUsers(
+    options: {
+      role?: string;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<UserTable[]> {
     let query = this.query.where('is_active', true);
 
     if (options.role) {
@@ -165,7 +177,7 @@ export class User extends BaseModel {
       .where('uca.user_id', userId)
       .select(
         'uca.user_id as userId',
-        'uca.company_id as companyId', 
+        'uca.company_id as companyId',
         'uca.role',
         'uca.created_at as createdAt',
         'c.id as company_id',
@@ -177,7 +189,7 @@ export class User extends BaseModel {
         'c.updated_at as company_updated_at'
       );
 
-    return companies.map(c => ({
+    return companies.map((c) => ({
       userId: c.userId,
       companyId: c.companyId,
       role: c.role,
@@ -194,7 +206,9 @@ export class User extends BaseModel {
     }));
   }
 
-  static async getUserTeams(userId: string): Promise<{ userId: string; teamId: string; role: string; createdAt: Date }[]> {
+  static async getUserTeams(
+    userId: string
+  ): Promise<{ userId: string; teamId: string; role: string; createdAt: Date }[]> {
     const teams = await this.db('team_memberships')
       .where('user_id', userId)
       .select('user_id as userId', 'team_id as teamId', 'role', 'created_at as createdAt');

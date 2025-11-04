@@ -16,9 +16,9 @@ const TestTicketForm: React.FC = () => {
 
   const handleSubmit = (data: TicketFormData) => {
     console.log('Ticket submitted:', data);
-    setSubmittedTickets(prev => [...prev, data]);
+    setSubmittedTickets((prev) => [...prev, data]);
     setShowForm(false);
-    
+
     // Show success message
     alert('Ticket created successfully!');
   };
@@ -32,7 +32,9 @@ const TestTicketForm: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Test Default Ticket Form</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Test Default Ticket Form
+          </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Test the default ticket layout with configured statuses and priorities.
           </p>
@@ -71,11 +73,16 @@ const TestTicketForm: React.FC = () => {
             </h2>
             <div className="space-y-4">
               {submittedTickets.map((ticket, index) => (
-                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div
+                  key={index}
+                  className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900 dark:text-white">{ticket.title}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{ticket.description}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        {ticket.description}
+                      </p>
                       {ticket.customer && (
                         <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
                           Customer: {ticket.customer}
@@ -91,9 +98,7 @@ const TestTicketForm: React.FC = () => {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
                         {ticket.status}
                       </span>
-                      <span className="text-sm font-medium text-purple-600">
-                        {ticket.priority}
-                      </span>
+                      <span className="text-sm font-medium text-purple-600">{ticket.priority}</span>
                     </div>
                   </div>
                 </div>

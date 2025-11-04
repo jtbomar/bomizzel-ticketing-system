@@ -28,8 +28,8 @@ export class QueueService {
     if (userRole === 'employee') {
       // Check if user is a team lead for this team
       const userTeams = await User.getUserTeams(createdById);
-      const teamMembership = userTeams.find(ut => ut.teamId === queueData.teamId);
-      
+      const teamMembership = userTeams.find((ut) => ut.teamId === queueData.teamId);
+
       if (!teamMembership || teamMembership.role !== 'lead') {
         throw new ForbiddenError('Only team leads can create queues for their teams');
       }
@@ -50,8 +50,8 @@ export class QueueService {
 
       // Check if assignee is in the team
       const assigneeTeams = await User.getUserTeams(queueData.assignedToId);
-      const hasTeamAccess = assigneeTeams.some(ut => ut.teamId === queueData.teamId);
-      
+      const hasTeamAccess = assigneeTeams.some((ut) => ut.teamId === queueData.teamId);
+
       if (!hasTeamAccess) {
         throw new ValidationError('Assignee must be a member of the team');
       }
@@ -64,10 +64,10 @@ export class QueueService {
 
     // Validate queue name is unique within team
     const existingQueues = await Queue.findByTeam(queueData.teamId);
-    const nameExists = existingQueues.some(q => 
-      q.name.toLowerCase() === queueData.name.toLowerCase()
+    const nameExists = existingQueues.some(
+      (q) => q.name.toLowerCase() === queueData.name.toLowerCase()
     );
-    
+
     if (nameExists) {
       throw new ValidationError('Queue name already exists in this team');
     }
@@ -99,10 +99,10 @@ export class QueueService {
     // Validate name uniqueness if updating name
     if (updateData.name && updateData.name !== queue.name) {
       const existingQueues = await Queue.findByTeam(queue.team_id);
-      const nameExists = existingQueues.some(q => 
-        q.id !== queueId && q.name.toLowerCase() === updateData.name!.toLowerCase()
+      const nameExists = existingQueues.some(
+        (q) => q.id !== queueId && q.name.toLowerCase() === updateData.name!.toLowerCase()
       );
-      
+
       if (nameExists) {
         throw new ValidationError('Queue name already exists in this team');
       }
@@ -123,11 +123,7 @@ export class QueueService {
   /**
    * Delete/deactivate a queue
    */
-  static async deleteQueue(
-    queueId: string,
-    deletedById: string,
-    userRole: string
-  ): Promise<void> {
+  static async deleteQueue(queueId: string, deletedById: string, userRole: string): Promise<void> {
     const queue = await Queue.findById(queueId);
     if (!queue) {
       throw new NotFoundError('Queue not found');
@@ -139,7 +135,9 @@ export class QueueService {
     // Check if queue has tickets
     const ticketCount = await this.getQueueTicketCount(queueId);
     if (ticketCount > 0) {
-      throw new ValidationError('Cannot delete queue with existing tickets. Move tickets to another queue first.');
+      throw new ValidationError(
+        'Cannot delete queue with existing tickets. Move tickets to another queue first.'
+      );
     }
 
     // Soft delete by setting is_active to false
@@ -171,8 +169,8 @@ export class QueueService {
 
     // Check if assignee is in the team
     const assigneeTeams = await User.getUserTeams(assignedToId);
-    const hasTeamAccess = assigneeTeams.some(ut => ut.teamId === queue.team_id);
-    
+    const hasTeamAccess = assigneeTeams.some((ut) => ut.teamId === queue.team_id);
+
     if (!hasTeamAccess) {
       throw new ValidationError('Assignee must be a member of the team');
     }
@@ -227,7 +225,7 @@ export class QueueService {
 
     // Get comprehensive metrics
     const metrics = await this.calculateQueueMetrics(queueId);
-    
+
     return {
       queueId: queue.id,
       queueName: queue.name,
@@ -246,15 +244,15 @@ export class QueueService {
     // Validate team access
     if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
-      const hasTeamAccess = userTeams.some(ut => ut.teamId === teamId);
-      
+      const hasTeamAccess = userTeams.some((ut) => ut.teamId === teamId);
+
       if (!hasTeamAccess) {
         throw new ForbiddenError('Access denied to team queues');
       }
     }
 
     const queues = await Queue.findByTeam(teamId);
-    
+
     const queueMetrics = await Promise.all(
       queues.map(async (queue) => {
         const metrics = await this.calculateQueueMetrics(queue.id);
@@ -281,7 +279,7 @@ export class QueueService {
     } = {}
   ): Promise<QueueMetrics[]> {
     const { includeTeamQueues = true, includePersonalQueues = true } = options;
-    
+
     let allQueues: QueueTable[] = [];
 
     if (userRole === 'customer') {
@@ -298,12 +296,12 @@ export class QueueService {
     // Get team queues
     if (includeTeamQueues) {
       const userTeams = await User.getUserTeams(userId);
-      
+
       for (const teamMembership of userTeams) {
         const teamQueues = await Queue.findByTeam(teamMembership.teamId);
         // Filter out personal queues to avoid duplicates
-        const filteredTeamQueues = teamQueues.filter((q: QueueTable) => 
-          q.assigned_to_id !== userId || !includePersonalQueues
+        const filteredTeamQueues = teamQueues.filter(
+          (q: QueueTable) => q.assigned_to_id !== userId || !includePersonalQueues
         );
         allQueues.push(...filteredTeamQueues);
       }
@@ -313,15 +311,13 @@ export class QueueService {
     if (userRole === 'admin' && includeTeamQueues) {
       const allSystemQueues = await Queue.query.where('is_active', true);
       // Merge with existing queues, avoiding duplicates
-      const existingIds = new Set(allQueues.map(q => q.id));
+      const existingIds = new Set(allQueues.map((q) => q.id));
       const additionalQueues = allSystemQueues.filter((q: QueueTable) => !existingIds.has(q.id));
       allQueues.push(...additionalQueues);
     }
 
     // Remove duplicates and calculate metrics
-    const uniqueQueues = Array.from(
-      new Map(allQueues.map(q => [q.id, q])).values()
-    );
+    const uniqueQueues = Array.from(new Map(allQueues.map((q) => [q.id, q])).values());
 
     const queueMetrics = await Promise.all(
       uniqueQueues.map(async (queue) => {
@@ -358,43 +354,44 @@ export class QueueService {
       // Validate team access
       if (userRole === 'employee') {
         const userTeams = await User.getUserTeams(userId);
-        const hasTeamAccess = userTeams.some(ut => ut.teamId === filters.teamId);
-        
+        const hasTeamAccess = userTeams.some((ut) => ut.teamId === filters.teamId);
+
         if (!hasTeamAccess) {
           throw new ForbiddenError('Access denied to team queues');
         }
       }
-      
+
       queues = await Queue.findByTeam(filters.teamId);
     } else if (filters.assignedToId) {
       // Validate assignee access
       if (userRole === 'employee' && filters.assignedToId !== userId) {
-        throw new ForbiddenError('Access denied to other user\'s queues');
+        throw new ForbiddenError("Access denied to other user's queues");
       }
-      
+
       queues = await Queue.findByAssignee(filters.assignedToId);
     } else {
       // Get user's accessible queues
       const userQueues = await this.getUserQueuesWithMetrics(userId, userRole);
-      const queueIds = userQueues.map(q => q.queueId);
-      
+      const queueIds = userQueues.map((q) => q.queueId);
+
       if (queueIds.length === 0) {
         return [];
       }
-      
+
       queues = await Queue.query.whereIn('id', queueIds).where('is_active', true);
     }
 
     // Apply filters
     if (filters.type) {
-      queues = queues.filter(q => q.type === filters.type);
+      queues = queues.filter((q) => q.type === filters.type);
     }
 
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      queues = queues.filter((q: QueueTable) => 
-        q.name.toLowerCase().includes(searchTerm) ||
-        (q.description && q.description.toLowerCase().includes(searchTerm))
+      queues = queues.filter(
+        (q: QueueTable) =>
+          q.name.toLowerCase().includes(searchTerm) ||
+          (q.description && q.description.toLowerCase().includes(searchTerm))
       );
     }
 
@@ -409,10 +406,10 @@ export class QueueService {
     // Apply sorting
     const sortBy = filters.sortBy || 'name';
     const sortOrder = filters.sortOrder || 'asc';
-    
+
     queuesWithCounts.sort((a, b) => {
       let aValue: any, bValue: any;
-      
+
       switch (sortBy) {
         case 'ticketCount':
           aValue = a.ticketCount;
@@ -426,7 +423,7 @@ export class QueueService {
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
       }
-      
+
       if (sortOrder === 'desc') {
         return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
       } else {
@@ -434,7 +431,7 @@ export class QueueService {
       }
     });
 
-    return queuesWithCounts.map(queue => Queue.toModel(queue));
+    return queuesWithCounts.map((queue) => Queue.toModel(queue));
   }
 
   // Private helper methods
@@ -456,8 +453,8 @@ export class QueueService {
     if (userRole === 'employee') {
       // Check if user has access to the team
       const userTeams = await User.getUserTeams(userId);
-      const teamMembership = userTeams.find(ut => ut.teamId === queue.team_id);
-      
+      const teamMembership = userTeams.find((ut) => ut.teamId === queue.team_id);
+
       if (!teamMembership) {
         throw new ForbiddenError('Access denied to queue');
       }
@@ -477,18 +474,20 @@ export class QueueService {
     }
   }
 
-  private static async calculateQueueMetrics(queueId: string): Promise<Omit<QueueMetrics, 'queueId' | 'queueName'>> {
+  private static async calculateQueueMetrics(
+    queueId: string
+  ): Promise<Omit<QueueMetrics, 'queueId' | 'queueName'>> {
     // Use the BaseModel's db property through Queue
     const db = (Queue as any).db;
     const baseQuery = db('tickets').where('queue_id', queueId);
-    
+
     // Get basic counts
     const basicMetrics = await baseQuery
       .select(
         db.raw('COUNT(*) as total_tickets'),
-        db.raw('COUNT(CASE WHEN status = \'open\' THEN 1 END) as open_tickets'),
+        db.raw("COUNT(CASE WHEN status = 'open' THEN 1 END) as open_tickets"),
         db.raw('COUNT(CASE WHEN assigned_to_id IS NOT NULL THEN 1 END) as assigned_tickets'),
-        db.raw('COUNT(CASE WHEN status IN (\'resolved\', \'closed\') THEN 1 END) as resolved_tickets')
+        db.raw("COUNT(CASE WHEN status IN ('resolved', 'closed') THEN 1 END) as resolved_tickets")
       )
       .first();
 
@@ -513,7 +512,7 @@ export class QueueService {
       statusBreakdownMap[item.status] = parseInt(item.count as string, 10);
     });
 
-    const averageResolutionTime = resolutionTimeQuery?.avg_resolution_seconds 
+    const averageResolutionTime = resolutionTimeQuery?.avg_resolution_seconds
       ? Math.round(parseFloat(resolutionTimeQuery.avg_resolution_seconds))
       : 0;
 
@@ -529,11 +528,8 @@ export class QueueService {
 
   private static async getQueueTicketCount(queueId: string): Promise<number> {
     const db = (Queue as any).db;
-    const result = await db('tickets')
-      .where('queue_id', queueId)
-      .count('* as count')
-      .first();
-    
+    const result = await db('tickets').where('queue_id', queueId).count('* as count').first();
+
     return parseInt(result?.count || '0', 10);
   }
 }

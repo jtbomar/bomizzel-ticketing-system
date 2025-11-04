@@ -18,7 +18,7 @@ const companyRegistrationSchema = Joi.object({
     'string.domain': 'Please provide a valid domain',
   }),
   description: Joi.string().max(500).optional(),
-  
+
   // Admin user info
   adminFirstName: Joi.string().min(1).max(50).required().messages({
     'string.min': 'First name is required',
@@ -38,7 +38,7 @@ const companyRegistrationSchema = Joi.object({
     'string.min': 'Password must be at least 8 characters',
     'any.required': 'Admin password is required',
   }),
-  
+
   // Organization profile (optional)
   timezone: Joi.string().optional(),
   primaryContactName: Joi.string().max(100).optional(),
@@ -46,7 +46,7 @@ const companyRegistrationSchema = Joi.object({
   primaryContactPhone: Joi.string().max(20).optional(),
   mobilePhone: Joi.string().max(20).optional(),
   websiteUrl: Joi.string().uri().optional(),
-  
+
   // Address (optional)
   addressLine1: Joi.string().max(100).optional(),
   addressLine2: Joi.string().max(100).optional(),
@@ -54,7 +54,7 @@ const companyRegistrationSchema = Joi.object({
   stateProvince: Joi.string().max(50).optional(),
   postalCode: Joi.string().max(20).optional(),
   country: Joi.string().max(50).optional(),
-  
+
   // Subscription
   subscriptionPlanId: Joi.string().uuid().optional(),
   startTrial: Joi.boolean().optional().default(true),
@@ -66,16 +66,20 @@ const companyProfileUpdateSchema = Joi.object({
   domain: Joi.string().domain().optional(),
   description: Joi.string().max(500).optional(),
   logoUrl: Joi.string().uri().optional(),
-  primaryColor: Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/).optional(),
-  secondaryColor: Joi.string().pattern(/^#[0-9A-Fa-f]{6}$/).optional(),
-  
+  primaryColor: Joi.string()
+    .pattern(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
+  secondaryColor: Joi.string()
+    .pattern(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
+
   // Contact info
   primaryContactName: Joi.string().max(100).optional(),
   primaryContactEmail: Joi.string().email().optional(),
   primaryContactPhone: Joi.string().max(20).optional(),
   mobilePhone: Joi.string().max(20).optional(),
   websiteUrl: Joi.string().uri().optional(),
-  
+
   // Address
   addressLine1: Joi.string().max(100).optional(),
   addressLine2: Joi.string().max(100).optional(),
@@ -83,14 +87,14 @@ const companyProfileUpdateSchema = Joi.object({
   stateProvince: Joi.string().max(50).optional(),
   postalCode: Joi.string().max(20).optional(),
   country: Joi.string().max(50).optional(),
-  
+
   // Settings
   timezone: Joi.string().optional(),
   dateFormat: Joi.string().valid('MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD').optional(),
   timeFormat: Joi.string().valid('12', '24').optional(),
   currency: Joi.string().length(3).optional(),
   language: Joi.string().length(2).optional(),
-  
+
   // Company settings
   allowPublicRegistration: Joi.boolean().optional(),
   requireEmailVerification: Joi.boolean().optional(),
@@ -104,7 +108,7 @@ const companyProfileUpdateSchema = Joi.object({
 router.post('/register', validate(companyRegistrationSchema), async (req, res, next) => {
   try {
     const result = await CompanyRegistrationService.registerCompany(req.body);
-    
+
     res.status(201).json({
       success: true,
       message: 'Company registered successfully',
@@ -133,16 +137,16 @@ router.get('/profile', authenticate, async (req, res, next) => {
   try {
     // Get user's primary company (first one they're associated with)
     const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
-    
+
     if (userCompanies.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'No company found for user',
       });
     }
-    
+
     const companyProfile = await CompanyRegistrationService.getCompanyProfile(userCompanies[0].id);
-    
+
     res.json({
       success: true,
       data: companyProfile,
@@ -156,33 +160,38 @@ router.get('/profile', authenticate, async (req, res, next) => {
  * PUT /api/company-registration/profile
  * Update company profile
  */
-router.put('/profile', authenticate, validate(companyProfileUpdateSchema), async (req, res, next) => {
-  try {
-    // Get user's primary company
-    const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
-    
-    if (userCompanies.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No company found for user',
+router.put(
+  '/profile',
+  authenticate,
+  validate(companyProfileUpdateSchema),
+  async (req, res, next) => {
+    try {
+      // Get user's primary company
+      const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
+
+      if (userCompanies.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No company found for user',
+        });
+      }
+
+      const updatedProfile = await CompanyRegistrationService.updateCompanyProfile(
+        userCompanies[0].id,
+        req.body,
+        req.user!.id
+      );
+
+      res.json({
+        success: true,
+        message: 'Company profile updated successfully',
+        data: updatedProfile,
       });
+    } catch (error) {
+      next(error);
     }
-    
-    const updatedProfile = await CompanyRegistrationService.updateCompanyProfile(
-      userCompanies[0].id,
-      req.body,
-      req.user!.id
-    );
-    
-    res.json({
-      success: true,
-      message: 'Company profile updated successfully',
-      data: updatedProfile,
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 /**
  * GET /api/company-registration/timezones
@@ -208,7 +217,7 @@ router.get('/timezones', (req, res) => {
     'Australia/Melbourne',
     // Add more as needed
   ];
-  
+
   res.json({
     success: true,
     data: timezones,
@@ -233,7 +242,7 @@ router.get('/countries', (req, res) => {
     'Mexico',
     // Add more as needed
   ];
-  
+
   res.json({
     success: true,
     data: countries,

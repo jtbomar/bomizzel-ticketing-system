@@ -70,7 +70,11 @@ describe('TicketNoteService', () => {
         content: 'Test note content',
         isInternal: false,
       });
-      expect(MockedTicket.addHistory).toHaveBeenCalledWith(mockTicketId, mockAuthorId, 'note_added');
+      expect(MockedTicket.addHistory).toHaveBeenCalledWith(
+        mockTicketId,
+        mockAuthorId,
+        'note_added'
+      );
       expect(result.content).toBe('Test note content');
     });
 
@@ -211,9 +215,9 @@ describe('TicketNoteService', () => {
     it('should throw error if note not found', async () => {
       MockedTicketNote.findById.mockResolvedValue(null);
 
-      await expect(
-        TicketNoteService.deleteNote(mockNoteId, mockAuthorId)
-      ).rejects.toThrow('Note not found');
+      await expect(TicketNoteService.deleteNote(mockNoteId, mockAuthorId)).rejects.toThrow(
+        'Note not found'
+      );
     });
 
     it('should throw error if user is not the author', async () => {
@@ -222,9 +226,9 @@ describe('TicketNoteService', () => {
         author_id: 'different-user',
       });
 
-      await expect(
-        TicketNoteService.deleteNote(mockNoteId, mockAuthorId)
-      ).rejects.toThrow('Unauthorized to delete this note');
+      await expect(TicketNoteService.deleteNote(mockNoteId, mockAuthorId)).rejects.toThrow(
+        'Unauthorized to delete this note'
+      );
     });
 
     it('should throw error if trying to delete email-generated note', async () => {
@@ -233,9 +237,9 @@ describe('TicketNoteService', () => {
         is_email_generated: true,
       });
 
-      await expect(
-        TicketNoteService.deleteNote(mockNoteId, mockAuthorId)
-      ).rejects.toThrow('Email-generated notes cannot be deleted');
+      await expect(TicketNoteService.deleteNote(mockNoteId, mockAuthorId)).rejects.toThrow(
+        'Email-generated notes cannot be deleted'
+      );
     });
   });
 

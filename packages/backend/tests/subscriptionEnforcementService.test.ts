@@ -114,7 +114,9 @@ describe('SubscriptionEnforcementService', () => {
 
       await SubscriptionService.createSubscription(unlimitedUser.id, unlimitedPlanId);
 
-      const enforcement = await SubscriptionEnforcementService.enforceTicketCreationLimit(unlimitedUser.id);
+      const enforcement = await SubscriptionEnforcementService.enforceTicketCreationLimit(
+        unlimitedUser.id
+      );
       expect(enforcement.allowed).toBe(true);
     });
   });
@@ -136,7 +138,8 @@ describe('SubscriptionEnforcementService', () => {
     });
 
     it('should allow ticket completion when under limits', async () => {
-      const enforcement = await SubscriptionEnforcementService.enforceTicketCompletionLimit(completionTestUserId);
+      const enforcement =
+        await SubscriptionEnforcementService.enforceTicketCompletionLimit(completionTestUserId);
 
       expect(enforcement.allowed).toBe(true);
     });
@@ -162,7 +165,8 @@ describe('SubscriptionEnforcementService', () => {
         );
       }
 
-      const enforcement = await SubscriptionEnforcementService.enforceTicketCompletionLimit(completionTestUserId);
+      const enforcement =
+        await SubscriptionEnforcementService.enforceTicketCompletionLimit(completionTestUserId);
 
       expect(enforcement.allowed).toBe(false);
       expect(enforcement.reason).toContain('Completed ticket limit reached');
@@ -326,7 +330,7 @@ describe('SubscriptionEnforcementService', () => {
       if (warnings.hasWarnings) {
         expect(warnings.upgradeMessage).toBeDefined();
         expect(warnings.suggestedPlans).toBeDefined();
-        
+
         const warning = warnings.warnings[0];
         expect(warning).toHaveProperty('type');
         expect(warning).toHaveProperty('percentage');
@@ -358,13 +362,13 @@ describe('SubscriptionEnforcementService', () => {
       const suggestedPlans = await SubscriptionEnforcementService.getSuggestedUpgradePlans(userId);
 
       expect(Array.isArray(suggestedPlans)).toBe(true);
-      
+
       if (suggestedPlans.length > 0) {
         // All suggested plans should have higher price than current plan
         const currentSubscription = await SubscriptionService.getUserSubscription(userId);
         const currentPrice = currentSubscription!.plan.price;
-        
-        suggestedPlans.forEach(plan => {
+
+        suggestedPlans.forEach((plan) => {
           expect(plan.price).toBeGreaterThan(currentPrice);
         });
       }
@@ -379,7 +383,9 @@ describe('SubscriptionEnforcementService', () => {
         role: 'customer',
       });
 
-      const suggestedPlans = await SubscriptionEnforcementService.getSuggestedUpgradePlans(userWithoutSub.id);
+      const suggestedPlans = await SubscriptionEnforcementService.getSuggestedUpgradePlans(
+        userWithoutSub.id
+      );
       expect(Array.isArray(suggestedPlans)).toBe(true);
     });
   });

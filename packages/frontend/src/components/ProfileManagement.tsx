@@ -10,7 +10,7 @@ interface ProfileManagementProps {
 const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
   const { user, updateProfile: updateUser } = useAuth();
   const { preferences, updatePreferences } = useUserPreferences();
-  
+
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences'>('profile');
   const [loading, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,15 +76,15 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium text-gray-900">
-            Profile & Preferences
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <h3 className="text-lg font-medium text-gray-900">Profile & Preferences</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -121,7 +121,7 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
             {error}
           </div>
         )}
-        
+
         {success && (
           <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
             {success}
@@ -133,26 +133,26 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
           <form onSubmit={handleProfileSave} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  First Name
-                </label>
+                <label className="block text-sm font-medium text-gray-700">First Name</label>
                 <input
                   type="text"
                   value={profileData.firstName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                  onChange={(e) =>
+                    setProfileData((prev) => ({ ...prev, firstName: e.target.value }))
+                  }
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Last Name
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Last Name</label>
                 <input
                   type="text"
                   value={profileData.lastName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                  onChange={(e) =>
+                    setProfileData((prev) => ({ ...prev, lastName: e.target.value }))
+                  }
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
@@ -160,13 +160,11 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Email Address</label>
               <input
                 type="email"
                 value={profileData.email}
-                onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => setProfileData((prev) => ({ ...prev, email: e.target.value }))}
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -189,16 +187,19 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
           <form onSubmit={handlePreferencesSave} className="space-y-6">
             {/* Theme */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Theme
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
               <div className="flex space-x-4">
                 <label className="flex items-center">
                   <input
                     type="radio"
                     value="light"
                     checked={preferencesData.theme === 'light'}
-                    onChange={(e) => setPreferencesData(prev => ({ ...prev, theme: e.target.value as 'light' | 'dark' }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        theme: e.target.value as 'light' | 'dark',
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">Light</span>
@@ -208,7 +209,12 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
                     type="radio"
                     value="dark"
                     checked={preferencesData.theme === 'dark'}
-                    onChange={(e) => setPreferencesData(prev => ({ ...prev, theme: e.target.value as 'light' | 'dark' }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        theme: e.target.value as 'light' | 'dark',
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-2 text-sm text-gray-700">Dark</span>
@@ -221,32 +227,35 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
               <h4 className="text-sm font-medium text-gray-700 mb-3">Dashboard</h4>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">
-                    Default View
-                  </label>
+                  <label className="block text-sm text-gray-700 mb-1">Default View</label>
                   <select
                     value={preferencesData.dashboard.defaultView}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      dashboard: { ...prev.dashboard, defaultView: e.target.value as 'kanban' | 'list' }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        dashboard: {
+                          ...prev.dashboard,
+                          defaultView: e.target.value as 'kanban' | 'list',
+                        },
+                      }))
+                    }
                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="kanban">Kanban Board</option>
                     <option value="list">List View</option>
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1">
-                    Tickets Per Page
-                  </label>
+                  <label className="block text-sm text-gray-700 mb-1">Tickets Per Page</label>
                   <select
                     value={preferencesData.dashboard.ticketsPerPage}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      dashboard: { ...prev.dashboard, ticketsPerPage: parseInt(e.target.value) }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        dashboard: { ...prev.dashboard, ticketsPerPage: parseInt(e.target.value) },
+                      }))
+                    }
                     className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value={10}>10</option>
@@ -266,62 +275,72 @@ const ProfileManagement: React.FC<ProfileManagementProps> = ({ onClose }) => {
                   <input
                     type="checkbox"
                     checked={preferencesData.notifications.email}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      notifications: { ...prev.notifications, email: e.target.checked }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, email: e.target.checked },
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Email notifications</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={preferencesData.notifications.browser}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      notifications: { ...prev.notifications, browser: e.target.checked }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, browser: e.target.checked },
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Browser notifications</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={preferencesData.notifications.ticketAssigned}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      notifications: { ...prev.notifications, ticketAssigned: e.target.checked }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, ticketAssigned: e.target.checked },
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Ticket assigned to me</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={preferencesData.notifications.ticketUpdated}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      notifications: { ...prev.notifications, ticketUpdated: e.target.checked }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, ticketUpdated: e.target.checked },
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Ticket updates</span>
                 </label>
-                
+
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={preferencesData.notifications.ticketResolved}
-                    onChange={(e) => setPreferencesData(prev => ({
-                      ...prev,
-                      notifications: { ...prev.notifications, ticketResolved: e.target.checked }
-                    }))}
+                    onChange={(e) =>
+                      setPreferencesData((prev) => ({
+                        ...prev,
+                        notifications: { ...prev.notifications, ticketResolved: e.target.checked },
+                      }))
+                    }
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="ml-2 text-sm text-gray-700">Ticket resolved</span>

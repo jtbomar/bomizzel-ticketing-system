@@ -2,8 +2,8 @@
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('users', function(table) {
+exports.up = function (knex) {
+  return knex.schema.createTable('users', function (table) {
     table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.string('email').notNullable().unique();
     table.string('password_hash').notNullable();
@@ -18,7 +18,7 @@ exports.up = function(knex) {
     table.timestamp('password_reset_expires_at');
     table.jsonb('preferences').defaultTo('{}');
     table.timestamps(true, true);
-    
+
     // Indexes
     table.index('email');
     table.index('role');
@@ -30,6 +30,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('users');
 };

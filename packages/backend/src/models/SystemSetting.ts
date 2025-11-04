@@ -10,9 +10,13 @@ export class SystemSetting extends BaseModel {
     return result || null;
   }
 
-  static async setSetting(key: string, value: any, category: string = 'general'): Promise<SystemSettingTable> {
+  static async setSetting(
+    key: string,
+    value: any,
+    category: string = 'general'
+  ): Promise<SystemSettingTable> {
     const existing = await this.getSetting(key);
-    
+
     if (existing) {
       return this.update(existing.id, {
         value: JSON.stringify(value),

@@ -12,7 +12,12 @@ export interface NotificationPayload {
 }
 
 export interface TicketNotification extends NotificationPayload {
-  type: 'ticket:created' | 'ticket:updated' | 'ticket:assigned' | 'ticket:status_changed' | 'ticket:priority_changed';
+  type:
+    | 'ticket:created'
+    | 'ticket:updated'
+    | 'ticket:assigned'
+    | 'ticket:status_changed'
+    | 'ticket:priority_changed';
   data: {
     ticket: Ticket;
     changes?: Record<string, { old: any; new: any }>;
@@ -64,7 +69,7 @@ class NotificationService {
         try {
           // TODO: Verify JWT token here
           const { userId } = data;
-          
+
           // Store user-socket mapping
           if (!this.userSockets.has(userId)) {
             this.userSockets.set(userId, new Set());
@@ -74,7 +79,7 @@ class NotificationService {
 
           // Join user-specific room
           socket.join(`user:${userId}`);
-          
+
           logger.info(`User ${userId} authenticated on socket ${socket.id}`);
           socket.emit('authenticated', { success: true });
         } catch (error) {
@@ -168,7 +173,7 @@ class NotificationService {
 
     // Notify team members
     this.notifyTeam(ticket.teamId, notification);
-    
+
     // Notify queue watchers
     this.notifyQueue(ticket.queueId, notification);
   }
@@ -185,10 +190,10 @@ class NotificationService {
 
     // Notify the assigned user
     this.notifyUser(assignedTo.id, notification);
-    
+
     // Notify team members
     this.notifyTeam(ticket.teamId, notification);
-    
+
     // Notify queue watchers
     this.notifyQueue(ticket.queueId, notification);
   }
@@ -196,10 +201,10 @@ class NotificationService {
   notifyTicketStatusChanged(ticket: Ticket, oldStatus: string, newStatus: string, actor?: User) {
     const notification: TicketNotification = {
       type: 'ticket:status_changed',
-      data: { 
-        ticket, 
+      data: {
+        ticket,
         changes: { status: { old: oldStatus, new: newStatus } },
-        actor 
+        actor,
       },
       teamId: ticket.teamId,
       queueId: ticket.queueId,
@@ -210,21 +215,26 @@ class NotificationService {
     if (ticket.assignedToId) {
       this.notifyUser(ticket.assignedToId, notification);
     }
-    
+
     // Notify team members
     this.notifyTeam(ticket.teamId, notification);
-    
+
     // Notify queue watchers
     this.notifyQueue(ticket.queueId, notification);
   }
 
-  notifyTicketPriorityChanged(ticket: Ticket, oldPriority: number, newPriority: number, actor?: User) {
+  notifyTicketPriorityChanged(
+    ticket: Ticket,
+    oldPriority: number,
+    newPriority: number,
+    actor?: User
+  ) {
     const notification: TicketNotification = {
       type: 'ticket:priority_changed',
-      data: { 
-        ticket, 
+      data: {
+        ticket,
         changes: { priority: { old: oldPriority, new: newPriority } },
-        actor 
+        actor,
       },
       teamId: ticket.teamId,
       queueId: ticket.queueId,
@@ -235,15 +245,19 @@ class NotificationService {
     if (ticket.assignedToId) {
       this.notifyUser(ticket.assignedToId, notification);
     }
-    
+
     // Notify team members
     this.notifyTeam(ticket.teamId, notification);
-    
+
     // Notify queue watchers
     this.notifyQueue(ticket.queueId, notification);
   }
 
-  notifyTicketUpdated(ticket: Ticket, changes: Record<string, { old: any; new: any }>, actor?: User) {
+  notifyTicketUpdated(
+    ticket: Ticket,
+    changes: Record<string, { old: any; new: any }>,
+    actor?: User
+  ) {
     const notification: TicketNotification = {
       type: 'ticket:updated',
       data: { ticket, changes, actor },
@@ -256,10 +270,10 @@ class NotificationService {
     if (ticket.assignedToId) {
       this.notifyUser(ticket.assignedToId, notification);
     }
-    
+
     // Notify team members
     this.notifyTeam(ticket.teamId, notification);
-    
+
     // Notify queue watchers
     this.notifyQueue(ticket.queueId, notification);
   }
@@ -276,7 +290,7 @@ class NotificationService {
 
     // Notify queue watchers
     this.notifyQueue(queue.id, notification);
-    
+
     // Notify team members
     this.notifyTeam(queue.teamId, notification);
   }

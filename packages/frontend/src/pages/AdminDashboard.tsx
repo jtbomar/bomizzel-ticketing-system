@@ -6,7 +6,7 @@ import UserManagement from '../components/admin/UserManagement';
 import SystemSettings from '../components/admin/SystemSettings';
 import ReportsAndExports from '../components/admin/ReportsAndExports';
 import SubscriptionAnalytics from '../components/admin/SubscriptionAnalytics';
-import BusinessMetricsDashboard from '../components/admin/BusinessMetricsDashboard'; 
+import BusinessMetricsDashboard from '../components/admin/BusinessMetricsDashboard';
 
 import CompanyManagement from '../components/admin/CompanyManagement';
 import {
@@ -55,7 +55,9 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white/5 p-8 rounded-lg border border-white/10 text-center">
               <AdjustmentsHorizontalIcon className="h-12 w-12 text-white/40 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-white mb-2">Custom Fields Configuration</h3>
-              <p className="text-white/60">Configure custom fields for different teams and ticket types.</p>
+              <p className="text-white/60">
+                Configure custom fields for different teams and ticket types.
+              </p>
               <p className="text-white/40 text-sm mt-2">This feature will be available soon.</p>
             </div>
           </div>
@@ -76,15 +78,15 @@ const AdminDashboard: React.FC = () => {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-2xl font-bold text-white">Administration</h1>
-              <p className="text-sm text-white/60">Manage agents, teams, and system configuration</p>
+              <p className="text-sm text-white/60">
+                Manage agents, teams, and system configuration
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        
         <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 shadow-2xl">
           {/* Tab Navigation */}
           <div className="border-b border-white/10">
@@ -110,9 +112,7 @@ const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
-            {renderTabContent()}
-          </div>
+          <div className="p-6">{renderTabContent()}</div>
         </div>
       </div>
     </div>

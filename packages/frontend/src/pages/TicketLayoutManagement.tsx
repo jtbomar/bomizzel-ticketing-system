@@ -44,7 +44,7 @@ const TicketLayoutManagement: React.FC = () => {
       } else {
         await ticketLayoutApi.createLayout(selectedTeamId, layoutData);
       }
-      
+
       setShowBuilder(false);
       setEditingLayout(null);
       await loadLayouts();
@@ -187,7 +187,7 @@ const LayoutCard: React.FC<LayoutCardProps> = ({
   onEdit,
   onDuplicate,
   onDelete,
-  onSetDefault
+  onSetDefault,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -278,9 +278,7 @@ const LayoutCard: React.FC<LayoutCardProps> = ({
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Created:</span>
-            <span className="font-medium">
-              {new Date(layout.createdAt).toLocaleDateString()}
-            </span>
+            <span className="font-medium">{new Date(layout.createdAt).toLocaleDateString()}</span>
           </div>
         </div>
 

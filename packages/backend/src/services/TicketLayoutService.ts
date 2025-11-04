@@ -1,30 +1,30 @@
 import { db as knex } from '../config/database';
-import { 
-  TicketLayout, 
-  LayoutField, 
-  CreateLayoutRequest, 
-  TicketLayoutResponse 
+import {
+  TicketLayout,
+  LayoutField,
+  CreateLayoutRequest,
+  TicketLayoutResponse,
 } from '../models/TicketLayout';
 
 export class TicketLayoutService {
-  
   async getLayoutsByTeam(teamId: string): Promise<TicketLayout[]> {
     const layouts = await knex('ticket_layouts')
       .where({ team_id: teamId, is_active: true })
       .orderBy('sort_order', 'asc')
       .select('*');
-    
+
     return layouts.map(this.mapLayoutFromDb);
   }
 
-  async getLayoutById(layoutId: string, includeFields = true): Promise<TicketLayoutResponse | null> {
-    const layout = await knex('ticket_layouts')
-      .where({ id: layoutId })
-      .first();
-    
+  async getLayoutById(
+    layoutId: string,
+    includeFields = true
+  ): Promise<TicketLayoutResponse | null> {
+    const layout = await knex('ticket_layouts').where({ id: layoutId }).first();
+
     if (!layout) return null;
 
-    const fields = includeFields 
+    const fields = includeFields
       ? await knex('layout_fields')
           .where({ layout_id: layoutId })
           .orderBy('sort_order', 'asc')
@@ -33,7 +33,7 @@ export class TicketLayoutService {
 
     return {
       layout: this.mapLayoutFromDb(layout),
-      fields: fields.map(this.mapFieldFromDb)
+      fields: fields.map(this.mapFieldFromDb),
     };
   }
 
@@ -41,7 +41,7 @@ export class TicketLayoutService {
     const layout = await knex('ticket_layouts')
       .where({ team_id: teamId, is_default: true, is_active: true })
       .first();
-    
+
     if (!layout) return null;
 
     const fields = await knex('layout_fields')
@@ -51,7 +51,7 @@ export class TicketLayoutService {
 
     return {
       layout: this.mapLayoutFromDb(layout),
-      fields: fields.map(this.mapFieldFromDb)
+      fields: fields.map(this.mapFieldFromDb),
     };
   }
 
@@ -59,9 +59,7 @@ export class TicketLayoutService {
     return await knex.transaction(async (trx) => {
       // If this is set as default, unset other defaults
       if (request.isDefault) {
-        await trx('ticket_layouts')
-          .where({ team_id: teamId })
-          .update({ is_default: false });
+        await trx('ticket_layouts').where({ team_id: teamId }).update({ is_default: false });
       }
 
       // Create the layout
@@ -73,12 +71,12 @@ export class TicketLayoutService {
           layout_config: JSON.stringify(request.layoutConfig),
           is_default: request.isDefault || false,
           is_active: true,
-          sort_order: await this.getNextSortOrder(trx, teamId)
+          sort_order: await this.getNextSortOrder(trx, teamId),
         })
         .returning('id');
 
       // Create the fields
-      const fieldsToInsert = request.fields.map(field => ({
+      const fieldsToInsert = request.fields.map((field) => ({
         layout_id: layoutId.id,
         field_name: field.fieldName,
         field_label: field.fieldLabel,
@@ -90,7 +88,7 @@ export class TicketLayoutService {
         grid_position_x: field.gridPositionX,
         grid_position_y: field.gridPositionY,
         grid_width: field.gridWidth,
-        grid_height: field.gridHeight
+        grid_height: field.gridHeight,
       }));
 
       if (fieldsToInsert.length > 0) {
@@ -103,7 +101,10 @@ export class TicketLayoutService {
     });
   }
 
-  async updateLayout(layoutId: string, request: Partial<CreateLayoutRequest>): Promise<TicketLayoutResponse | null> {
+  async updateLayout(
+    layoutId: string,
+    request: Partial<CreateLayoutRequest>
+  ): Promise<TicketLayoutResponse | null> {
     return await knex.transaction(async (trx) => {
       const layout = await trx('ticket_layouts').where({ id: layoutId }).first();
       if (!layout) return null;
@@ -133,7 +134,7 @@ export class TicketLayoutService {
         await trx('layout_fields').where({ layout_id: layoutId }).del();
 
         // Insert new fields
-        const fieldsToInsert = request.fields.map(field => ({
+        const fieldsToInsert = request.fields.map((field) => ({
           layout_id: layoutId,
           field_name: field.fieldName,
           field_label: field.fieldLabel,
@@ -145,7 +146,7 @@ export class TicketLayoutService {
           grid_position_x: field.gridPositionX,
           grid_position_y: field.gridPositionY,
           grid_width: field.gridWidth,
-          grid_height: field.gridHeight
+          grid_height: field.gridHeight,
         }));
 
         if (fieldsToInsert.length > 0) {
@@ -163,7 +164,7 @@ export class TicketLayoutService {
     const result = await knex('ticket_layouts')
       .where({ id: layoutId })
       .update({ is_active: false });
-    
+
     return result > 0;
   }
 
@@ -176,7 +177,7 @@ export class TicketLayoutService {
       description: original.layout.description,
       layoutConfig: original.layout.layoutConfig,
       isDefault: false,
-      fields: original.fields.map(field => ({
+      fields: original.fields.map((field) => ({
         fieldName: field.fieldName,
         fieldLabel: field.fieldLabel,
         fieldType: field.fieldType,
@@ -187,8 +188,8 @@ export class TicketLayoutService {
         gridPositionX: field.gridPositionX,
         gridPositionY: field.gridPositionY,
         gridWidth: field.gridWidth,
-        gridHeight: field.gridHeight
-      }))
+        gridHeight: field.gridHeight,
+      })),
     };
 
     return await this.createLayout(original.layout.teamId, request);
@@ -199,7 +200,7 @@ export class TicketLayoutService {
       .where({ team_id: teamId })
       .max('sort_order as max_order')
       .first();
-    
+
     return (result?.max_order || 0) + 1;
   }
 
@@ -209,14 +210,13 @@ export class TicketLayoutService {
       teamId: row.team_id,
       name: row.name,
       description: row.description,
-      layoutConfig: typeof row.layout_config === 'string' 
-        ? JSON.parse(row.layout_config) 
-        : row.layout_config,
+      layoutConfig:
+        typeof row.layout_config === 'string' ? JSON.parse(row.layout_config) : row.layout_config,
       isDefault: row.is_default,
       isActive: row.is_active,
       sortOrder: row.sort_order,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     };
   }
 
@@ -227,13 +227,12 @@ export class TicketLayoutService {
       fieldName: row.field_name,
       fieldLabel: row.field_label,
       fieldType: row.field_type,
-      fieldConfig: typeof row.field_config === 'string' 
-        ? JSON.parse(row.field_config) 
-        : row.field_config,
-      validationRules: row.validation_rules 
-        ? (typeof row.validation_rules === 'string' 
-            ? JSON.parse(row.validation_rules) 
-            : row.validation_rules)
+      fieldConfig:
+        typeof row.field_config === 'string' ? JSON.parse(row.field_config) : row.field_config,
+      validationRules: row.validation_rules
+        ? typeof row.validation_rules === 'string'
+          ? JSON.parse(row.validation_rules)
+          : row.validation_rules
         : undefined,
       isRequired: row.is_required,
       sortOrder: row.sort_order,
@@ -242,7 +241,7 @@ export class TicketLayoutService {
       gridWidth: row.grid_width,
       gridHeight: row.grid_height,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     };
   }
 }

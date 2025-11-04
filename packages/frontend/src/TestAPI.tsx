@@ -26,7 +26,7 @@ const TestAPI: React.FC = () => {
         },
         body: JSON.stringify({
           email: 'admin@bomizzel.com',
-          password: 'password123'
+          password: 'password123',
         }),
       });
       const data = await response.text();

@@ -13,7 +13,7 @@ export class SystemConfigService {
       const settings = await SystemSetting.getAllSettings();
       const grouped: { [category: string]: SystemSettingModel[] } = {};
 
-      settings.forEach(setting => {
+      settings.forEach((setting) => {
         const model = SystemSetting.toModel(setting);
         if (!grouped[model.category]) {
           grouped[model.category] = [];
@@ -34,7 +34,7 @@ export class SystemConfigService {
   static async getSettingsByCategory(category: string): Promise<SystemSettingModel[]> {
     try {
       const settings = await SystemSetting.getSettingsByCategory(category);
-      return settings.map(setting => SystemSetting.toModel(setting));
+      return settings.map((setting) => SystemSetting.toModel(setting));
     } catch (error) {
       logger.error('Get settings by category error:', error);
       throw new AppError('Failed to get settings by category', 500, 'GET_CATEGORY_SETTINGS_FAILED');
@@ -79,8 +79,8 @@ export class SystemConfigService {
         updatedSettings.push(SystemSetting.toModel(setting));
       }
 
-      logger.info(`System settings updated by ${updatedById}`, { 
-        settingKeys: settings.map(s => s.key) 
+      logger.info(`System settings updated by ${updatedById}`, {
+        settingKeys: settings.map((s) => s.key),
       });
 
       return updatedSettings;
@@ -134,34 +134,40 @@ export class SystemConfigService {
       'email.smtp.password': '',
       'email.from.name': 'Bomizzel Support',
       'email.from.address': 'support@bomizzel.com',
-      
+
       // File upload settings
       'files.maxSize': 10485760, // 10MB
-      'files.allowedTypes': ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'text/plain'],
+      'files.allowedTypes': [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'application/pdf',
+        'text/plain',
+      ],
       'files.storage.type': 'local',
       'files.storage.path': './uploads',
-      
+
       // Security settings
       'security.jwt.expiresIn': '1h',
       'security.jwt.refreshExpiresIn': '7d',
       'security.passwordMinLength': 8,
       'security.maxLoginAttempts': 5,
       'security.lockoutDuration': 900, // 15 minutes
-      
+
       // Ticket settings
       'tickets.defaultStatus': 'open',
       'tickets.autoAssignment': false,
       'tickets.priorityLevels': ['low', 'medium', 'high', 'urgent'],
-      
+
       // Dashboard settings
       'dashboard.refreshInterval': 30000, // 30 seconds
       'dashboard.metricsRetention': 90, // days
-      
+
       // Notification settings
       'notifications.email.enabled': true,
       'notifications.browser.enabled': true,
       'notifications.realtime.enabled': true,
-      
+
       // System settings
       'system.maintenanceMode': false,
       'system.registrationEnabled': true,
@@ -177,7 +183,7 @@ export class SystemConfigService {
   static async initializeDefaultSettings(): Promise<void> {
     try {
       const defaultConfig = this.getDefaultConfig();
-      
+
       for (const [key, value] of Object.entries(defaultConfig)) {
         const existing = await SystemSetting.getSetting(key);
         if (!existing) {
@@ -201,7 +207,7 @@ export class SystemConfigService {
       const settings = await SystemSetting.getAllSettings();
       const config: { [key: string]: any } = {};
 
-      settings.forEach(setting => {
+      settings.forEach((setting) => {
         const model = SystemSetting.toModel(setting);
         config[model.key] = model.value;
       });
@@ -216,15 +222,16 @@ export class SystemConfigService {
   /**
    * Import system configuration (admin only)
    */
-  static async importConfig(
-    config: { [key: string]: any },
-    importedById: string
-  ): Promise<void> {
+  static async importConfig(config: { [key: string]: any }, importedById: string): Promise<void> {
     try {
       // Check if user is admin
       const user = await User.findById(importedById);
       if (!user || user.role !== 'admin') {
-        throw new AppError('Only administrators can import system configuration', 403, 'ADMIN_REQUIRED');
+        throw new AppError(
+          'Only administrators can import system configuration',
+          403,
+          'ADMIN_REQUIRED'
+        );
       }
 
       for (const [key, value] of Object.entries(config)) {
@@ -233,7 +240,7 @@ export class SystemConfigService {
       }
 
       logger.info(`System configuration imported by ${importedById}`, {
-        settingCount: Object.keys(config).length
+        settingCount: Object.keys(config).length,
       });
     } catch (error) {
       if (error instanceof AppError) {

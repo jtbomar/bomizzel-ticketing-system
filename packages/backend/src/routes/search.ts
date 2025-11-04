@@ -9,11 +9,20 @@ const router = Router();
 // Validation schemas
 const searchFilterSchema = Joi.object({
   field: Joi.string().required(),
-  operator: Joi.string().valid(
-    'equals', 'contains', 'starts_with', 'ends_with', 
-    'greater_than', 'less_than', 'in', 'not_in', 
-    'is_null', 'is_not_null'
-  ).required(),
+  operator: Joi.string()
+    .valid(
+      'equals',
+      'contains',
+      'starts_with',
+      'ends_with',
+      'greater_than',
+      'less_than',
+      'in',
+      'not_in',
+      'is_null',
+      'is_not_null'
+    )
+    .required(),
   value: Joi.any(),
   values: Joi.array().items(Joi.any()),
 });
@@ -40,7 +49,7 @@ router.get('/fields/:teamId', auth, async (req, res, next) => {
     if (!teamId) {
       return res.status(400).json({
         success: false,
-        error: 'Team ID is required'
+        error: 'Team ID is required',
       });
     }
 
@@ -48,7 +57,7 @@ router.get('/fields/:teamId', auth, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: fields
+      data: fields,
     });
   } catch (error) {
     next(error);
@@ -76,7 +85,7 @@ router.post('/tickets', auth, validateRequest(advancedSearchSchema), async (req,
         filtersApplied: searchRequest.filters.length,
         sortBy: searchRequest.sortBy,
         sortOrder: searchRequest.sortOrder,
-      }
+      },
     });
   } catch (error) {
     next(error);
@@ -95,7 +104,7 @@ router.post('/save', auth, async (req, res, next) => {
     if (!name || !searchRequest) {
       return res.status(400).json({
         success: false,
-        error: 'Name and search request are required'
+        error: 'Name and search request are required',
       });
     }
 
@@ -103,7 +112,7 @@ router.post('/save', auth, async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Search saved successfully'
+      message: 'Search saved successfully',
     });
   } catch (error) {
     next(error);
@@ -121,7 +130,7 @@ router.get('/saved', auth, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: savedSearches
+      data: savedSearches,
     });
   } catch (error) {
     next(error);

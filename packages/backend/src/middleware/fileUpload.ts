@@ -80,7 +80,7 @@ export const handleMulterError = (error: any, req: Request, res: any, next: any)
         });
     }
   }
-  
+
   if (error instanceof ValidationError) {
     return res.status(400).json({
       error: {

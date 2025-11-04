@@ -128,27 +128,36 @@ class ApiService {
   }
 
   // Ticket notes endpoints
-  async getTicketNotes(ticketId: string, params?: {
-    includeInternal?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<any> {
+  async getTicketNotes(
+    ticketId: string,
+    params?: {
+      includeInternal?: boolean;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<any> {
     const response = await this.client.get(`/tickets/${ticketId}/notes`, { params });
     return response.data;
   }
 
-  async createTicketNote(ticketId: string, noteData: {
-    content: string;
-    isInternal?: boolean;
-  }): Promise<any> {
+  async createTicketNote(
+    ticketId: string,
+    noteData: {
+      content: string;
+      isInternal?: boolean;
+    }
+  ): Promise<any> {
     const response = await this.client.post(`/tickets/${ticketId}/notes`, noteData);
     return response.data;
   }
 
-  async updateNote(noteId: string, updates: {
-    content?: string;
-    isInternal?: boolean;
-  }): Promise<any> {
+  async updateNote(
+    noteId: string,
+    updates: {
+      content?: string;
+      isInternal?: boolean;
+    }
+  ): Promise<any> {
     const response = await this.client.put(`/notes/${noteId}`, updates);
     return response.data;
   }
@@ -187,11 +196,7 @@ class ApiService {
   }
 
   // Company endpoints
-  async getCompanies(params?: {
-    search?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<any> {
+  async getCompanies(params?: { search?: string; page?: number; limit?: number }): Promise<any> {
     const response = await this.client.get('/companies', { params });
     return response.data;
   }
@@ -202,11 +207,7 @@ class ApiService {
   }
 
   // Team endpoints
-  async getTeams(params?: {
-    search?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<any> {
+  async getTeams(params?: { search?: string; page?: number; limit?: number }): Promise<any> {
     const response = await this.client.get('/teams', { params });
     return response.data;
   }
@@ -221,7 +222,10 @@ class ApiService {
     return response.data;
   }
 
-  async updateTeam(teamId: string, updates: { name?: string; description?: string; isActive?: boolean }): Promise<any> {
+  async updateTeam(
+    teamId: string,
+    updates: { name?: string; description?: string; isActive?: boolean }
+  ): Promise<any> {
     const response = await this.client.put(`/teams/${teamId}`, updates);
     return response.data;
   }
@@ -280,11 +284,14 @@ class ApiService {
     return response.data;
   }
 
-  async getQueueTickets(queueId: string, params?: {
-    status?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<any> {
+  async getQueueTickets(
+    queueId: string,
+    params?: {
+      status?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<any> {
     const response = await this.client.get(`/queues/${queueId}/tickets`, { params });
     return response.data;
   }
@@ -322,14 +329,17 @@ class ApiService {
     return response.data;
   }
 
-  async createTeamStatus(teamId: string, statusData: {
-    name: string;
-    label: string;
-    color: string;
-    order: number;
-    isDefault?: boolean;
-    isClosed?: boolean;
-  }): Promise<any> {
+  async createTeamStatus(
+    teamId: string,
+    statusData: {
+      name: string;
+      label: string;
+      color: string;
+      order: number;
+      isDefault?: boolean;
+      isClosed?: boolean;
+    }
+  ): Promise<any> {
     const response = await this.client.post(`/teams/${teamId}/statuses`, statusData);
     return response.data;
   }
@@ -413,27 +423,30 @@ class ApiService {
     return response.data;
   }
 
-  async createSubscription(planId: string, options?: {
-    startTrial?: boolean;
-    paymentMethodId?: string;
-  }): Promise<any> {
+  async createSubscription(
+    planId: string,
+    options?: {
+      startTrial?: boolean;
+      paymentMethodId?: string;
+    }
+  ): Promise<any> {
     const response = await this.client.post('/subscriptions', {
       planId,
-      ...options
+      ...options,
     });
     return response.data;
   }
 
   async upgradeSubscription(subscriptionId: string, newPlanId: string): Promise<any> {
     const response = await this.client.put(`/subscriptions/${subscriptionId}/upgrade`, {
-      newPlanId
+      newPlanId,
     });
     return response.data;
   }
 
   async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd?: boolean): Promise<any> {
     const response = await this.client.put(`/subscriptions/${subscriptionId}/cancel`, {
-      cancelAtPeriodEnd
+      cancelAtPeriodEnd,
     });
     return response.data;
   }
@@ -477,14 +490,17 @@ class ApiService {
     return response.data;
   }
 
-  async updateUser(userId: string, userData: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-    isActive?: boolean;
-    teamId?: string;
-  }): Promise<any> {
+  async updateUser(
+    userId: string,
+    userData: {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      role?: string;
+      isActive?: boolean;
+      teamId?: string;
+    }
+  ): Promise<any> {
     const response = await this.client.put(`/admin/users/${userId}`, userData);
     return response.data;
   }
@@ -521,31 +537,40 @@ class ApiService {
   }
 
   // Trial management endpoints
-  async startTrial(planSlug: string, options?: {
-    trialDays?: number;
-    sendWelcomeEmail?: boolean;
-    metadata?: Record<string, any>;
-  }): Promise<any> {
+  async startTrial(
+    planSlug: string,
+    options?: {
+      trialDays?: number;
+      sendWelcomeEmail?: boolean;
+      metadata?: Record<string, any>;
+    }
+  ): Promise<any> {
     const response = await this.client.post('/subscriptions/trial/start', {
       planSlug,
-      ...options
+      ...options,
     });
     return response.data;
   }
 
-  async convertTrial(subscriptionId: string, options: {
-    paymentMethodId: string;
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
-    sendWelcomeEmail?: boolean;
-  }): Promise<any> {
-    const response = await this.client.post(`/subscriptions/${subscriptionId}/trial/convert`, options);
+  async convertTrial(
+    subscriptionId: string,
+    options: {
+      paymentMethodId: string;
+      stripeCustomerId?: string;
+      stripeSubscriptionId?: string;
+      sendWelcomeEmail?: boolean;
+    }
+  ): Promise<any> {
+    const response = await this.client.post(
+      `/subscriptions/${subscriptionId}/trial/convert`,
+      options
+    );
     return response.data;
   }
 
   async cancelTrial(subscriptionId: string, reason?: string): Promise<any> {
     const response = await this.client.post(`/subscriptions/${subscriptionId}/trial/cancel`, {
-      reason
+      reason,
     });
     return response.data;
   }
@@ -558,7 +583,7 @@ class ApiService {
   async extendTrial(subscriptionId: string, additionalDays: number, reason?: string): Promise<any> {
     const response = await this.client.post(`/subscriptions/${subscriptionId}/trial/extend`, {
       additionalDays,
-      reason
+      reason,
     });
     return response.data;
   }
@@ -589,10 +614,7 @@ class ApiService {
     return response.data;
   }
 
-  async getArchivableTickets(params?: {
-    limit?: number;
-    olderThanDays?: number;
-  }): Promise<any> {
+  async getArchivableTickets(params?: { limit?: number; olderThanDays?: number }): Promise<any> {
     const response = await this.client.get('/tickets/archivable', { params });
     return response.data;
   }

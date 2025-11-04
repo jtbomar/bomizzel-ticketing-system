@@ -15,7 +15,7 @@ const router = Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const { teamId } = req.query;
-    
+
     if (!teamId) {
       return res.status(400).json({ error: 'Team ID is required' });
     }
@@ -36,12 +36,9 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { includeFields = 'true' } = req.query;
-    
-    const layout = await ticketLayoutService.getLayoutById(
-      id, 
-      includeFields === 'true'
-    );
-    
+
+    const layout = await ticketLayoutService.getLayoutById(id, includeFields === 'true');
+
     if (!layout) {
       return res.status(404).json({ error: 'Layout not found' });
     }
@@ -60,9 +57,9 @@ router.get('/:id', authenticate, async (req, res) => {
 router.get('/team/:teamId/default', authenticate, async (req, res) => {
   try {
     const { teamId } = req.params;
-    
+
     const layout = await ticketLayoutService.getDefaultLayout(teamId);
-    
+
     if (!layout) {
       return res.status(404).json({ error: 'No default layout found for team' });
     }
@@ -81,7 +78,7 @@ router.get('/team/:teamId/default', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const { teamId } = req.body;
-    
+
     if (!teamId) {
       return res.status(400).json({ error: 'Team ID is required' });
     }
@@ -101,9 +98,9 @@ router.post('/', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const layout = await ticketLayoutService.updateLayout(id, req.body);
-    
+
     if (!layout) {
       return res.status(404).json({ error: 'Layout not found' });
     }
@@ -122,9 +119,9 @@ router.put('/:id', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const success = await ticketLayoutService.deleteLayout(id);
-    
+
     if (!success) {
       return res.status(404).json({ error: 'Layout not found' });
     }
@@ -144,13 +141,13 @@ router.post('/:id/duplicate', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'New layout name is required' });
     }
 
     const layout = await ticketLayoutService.duplicateLayout(id, name);
-    
+
     if (!layout) {
       return res.status(404).json({ error: 'Original layout not found' });
     }

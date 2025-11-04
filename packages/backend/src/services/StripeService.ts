@@ -77,7 +77,7 @@ export class StripeService {
           logger.warn('Existing Stripe customer not found, creating new one', {
             userId,
             stripeCustomerId: existingSubscription.stripe_customer_id,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -93,7 +93,7 @@ export class StripeService {
         logger.info('Found existing Stripe customer by email', {
           userId,
           customerId: customer.id,
-          email
+          email,
         });
 
         return {
@@ -119,7 +119,7 @@ export class StripeService {
       logger.info('Created new Stripe customer', {
         userId,
         customerId: customer.id,
-        email
+        email,
       });
 
       return {
@@ -133,7 +133,7 @@ export class StripeService {
       logger.error('Error creating or getting Stripe customer', {
         userId,
         email,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to create or retrieve customer', 500);
     }
@@ -181,7 +181,7 @@ export class StripeService {
         subscriptionId: subscription.id,
         customerId: options.customerId,
         priceId: options.priceId,
-        status: subscription.status
+        status: subscription.status,
       });
 
       return this.mapStripeSubscription(subscription);
@@ -189,7 +189,7 @@ export class StripeService {
       logger.error('Error creating Stripe subscription', {
         customerId: options.customerId,
         priceId: options.priceId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to create subscription', 500);
     }
@@ -210,10 +210,12 @@ export class StripeService {
       // Update price if provided
       if (options.priceId) {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        updateData.items = [{
-          id: subscription.items.data[0].id,
-          price: options.priceId,
-        }];
+        updateData.items = [
+          {
+            id: subscription.items.data[0].id,
+            price: options.priceId,
+          },
+        ];
 
         // Handle proration
         if (options.prorate !== undefined) {
@@ -236,14 +238,14 @@ export class StripeService {
       logger.info('Updated Stripe subscription', {
         subscriptionId,
         status: subscription.status,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
       });
 
       return this.mapStripeSubscription(subscription);
     } catch (error) {
       logger.error('Error updating Stripe subscription', {
         subscriptionId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to update subscription', 500);
     }
@@ -272,7 +274,7 @@ export class StripeService {
       logger.info('Cancelled Stripe subscription', {
         subscriptionId,
         cancelAtPeriodEnd,
-        status: subscription.status
+        status: subscription.status,
       });
 
       return this.mapStripeSubscription(subscription);
@@ -280,7 +282,7 @@ export class StripeService {
       logger.error('Error cancelling Stripe subscription', {
         subscriptionId,
         cancelAtPeriodEnd,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to cancel subscription', 500);
     }
@@ -296,7 +298,7 @@ export class StripeService {
     } catch (error) {
       logger.error('Error retrieving Stripe subscription', {
         subscriptionId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to retrieve subscription', 500);
     }
@@ -318,7 +320,7 @@ export class StripeService {
 
       logger.info('Created setup intent', {
         customerId,
-        setupIntentId: setupIntent.id
+        setupIntentId: setupIntent.id,
       });
 
       return {
@@ -328,7 +330,7 @@ export class StripeService {
     } catch (error) {
       logger.error('Error creating setup intent', {
         customerId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to create payment setup', 500);
     }
@@ -348,7 +350,7 @@ export class StripeService {
     } catch (error) {
       logger.error('Error retrieving customer payment methods', {
         customerId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to retrieve payment methods', 500);
     }
@@ -360,12 +362,12 @@ export class StripeService {
   static async detachPaymentMethod(paymentMethodId: string): Promise<void> {
     try {
       await stripe.paymentMethods.detach(paymentMethodId);
-      
+
       logger.info('Detached payment method', { paymentMethodId });
     } catch (error) {
       logger.error('Error detaching payment method', {
         paymentMethodId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to remove payment method', 500);
     }
@@ -386,14 +388,14 @@ export class StripeService {
 
       logger.info('Created customer portal session', {
         customerId,
-        sessionId: session.id
+        sessionId: session.id,
       });
 
       return { url: session.url };
     } catch (error) {
       logger.error('Error creating customer portal session', {
         customerId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to create billing portal session', 500);
     }
@@ -416,10 +418,12 @@ export class StripeService {
       const sessionData: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         payment_method_types: ['card'],
-        line_items: [{
-          price: priceId,
-          quantity: 1,
-        }],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
         mode: 'subscription',
         success_url: options.successUrl || STRIPE_CONFIG.successUrl,
         cancel_url: options.cancelUrl || STRIPE_CONFIG.cancelUrl,
@@ -438,7 +442,7 @@ export class StripeService {
       logger.info('Created checkout session', {
         customerId,
         priceId,
-        sessionId: session.id
+        sessionId: session.id,
       });
 
       return {
@@ -449,7 +453,7 @@ export class StripeService {
       logger.error('Error creating checkout session', {
         customerId,
         priceId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to create checkout session', 500);
     }
@@ -475,13 +479,14 @@ export class StripeService {
         currency: invoice.currency,
         periodStart: new Date(invoice.period_start * 1000),
         periodEnd: new Date(invoice.period_end * 1000),
-        nextPaymentAttempt: invoice.next_payment_attempt ? 
-          new Date(invoice.next_payment_attempt * 1000) : undefined,
+        nextPaymentAttempt: invoice.next_payment_attempt
+          ? new Date(invoice.next_payment_attempt * 1000)
+          : undefined,
       };
     } catch (error) {
       logger.error('Error retrieving upcoming invoice', {
         subscriptionId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to retrieve upcoming invoice', 500);
     }
@@ -493,26 +498,28 @@ export class StripeService {
   static async getCustomerInvoices(
     customerId: string,
     limit: number = 10
-  ): Promise<Array<{
-    id: string;
-    number: string;
-    status: string;
-    amountPaid: number;
-    amountDue: number;
-    currency: string;
-    created: Date;
-    dueDate?: Date;
-    paidAt?: Date;
-    hostedInvoiceUrl?: string;
-    invoicePdf?: string;
-  }>> {
+  ): Promise<
+    Array<{
+      id: string;
+      number: string;
+      status: string;
+      amountPaid: number;
+      amountDue: number;
+      currency: string;
+      created: Date;
+      dueDate?: Date;
+      paidAt?: Date;
+      hostedInvoiceUrl?: string;
+      invoicePdf?: string;
+    }>
+  > {
     try {
       const invoices = await stripe.invoices.list({
         customer: customerId,
         limit,
       });
 
-      return invoices.data.map(invoice => ({
+      return invoices.data.map((invoice) => ({
         id: invoice.id,
         number: invoice.number || '',
         status: invoice.status || 'draft',
@@ -521,15 +528,16 @@ export class StripeService {
         currency: invoice.currency,
         created: new Date(invoice.created * 1000),
         dueDate: invoice.due_date ? new Date(invoice.due_date * 1000) : undefined,
-        paidAt: invoice.status_transitions?.paid_at ? 
-          new Date(invoice.status_transitions.paid_at * 1000) : undefined,
+        paidAt: invoice.status_transitions?.paid_at
+          ? new Date(invoice.status_transitions.paid_at * 1000)
+          : undefined,
         hostedInvoiceUrl: invoice.hosted_invoice_url || undefined,
         invoicePdf: invoice.invoice_pdf || undefined,
       }));
     } catch (error) {
       logger.error('Error retrieving customer invoices', {
         customerId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to retrieve invoices', 500);
     }
@@ -548,10 +556,10 @@ export class StripeService {
   }> {
     try {
       const invoice = await stripe.invoices.pay(invoiceId);
-      
+
       logger.info('Retried invoice payment', {
         invoiceId,
-        status: invoice.status
+        status: invoice.status,
       });
 
       const result: any = {
@@ -572,7 +580,7 @@ export class StripeService {
     } catch (error) {
       logger.error('Error retrying invoice payment', {
         invoiceId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw new AppError('Failed to retry payment', 500);
     }
@@ -602,11 +610,12 @@ export class StripeService {
   static async syncSubscriptionFromStripe(stripeSubscriptionId: string): Promise<void> {
     try {
       const stripeSubscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
-      const localSubscription = await CustomerSubscription.findByStripeSubscriptionId(stripeSubscriptionId);
+      const localSubscription =
+        await CustomerSubscription.findByStripeSubscriptionId(stripeSubscriptionId);
 
       if (!localSubscription) {
         logger.warn('Local subscription not found for Stripe subscription', {
-          stripeSubscriptionId
+          stripeSubscriptionId,
         });
         return;
       }
@@ -640,24 +649,27 @@ export class StripeService {
         status,
         current_period_start: new Date((stripeSubscription as any).current_period_start * 1000),
         current_period_end: new Date((stripeSubscription as any).current_period_end * 1000),
-        trial_start: stripeSubscription.trial_start ? 
-          new Date(stripeSubscription.trial_start * 1000) : null,
-        trial_end: stripeSubscription.trial_end ? 
-          new Date(stripeSubscription.trial_end * 1000) : null,
+        trial_start: stripeSubscription.trial_start
+          ? new Date(stripeSubscription.trial_start * 1000)
+          : null,
+        trial_end: stripeSubscription.trial_end
+          ? new Date(stripeSubscription.trial_end * 1000)
+          : null,
         cancel_at_period_end: stripeSubscription.cancel_at_period_end,
-        cancelled_at: stripeSubscription.canceled_at ? 
-          new Date(stripeSubscription.canceled_at * 1000) : null,
+        cancelled_at: stripeSubscription.canceled_at
+          ? new Date(stripeSubscription.canceled_at * 1000)
+          : null,
       });
 
       logger.info('Synced subscription from Stripe', {
         subscriptionId: localSubscription.id,
         stripeSubscriptionId,
-        status
+        status,
       });
     } catch (error) {
       logger.error('Error syncing subscription from Stripe', {
         stripeSubscriptionId,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }

@@ -18,13 +18,13 @@ router.get('/warnings', authenticate, async (req, res, next) => {
     }
 
     const warnings = await UsageAlertService.checkUserUsage(userId);
-    
+
     res.json({
       success: true,
       data: {
         warnings,
-        count: warnings.length
-      }
+        count: warnings.length,
+      },
     });
   } catch (error) {
     logger.error('Error getting usage warnings', { userId: req.user?.id, error });
@@ -43,10 +43,10 @@ router.get('/dashboard-warnings', authenticate, async (req, res, next) => {
     }
 
     const dashboardWarnings = await UsageAlertService.getUserDashboardWarnings(userId);
-    
+
     res.json({
       success: true,
-      data: dashboardWarnings
+      data: dashboardWarnings,
     });
   } catch (error) {
     logger.error('Error getting dashboard warnings', { userId: req.user?.id, error });
@@ -65,10 +65,10 @@ router.get('/ticket-creation-warning', authenticate, async (req, res, next) => {
     }
 
     const creationWarning = await UsageAlertService.getTicketCreationWarning(userId);
-    
+
     res.json({
       success: true,
-      data: creationWarning
+      data: creationWarning,
     });
   } catch (error) {
     logger.error('Error getting ticket creation warning', { userId: req.user?.id, error });
@@ -89,14 +89,14 @@ router.get('/usage-stats', authenticate, async (req, res, next) => {
     const usage = await UsageTrackingService.getCurrentUsage(userId);
     const limitStatus = await UsageTrackingService.checkLimitStatus(userId);
     const percentages = await UsageTrackingService.getUsagePercentages(userId);
-    
+
     res.json({
       success: true,
       data: {
         usage,
         limitStatus,
-        percentages
-      }
+        percentages,
+      },
     });
   } catch (error) {
     logger.error('Error getting usage statistics', { userId: req.user?.id, error });
@@ -115,10 +115,10 @@ router.get('/can-create-ticket', authenticate, async (req, res, next) => {
     }
 
     const canCreate = await UsageTrackingService.canCreateTicket(userId);
-    
+
     res.json({
       success: true,
-      data: canCreate
+      data: canCreate,
     });
   } catch (error) {
     logger.error('Error checking if user can create ticket', { userId: req.user?.id, error });
@@ -137,10 +137,10 @@ router.get('/can-complete-ticket', authenticate, async (req, res, next) => {
     }
 
     const canComplete = await UsageTrackingService.canCompleteTicket(userId);
-    
+
     res.json({
       success: true,
-      data: canComplete
+      data: canComplete,
     });
   } catch (error) {
     logger.error('Error checking if user can complete ticket', { userId: req.user?.id, error });
@@ -159,13 +159,13 @@ router.post('/check-all-users', authenticate, async (req, res, next) => {
     }
 
     // Run usage check in background
-    UsageAlertService.checkAllUsersUsage().catch(error => {
+    UsageAlertService.checkAllUsersUsage().catch((error) => {
       logger.error('Background usage check failed', { error });
     });
-    
+
     res.json({
       success: true,
-      message: 'Usage check initiated for all users'
+      message: 'Usage check initiated for all users',
     });
   } catch (error) {
     logger.error('Error initiating usage check', { userId: req.user?.id, error });

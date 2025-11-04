@@ -15,34 +15,34 @@ router.use(authenticate);
  * Upload a file attachment to a ticket
  * POST /files/upload
  */
-router.post('/upload', secureFileUpload, handleFileUploadError, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { ticketId, noteId } = req.body;
-    const userId = req.user?.id;
+router.post(
+  '/upload',
+  secureFileUpload,
+  handleFileUploadError,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ticketId, noteId } = req.body;
+      const userId = req.user?.id;
 
-    if (!ticketId) {
-      throw new ValidationError('Ticket ID is required');
+      if (!ticketId) {
+        throw new ValidationError('Ticket ID is required');
+      }
+
+      if (!req.file) {
+        throw new ValidationError('No file provided');
+      }
+
+      const attachment = await FileService.uploadFile(req.file, ticketId, userId, noteId);
+
+      res.status(201).json({
+        message: 'File uploaded successfully',
+        data: attachment,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    if (!req.file) {
-      throw new ValidationError('No file provided');
-    }
-
-    const attachment = await FileService.uploadFile(
-      req.file,
-      ticketId,
-      userId,
-      noteId
-    );
-
-    res.status(201).json({
-      message: 'File uploaded successfully',
-      data: attachment,
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 /**
  * Get file attachment by ID
@@ -157,19 +157,22 @@ router.delete('/:id', async (req: Request, res: Response, next: NextFunction) =>
  * Get attachments for a ticket
  * GET /tickets/:ticketId/attachments
  */
-router.get('/tickets/:ticketId/attachments', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { ticketId } = req.params;
-    const userId = req.user?.id;
+router.get(
+  '/tickets/:ticketId/attachments',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ticketId } = req.params;
+      const userId = req.user?.id;
 
-    const attachments = await FileService.getTicketAttachments(ticketId, userId);
+      const attachments = await FileService.getTicketAttachments(ticketId, userId);
 
-    res.json({
-      data: attachments,
-    });
-  } catch (error) {
-    next(error);
+      res.json({
+        data: attachments,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 export default router;

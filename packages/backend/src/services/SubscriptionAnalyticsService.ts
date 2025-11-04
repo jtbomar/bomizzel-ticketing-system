@@ -124,12 +124,12 @@ export class SubscriptionAnalyticsService {
 
       for (const subscription of activeSubscriptions) {
         let monthlyRevenue = parseFloat(subscription.price.toString());
-        
+
         // Convert to monthly if needed
         if (subscription.billing_interval === 'year') {
           monthlyRevenue = monthlyRevenue / 12;
         }
-        
+
         totalMrr += monthlyRevenue;
       }
 
@@ -165,7 +165,7 @@ export class SubscriptionAnalyticsService {
         churnedSubscriptions: parseInt(churnedSubscriptions?.count || '0'),
         upgrades,
         downgrades,
-        netMrrGrowth: Math.round(netMrrGrowth * 100) / 100
+        netMrrGrowth: Math.round(netMrrGrowth * 100) / 100,
       };
     } catch (error) {
       logger.error('Error calculating MRR', { year, month, error });
@@ -195,10 +195,20 @@ export class SubscriptionAnalyticsService {
           'cs.created_at as subscription_start',
           'sp.name as current_plan',
           'sp.price as current_price',
-          db.raw('SUM(CASE WHEN br.status = ? THEN br.amount_paid ELSE 0 END) as total_revenue', ['paid']),
+          db.raw('SUM(CASE WHEN br.status = ? THEN br.amount_paid ELSE 0 END) as total_revenue', [
+            'paid',
+          ]),
           db.raw('COUNT(br.id) as total_invoices')
         )
-        .groupBy('u.id', 'u.email', 'u.first_name', 'u.last_name', 'cs.created_at', 'sp.name', 'sp.price')
+        .groupBy(
+          'u.id',
+          'u.email',
+          'u.first_name',
+          'u.last_name',
+          'cs.created_at',
+          'sp.name',
+          'sp.price'
+        )
         .orderBy('total_revenue', 'desc')
         .limit(limit)
         .offset(offset);
@@ -208,7 +218,9 @@ export class SubscriptionAnalyticsService {
       for (const customer of customers) {
         const subscriptionStart = new Date(customer.subscription_start);
         const now = new Date();
-        const subscriptionDuration = Math.floor((now.getTime() - subscriptionStart.getTime()) / (1000 * 60 * 60 * 24));
+        const subscriptionDuration = Math.floor(
+          (now.getTime() - subscriptionStart.getTime()) / (1000 * 60 * 60 * 24)
+        );
         const subscriptionMonths = Math.max(1, subscriptionDuration / 30.44); // Average days per month
 
         const totalRevenue = parseFloat(customer.total_revenue || '0');
@@ -220,8 +232,8 @@ export class SubscriptionAnalyticsService {
         const predictedClv = averageMonthlyRevenue * estimatedLifespanMonths;
 
         // Simple churn probability based on usage patterns (would need more data for accuracy)
-        const churnProbability = subscriptionDuration < 30 ? 0.3 : 
-                                subscriptionDuration < 90 ? 0.2 : 0.1;
+        const churnProbability =
+          subscriptionDuration < 30 ? 0.3 : subscriptionDuration < 90 ? 0.2 : 0.1;
 
         clvData.push({
           userId: customer.user_id,
@@ -234,7 +246,7 @@ export class SubscriptionAnalyticsService {
           currentPlan: customer.current_plan,
           averageMonthlyRevenue: Math.round(averageMonthlyRevenue * 100) / 100,
           predictedClv: Math.round(predictedClv * 100) / 100,
-          churnProbability: Math.round(churnProbability * 100) / 100
+          churnProbability: Math.round(churnProbability * 100) / 100,
         });
       }
 
@@ -248,7 +260,10 @@ export class SubscriptionAnalyticsService {
   /**
    * Calculate conversion rates from free to paid plans
    */
-  static async calculateConversionRates(year: number, month: number): Promise<ConversionRateMetrics> {
+  static async calculateConversionRates(
+    year: number,
+    month: number
+  ): Promise<ConversionRateMetrics> {
     try {
       const monthStr = `${year}-${month.toString().padStart(2, '0')}`;
       const startDate = new Date(year, month - 1, 1);
@@ -307,14 +322,18 @@ export class SubscriptionAnalyticsService {
       const freeTierToPaidCount = parseInt(freeTierToPaidConversions?.count || '0');
 
       // Calculate conversion rates
-      const trialConversionRate = freeTrialStartsCount > 0 ? 
-        ((trialToPaidCount + trialToFreeTierCount) / freeTrialStartsCount) * 100 : 0;
-      
-      const freeTierConversionRate = trialToFreeTierCount > 0 ? 
-        (freeTierToPaidCount / trialToFreeTierCount) * 100 : 0;
-      
-      const overallConversionRate = totalSignupsCount > 0 ? 
-        ((trialToPaidCount + freeTierToPaidCount) / totalSignupsCount) * 100 : 0;
+      const trialConversionRate =
+        freeTrialStartsCount > 0
+          ? ((trialToPaidCount + trialToFreeTierCount) / freeTrialStartsCount) * 100
+          : 0;
+
+      const freeTierConversionRate =
+        trialToFreeTierCount > 0 ? (freeTierToPaidCount / trialToFreeTierCount) * 100 : 0;
+
+      const overallConversionRate =
+        totalSignupsCount > 0
+          ? ((trialToPaidCount + freeTierToPaidCount) / totalSignupsCount) * 100
+          : 0;
 
       return {
         period: monthStr,
@@ -325,7 +344,7 @@ export class SubscriptionAnalyticsService {
         freeTierToPaidConversions: freeTierToPaidCount,
         trialConversionRate: Math.round(trialConversionRate * 100) / 100,
         freeTierConversionRate: Math.round(freeTierConversionRate * 100) / 100,
-        overallConversionRate: Math.round(overallConversionRate * 100) / 100
+        overallConversionRate: Math.round(overallConversionRate * 100) / 100,
       };
     } catch (error) {
       logger.error('Error calculating conversion rates', { year, month, error });
@@ -339,13 +358,15 @@ export class SubscriptionAnalyticsService {
   static async getPlanDistribution(): Promise<PlanDistribution[]> {
     try {
       const planStats = await db('subscription_plans as sp')
-        .leftJoin('customer_subscriptions as cs', function() {
-          this.on('sp.id', '=', 'cs.plan_id')
-              .andOn('cs.status', '=', db.raw('?', ['active']));
+        .leftJoin('customer_subscriptions as cs', function () {
+          this.on('sp.id', '=', 'cs.plan_id').andOn('cs.status', '=', db.raw('?', ['active']));
         })
-        .leftJoin('billing_records as br', function() {
-          this.on('cs.id', '=', 'br.subscription_id')
-              .andOn('br.status', '=', db.raw('?', ['paid']));
+        .leftJoin('billing_records as br', function () {
+          this.on('cs.id', '=', 'br.subscription_id').andOn(
+            'br.status',
+            '=',
+            db.raw('?', ['paid'])
+          );
         })
         .where('sp.is_active', true)
         .select(
@@ -354,26 +375,38 @@ export class SubscriptionAnalyticsService {
           'sp.slug as plan_slug',
           'sp.price',
           db.raw('COUNT(DISTINCT cs.id) as active_subscriptions'),
-          db.raw('SUM(CASE WHEN br.status = ? THEN br.amount_paid ELSE 0 END) as total_revenue', ['paid'])
+          db.raw('SUM(CASE WHEN br.status = ? THEN br.amount_paid ELSE 0 END) as total_revenue', [
+            'paid',
+          ])
         )
         .groupBy('sp.id', 'sp.name', 'sp.slug', 'sp.price')
         .orderBy('sp.price', 'asc');
 
       // Calculate totals for percentage calculations
-      const totalCustomers = planStats.reduce((sum, plan) => sum + parseInt(plan.active_subscriptions), 0);
-      const totalRevenue = planStats.reduce((sum, plan) => sum + parseFloat(plan.total_revenue || '0'), 0);
+      const totalCustomers = planStats.reduce(
+        (sum, plan) => sum + parseInt(plan.active_subscriptions),
+        0
+      );
+      const totalRevenue = planStats.reduce(
+        (sum, plan) => sum + parseFloat(plan.total_revenue || '0'),
+        0
+      );
 
-      return planStats.map(plan => ({
+      return planStats.map((plan) => ({
         planId: plan.plan_id,
         planName: plan.plan_name,
         planSlug: plan.plan_slug,
         price: parseFloat(plan.price.toString()),
         activeSubscriptions: parseInt(plan.active_subscriptions),
         totalRevenue: parseFloat(plan.total_revenue || '0'),
-        percentageOfCustomers: totalCustomers > 0 ? 
-          Math.round((parseInt(plan.active_subscriptions) / totalCustomers) * 10000) / 100 : 0,
-        percentageOfRevenue: totalRevenue > 0 ? 
-          Math.round((parseFloat(plan.total_revenue || '0') / totalRevenue) * 10000) / 100 : 0
+        percentageOfCustomers:
+          totalCustomers > 0
+            ? Math.round((parseInt(plan.active_subscriptions) / totalCustomers) * 10000) / 100
+            : 0,
+        percentageOfRevenue:
+          totalRevenue > 0
+            ? Math.round((parseFloat(plan.total_revenue || '0') / totalRevenue) * 10000) / 100
+            : 0,
       }));
     } catch (error) {
       logger.error('Error getting plan distribution', { error });
@@ -433,16 +466,32 @@ export class SubscriptionAnalyticsService {
       const avgChurnedValue = parseFloat(churnedSubscriptionsData?.avg_churned_value || '0');
 
       // Calculate churn rate
-      const churnRate = totalActiveStartCount > 0 ? 
-        (churnedSubscriptionsCount / totalActiveStartCount) * 100 : 0;
+      const churnRate =
+        totalActiveStartCount > 0 ? (churnedSubscriptionsCount / totalActiveStartCount) * 100 : 0;
 
       // Simplified churn reasons (would need cancellation reason tracking)
       const churnReasons = [
-        { reason: 'Price too high', count: Math.floor(churnedSubscriptionsCount * 0.3), percentage: 30 },
-        { reason: 'Not using enough', count: Math.floor(churnedSubscriptionsCount * 0.25), percentage: 25 },
-        { reason: 'Found alternative', count: Math.floor(churnedSubscriptionsCount * 0.2), percentage: 20 },
-        { reason: 'Technical issues', count: Math.floor(churnedSubscriptionsCount * 0.15), percentage: 15 },
-        { reason: 'Other', count: Math.floor(churnedSubscriptionsCount * 0.1), percentage: 10 }
+        {
+          reason: 'Price too high',
+          count: Math.floor(churnedSubscriptionsCount * 0.3),
+          percentage: 30,
+        },
+        {
+          reason: 'Not using enough',
+          count: Math.floor(churnedSubscriptionsCount * 0.25),
+          percentage: 25,
+        },
+        {
+          reason: 'Found alternative',
+          count: Math.floor(churnedSubscriptionsCount * 0.2),
+          percentage: 20,
+        },
+        {
+          reason: 'Technical issues',
+          count: Math.floor(churnedSubscriptionsCount * 0.15),
+          percentage: 15,
+        },
+        { reason: 'Other', count: Math.floor(churnedSubscriptionsCount * 0.1), percentage: 10 },
       ];
 
       return {
@@ -454,7 +503,7 @@ export class SubscriptionAnalyticsService {
         churnRate: Math.round(churnRate * 100) / 100,
         revenueChurn: Math.round(churnedRevenue * 100) / 100,
         averageChurnedCustomerValue: Math.round(avgChurnedValue * 100) / 100,
-        churnReasons
+        churnReasons,
       };
     } catch (error) {
       logger.error('Error analyzing churn', { year, month, error });
@@ -491,13 +540,15 @@ export class SubscriptionAnalyticsService {
       for (const customer of highUsageCustomers) {
         const now = new Date();
         const renewalDate = new Date(customer.current_period_end);
-        const daysUntilRenewal = Math.ceil((renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const daysUntilRenewal = Math.ceil(
+          (renewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
 
         // Mock usage data - would come from actual usage tracking
         const mockUsage = {
           active: Math.floor(Math.random() * 90) + 10, // 10-100%
           completed: Math.floor(Math.random() * 90) + 10,
-          total: Math.floor(Math.random() * 90) + 10
+          total: Math.floor(Math.random() * 90) + 10,
         };
 
         // Only include customers approaching limits (>75% usage)
@@ -508,7 +559,7 @@ export class SubscriptionAnalyticsService {
             currentPlan: customer.current_plan,
             usagePercentage: mockUsage,
             daysUntilRenewal,
-            upgradeRecommendation: this.getUpgradeRecommendation(customer.current_plan)
+            upgradeRecommendation: this.getUpgradeRecommendation(customer.current_plan),
           });
         }
       }
@@ -517,26 +568,31 @@ export class SubscriptionAnalyticsService {
       const plans = await SubscriptionPlan.findActivePlans();
       for (const plan of plans) {
         // Mock average usage data - would come from actual usage tracking
-        const avgActiveTickets = Math.floor(Math.random() * (plan.active_ticket_limit > 0 ? plan.active_ticket_limit : 1000));
-        const avgCompletedTickets = Math.floor(Math.random() * (plan.completed_ticket_limit > 0 ? plan.completed_ticket_limit : 1000));
+        const avgActiveTickets = Math.floor(
+          Math.random() * (plan.active_ticket_limit > 0 ? plan.active_ticket_limit : 1000)
+        );
+        const avgCompletedTickets = Math.floor(
+          Math.random() * (plan.completed_ticket_limit > 0 ? plan.completed_ticket_limit : 1000)
+        );
         const avgTotalTickets = avgActiveTickets + avgCompletedTickets;
 
-        const utilizationRate = plan.total_ticket_limit > 0 ? 
-          (avgTotalTickets / plan.total_ticket_limit) * 100 : 
-          Math.floor(Math.random() * 60) + 20; // 20-80% for unlimited plans
+        const utilizationRate =
+          plan.total_ticket_limit > 0
+            ? (avgTotalTickets / plan.total_ticket_limit) * 100
+            : Math.floor(Math.random() * 60) + 20; // 20-80% for unlimited plans
 
         averageUsageByPlan.push({
           planName: plan.name,
           averageActiveTickets: avgActiveTickets,
           averageCompletedTickets: avgCompletedTickets,
           averageTotalTickets: avgTotalTickets,
-          utilizationRate: Math.round(utilizationRate * 100) / 100
+          utilizationRate: Math.round(utilizationRate * 100) / 100,
         });
       }
 
       return {
         customersApproachingLimits,
-        averageUsageByPlan
+        averageUsageByPlan,
       };
     } catch (error) {
       logger.error('Error getting usage analytics', { error });
@@ -547,7 +603,10 @@ export class SubscriptionAnalyticsService {
   /**
    * Get comprehensive revenue metrics for a date range
    */
-  static async getRevenueMetrics(startDate: Date, endDate: Date): Promise<{
+  static async getRevenueMetrics(
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
     totalRevenue: number;
     recurringRevenue: number;
     oneTimeRevenue: number;
@@ -586,12 +645,16 @@ export class SubscriptionAnalyticsService {
       const totalCustomersCount = parseInt(totalCustomers?.count || '0');
 
       // Calculate metrics
-      const averageRevenuePerUser = totalCustomersCount > 0 ? 
-        billingStats.totalRevenue / totalCustomersCount : 0;
+      const averageRevenuePerUser =
+        totalCustomersCount > 0 ? billingStats.totalRevenue / totalCustomersCount : 0;
 
       // Simplified net revenue retention (would need more complex calculation)
-      const netRevenueRetention = totalCustomersCount > 0 ? 
-        ((totalCustomersCount - churnedCustomersCount + newCustomersCount) / totalCustomersCount) * 100 : 100;
+      const netRevenueRetention =
+        totalCustomersCount > 0
+          ? ((totalCustomersCount - churnedCustomersCount + newCustomersCount) /
+              totalCustomersCount) *
+            100
+          : 100;
 
       return {
         totalRevenue: billingStats.totalRevenue,
@@ -602,7 +665,7 @@ export class SubscriptionAnalyticsService {
         newCustomers: newCustomersCount,
         churnedCustomers: churnedCustomersCount,
         netRevenueRetention: Math.round(netRevenueRetention * 100) / 100,
-        currency: billingStats.currency.toUpperCase()
+        currency: billingStats.currency.toUpperCase(),
       };
     } catch (error) {
       logger.error('Error getting revenue metrics', { startDate, endDate, error });
@@ -615,14 +678,14 @@ export class SubscriptionAnalyticsService {
    */
   private static getUpgradeRecommendation(currentPlan: string): string {
     const planHierarchy = ['Free Tier', 'Starter', 'Professional', 'Business', 'Enterprise'];
-    const currentIndex = planHierarchy.findIndex(plan => 
+    const currentIndex = planHierarchy.findIndex((plan) =>
       currentPlan.toLowerCase().includes(plan.toLowerCase())
     );
-    
+
     if (currentIndex >= 0 && currentIndex < planHierarchy.length - 1) {
       return planHierarchy[currentIndex + 1];
     }
-    
+
     return 'Enterprise';
   }
 
@@ -633,13 +696,13 @@ export class SubscriptionAnalyticsService {
     try {
       const results: MonthlyRecurringRevenue[] = [];
       const now = new Date();
-      
+
       for (let i = months - 1; i >= 0; i--) {
         const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const mrr = await this.calculateMRR(targetDate.getFullYear(), targetDate.getMonth() + 1);
         results.push(mrr);
       }
-      
+
       return results;
     } catch (error) {
       logger.error('Error getting historical MRR', { months, error });
@@ -654,13 +717,16 @@ export class SubscriptionAnalyticsService {
     try {
       const results: ConversionRateMetrics[] = [];
       const now = new Date();
-      
+
       for (let i = months - 1; i >= 0; i--) {
         const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const conversion = await this.calculateConversionRates(targetDate.getFullYear(), targetDate.getMonth() + 1);
+        const conversion = await this.calculateConversionRates(
+          targetDate.getFullYear(),
+          targetDate.getMonth() + 1
+        );
         results.push(conversion);
       }
-      
+
       return results;
     } catch (error) {
       logger.error('Error getting historical conversion rates', { months, error });

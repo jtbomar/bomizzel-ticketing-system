@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { 
-  TicketLayout, 
-  FieldType, 
-  FIELD_TEMPLATES, 
-  CreateLayoutFieldRequest
+import {
+  TicketLayout,
+  FieldType,
+  FIELD_TEMPLATES,
+  CreateLayoutFieldRequest,
 } from '../types/ticketLayout';
 
 interface TicketLayoutBuilderProps {
@@ -12,18 +12,14 @@ interface TicketLayoutBuilderProps {
   onCancel: () => void;
 }
 
-const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
-  layout,
-  onSave,
-  onCancel
-}) => {
+const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({ layout, onSave, onCancel }) => {
   const [layoutName, setLayoutName] = useState(layout?.name || '');
   const [layoutDescription, setLayoutDescription] = useState(layout?.description || '');
   const [isDefault, setIsDefault] = useState(layout?.isDefault || false);
   const [gridColumns] = useState(12);
   const [gridRows] = useState(20);
   const [fields, setFields] = useState<CreateLayoutFieldRequest[]>(
-    layout?.fields?.map(field => ({
+    layout?.fields?.map((field) => ({
       fieldName: field.fieldName,
       fieldLabel: field.fieldLabel,
       fieldType: field.fieldType,
@@ -34,7 +30,7 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
       gridPositionX: field.gridPositionX,
       gridPositionY: field.gridPositionY,
       gridWidth: field.gridWidth,
-      gridHeight: field.gridHeight
+      gridHeight: field.gridHeight,
     })) || []
   );
   const [selectedField, setSelectedField] = useState<number | null>(null);
@@ -42,13 +38,16 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Group field templates by category
-  const fieldsByCategory = FIELD_TEMPLATES.reduce((acc, template) => {
-    if (!acc[template.category]) {
-      acc[template.category] = [];
-    }
-    acc[template.category].push(template);
-    return acc;
-  }, {} as Record<string, typeof FIELD_TEMPLATES>);
+  const fieldsByCategory = FIELD_TEMPLATES.reduce(
+    (acc, template) => {
+      if (!acc[template.category]) {
+        acc[template.category] = [];
+      }
+      acc[template.category].push(template);
+      return acc;
+    },
+    {} as Record<string, typeof FIELD_TEMPLATES>
+  );
 
   const handleDragStart = (fieldType: FieldType) => {
     setDraggedFieldType(fieldType);
@@ -65,29 +64,32 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
     const rect = gridRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     const cellWidth = rect.width / gridColumns;
     const cellHeight = 60; // Fixed row height
-    
+
     const gridX = Math.floor(x / cellWidth);
     const gridY = Math.floor(y / cellHeight);
 
     // Find the field template
-    const template = FIELD_TEMPLATES.find(t => t.type === draggedFieldType);
+    const template = FIELD_TEMPLATES.find((t) => t.type === draggedFieldType);
     if (!template) return;
 
     // Prevent adding core fields that are always included
     if (draggedFieldType === 'text' || draggedFieldType === 'textarea') {
-      alert('Title and Description fields are always included and cannot be added as custom fields. Status is also included by default.');
+      alert(
+        'Title and Description fields are always included and cannot be added as custom fields. Status is also included by default.'
+      );
       return;
     }
 
     // Check if position is available
-    const isPositionAvailable = !fields.some(field => 
-      gridX >= field.gridPositionX && 
-      gridX < field.gridPositionX + field.gridWidth &&
-      gridY >= field.gridPositionY && 
-      gridY < field.gridPositionY + field.gridHeight
+    const isPositionAvailable = !fields.some(
+      (field) =>
+        gridX >= field.gridPositionX &&
+        gridX < field.gridPositionX + field.gridWidth &&
+        gridY >= field.gridPositionY &&
+        gridY < field.gridPositionY + field.gridHeight
     );
 
     if (!isPositionAvailable) return;
@@ -104,10 +106,10 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
       gridPositionX: Math.max(0, Math.min(gridX, gridColumns - 2)),
       gridPositionY: Math.max(0, Math.min(gridY, gridRows - 1)),
       gridWidth: 2, // Default width
-      gridHeight: 1  // Default height
+      gridHeight: 1, // Default height
     };
 
-    setFields(prev => [...prev, newField]);
+    setFields((prev) => [...prev, newField]);
     setSelectedField(fields.length);
     setDraggedFieldType(null);
   };
@@ -117,13 +119,11 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
   };
 
   const handleFieldUpdate = (index: number, updates: Partial<CreateLayoutFieldRequest>) => {
-    setFields(prev => prev.map((field, i) => 
-      i === index ? { ...field, ...updates } : field
-    ));
+    setFields((prev) => prev.map((field, i) => (i === index ? { ...field, ...updates } : field)));
   };
 
   const handleFieldDelete = (index: number) => {
-    setFields(prev => prev.filter((_, i) => i !== index));
+    setFields((prev) => prev.filter((_, i) => i !== index));
     setSelectedField(null);
   };
 
@@ -140,9 +140,9 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
       layoutConfig: {
         gridColumns,
         gridRows,
-        theme: 'default'
+        theme: 'default',
       },
-      fields
+      fields,
     };
 
     onSave(layoutData);
@@ -150,7 +150,7 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
 
   const renderGrid = () => {
     const gridCells = [];
-    
+
     // Create grid background
     for (let y = 0; y < gridRows; y++) {
       for (let x = 0; x < gridColumns; x++) {
@@ -161,7 +161,7 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
             style={{
               gridColumn: x + 1,
               gridRow: y + 1,
-              minHeight: '60px'
+              minHeight: '60px',
             }}
           />
         );
@@ -177,31 +177,30 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
         key={index}
         className={`
           border-2 rounded-lg p-3 cursor-pointer transition-all
-          ${selectedField === index 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 bg-white hover:border-gray-400'
+          ${
+            selectedField === index
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-300 bg-white hover:border-gray-400'
           }
         `}
         style={{
           gridColumn: `${field.gridPositionX + 1} / span ${field.gridWidth}`,
           gridRow: `${field.gridPositionY + 1} / span ${field.gridHeight}`,
-          minHeight: '60px'
+          minHeight: '60px',
         }}
         onClick={() => handleFieldClick(index)}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="text-lg">
-              {FIELD_TEMPLATES.find(t => t.type === field.fieldType)?.icon || '📝'}
+              {FIELD_TEMPLATES.find((t) => t.type === field.fieldType)?.icon || '📝'}
             </span>
             <div>
               <div className="font-medium text-sm">{field.fieldLabel}</div>
               <div className="text-xs text-gray-500">{field.fieldType}</div>
             </div>
           </div>
-          {field.isRequired && (
-            <span className="text-red-500 text-xs">*</span>
-          )}
+          {field.isRequired && <span className="text-red-500 text-xs">*</span>}
         </div>
       </div>
     ));
@@ -215,15 +214,14 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
           <h3 className="text-lg font-semibold text-gray-900">Field Library</h3>
           <p className="text-sm text-gray-600">Drag fields onto the layout</p>
           <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
-            <strong>Note:</strong> Title, Description, and Status are always included and cannot be removed. You can still add custom dropdown fields for other purposes.
+            <strong>Note:</strong> Title, Description, and Status are always included and cannot be
+            removed. You can still add custom dropdown fields for other purposes.
           </div>
         </div>
-        
+
         {Object.entries(fieldsByCategory).map(([category, templates]) => (
           <div key={category} className="p-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-3 capitalize">
-              {category} Fields
-            </h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-3 capitalize">{category} Fields</h4>
             <div className="space-y-2">
               {templates.map((template) => (
                 <div
@@ -275,10 +273,7 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
                 />
                 <span className="text-sm">Default Layout</span>
               </label>
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
+              <button onClick={onCancel} className="px-4 py-2 text-gray-600 hover:text-gray-800">
                 Cancel
               </button>
               <button
@@ -295,7 +290,9 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
         <div className="flex-1 p-4 overflow-auto">
           {/* Fixed Fields Section */}
           <div className="mb-4 p-4 bg-gray-50 border border-gray-300 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Required Fields (Always Included)</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-3">
+              Required Fields (Always Included)
+            </h3>
             <div className="grid grid-cols-1 gap-3">
               <div className="flex items-center p-3 bg-white border border-gray-200 rounded-lg">
                 <span className="text-lg mr-3">📝</span>
@@ -335,7 +332,7 @@ const TicketLayoutBuilder: React.FC<TicketLayoutBuilderProps> = ({
               display: 'grid',
               gridTemplateColumns: `repeat(${gridColumns}, 1fr)`,
               gridTemplateRows: `repeat(${gridRows}, 60px)`,
-              minHeight: `${gridRows * 60}px`
+              minHeight: `${gridRows * 60}px`,
             }}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
@@ -371,18 +368,14 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
   field,
   onUpdate,
   onDelete,
-  onClose
+  onClose,
 }) => {
-
   return (
     <div className="w-80 bg-white border-l border-gray-200 overflow-y-auto">
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900">Field Properties</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             ✕
           </button>
         </div>
@@ -391,9 +384,7 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
       <div className="p-4 space-y-4">
         {/* Basic Properties */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Field Label
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Field Label</label>
           <input
             type="text"
             value={field.fieldLabel}
@@ -403,9 +394,7 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Field Name
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Field Name</label>
           <input
             type="text"
             value={field.fieldName}
@@ -434,15 +423,15 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
         {/* Field-specific configuration */}
         {field.fieldType === 'text' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Placeholder
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Placeholder</label>
             <input
               type="text"
               value={field.fieldConfig.placeholder || ''}
-              onChange={(e) => onUpdate({ 
-                fieldConfig: { ...field.fieldConfig, placeholder: e.target.value }
-              })}
+              onChange={(e) =>
+                onUpdate({
+                  fieldConfig: { ...field.fieldConfig, placeholder: e.target.value },
+                })
+              }
               className="w-full border border-gray-300 rounded-md px-3 py-2"
             />
           </div>
@@ -450,9 +439,7 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
 
         {field.fieldType === 'picklist' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Options
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Options</label>
             <div className="space-y-2">
               {field.fieldConfig.options?.map((option, index) => (
                 <div key={index} className="flex items-center space-x-2">
@@ -463,7 +450,7 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
                       const newOptions = [...(field.fieldConfig.options || [])];
                       newOptions[index] = { ...option, label: e.target.value };
                       onUpdate({
-                        fieldConfig: { ...field.fieldConfig, options: newOptions }
+                        fieldConfig: { ...field.fieldConfig, options: newOptions },
                       });
                     }}
                     className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-sm"
@@ -472,7 +459,7 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
                     onClick={() => {
                       const newOptions = field.fieldConfig.options?.filter((_, i) => i !== index);
                       onUpdate({
-                        fieldConfig: { ...field.fieldConfig, options: newOptions }
+                        fieldConfig: { ...field.fieldConfig, options: newOptions },
                       });
                     }}
                     className="text-red-500 hover:text-red-700"
@@ -485,10 +472,10 @@ const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
                 onClick={() => {
                   const newOptions = [
                     ...(field.fieldConfig.options || []),
-                    { value: `option_${Date.now()}`, label: 'New Option' }
+                    { value: `option_${Date.now()}`, label: 'New Option' },
                   ];
                   onUpdate({
-                    fieldConfig: { ...field.fieldConfig, options: newOptions }
+                    fieldConfig: { ...field.fieldConfig, options: newOptions },
                   });
                 }}
                 className="text-blue-600 hover:text-blue-800 text-sm"

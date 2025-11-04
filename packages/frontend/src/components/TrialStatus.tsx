@@ -22,7 +22,7 @@ interface TrialStatusProps {
 export const TrialStatus: React.FC<TrialStatusProps> = ({
   subscriptionId,
   onUpgradeClick,
-  className = ''
+  className = '',
 }) => {
   const [trialStatus, setTrialStatus] = useState<TrialStatusData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +38,7 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
 
   const fetchTrialStatus = async () => {
     if (!subscriptionId) return;
-    
+
     try {
       setLoading(true);
       const response = await apiService.getTrialStatus(subscriptionId);
@@ -63,20 +63,23 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
   const getStatusIcon = () => {
     const color = getStatusColor();
     const iconClass = `h-5 w-5 ${
-      color === 'red' ? 'text-red-500' :
-      color === 'yellow' ? 'text-yellow-500' :
-      color === 'green' ? 'text-green-500' :
-      'text-gray-500'
+      color === 'red'
+        ? 'text-red-500'
+        : color === 'yellow'
+          ? 'text-yellow-500'
+          : color === 'green'
+            ? 'text-green-500'
+            : 'text-gray-500'
     }`;
 
     if (!trialStatus?.isInTrial) {
       return <CheckCircleIcon className={iconClass} />;
     }
-    
+
     if (trialStatus.hasExpired || (trialStatus.daysRemaining && trialStatus.daysRemaining <= 1)) {
       return <ExclamationTriangleIcon className={iconClass} />;
     }
-    
+
     return <ClockIcon className={iconClass} />;
   };
 
@@ -104,7 +107,7 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -135,17 +138,23 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
   }
 
   const statusColor = getStatusColor();
-  const bgColor = 
-    statusColor === 'red' ? 'bg-red-50 border-red-200' :
-    statusColor === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
-    statusColor === 'green' ? 'bg-green-50 border-green-200' :
-    'bg-gray-50 border-gray-200';
+  const bgColor =
+    statusColor === 'red'
+      ? 'bg-red-50 border-red-200'
+      : statusColor === 'yellow'
+        ? 'bg-yellow-50 border-yellow-200'
+        : statusColor === 'green'
+          ? 'bg-green-50 border-green-200'
+          : 'bg-gray-50 border-gray-200';
 
-  const textColor = 
-    statusColor === 'red' ? 'text-red-800' :
-    statusColor === 'yellow' ? 'text-yellow-800' :
-    statusColor === 'green' ? 'text-green-800' :
-    'text-gray-800';
+  const textColor =
+    statusColor === 'red'
+      ? 'text-red-800'
+      : statusColor === 'yellow'
+        ? 'text-yellow-800'
+        : statusColor === 'green'
+          ? 'text-green-800'
+          : 'text-gray-800';
 
   return (
     <div className={`border rounded-lg p-4 ${bgColor} ${className}`}>
@@ -153,12 +162,8 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
         <div className="flex items-center">
           {getStatusIcon()}
           <div className="ml-3">
-            <h3 className={`text-sm font-medium ${textColor}`}>
-              Trial Status
-            </h3>
-            <p className={`text-sm ${textColor} opacity-90`}>
-              {getStatusMessage()}
-            </p>
+            <h3 className={`text-sm font-medium ${textColor}`}>Trial Status</h3>
+            <p className={`text-sm ${textColor} opacity-90`}>{getStatusMessage()}</p>
             {trialStatus.trialEnd && (
               <p className={`text-xs ${textColor} opacity-75 mt-1`}>
                 Ends on {formatDate(trialStatus.trialEnd)}
@@ -171,11 +176,11 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
           <button
             onClick={onUpgradeClick}
             className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-              statusColor === 'red' 
+              statusColor === 'red'
                 ? 'bg-red-600 hover:bg-red-700 text-white'
                 : statusColor === 'yellow'
-                ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
             Upgrade Now
@@ -195,12 +200,14 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all duration-300 ${
-                statusColor === 'red' ? 'bg-red-500' :
-                statusColor === 'yellow' ? 'bg-yellow-500' :
-                'bg-green-500'
+                statusColor === 'red'
+                  ? 'bg-red-500'
+                  : statusColor === 'yellow'
+                    ? 'bg-yellow-500'
+                    : 'bg-green-500'
               }`}
               style={{
-                width: `${Math.max(5, Math.min(100, ((14 - Math.max(0, trialStatus.daysRemaining)) / 14) * 100))}%`
+                width: `${Math.max(5, Math.min(100, ((14 - Math.max(0, trialStatus.daysRemaining)) / 14) * 100))}%`,
               }}
             ></div>
           </div>
@@ -208,19 +215,21 @@ export const TrialStatus: React.FC<TrialStatusProps> = ({
       )}
 
       {/* Urgent call-to-action for expiring trials */}
-      {trialStatus.daysRemaining !== undefined && trialStatus.daysRemaining <= 1 && trialStatus.canConvert && (
-        <div className="mt-3 p-3 bg-white rounded-md border border-red-200">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-4 w-4 text-red-500 mr-2" />
-            <span className="text-sm text-red-800 font-medium">
-              Don't lose access to premium features!
-            </span>
+      {trialStatus.daysRemaining !== undefined &&
+        trialStatus.daysRemaining <= 1 &&
+        trialStatus.canConvert && (
+          <div className="mt-3 p-3 bg-white rounded-md border border-red-200">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-4 w-4 text-red-500 mr-2" />
+              <span className="text-sm text-red-800 font-medium">
+                Don't lose access to premium features!
+              </span>
+            </div>
+            <p className="text-xs text-red-700 mt-1">
+              Upgrade now to continue with unlimited access.
+            </p>
           </div>
-          <p className="text-xs text-red-700 mt-1">
-            Upgrade now to continue with unlimited access.
-          </p>
-        </div>
-      )}
+        )}
     </div>
   );
 };

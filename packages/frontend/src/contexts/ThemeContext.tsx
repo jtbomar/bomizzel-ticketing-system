@@ -24,9 +24,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Load theme from localStorage on initialization
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
     const initialTheme = savedTheme || systemTheme;
-    
+
     setThemeState(initialTheme);
     applyTheme(initialTheme);
   }, []);

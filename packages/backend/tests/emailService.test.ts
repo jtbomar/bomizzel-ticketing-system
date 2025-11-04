@@ -160,26 +160,26 @@ describe('EmailService', () => {
     it('should throw error when ticket not found', async () => {
       MockedTicket.findById.mockResolvedValue(null);
 
-      await expect(
-        EmailService.sendTicketEmail('user-123', emailRequest)
-      ).rejects.toThrow('Ticket not found');
+      await expect(EmailService.sendTicketEmail('user-123', emailRequest)).rejects.toThrow(
+        'Ticket not found'
+      );
     });
 
     it('should throw error when sender not found', async () => {
       MockedUser.findById.mockResolvedValue(null);
 
-      await expect(
-        EmailService.sendTicketEmail('user-123', emailRequest)
-      ).rejects.toThrow('Sender not found');
+      await expect(EmailService.sendTicketEmail('user-123', emailRequest)).rejects.toThrow(
+        'Sender not found'
+      );
     });
 
     it('should throw error when not initialized', async () => {
       const EmailServiceClass = require('@/services/EmailService').EmailService;
       EmailServiceClass['transporter'] = null;
 
-      await expect(
-        EmailServiceClass.sendTicketEmail('user-123', emailRequest)
-      ).rejects.toThrow('Email service not initialized');
+      await expect(EmailServiceClass.sendTicketEmail('user-123', emailRequest)).rejects.toThrow(
+        'Email service not initialized'
+      );
     });
   });
 
@@ -241,11 +241,7 @@ describe('EmailService', () => {
     });
 
     it('should send ticket created notification', async () => {
-      await EmailService.sendTicketNotification(
-        'ticket-123',
-        'created',
-        ['customer@test.com']
-      );
+      await EmailService.sendTicketNotification('ticket-123', 'created', ['customer@test.com']);
 
       expect(MockedTicket.findById).toHaveBeenCalledWith('ticket-123');
       expect(MockedCompany.findById).toHaveBeenCalledWith('company-123');
@@ -257,12 +253,9 @@ describe('EmailService', () => {
     });
 
     it('should send ticket assigned notification', async () => {
-      await EmailService.sendTicketNotification(
-        'ticket-123',
-        'assigned',
-        ['customer@test.com'],
-        { assigneeName: 'John Doe' }
-      );
+      await EmailService.sendTicketNotification('ticket-123', 'assigned', ['customer@test.com'], {
+        assigneeName: 'John Doe',
+      });
 
       const callArgs = mockSendMail.mock.calls[0][0];
       expect(callArgs.subject).toContain('Ticket Assigned');

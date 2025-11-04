@@ -49,7 +49,7 @@ router.post('/assign', auth, validateRequest(bulkAssignSchema), async (req, res,
     res.json({
       success: true,
       data: result,
-      message: `Bulk assignment completed: ${result.summary.successful}/${result.summary.total} tickets assigned`
+      message: `Bulk assignment completed: ${result.summary.successful}/${result.summary.total} tickets assigned`,
     });
   } catch (error) {
     next(error);
@@ -74,7 +74,7 @@ router.post('/status', auth, validateRequest(bulkStatusUpdateSchema), async (req
     res.json({
       success: true,
       data: result,
-      message: `Bulk status update completed: ${result.summary.successful}/${result.summary.total} tickets updated`
+      message: `Bulk status update completed: ${result.summary.successful}/${result.summary.total} tickets updated`,
     });
   } catch (error) {
     next(error);
@@ -85,26 +85,31 @@ router.post('/status', auth, validateRequest(bulkStatusUpdateSchema), async (req
  * POST /api/bulk/priority
  * Bulk update ticket priority
  */
-router.post('/priority', auth, validateRequest(bulkPriorityUpdateSchema), async (req, res, next) => {
-  try {
-    const { ticketIds, priority } = req.body;
-    const performedById = req.user!.id;
-    const userRole = req.user!.role;
+router.post(
+  '/priority',
+  auth,
+  validateRequest(bulkPriorityUpdateSchema),
+  async (req, res, next) => {
+    try {
+      const { ticketIds, priority } = req.body;
+      const performedById = req.user!.id;
+      const userRole = req.user!.role;
 
-    const result = await BulkOperationsService.bulkUpdatePriority(
-      { ticketIds, priority, performedById },
-      userRole
-    );
+      const result = await BulkOperationsService.bulkUpdatePriority(
+        { ticketIds, priority, performedById },
+        userRole
+      );
 
-    res.json({
-      success: true,
-      data: result,
-      message: `Bulk priority update completed: ${result.summary.successful}/${result.summary.total} tickets updated`
-    });
-  } catch (error) {
-    next(error);
+      res.json({
+        success: true,
+        data: result,
+        message: `Bulk priority update completed: ${result.summary.successful}/${result.summary.total} tickets updated`,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * POST /api/bulk/move
@@ -126,7 +131,7 @@ router.post('/move', auth, validateRequest(bulkMoveSchema), async (req, res, nex
     res.json({
       success: true,
       data: result,
-      message: `Bulk move completed: ${result.summary.successful}/${result.summary.total} tickets moved`
+      message: `Bulk move completed: ${result.summary.successful}/${result.summary.total} tickets moved`,
     });
   } catch (error) {
     next(error);
@@ -151,7 +156,7 @@ router.delete('/delete', auth, validateRequest(bulkDeleteSchema), async (req, re
     res.json({
       success: true,
       data: result,
-      message: `Bulk delete completed: ${result.summary.successful}/${result.summary.total} tickets deleted`
+      message: `Bulk delete completed: ${result.summary.successful}/${result.summary.total} tickets deleted`,
     });
   } catch (error) {
     next(error);
@@ -175,7 +180,7 @@ router.get('/history', auth, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: history
+      data: history,
     });
   } catch (error) {
     next(error);
@@ -195,19 +200,15 @@ router.post('/validate-access', auth, async (req, res, next) => {
     if (!Array.isArray(ticketIds) || ticketIds.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'ticketIds must be a non-empty array'
+        error: 'ticketIds must be a non-empty array',
       });
     }
 
-    const result = await BulkOperationsService.validateTicketAccess(
-      ticketIds,
-      userId,
-      userRole
-    );
+    const result = await BulkOperationsService.validateTicketAccess(ticketIds, userId, userRole);
 
     res.json({
       success: true,
-      data: result
+      data: result,
     });
   } catch (error) {
     next(error);

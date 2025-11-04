@@ -66,13 +66,13 @@ const RegisterPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -82,7 +82,7 @@ const RegisterPage: React.FC = () => {
       setError('Please select a subscription plan');
       return;
     }
-    
+
     try {
       // Register user with selected plan information
       await register({
@@ -92,9 +92,9 @@ const RegisterPage: React.FC = () => {
         password: formData.password,
         role: 'customer',
         selectedPlanId: selectedPlan.id,
-        startTrial: selectedPlan.trialDays > 0 && selectedPlan.price > 0
+        startTrial: selectedPlan.trialDays > 0 && selectedPlan.price > 0,
       });
-      
+
       navigate('/customer');
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -150,7 +150,7 @@ const RegisterPage: React.FC = () => {
                   {error}
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
@@ -183,7 +183,7 @@ const RegisterPage: React.FC = () => {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
@@ -200,7 +200,7 @@ const RegisterPage: React.FC = () => {
                   placeholder="Enter your email"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
@@ -217,9 +217,12 @@ const RegisterPage: React.FC = () => {
                   placeholder="Create a password"
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Confirm password
                 </label>
                 <input
@@ -234,17 +237,20 @@ const RegisterPage: React.FC = () => {
                   placeholder="Confirm your password"
                 />
               </div>
-              
+
               <div>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isLoading || loadingPlan}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Creating account...' : 
-                   loadingPlan ? 'Loading plan...' :
-                   selectedPlan && selectedPlan.price > 0 && selectedPlan.trialDays > 0 ? 
-                   `Start ${selectedPlan.trialDays}-Day Free Trial` : 'Create account'}
+                  {isLoading
+                    ? 'Creating account...'
+                    : loadingPlan
+                      ? 'Loading plan...'
+                      : selectedPlan && selectedPlan.price > 0 && selectedPlan.trialDays > 0
+                        ? `Start ${selectedPlan.trialDays}-Day Free Trial`
+                        : 'Create account'}
                 </button>
               </div>
             </form>
@@ -265,11 +271,16 @@ const RegisterPage: React.FC = () => {
                 >
                   <span className="sr-only">Close</span>
                   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {availablePlans.map((plan) => (
                   <div
@@ -307,8 +318,16 @@ const RegisterPage: React.FC = () => {
                         <ul className="text-xs text-gray-600 space-y-1">
                           {plan.features.slice(0, 3).map((feature, index) => (
                             <li key={index} className="flex items-center">
-                              <svg className="h-3 w-3 text-green-500 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              <svg
+                                className="h-3 w-3 text-green-500 mr-1"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
                               </svg>
                               {feature}
                             </li>
@@ -324,7 +343,7 @@ const RegisterPage: React.FC = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 flex justify-end space-x-3">
                 <button
                   onClick={() => setShowPlanSelection(false)}

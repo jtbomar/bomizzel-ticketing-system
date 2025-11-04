@@ -54,7 +54,7 @@ export class BulkOperationsService {
     const result: BulkOperationResult = {
       success: [],
       failed: [],
-      summary: { total: ticketIds.length, successful: 0, failed: 0 }
+      summary: { total: ticketIds.length, successful: 0, failed: 0 },
     };
 
     // Validate permissions
@@ -77,7 +77,7 @@ export class BulkOperationsService {
       } catch (error) {
         result.failed.push({
           ticketId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         result.summary.failed++;
         logger.warn(`Failed to assign ticket ${ticketId}:`, error);
@@ -87,7 +87,9 @@ export class BulkOperationsService {
     // Update metrics for affected queues
     this.updateAffectedQueueMetrics(ticketIds);
 
-    logger.info(`Bulk assign completed: ${result.summary.successful}/${result.summary.total} successful`);
+    logger.info(
+      `Bulk assign completed: ${result.summary.successful}/${result.summary.total} successful`
+    );
     return result;
   }
 
@@ -102,7 +104,7 @@ export class BulkOperationsService {
     const result: BulkOperationResult = {
       success: [],
       failed: [],
-      summary: { total: ticketIds.length, successful: 0, failed: 0 }
+      summary: { total: ticketIds.length, successful: 0, failed: 0 },
     };
 
     // Process each ticket
@@ -114,7 +116,7 @@ export class BulkOperationsService {
       } catch (error) {
         result.failed.push({
           ticketId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         result.summary.failed++;
         logger.warn(`Failed to update status for ticket ${ticketId}:`, error);
@@ -124,7 +126,9 @@ export class BulkOperationsService {
     // Update metrics for affected queues
     this.updateAffectedQueueMetrics(ticketIds);
 
-    logger.info(`Bulk status update completed: ${result.summary.successful}/${result.summary.total} successful`);
+    logger.info(
+      `Bulk status update completed: ${result.summary.successful}/${result.summary.total} successful`
+    );
     return result;
   }
 
@@ -139,7 +143,7 @@ export class BulkOperationsService {
     const result: BulkOperationResult = {
       success: [],
       failed: [],
-      summary: { total: ticketIds.length, successful: 0, failed: 0 }
+      summary: { total: ticketIds.length, successful: 0, failed: 0 },
     };
 
     // Validate priority
@@ -156,7 +160,7 @@ export class BulkOperationsService {
       } catch (error) {
         result.failed.push({
           ticketId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         result.summary.failed++;
         logger.warn(`Failed to update priority for ticket ${ticketId}:`, error);
@@ -166,7 +170,9 @@ export class BulkOperationsService {
     // Update metrics for affected queues
     this.updateAffectedQueueMetrics(ticketIds);
 
-    logger.info(`Bulk priority update completed: ${result.summary.successful}/${result.summary.total} successful`);
+    logger.info(
+      `Bulk priority update completed: ${result.summary.successful}/${result.summary.total} successful`
+    );
     return result;
   }
 
@@ -181,7 +187,7 @@ export class BulkOperationsService {
     const result: BulkOperationResult = {
       success: [],
       failed: [],
-      summary: { total: ticketIds.length, successful: 0, failed: 0 }
+      summary: { total: ticketIds.length, successful: 0, failed: 0 },
     };
 
     // Only admins and team leads can delete tickets
@@ -206,7 +212,7 @@ export class BulkOperationsService {
       } catch (error) {
         result.failed.push({
           ticketId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         result.summary.failed++;
         logger.warn(`Failed to delete ticket ${ticketId}:`, error);
@@ -216,7 +222,9 @@ export class BulkOperationsService {
     // Update metrics for affected queues
     this.updateAffectedQueueMetrics(ticketIds);
 
-    logger.info(`Bulk delete completed: ${result.summary.successful}/${result.summary.total} successful`);
+    logger.info(
+      `Bulk delete completed: ${result.summary.successful}/${result.summary.total} successful`
+    );
     return result;
   }
 
@@ -232,7 +240,7 @@ export class BulkOperationsService {
     const result: BulkOperationResult = {
       success: [],
       failed: [],
-      summary: { total: ticketIds.length, successful: 0, failed: 0 }
+      summary: { total: ticketIds.length, successful: 0, failed: 0 },
     };
 
     // Validate permissions
@@ -257,7 +265,7 @@ export class BulkOperationsService {
       } catch (error) {
         result.failed.push({
           ticketId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
         result.summary.failed++;
         logger.warn(`Failed to move ticket ${ticketId}:`, error);
@@ -267,7 +275,9 @@ export class BulkOperationsService {
     // Update metrics for affected queues
     this.updateAffectedQueueMetrics(ticketIds);
 
-    logger.info(`Bulk move completed: ${result.summary.successful}/${result.summary.total} successful`);
+    logger.info(
+      `Bulk move completed: ${result.summary.successful}/${result.summary.total} successful`
+    );
     return result;
   }
 
@@ -340,7 +350,7 @@ export class BulkOperationsService {
         .select('queue_id')
         .distinct();
 
-      const queueIds = tickets.map(t => t.queue_id);
+      const queueIds = tickets.map((t) => t.queue_id);
 
       // Update metrics for each affected queue
       for (const queueId of queueIds) {

@@ -2,10 +2,7 @@ import { UsageTrackingService } from './UsageTrackingService';
 import { SubscriptionService } from './SubscriptionService';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
-  UsageStats,
-  SubscriptionPlan as SubscriptionPlanModel
-} from '@/types/models';
+import { UsageStats, SubscriptionPlan as SubscriptionPlanModel } from '@/types/models';
 
 export interface LimitEnforcementResult {
   allowed: boolean;
@@ -24,14 +21,14 @@ export class SubscriptionEnforcementService {
   static async enforceTicketCreationLimit(userId: string): Promise<LimitEnforcementResult> {
     try {
       const canCreateResult = await UsageTrackingService.canCreateTicket(userId);
-      
+
       if (canCreateResult.canCreate) {
         return { allowed: true };
       }
 
       // Get suggested upgrade plans
       const suggestedPlans = await this.getSuggestedUpgradePlans(userId);
-      
+
       const upgradeMessage = this.generateUpgradeMessage(
         canCreateResult.limitType || 'active',
         canCreateResult.usage,
@@ -45,7 +42,7 @@ export class SubscriptionEnforcementService {
         currentUsage: canCreateResult.usage,
         limits: canCreateResult.limits,
         upgradeMessage,
-        suggestedPlans
+        suggestedPlans,
       };
     } catch (error) {
       logger.error('Error enforcing ticket creation limit', { userId, error });
@@ -60,13 +57,13 @@ export class SubscriptionEnforcementService {
   static async enforceTicketCompletionLimit(userId: string): Promise<LimitEnforcementResult> {
     try {
       const canCompleteResult = await UsageTrackingService.canCompleteTicket(userId);
-      
+
       if (canCompleteResult.canComplete) {
         return { allowed: true };
       }
 
       const suggestedPlans = await this.getSuggestedUpgradePlans(userId);
-      
+
       const upgradeMessage = this.generateUpgradeMessage(
         'completed',
         canCompleteResult.usage,
@@ -80,7 +77,7 @@ export class SubscriptionEnforcementService {
         currentUsage: canCompleteResult.usage,
         limits: canCompleteResult.limits,
         upgradeMessage,
-        suggestedPlans
+        suggestedPlans,
       };
     } catch (error) {
       logger.error('Error enforcing ticket completion limit', { userId, error });
@@ -94,7 +91,7 @@ export class SubscriptionEnforcementService {
    */
   static async checkTicketCreationLimits(userId: string): Promise<void> {
     const enforcement = await this.enforceTicketCreationLimit(userId);
-    
+
     if (!enforcement.allowed) {
       const error = new AppError(
         enforcement.reason || 'Ticket creation limit reached',
@@ -105,17 +102,17 @@ export class SubscriptionEnforcementService {
           currentUsage: enforcement.currentUsage,
           limits: enforcement.limits,
           upgradeMessage: enforcement.upgradeMessage,
-          suggestedPlans: enforcement.suggestedPlans
+          suggestedPlans: enforcement.suggestedPlans,
         }
       );
-      
+
       logger.warn('Ticket creation blocked due to subscription limits', {
         userId,
         limitType: enforcement.limitType,
         currentUsage: enforcement.currentUsage,
-        limits: enforcement.limits
+        limits: enforcement.limits,
       });
-      
+
       throw error;
     }
   }
@@ -125,7 +122,7 @@ export class SubscriptionEnforcementService {
    */
   static async checkTicketCompletionLimits(userId: string): Promise<void> {
     const enforcement = await this.enforceTicketCompletionLimit(userId);
-    
+
     if (!enforcement.allowed) {
       const error = new AppError(
         enforcement.reason || 'Ticket completion limit reached',
@@ -136,17 +133,17 @@ export class SubscriptionEnforcementService {
           currentUsage: enforcement.currentUsage,
           limits: enforcement.limits,
           upgradeMessage: enforcement.upgradeMessage,
-          suggestedPlans: enforcement.suggestedPlans
+          suggestedPlans: enforcement.suggestedPlans,
         }
       );
-      
+
       logger.warn('Ticket completion blocked due to subscription limits', {
         userId,
         limitType: enforcement.limitType,
         currentUsage: enforcement.currentUsage,
-        limits: enforcement.limits
+        limits: enforcement.limits,
       });
-      
+
       throw error;
     }
   }
@@ -171,34 +168,37 @@ export class SubscriptionEnforcementService {
 
       // Check active tickets warning
       if (limitStatus.percentageUsed.active >= 75) {
-        const severity: 'info' | 'warning' | 'critical' = limitStatus.percentageUsed.active >= 90 ? 'critical' : 'warning';
+        const severity: 'info' | 'warning' | 'critical' =
+          limitStatus.percentageUsed.active >= 90 ? 'critical' : 'warning';
         warnings.push({
           type: 'active' as const,
           percentage: limitStatus.percentageUsed.active,
           message: `You're using ${Math.round(limitStatus.percentageUsed.active)}% of your active ticket limit (${limitStatus.current.activeTickets}/${limitStatus.limits.activeTickets})`,
-          severity
+          severity,
         });
       }
 
       // Check completed tickets warning
       if (limitStatus.percentageUsed.completed >= 75) {
-        const severity: 'info' | 'warning' | 'critical' = limitStatus.percentageUsed.completed >= 90 ? 'critical' : 'warning';
+        const severity: 'info' | 'warning' | 'critical' =
+          limitStatus.percentageUsed.completed >= 90 ? 'critical' : 'warning';
         warnings.push({
           type: 'completed' as const,
           percentage: limitStatus.percentageUsed.completed,
           message: `You're using ${Math.round(limitStatus.percentageUsed.completed)}% of your completed ticket limit (${limitStatus.current.completedTickets}/${limitStatus.limits.completedTickets})`,
-          severity
+          severity,
         });
       }
 
       // Check total tickets warning
       if (limitStatus.percentageUsed.total >= 75) {
-        const severity: 'info' | 'warning' | 'critical' = limitStatus.percentageUsed.total >= 90 ? 'critical' : 'warning';
+        const severity: 'info' | 'warning' | 'critical' =
+          limitStatus.percentageUsed.total >= 90 ? 'critical' : 'warning';
         warnings.push({
           type: 'total' as const,
           percentage: limitStatus.percentageUsed.total,
           message: `You're using ${Math.round(limitStatus.percentageUsed.total)}% of your total ticket limit (${limitStatus.current.totalTickets}/${limitStatus.limits.totalTickets})`,
-          severity
+          severity,
         });
       }
 
@@ -207,14 +207,15 @@ export class SubscriptionEnforcementService {
 
       if (warnings.length > 0) {
         suggestedPlans = await this.getSuggestedUpgradePlans(userId);
-        upgradeMessage = 'Consider upgrading your plan to get higher limits and avoid interruptions.';
+        upgradeMessage =
+          'Consider upgrading your plan to get higher limits and avoid interruptions.';
       }
 
       return {
         hasWarnings: warnings.length > 0,
         warnings,
         upgradeMessage,
-        suggestedPlans
+        suggestedPlans,
       };
     } catch (error) {
       logger.error('Error getting usage warnings', { userId, error });
@@ -237,10 +238,9 @@ export class SubscriptionEnforcementService {
       const allPlans = await SubscriptionService.getAvailablePlans();
 
       // Filter plans that are higher tier than current plan
-      return allPlans.filter(plan => 
-        plan.price > currentPlan.price && 
-        plan.id !== currentPlan.id
-      ).sort((a, b) => a.price - b.price);
+      return allPlans
+        .filter((plan) => plan.price > currentPlan.price && plan.id !== currentPlan.id)
+        .sort((a, b) => a.price - b.price);
     } catch (error) {
       logger.error('Error getting suggested upgrade plans', { userId, error });
       return [];
@@ -262,13 +262,13 @@ export class SubscriptionEnforcementService {
     switch (limitType) {
       case 'active':
         return `You've reached your active ticket limit of ${limits.activeTickets}. Upgrade to a higher plan to create more tickets or complete some existing tickets to free up space.`;
-      
+
       case 'completed':
         return `You've reached your completed ticket limit of ${limits.completedTickets}. Upgrade to a higher plan or archive some completed tickets to continue.`;
-      
+
       case 'total':
         return `You've reached your total ticket limit of ${limits.totalTickets}. Upgrade to a higher plan to continue creating and managing tickets.`;
-      
+
       default:
         return 'Upgrade your plan to get higher limits and continue without interruption.';
     }
@@ -309,16 +309,11 @@ export class SubscriptionEnforcementService {
     }>;
   }> {
     try {
-      const [
-        canCreateResult,
-        canCompleteResult,
-        hasUnlimited,
-        warningsResult
-      ] = await Promise.all([
+      const [canCreateResult, canCompleteResult, hasUnlimited, warningsResult] = await Promise.all([
         UsageTrackingService.canCreateTicket(userId),
         UsageTrackingService.canCompleteTicket(userId),
         this.hasUnlimitedPlan(userId),
-        this.getUsageWarnings(userId)
+        this.getUsageWarnings(userId),
       ]);
 
       return {
@@ -329,23 +324,23 @@ export class SubscriptionEnforcementService {
           activeTickets: 0,
           completedTickets: 0,
           totalTickets: 0,
-          archivedTickets: 0
+          archivedTickets: 0,
         },
         limits: canCreateResult.limits || {
           activeTickets: 0,
           completedTickets: 0,
-          totalTickets: 0
+          totalTickets: 0,
         },
         percentageUsed: {
           active: 0,
           completed: 0,
-          total: 0
+          total: 0,
         },
-        warnings: warningsResult.warnings
+        warnings: warningsResult.warnings,
       };
     } catch (error) {
       logger.error('Error getting enforcement status', { userId, error });
-      
+
       // Return safe defaults on error
       return {
         canCreateTickets: true,
@@ -355,19 +350,19 @@ export class SubscriptionEnforcementService {
           activeTickets: 0,
           completedTickets: 0,
           totalTickets: 0,
-          archivedTickets: 0
+          archivedTickets: 0,
         },
         limits: {
           activeTickets: 0,
           completedTickets: 0,
-          totalTickets: 0
+          totalTickets: 0,
         },
         percentageUsed: {
           active: 0,
           completed: 0,
-          total: 0
+          total: 0,
         },
-        warnings: []
+        warnings: [],
       };
     }
   }
@@ -383,7 +378,7 @@ export class SubscriptionEnforcementService {
     try {
       const currentUsage = await UsageTrackingService.getCurrentUsage(userId);
       const userSubscription = await SubscriptionService.getUserSubscription(userId);
-      
+
       if (!userSubscription) {
         return { allowed: true };
       }
@@ -391,7 +386,11 @@ export class SubscriptionEnforcementService {
       const limits = userSubscription.plan.limits;
 
       // Check if unlimited plan
-      if (limits.activeTickets === -1 && limits.completedTickets === -1 && limits.totalTickets === -1) {
+      if (
+        limits.activeTickets === -1 &&
+        limits.completedTickets === -1 &&
+        limits.totalTickets === -1
+      ) {
         return { allowed: true };
       }
 
@@ -433,7 +432,7 @@ export class SubscriptionEnforcementService {
           currentUsage,
           limits,
           upgradeMessage,
-          suggestedPlans
+          suggestedPlans,
         };
       }
 

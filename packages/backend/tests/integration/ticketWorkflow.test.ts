@@ -396,7 +396,7 @@ describe('Ticket Workflow Integration', () => {
           }),
       ]);
 
-      ticketIds = tickets.map(response => response.body.data.id);
+      ticketIds = tickets.map((response) => response.body.data.id);
     });
 
     it('should allow bulk status update', async () => {

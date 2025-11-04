@@ -17,7 +17,12 @@ export class AppError extends Error {
   public code: string;
   public details?: Record<string, any>;
 
-  constructor(message: string, statusCode: number = 500, code?: string, details?: Record<string, any>) {
+  constructor(
+    message: string,
+    statusCode: number = 500,
+    code?: string,
+    details?: Record<string, any>
+  ) {
     super(message);
     this.statusCode = statusCode;
     this.code = code || 'INTERNAL_ERROR';
@@ -33,7 +38,7 @@ export const errorHandler = (
   next: NextFunction
 ): void => {
   const requestId = uuidv4();
-  
+
   // Log the error
   logger.error('Request error', {
     requestId,
@@ -42,7 +47,7 @@ export const errorHandler = (
     url: req.url,
     method: req.method,
     ip: req.ip,
-    userAgent: req.get('User-Agent')
+    userAgent: req.get('User-Agent'),
   });
 
   // Handle different error types
@@ -80,8 +85,8 @@ export const errorHandler = (
       message,
       details,
       timestamp: new Date().toISOString(),
-      requestId
-    }
+      requestId,
+    },
   };
 
   res.status(statusCode).json(errorResponse);

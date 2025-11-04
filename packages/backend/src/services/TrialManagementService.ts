@@ -68,12 +68,12 @@ export class TrialManagementService {
         metadata: {
           ...options.metadata,
           trialStartedAt: now.toISOString(),
-          originalTrialDays: trialDays
-        }
+          originalTrialDays: trialDays,
+        },
       };
 
       const subscription = await CustomerSubscription.createSubscription(subscriptionData);
-      
+
       // Send welcome email if requested
       if (options.sendWelcomeEmail) {
         await this.sendTrialWelcomeEmail(userId, plan, trialEnd);
@@ -85,7 +85,7 @@ export class TrialManagementService {
         planId: plan.id,
         planSlug,
         trialDays,
-        trialEnd
+        trialEnd,
       });
 
       return CustomerSubscription.toModel(subscription);
@@ -146,7 +146,7 @@ export class TrialManagementService {
         subscriptionId,
         userId: subscription.user_id,
         planId: subscription.plan_id,
-        paymentMethodId: options.paymentMethodId
+        paymentMethodId: options.paymentMethodId,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -181,8 +181,8 @@ export class TrialManagementService {
           ...JSON.parse(subscription.metadata || '{}'),
           cancellationReason: reason,
           cancelledDuringTrial: true,
-          cancelledAt: new Date().toISOString()
-        })
+          cancelledAt: new Date().toISOString(),
+        }),
       };
 
       const cancelledSubscription = await CustomerSubscription.update(subscriptionId, updateData);
@@ -197,7 +197,7 @@ export class TrialManagementService {
         subscriptionId,
         userId: subscription.user_id,
         planId: subscription.plan_id,
-        reason
+        reason,
       });
 
       return CustomerSubscription.toModel(cancelledSubscription);
@@ -227,17 +227,17 @@ export class TrialManagementService {
       }
 
       if (subscription.status !== 'trial' || !subscription.trial_end) {
-        return { 
+        return {
           isInTrial: false,
           canConvert: false,
-          canExtend: false
+          canExtend: false,
         };
       }
 
       const now = new Date();
       const trialEnd = new Date(subscription.trial_end);
       const hasExpired = now > trialEnd;
-      
+
       const timeRemaining = trialEnd.getTime() - now.getTime();
       const daysRemaining = hasExpired ? 0 : Math.ceil(timeRemaining / (1000 * 60 * 60 * 24));
       const hoursRemaining = hasExpired ? 0 : Math.ceil(timeRemaining / (1000 * 60 * 60));
@@ -250,7 +250,7 @@ export class TrialManagementService {
         hoursRemaining,
         hasExpired,
         canConvert: !hasExpired,
-        canExtend: !hasExpired
+        canExtend: !hasExpired,
       };
     } catch (error) {
       logger.error('Error getting trial status', { subscriptionId, error });
@@ -300,10 +300,10 @@ export class TrialManagementService {
               extendedAt: new Date().toISOString(),
               additionalDays,
               reason,
-              newTrialEnd: newTrialEnd.toISOString()
-            }
-          ]
-        })
+              newTrialEnd: newTrialEnd.toISOString(),
+            },
+          ],
+        }),
       };
 
       const updatedSubscription = await CustomerSubscription.update(subscriptionId, updateData);
@@ -319,7 +319,7 @@ export class TrialManagementService {
         userId: subscription.user_id,
         additionalDays,
         newTrialEnd,
-        reason
+        reason,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -351,32 +351,28 @@ export class TrialManagementService {
         try {
           if (freeTierPlan) {
             // Convert to free tier
-            await CustomerSubscription.upgradeSubscription(
-              trial.id,
-              freeTierPlan.id,
-              new Date()
-            );
+            await CustomerSubscription.upgradeSubscription(trial.id, freeTierPlan.id, new Date());
             await CustomerSubscription.updateSubscriptionStatus(trial.id, 'active');
             convertedToFree++;
-            
+
             // Send downgrade notification
             await this.sendTrialExpiredEmail(trial.user_id, 'converted_to_free');
-            
+
             logger.info('Expired trial converted to free tier', {
               subscriptionId: trial.id,
-              userId: trial.user_id
+              userId: trial.user_id,
             });
           } else {
             // Cancel the subscription
             await CustomerSubscription.updateSubscriptionStatus(trial.id, 'cancelled');
             cancelled++;
-            
+
             // Send cancellation notification
             await this.sendTrialExpiredEmail(trial.user_id, 'cancelled');
-            
+
             logger.info('Expired trial cancelled', {
               subscriptionId: trial.id,
-              userId: trial.user_id
+              userId: trial.user_id,
             });
           }
         } catch (error) {
@@ -384,7 +380,7 @@ export class TrialManagementService {
           logger.error('Error processing expired trial', {
             subscriptionId: trial.id,
             userId: trial.user_id,
-            error
+            error,
           });
         }
       }
@@ -393,14 +389,14 @@ export class TrialManagementService {
         total: expiredTrials.length,
         cancelled,
         convertedToFree,
-        errors
+        errors,
       });
 
       return {
         processed: expiredTrials.length,
         cancelled,
         convertedToFree,
-        errors
+        errors,
       };
     } catch (error) {
       logger.error('Error processing expired trials', { error });
@@ -423,16 +419,16 @@ export class TrialManagementService {
       for (const days of this.REMINDER_DAYS) {
         try {
           const expiringTrials = await this.getTrialsExpiringInDays(days);
-          
+
           for (const trial of expiringTrials) {
             try {
               await this.sendTrialReminderEmail(trial.user_id, days, trial.trial_end!);
               sent++;
-              
+
               logger.info('Trial reminder sent', {
                 subscriptionId: trial.id,
                 userId: trial.user_id,
-                daysRemaining: days
+                daysRemaining: days,
               });
             } catch (error) {
               errors++;
@@ -440,7 +436,7 @@ export class TrialManagementService {
                 subscriptionId: trial.id,
                 userId: trial.user_id,
                 daysRemaining: days,
-                error
+                error,
               });
             }
           }
@@ -463,11 +459,11 @@ export class TrialManagementService {
   private static async getTrialsExpiringInDays(days: number): Promise<any[]> {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + days);
-    
+
     // Get trials expiring on the target date (within 24 hours)
     const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -490,7 +486,7 @@ export class TrialManagementService {
         userId,
         planName: plan.name,
         trialEnd: trialEnd.toLocaleDateString(),
-        daysRemaining: Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        daysRemaining: Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
       });
     } catch (error) {
       logger.error('Error sending trial welcome email', { userId, error });
@@ -511,7 +507,7 @@ export class TrialManagementService {
         userId,
         daysRemaining,
         trialEnd: trialEnd.toLocaleDateString(),
-        upgradeUrl: `${process.env.FRONTEND_URL}/pricing?upgrade=true`
+        upgradeUrl: `${process.env.FRONTEND_URL}/pricing?upgrade=true`,
       });
     } catch (error) {
       logger.error('Error sending trial reminder email', { userId, daysRemaining, error });
@@ -530,7 +526,7 @@ export class TrialManagementService {
       logger.info('Trial conversion email would be sent', {
         userId,
         subscriptionId,
-        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       });
     } catch (error) {
       logger.error('Error sending trial conversion email', { userId, subscriptionId, error });
@@ -540,16 +536,13 @@ export class TrialManagementService {
   /**
    * Send trial cancellation email
    */
-  private static async sendTrialCancellationEmail(
-    userId: string,
-    reason?: string
-  ): Promise<void> {
+  private static async sendTrialCancellationEmail(userId: string, reason?: string): Promise<void> {
     try {
       // TODO: Integrate with EmailService when template system is ready
       logger.info('Trial cancellation email would be sent', {
         userId,
         reason: reason || 'No reason provided',
-        pricingUrl: `${process.env.FRONTEND_URL}/pricing`
+        pricingUrl: `${process.env.FRONTEND_URL}/pricing`,
       });
     } catch (error) {
       logger.error('Error sending trial cancellation email', { userId, error });
@@ -570,7 +563,7 @@ export class TrialManagementService {
         userId,
         additionalDays,
         newTrialEnd: newTrialEnd.toLocaleDateString(),
-        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       });
     } catch (error) {
       logger.error('Error sending trial extension email', { userId, additionalDays, error });
@@ -590,7 +583,7 @@ export class TrialManagementService {
         userId,
         action,
         pricingUrl: `${process.env.FRONTEND_URL}/pricing`,
-        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`
+        dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
       });
     } catch (error) {
       logger.error('Error sending trial expired email', { userId, action, error });

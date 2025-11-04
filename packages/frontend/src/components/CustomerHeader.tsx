@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDownIcon, PlusIcon, UserIcon, ArrowRightOnRectangleIcon, CreditCardIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronDownIcon,
+  PlusIcon,
+  UserIcon,
+  ArrowRightOnRectangleIcon,
+  CreditCardIcon,
+} from '@heroicons/react/24/outline';
 import { Company, User } from '../types';
 
 interface CustomerHeaderProps {
@@ -22,7 +28,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-  const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+  const selectedCompany = companies.find((c) => c.id === selectedCompanyId);
 
   const isActive = (path: string) => {
     if (path === '/customer' && location.pathname === '/customer') return true;
@@ -39,7 +45,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             <Link to="/customer" className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900">Bomizzel</h1>
             </Link>
-            
+
             <nav className="hidden md:flex space-x-6">
               <Link
                 to="/customer"
@@ -86,7 +92,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                   <span>{selectedCompany?.name || 'Select Company'}</span>
                   <ChevronDownIcon className="h-4 w-4" />
                 </button>
-                
+
                 {showCompanyDropdown && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                     <div className="py-1">
@@ -119,10 +125,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             )}
 
             {/* Create Ticket Button */}
-            <Link
-              to="/customer/create"
-              className="btn-primary flex items-center space-x-2"
-            >
+            <Link to="/customer/create" className="btn-primary flex items-center space-x-2">
               <PlusIcon className="h-4 w-4" />
               <span className="hidden sm:inline">New Ticket</span>
             </Link>
@@ -139,13 +142,11 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                 </span>
                 <ChevronDownIcon className="h-4 w-4" />
               </button>
-              
+
               {showUserDropdown && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                   <div className="py-1">
-                    <div className="px-4 py-2 text-xs text-gray-500">
-                      {user?.email}
-                    </div>
+                    <div className="px-4 py-2 text-xs text-gray-500">{user?.email}</div>
                     <hr className="my-1" />
                     <Link
                       to="/customer/subscription"

@@ -2,11 +2,7 @@ import { Router } from 'express';
 import { UserService } from '@/services/UserService';
 import { authenticate, authorize, authorizeOwnerOrAdmin } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
-import {
-  updateUserSchema,
-  paginationSchema,
-  uuidSchema,
-} from '@/utils/validation';
+import { updateUserSchema, paginationSchema, uuidSchema } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
 
 const router = Router();
@@ -15,10 +11,11 @@ const router = Router();
  * GET /users
  * Get all users with pagination and filtering (Admin only)
  */
-router.get('/', 
-  authenticate, 
-  authorize('admin'), 
-  validate(paginationSchema, 'query'), 
+router.get(
+  '/',
+  authenticate,
+  authorize('admin'),
+  validate(paginationSchema, 'query'),
   async (req, res, next) => {
     try {
       const { page, limit, search, sortBy, sortOrder } = req.query as any;
@@ -43,51 +40,45 @@ router.get('/',
  * GET /users/stats
  * Get user statistics (Admin only)
  */
-router.get('/stats', 
-  authenticate, 
-  authorize('admin'), 
-  async (req, res, next) => {
-    try {
-      const stats = await UserService.getUserStats();
-      res.json(stats);
-    } catch (error) {
-      next(error);
-    }
+router.get('/stats', authenticate, authorize('admin'), async (req, res, next) => {
+  try {
+    const stats = await UserService.getUserStats();
+    res.json(stats);
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 /**
  * GET /users/search
  * Search users by name or email
  */
-router.get('/search', 
-  authenticate, 
-  async (req, res, next) => {
-    try {
-      const { q: query, limit, role } = req.query as any;
+router.get('/search', authenticate, async (req, res, next) => {
+  try {
+    const { q: query, limit, role } = req.query as any;
 
-      if (!query || query.length < 2) {
-        throw new AppError('Search query must be at least 2 characters', 400, 'INVALID_SEARCH_QUERY');
-      }
-
-      const users = await UserService.searchUsers(query, {
-        limit: limit ? parseInt(limit, 10) : 10,
-        role,
-      });
-
-      res.json({ users });
-    } catch (error) {
-      next(error);
+    if (!query || query.length < 2) {
+      throw new AppError('Search query must be at least 2 characters', 400, 'INVALID_SEARCH_QUERY');
     }
+
+    const users = await UserService.searchUsers(query, {
+      limit: limit ? parseInt(limit, 10) : 10,
+      role,
+    });
+
+    res.json({ users });
+  } catch (error) {
+    next(error);
   }
-);/**
+}); /**
 
  * GET /users/:userId
  * Get user by ID (Admin or own profile)
  */
-router.get('/:userId', 
-  authenticate, 
-  validate(uuidSchema, 'params'), 
+router.get(
+  '/:userId',
+  authenticate,
+  validate(uuidSchema, 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
@@ -104,22 +95,27 @@ router.get('/:userId',
  * PUT /users/:userId
  * Update user information (Admin or own profile)
  */
-router.put('/:userId', 
-  authenticate, 
+router.put(
+  '/:userId',
+  authenticate,
   validate(uuidSchema, 'params'),
   validate(updateUserSchema),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
-      
+
       // Only admins can change role and isActive status
       if ((req.body.role || req.body.isActive !== undefined) && req.user!.role !== 'admin') {
-        throw new AppError('Only administrators can change user role or status', 403, 'ADMIN_REQUIRED');
+        throw new AppError(
+          'Only administrators can change user role or status',
+          403,
+          'ADMIN_REQUIRED'
+        );
       }
 
       const updatedUser = await UserService.updateUser(userId, req.body, req.user!.id);
-      
+
       res.json({
         message: 'User updated successfully',
         user: updatedUser,
@@ -134,20 +130,21 @@ router.put('/:userId',
  * POST /users/:userId/deactivate
  * Deactivate user account (Admin only)
  */
-router.post('/:userId/deactivate', 
-  authenticate, 
+router.post(
+  '/:userId/deactivate',
+  authenticate,
   authorize('admin'),
   validate(uuidSchema, 'params'),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
-      
+
       if (userId === req.user!.id) {
         throw new AppError('Cannot deactivate your own account', 400, 'CANNOT_DEACTIVATE_SELF');
       }
 
       await UserService.deactivateUser(userId, req.user!.id);
-      
+
       res.json({
         message: 'User deactivated successfully',
       });
@@ -161,15 +158,16 @@ router.post('/:userId/deactivate',
  * POST /users/:userId/reactivate
  * Reactivate user account (Admin only)
  */
-router.post('/:userId/reactivate', 
-  authenticate, 
+router.post(
+  '/:userId/reactivate',
+  authenticate,
   authorize('admin'),
   validate(uuidSchema, 'params'),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
       await UserService.reactivateUser(userId, req.user!.id);
-      
+
       res.json({
         message: 'User reactivated successfully',
       });
@@ -183,8 +181,9 @@ router.post('/:userId/reactivate',
  * GET /users/:userId/companies
  * Get user's company associations
  */
-router.get('/:userId/companies', 
-  authenticate, 
+router.get(
+  '/:userId/companies',
+  authenticate,
   validate(uuidSchema, 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
@@ -202,8 +201,9 @@ router.get('/:userId/companies',
  * GET /users/:userId/teams
  * Get user's team memberships
  */
-router.get('/:userId/teams', 
-  authenticate, 
+router.get(
+  '/:userId/teams',
+  authenticate,
   validate(uuidSchema, 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
@@ -221,15 +221,16 @@ router.get('/:userId/teams',
  * PUT /users/:userId/preferences
  * Update user preferences
  */
-router.put('/:userId/preferences', 
-  authenticate, 
+router.put(
+  '/:userId/preferences',
+  authenticate,
   validate(uuidSchema, 'params'),
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
       const updatedUser = await UserService.updateUserPreferences(userId, req.body);
-      
+
       res.json({
         message: 'Preferences updated successfully',
         user: updatedUser,

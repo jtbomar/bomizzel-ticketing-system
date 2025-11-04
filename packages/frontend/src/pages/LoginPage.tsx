@@ -13,7 +13,7 @@ const LoginPage: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     try {
       await login(formData.email, formData.password);
-      
+
       // The AuthContext will handle setting the user
       // Navigate to employee/agent view by default (users can navigate to admin if needed)
       navigate('/employee');
@@ -52,7 +52,7 @@ const LoginPage: React.FC = () => {
                   {error}
                 </div>
               )}
-              
+
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email address
@@ -69,7 +69,7 @@ const LoginPage: React.FC = () => {
                   placeholder="Enter your email"
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                   Password
@@ -86,10 +86,10 @@ const LoginPage: React.FC = () => {
                   placeholder="Enter your password"
                 />
               </div>
-              
+
               <div>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={isLoading}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >

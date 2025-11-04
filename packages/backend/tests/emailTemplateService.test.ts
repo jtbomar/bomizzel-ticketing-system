@@ -230,10 +230,9 @@ describe('EmailTemplateService', () => {
       });
 
       expect(MockedEmailTemplate.findByName).toHaveBeenCalledWith('test_template');
-      expect(MockedEmailTemplate.renderTemplate).toHaveBeenCalledWith(
-        'template-123',
-        { 'customer.firstName': 'John' }
-      );
+      expect(MockedEmailTemplate.renderTemplate).toHaveBeenCalledWith('template-123', {
+        'customer.firstName': 'John',
+      });
       expect(result?.subject).toBe('Rendered Subject');
     });
 
@@ -265,8 +264,7 @@ describe('EmailTemplateService', () => {
     });
 
     it('should return errors for invalid template', async () => {
-      MockedEmailTemplate.extractVariablesFromContent
-        .mockReturnValue(['invalid-variable-name']);
+      MockedEmailTemplate.extractVariablesFromContent.mockReturnValue(['invalid-variable-name']);
 
       const result = await EmailTemplateService.validateTemplate({
         subject: '',

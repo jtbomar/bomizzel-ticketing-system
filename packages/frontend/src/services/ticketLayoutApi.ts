@@ -1,12 +1,7 @@
 import { apiService } from './api';
-import { 
-  TicketLayout, 
-  TicketLayoutResponse, 
-  CreateLayoutRequest 
-} from '../types/ticketLayout';
+import { TicketLayout, TicketLayoutResponse, CreateLayoutRequest } from '../types/ticketLayout';
 
 export class TicketLayoutApiService {
-  
   async getLayoutsByTeam(teamId: string): Promise<TicketLayout[]> {
     const response = await apiService.client.get(`/ticket-layouts?teamId=${teamId}`);
     return response.data.layouts;
@@ -27,12 +22,15 @@ export class TicketLayoutApiService {
   async createLayout(teamId: string, request: CreateLayoutRequest): Promise<TicketLayoutResponse> {
     const response = await apiService.client.post('/ticket-layouts', {
       ...request,
-      teamId
+      teamId,
     });
     return response.data;
   }
 
-  async updateLayout(layoutId: string, request: Partial<CreateLayoutRequest>): Promise<TicketLayoutResponse> {
+  async updateLayout(
+    layoutId: string,
+    request: Partial<CreateLayoutRequest>
+  ): Promise<TicketLayoutResponse> {
     const response = await apiService.client.put(`/ticket-layouts/${layoutId}`, request);
     return response.data;
   }
@@ -43,7 +41,7 @@ export class TicketLayoutApiService {
 
   async duplicateLayout(layoutId: string, newName: string): Promise<TicketLayoutResponse> {
     const response = await apiService.client.post(`/ticket-layouts/${layoutId}/duplicate`, {
-      name: newName
+      name: newName,
     });
     return response.data;
   }

@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  TicketLayoutResponse, 
-  LayoutField, 
-  PicklistOption 
-} from '../types/ticketLayout';
+import { TicketLayoutResponse, LayoutField, PicklistOption } from '../types/ticketLayout';
 import { ticketLayoutApi } from '../services/ticketLayoutApi';
 
 interface DynamicTicketFormProps {
@@ -21,7 +17,7 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
   initialValues = {},
   onSubmit,
   onCancel,
-  submitLabel = 'Create Ticket'
+  submitLabel = 'Create Ticket',
 }) => {
   const [layout, setLayout] = useState<TicketLayoutResponse | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>(initialValues);
@@ -36,36 +32,36 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
     try {
       setLoading(true);
       let layoutData: TicketLayoutResponse;
-      
+
       if (layoutId) {
         layoutData = await ticketLayoutApi.getLayoutById(layoutId);
       } else {
         layoutData = await ticketLayoutApi.getDefaultLayout(teamId);
       }
-      
+
       setLayout(layoutData);
-      
+
       // Set default values from field configuration
       const defaultValues: Record<string, any> = {
         // Set default core field values
         status: 'open', // Default status
-        priority: 'medium' // Default priority
+        priority: 'medium', // Default priority
       };
-      
-      layoutData.fields.forEach(field => {
+
+      layoutData.fields.forEach((field) => {
         if (field.fieldConfig.defaultValue !== undefined) {
           defaultValues[field.fieldName] = field.fieldConfig.defaultValue;
         }
         // Set default picklist values
         if (field.fieldType === 'picklist' && field.fieldConfig.options) {
-          const defaultOption = field.fieldConfig.options.find(opt => opt.isDefault);
+          const defaultOption = field.fieldConfig.options.find((opt) => opt.isDefault);
           if (defaultOption) {
             defaultValues[field.fieldName] = defaultOption.value;
           }
         }
       });
-      
-      setFormData(prev => ({ ...defaultValues, ...prev }));
+
+      setFormData((prev) => ({ ...defaultValues, ...prev }));
     } catch (error) {
       console.error('Error loading layout:', error);
     } finally {
@@ -74,19 +70,19 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
   };
 
   const handleFieldChange = (fieldName: string, value: any) => {
-    setFormData(prev => ({ ...prev, [fieldName]: value }));
-    
+    setFormData((prev) => ({ ...prev, [fieldName]: value }));
+
     // Clear error when user starts typing
     if (errors[fieldName]) {
-      setErrors(prev => ({ ...prev, [fieldName]: '' }));
+      setErrors((prev) => ({ ...prev, [fieldName]: '' }));
     }
   };
 
   const validateForm = (): boolean => {
     if (!layout) return false;
-    
+
     const newErrors: Record<string, string> = {};
-    
+
     // Always validate required core fields
     if (!formData.title || formData.title.trim() === '') {
       newErrors.title = 'Title is required';
@@ -97,32 +93,34 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
     if (!formData.status || formData.status.trim() === '') {
       newErrors.status = 'Status is required';
     }
-    
+
     // Validate custom fields
-    layout.fields.forEach(field => {
+    layout.fields.forEach((field) => {
       const value = formData[field.fieldName];
-      
+
       // Required field validation
       if (field.isRequired && (!value || value === '')) {
         newErrors[field.fieldName] = `${field.fieldLabel} is required`;
         return;
       }
-      
+
       // Skip validation if field is empty and not required
       if (!value && !field.isRequired) return;
-      
+
       // Field-specific validation
       if (field.validationRules) {
         const rules = field.validationRules;
-        
+
         // String length validation
         if (rules.minLength && value.length < rules.minLength) {
-          newErrors[field.fieldName] = `${field.fieldLabel} must be at least ${rules.minLength} characters`;
+          newErrors[field.fieldName] =
+            `${field.fieldLabel} must be at least ${rules.minLength} characters`;
         }
         if (rules.maxLength && value.length > rules.maxLength) {
-          newErrors[field.fieldName] = `${field.fieldLabel} must be no more than ${rules.maxLength} characters`;
+          newErrors[field.fieldName] =
+            `${field.fieldLabel} must be no more than ${rules.maxLength} characters`;
         }
-        
+
         // Number validation
         if (rules.min !== undefined && value < rules.min) {
           newErrors[field.fieldName] = `${field.fieldLabel} must be at least ${rules.min}`;
@@ -130,21 +128,21 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
         if (rules.max !== undefined && value > rules.max) {
           newErrors[field.fieldName] = `${field.fieldLabel} must be no more than ${rules.max}`;
         }
-        
+
         // Pattern validation
         if (rules.pattern && !new RegExp(rules.pattern).test(value)) {
           newErrors[field.fieldName] = `${field.fieldLabel} format is invalid`;
         }
       }
     });
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (validateForm()) {
       onSubmit(formData);
     }
@@ -167,7 +165,9 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
       case 'url':
         return (
           <input
-            type={field.fieldType === 'email' ? 'email' : field.fieldType === 'phone' ? 'tel' : 'text'}
+            type={
+              field.fieldType === 'email' ? 'email' : field.fieldType === 'phone' ? 'tel' : 'text'
+            }
             value={value}
             onChange={(e) => handleFieldChange(field.fieldName, e.target.value)}
             placeholder={field.fieldConfig.placeholder}
@@ -223,7 +223,11 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
               type="number"
               value={value}
               onChange={(e) => handleFieldChange(field.fieldName, parseFloat(e.target.value) || 0)}
-              step={currencyConfig?.precision ? `0.${'0'.repeat(currencyConfig.precision - 1)}1` : '0.01'}
+              step={
+                currencyConfig?.precision
+                  ? `0.${'0'.repeat(currencyConfig.precision - 1)}1`
+                  : '0.01'
+              }
               className={`${baseInputClasses} pl-8`}
             />
           </div>
@@ -277,7 +281,7 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
                   onChange={(e) => {
                     const newValues = e.target.checked
                       ? [...selectedValues, option.value]
-                      : selectedValues.filter(v => v !== option.value);
+                      : selectedValues.filter((v) => v !== option.value);
                     handleFieldChange(field.fieldName, newValues);
                   }}
                   className="mr-2"
@@ -369,7 +373,7 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
         {/* Required Fields Section */}
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Ticket Information</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Title Field */}
             <div className="space-y-1 md:col-span-2">
@@ -382,13 +386,13 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
                 onChange={(e) => handleFieldChange('title', e.target.value)}
                 placeholder="Enter a brief title for this ticket"
                 className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.title ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  errors.title
+                    ? 'border-red-300 focus:border-red-500'
+                    : 'border-gray-300 focus:border-blue-500'
                 }`}
                 required
               />
-              {errors.title && (
-                <p className="text-sm text-red-600">{errors.title}</p>
-              )}
+              {errors.title && <p className="text-sm text-red-600">{errors.title}</p>}
             </div>
 
             {/* Status Field */}
@@ -400,7 +404,9 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
                 value={formData.status || ''}
                 onChange={(e) => handleFieldChange('status', e.target.value)}
                 className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.status ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  errors.status
+                    ? 'border-red-300 focus:border-red-500'
+                    : 'border-gray-300 focus:border-blue-500'
                 }`}
                 required
               >
@@ -413,16 +419,12 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
                 <option value="resolved">Resolved</option>
                 <option value="closed">Closed</option>
               </select>
-              {errors.status && (
-                <p className="text-sm text-red-600">{errors.status}</p>
-              )}
+              {errors.status && <p className="text-sm text-red-600">{errors.status}</p>}
             </div>
 
             {/* Priority Field (optional, can be overridden by custom fields) */}
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Priority
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Priority</label>
               <select
                 value={formData.priority || ''}
                 onChange={(e) => handleFieldChange('priority', e.target.value)}
@@ -449,13 +451,13 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
               placeholder="Provide a detailed description of the issue or request"
               rows={4}
               className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.description ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                errors.description
+                  ? 'border-red-300 focus:border-red-500'
+                  : 'border-gray-300 focus:border-blue-500'
               }`}
               required
             />
-            {errors.description && (
-              <p className="text-sm text-red-600">{errors.description}</p>
-            )}
+            {errors.description && <p className="text-sm text-red-600">{errors.description}</p>}
           </div>
         </div>
 
@@ -463,10 +465,10 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
         {sortedFields.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-sm font-medium text-gray-700">Additional Information</h3>
-            <div 
+            <div
               className="grid gap-4"
               style={{
-                gridTemplateColumns: `repeat(${layout.layout.layoutConfig.gridColumns}, 1fr)`
+                gridTemplateColumns: `repeat(${layout.layout.layoutConfig.gridColumns}, 1fr)`,
               }}
             >
               {sortedFields.map((field) => (
@@ -474,7 +476,7 @@ const DynamicTicketForm: React.FC<DynamicTicketFormProps> = ({
                   key={field.id}
                   style={{
                     gridColumn: `${field.gridPositionX + 1} / span ${field.gridWidth}`,
-                    gridRow: `${field.gridPositionY + 1} / span ${field.gridHeight}`
+                    gridRow: `${field.gridPositionY + 1} / span ${field.gridHeight}`,
                   }}
                 >
                   <div className="space-y-1">

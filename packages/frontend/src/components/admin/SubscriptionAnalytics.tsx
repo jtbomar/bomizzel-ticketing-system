@@ -91,7 +91,7 @@ const SubscriptionAnalytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('current');
-  
+
   // Analytics data state
   const [mrrData, setMrrData] = useState<MRRData | null>(null);
   const [historicalMrr, setHistoricalMrr] = useState<MRRData[]>([]);
@@ -111,10 +111,7 @@ const SubscriptionAnalytics: React.FC = () => {
       setError(null);
 
       // Load all analytics data in parallel
-      const [
-        dashboardResponse,
-        historicalMrrResponse,
-      ] = await Promise.all([
+      const [dashboardResponse, historicalMrrResponse] = await Promise.all([
         api.get('/subscription-analytics/dashboard'),
         api.get('/subscription-analytics/mrr/historical?months=6'),
       ]);
@@ -264,7 +261,9 @@ const SubscriptionAnalytics: React.FC = () => {
             </div>
             <div className="mt-4 flex items-center">
               {getGrowthIcon(mrrData.newSubscriptions - mrrData.churnedSubscriptions)}
-              <span className={`ml-1 text-sm ${getGrowthColor(mrrData.newSubscriptions - mrrData.churnedSubscriptions)}`}>
+              <span
+                className={`ml-1 text-sm ${getGrowthColor(mrrData.newSubscriptions - mrrData.churnedSubscriptions)}`}
+              >
                 {Math.abs(mrrData.newSubscriptions - mrrData.churnedSubscriptions)} net growth
               </span>
             </div>
@@ -327,7 +326,8 @@ const SubscriptionAnalytics: React.FC = () => {
                   </span>
                   {index > 0 && (
                     <span className={`text-xs ${getGrowthColor(data.netMrrGrowth)}`}>
-                      ({data.netMrrGrowth > 0 ? '+' : ''}{formatCurrency(data.netMrrGrowth, data.currency)})
+                      ({data.netMrrGrowth > 0 ? '+' : ''}
+                      {formatCurrency(data.netMrrGrowth, data.currency)})
                     </span>
                   )}
                 </div>
@@ -352,9 +352,7 @@ const SubscriptionAnalytics: React.FC = () => {
                   <div className="text-sm text-white">
                     {formatPercentage(plan.percentageOfRevenue)}
                   </div>
-                  <div className="text-xs text-white/60">
-                    {formatCurrency(plan.totalRevenue)}
-                  </div>
+                  <div className="text-xs text-white/60">{formatCurrency(plan.totalRevenue)}</div>
                 </div>
               </div>
             ))}
@@ -366,7 +364,7 @@ const SubscriptionAnalytics: React.FC = () => {
       {usageAnalytics && (
         <div className="bg-white/5 p-6 rounded-lg border border-white/10">
           <h3 className="text-lg font-medium text-white mb-4">Usage Analytics</h3>
-          
+
           {/* Customers Approaching Limits */}
           <div className="mb-6">
             <h4 className="text-md font-medium text-white/80 mb-3">
@@ -375,14 +373,23 @@ const SubscriptionAnalytics: React.FC = () => {
             {usageAnalytics.customersApproachingLimits.length > 0 ? (
               <div className="space-y-2">
                 {usageAnalytics.customersApproachingLimits.slice(0, 5).map((customer) => (
-                  <div key={customer.userId} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                  <div
+                    key={customer.userId}
+                    className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+                  >
                     <div>
                       <span className="text-sm text-white">{customer.email}</span>
                       <span className="text-xs text-white/60 ml-2">({customer.currentPlan})</span>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-xs text-white/60">
-                        Usage: {Math.max(customer.usagePercentage.active, customer.usagePercentage.completed, customer.usagePercentage.total).toFixed(0)}%
+                        Usage:{' '}
+                        {Math.max(
+                          customer.usagePercentage.active,
+                          customer.usagePercentage.completed,
+                          customer.usagePercentage.total
+                        ).toFixed(0)}
+                        %
                       </div>
                       <div className="text-xs text-blue-300">
                         Suggest: {customer.upgradeRecommendation}
@@ -397,7 +404,9 @@ const SubscriptionAnalytics: React.FC = () => {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-white/60">No customers currently approaching their limits.</p>
+              <p className="text-sm text-white/60">
+                No customers currently approaching their limits.
+              </p>
             )}
           </div>
 
@@ -433,21 +442,31 @@ const SubscriptionAnalytics: React.FC = () => {
               <div className="text-sm text-white/60">Total Signups</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-300">{conversionRates.freeTrialStarts}</div>
+              <div className="text-2xl font-bold text-blue-300">
+                {conversionRates.freeTrialStarts}
+              </div>
               <div className="text-sm text-white/60">Trial Starts</div>
               <div className="text-xs text-white/40">
-                {conversionRates.totalSignups > 0 ? formatPercentage((conversionRates.freeTrialStarts / conversionRates.totalSignups) * 100) : '0%'}
+                {conversionRates.totalSignups > 0
+                  ? formatPercentage(
+                      (conversionRates.freeTrialStarts / conversionRates.totalSignups) * 100
+                    )
+                  : '0%'}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-300">{conversionRates.trialToPaidConversions}</div>
+              <div className="text-2xl font-bold text-green-300">
+                {conversionRates.trialToPaidConversions}
+              </div>
               <div className="text-sm text-white/60">Trial → Paid</div>
               <div className="text-xs text-white/40">
                 {formatPercentage(conversionRates.trialConversionRate)}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-300">{conversionRates.freeTierToPaidConversions}</div>
+              <div className="text-2xl font-bold text-purple-300">
+                {conversionRates.freeTierToPaidConversions}
+              </div>
               <div className="text-sm text-white/60">Free → Paid</div>
               <div className="text-xs text-white/40">
                 {formatPercentage(conversionRates.freeTierConversionRate)}

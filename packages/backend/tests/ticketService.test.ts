@@ -102,8 +102,9 @@ describe('TicketService', () => {
         },
       };
 
-      await expect(TicketService.createTicket(ticketData))
-        .rejects.toThrow('Invalid value for custom field');
+      await expect(TicketService.createTicket(ticketData)).rejects.toThrow(
+        'Invalid value for custom field'
+      );
     });
 
     it('should require required custom fields', async () => {
@@ -116,8 +117,9 @@ describe('TicketService', () => {
         customFieldValues: {},
       };
 
-      await expect(TicketService.createTicket(ticketData))
-        .rejects.toThrow('Required custom field missing');
+      await expect(TicketService.createTicket(ticketData)).rejects.toThrow(
+        'Required custom field missing'
+      );
     });
   });
 
@@ -153,8 +155,9 @@ describe('TicketService', () => {
     });
 
     it('should reject assignment to non-existent employee', async () => {
-      await expect(TicketService.assignTicket(ticketId, 'non-existent-id'))
-        .rejects.toThrow('Employee not found');
+      await expect(TicketService.assignTicket(ticketId, 'non-existent-id')).rejects.toThrow(
+        'Employee not found'
+      );
     });
   });
 
@@ -242,7 +245,7 @@ describe('TicketService', () => {
       });
 
       expect(results.tickets.length).toBeGreaterThan(0);
-      results.tickets.forEach(ticket => {
+      results.tickets.forEach((ticket) => {
         expect(ticket.status).toBe('open');
       });
     });

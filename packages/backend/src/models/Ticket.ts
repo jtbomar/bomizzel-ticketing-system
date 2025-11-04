@@ -27,12 +27,15 @@ export class Ticket extends BaseModel {
     });
   }
 
-  static async findByCompany(companyId: string, options: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-    assignedToId?: string;
-  } = {}): Promise<TicketTable[]> {
+  static async findByCompany(
+    companyId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      assignedToId?: string;
+    } = {}
+  ): Promise<TicketTable[]> {
     let query = this.query.where('company_id', companyId);
 
     if (options.status) {
@@ -54,11 +57,14 @@ export class Ticket extends BaseModel {
     return query.orderBy('created_at', 'desc');
   }
 
-  static async findByQueue(queueId: string, options: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-  } = {}): Promise<TicketTable[]> {
+  static async findByQueue(
+    queueId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+    } = {}
+  ): Promise<TicketTable[]> {
     let query = this.query.where('queue_id', queueId);
 
     if (options.status) {
@@ -76,11 +82,14 @@ export class Ticket extends BaseModel {
     return query.orderBy('priority', 'desc').orderBy('created_at', 'asc');
   }
 
-  static async findByAssignee(assignedToId: string, options: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-  } = {}): Promise<TicketTable[]> {
+  static async findByAssignee(
+    assignedToId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+    } = {}
+  ): Promise<TicketTable[]> {
     let query = this.query.where('assigned_to_id', assignedToId);
 
     if (options.status) {
@@ -98,68 +107,114 @@ export class Ticket extends BaseModel {
     return query.orderBy('priority', 'desc').orderBy('created_at', 'asc');
   }
 
-  static async assignTicket(ticketId: string, assignedToId: string, assignedById: string): Promise<TicketTable | null> {
+  static async assignTicket(
+    ticketId: string,
+    assignedToId: string,
+    assignedById: string
+  ): Promise<TicketTable | null> {
     const ticket = await this.update(ticketId, { assigned_to_id: assignedToId });
-    
+
     if (ticket) {
-      await this.addHistory(ticketId, assignedById, 'assigned', 'assigned_to_id', null, assignedToId);
+      await this.addHistory(
+        ticketId,
+        assignedById,
+        'assigned',
+        'assigned_to_id',
+        null,
+        assignedToId
+      );
     }
-    
+
     return ticket;
   }
 
-  static async unassignTicket(ticketId: string, unassignedById: string): Promise<TicketTable | null> {
+  static async unassignTicket(
+    ticketId: string,
+    unassignedById: string
+  ): Promise<TicketTable | null> {
     const currentTicket = await this.findById(ticketId);
     const ticket = await this.update(ticketId, { assigned_to_id: null });
-    
+
     if (ticket && currentTicket) {
-      await this.addHistory(ticketId, unassignedById, 'unassigned', 'assigned_to_id', currentTicket.assigned_to_id, null);
+      await this.addHistory(
+        ticketId,
+        unassignedById,
+        'unassigned',
+        'assigned_to_id',
+        currentTicket.assigned_to_id,
+        null
+      );
     }
-    
+
     return ticket;
   }
 
-  static async updateStatus(ticketId: string, status: string, updatedById: string): Promise<TicketTable | null> {
+  static async updateStatus(
+    ticketId: string,
+    status: string,
+    updatedById: string
+  ): Promise<TicketTable | null> {
     const currentTicket = await this.findById(ticketId);
     const updateData: any = { status };
-    
+
     // Set resolved_at or closed_at based on status
     if (status === 'resolved' && currentTicket?.status !== 'resolved') {
       updateData.resolved_at = new Date();
     } else if (status === 'closed' && currentTicket?.status !== 'closed') {
       updateData.closed_at = new Date();
     }
-    
+
     const ticket = await this.update(ticketId, updateData);
-    
+
     if (ticket && currentTicket) {
-      await this.addHistory(ticketId, updatedById, 'status_changed', 'status', currentTicket.status, status);
+      await this.addHistory(
+        ticketId,
+        updatedById,
+        'status_changed',
+        'status',
+        currentTicket.status,
+        status
+      );
     }
-    
+
     return ticket;
   }
 
-  static async updatePriority(ticketId: string, priority: number, updatedById: string): Promise<TicketTable | null> {
+  static async updatePriority(
+    ticketId: string,
+    priority: number,
+    updatedById: string
+  ): Promise<TicketTable | null> {
     const currentTicket = await this.findById(ticketId);
     const ticket = await this.update(ticketId, { priority });
-    
+
     if (ticket && currentTicket) {
-      await this.addHistory(ticketId, updatedById, 'priority_changed', 'priority', 
-        currentTicket.priority.toString(), priority.toString());
+      await this.addHistory(
+        ticketId,
+        updatedById,
+        'priority_changed',
+        'priority',
+        currentTicket.priority.toString(),
+        priority.toString()
+      );
     }
-    
+
     return ticket;
   }
 
-  static async updateCustomFields(ticketId: string, customFieldValues: Record<string, any>, updatedById: string): Promise<TicketTable | null> {
+  static async updateCustomFields(
+    ticketId: string,
+    customFieldValues: Record<string, any>,
+    updatedById: string
+  ): Promise<TicketTable | null> {
     const ticket = await this.update(ticketId, { custom_field_values: customFieldValues });
-    
+
     if (ticket) {
       await this.addHistory(ticketId, updatedById, 'updated', 'custom_field_values', null, null, {
         customFieldValues,
       });
     }
-    
+
     return ticket;
   }
 
@@ -187,12 +242,7 @@ export class Ticket extends BaseModel {
     return this.db('ticket_history as th')
       .join('users as u', 'th.user_id', 'u.id')
       .where('th.ticket_id', ticketId)
-      .select(
-        'th.*',
-        'u.first_name',
-        'u.last_name',
-        'u.email'
-      )
+      .select('th.*', 'u.first_name', 'u.last_name', 'u.email')
       .orderBy('th.created_at', 'desc');
   }
 
@@ -209,9 +259,12 @@ export class Ticket extends BaseModel {
     let query = this.query;
 
     if (options.query) {
-      query = query.where(function() {
-        this.where('title', 'ilike', `%${options.query}%`)
-            .orWhere('description', 'ilike', `%${options.query}%`);
+      query = query.where(function () {
+        this.where('title', 'ilike', `%${options.query}%`).orWhere(
+          'description',
+          'ilike',
+          `%${options.query}%`
+        );
       });
     }
 
@@ -246,13 +299,15 @@ export class Ticket extends BaseModel {
     return query.orderBy('created_at', 'desc');
   }
 
-  static async findArchived(options: {
-    limit?: number;
-    offset?: number;
-    companyIds?: string[];
-    teamIds?: string[];
-    query?: string;
-  } = {}): Promise<TicketTable[]> {
+  static async findArchived(
+    options: {
+      limit?: number;
+      offset?: number;
+      companyIds?: string[];
+      teamIds?: string[];
+      query?: string;
+    } = {}
+  ): Promise<TicketTable[]> {
     let query = this.query.whereNotNull('archived_at');
 
     if (options.companyIds && options.companyIds.length > 0) {
@@ -264,9 +319,12 @@ export class Ticket extends BaseModel {
     }
 
     if (options.query) {
-      query = query.where(function() {
-        this.where('title', 'ilike', `%${options.query}%`)
-            .orWhere('description', 'ilike', `%${options.query}%`);
+      query = query.where(function () {
+        this.where('title', 'ilike', `%${options.query}%`).orWhere(
+          'description',
+          'ilike',
+          `%${options.query}%`
+        );
       });
     }
 
@@ -281,12 +339,14 @@ export class Ticket extends BaseModel {
     return query.orderBy('archived_at', 'desc');
   }
 
-  static async findArchivable(options: {
-    limit?: number;
-    companyIds?: string[];
-    teamIds?: string[];
-    olderThanDays?: number;
-  } = {}): Promise<TicketTable[]> {
+  static async findArchivable(
+    options: {
+      limit?: number;
+      companyIds?: string[];
+      teamIds?: string[];
+      olderThanDays?: number;
+    } = {}
+  ): Promise<TicketTable[]> {
     let query = this.query
       .whereIn('status', ['resolved', 'closed', 'completed'])
       .whereNull('archived_at');
@@ -302,10 +362,10 @@ export class Ticket extends BaseModel {
     if (options.olderThanDays) {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - options.olderThanDays);
-      query = query.where(function() {
+      query = query.where(function () {
         this.where('resolved_at', '<', cutoffDate)
-            .orWhere('closed_at', '<', cutoffDate)
-            .orWhere('updated_at', '<', cutoffDate);
+          .orWhere('closed_at', '<', cutoffDate)
+          .orWhere('updated_at', '<', cutoffDate);
       });
     }
 

@@ -5,10 +5,7 @@ import { Team as TeamModel } from '@/types/models';
 export class Team extends BaseModel {
   protected static tableName = 'teams';
 
-  static async createTeam(teamData: {
-    name: string;
-    description?: string;
-  }): Promise<TeamTable> {
+  static async createTeam(teamData: { name: string; description?: string }): Promise<TeamTable> {
     return this.create({
       name: teamData.name,
       description: teamData.description,
@@ -20,11 +17,13 @@ export class Team extends BaseModel {
     return result || null;
   }
 
-  static async findActiveTeams(options: {
-    limit?: number;
-    offset?: number;
-    search?: string;
-  } = {}): Promise<TeamTable[]> {
+  static async findActiveTeams(
+    options: {
+      limit?: number;
+      offset?: number;
+      search?: string;
+    } = {}
+  ): Promise<TeamTable[]> {
     let query = this.query.where('is_active', true);
 
     if (options.search) {
@@ -42,7 +41,11 @@ export class Team extends BaseModel {
     return query.orderBy('name', 'asc');
   }
 
-  static async addUserToTeam(userId: string, teamId: string, role: 'member' | 'lead' | 'admin' = 'member'): Promise<void> {
+  static async addUserToTeam(
+    userId: string,
+    teamId: string,
+    role: 'member' | 'lead' | 'admin' = 'member'
+  ): Promise<void> {
     await this.db('team_memberships').insert({
       user_id: userId,
       team_id: teamId,
@@ -51,10 +54,7 @@ export class Team extends BaseModel {
   }
 
   static async removeUserFromTeam(userId: string, teamId: string): Promise<void> {
-    await this.db('team_memberships')
-      .where('user_id', userId)
-      .where('team_id', teamId)
-      .del();
+    await this.db('team_memberships').where('user_id', userId).where('team_id', teamId).del();
   }
 
   static async getUserTeams(userId: string): Promise<TeamTable[]> {
@@ -71,11 +71,7 @@ export class Team extends BaseModel {
       .join('team_memberships as tm', 'u.id', 'tm.user_id')
       .where('tm.team_id', teamId)
       .where('u.is_active', true)
-      .select(
-        'u.*',
-        'tm.role as team_role',
-        'tm.created_at as membership_created_at'
-      )
+      .select('u.*', 'tm.role as team_role', 'tm.created_at as membership_created_at')
       .orderBy('u.first_name', 'asc');
   }
 
@@ -84,7 +80,7 @@ export class Team extends BaseModel {
       .where('user_id', userId)
       .where('team_id', teamId)
       .first();
-    
+
     return !!membership;
   }
 
@@ -94,11 +90,15 @@ export class Team extends BaseModel {
       .where('team_id', teamId)
       .select('role')
       .first();
-    
+
     return membership?.role || null;
   }
 
-  static async updateUserTeamRole(userId: string, teamId: string, role: 'member' | 'lead' | 'admin'): Promise<void> {
+  static async updateUserTeamRole(
+    userId: string,
+    teamId: string,
+    role: 'member' | 'lead' | 'admin'
+  ): Promise<void> {
     await this.db('team_memberships')
       .where('user_id', userId)
       .where('team_id', teamId)

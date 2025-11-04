@@ -12,10 +12,7 @@ interface CreateTicketFormProps {
   onTicketCreated: (ticket: Ticket) => void;
 }
 
-const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
-  companyId,
-  onTicketCreated,
-}) => {
+const CreateTicketForm: React.FC<CreateTicketFormProps> = ({ companyId, onTicketCreated }) => {
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState('');
@@ -32,7 +29,7 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
   const [teamsLoading, setTeamsLoading] = useState(true);
   const [showUsageWarning, setShowUsageWarning] = useState(false);
   const [usageWarningData, setUsageWarningData] = useState<any>(null);
-  
+
   const { checkTicketCreation, checkCanCreateTicket } = useUsageWarnings();
 
   useEffect(() => {
@@ -67,11 +64,11 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
       const response = await apiService.getTeams();
       const availableTeams = response.data || response;
       setTeams(availableTeams);
-      
+
       // Auto-select first team if only one exists
       if (availableTeams.length === 1) {
         setSelectedTeamId(availableTeams[0].id);
-        setFormData(prev => ({ ...prev, teamId: availableTeams[0].id }));
+        setFormData((prev) => ({ ...prev, teamId: availableTeams[0].id }));
       }
     } catch (err) {
       console.error('Failed to load teams:', err);
@@ -86,7 +83,7 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
       const response = await apiService.getTeamCustomFields(teamId);
       const fields = response.data || response;
       setCustomFields(fields);
-      
+
       // Initialize custom field values
       const initialValues: Record<string, any> = {};
       fields.forEach((field: CustomField) => {
@@ -103,42 +100,44 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const handleTeamChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const teamId = e.target.value;
     setSelectedTeamId(teamId);
-    setFormData(prev => ({ ...prev, teamId }));
-    
+    setFormData((prev) => ({ ...prev, teamId }));
+
     if (errors.teamId) {
-      setErrors(prev => ({ ...prev, teamId: '' }));
+      setErrors((prev) => ({ ...prev, teamId: '' }));
     }
   };
 
   const handleCustomFieldChange = (fieldName: string, value: any) => {
-    setCustomFieldValues(prev => ({ ...prev, [fieldName]: value }));
-    
+    setCustomFieldValues((prev) => ({ ...prev, [fieldName]: value }));
+
     // Clear error when user changes value
     if (errors[`customField_${fieldName}`]) {
-      setErrors(prev => ({ ...prev, [`customField_${fieldName}`]: '' }));
+      setErrors((prev) => ({ ...prev, [`customField_${fieldName}`]: '' }));
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setAttachments(prev => [...prev, ...files]);
+    setAttachments((prev) => [...prev, ...files]);
   };
 
   const removeAttachment = (index: number) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const validateForm = () => {
@@ -157,16 +156,16 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
     }
 
     // Validate custom fields
-    customFields.forEach(field => {
+    customFields.forEach((field) => {
       const value = customFieldValues[field.name];
-      
+
       if (field.isRequired && (!value || value.toString().trim() === '')) {
         newErrors[`customField_${field.name}`] = `${field.label} is required`;
       }
 
       if (value && field.validation) {
         const { min, max, pattern } = field.validation;
-        
+
         if (field.type === 'number' || field.type === 'integer' || field.type === 'decimal') {
           const numValue = parseFloat(value);
           if (isNaN(numValue)) {
@@ -184,7 +183,8 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
         if (field.type === 'string' && pattern) {
           const regex = new RegExp(pattern);
           if (!regex.test(value.toString())) {
-            newErrors[`customField_${field.name}`] = field.validation.message || `${field.label} format is invalid`;
+            newErrors[`customField_${field.name}`] =
+              field.validation.message || `${field.label} format is invalid`;
           }
         }
       }
@@ -196,7 +196,7 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -206,8 +206,10 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
       // Check if user can create a ticket
       const canCreateResult = await checkCanCreateTicket();
       if (!canCreateResult.canCreate) {
-        setErrors({ 
-          submit: canCreateResult.reason || 'You have reached your ticket limit. Please upgrade your plan to continue.' 
+        setErrors({
+          submit:
+            canCreateResult.reason ||
+            'You have reached your ticket limit. Please upgrade your plan to continue.',
         });
         setLoading(false);
         return;
@@ -438,24 +440,22 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
               className={`input ${errors.description ? 'border-red-300' : ''}`}
               placeholder="Provide detailed information about your issue, including steps to reproduce, expected behavior, and any error messages"
             />
-            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+            )}
           </div>
 
           {/* Custom Fields */}
           {customFields.length > 0 && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Additional Information</h3>
-              {customFields
-                .sort((a, b) => a.order - b.order)
-                .map(renderCustomField)}
+              {customFields.sort((a, b) => a.order - b.order).map(renderCustomField)}
             </div>
           )}
 
           {/* File Attachments */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachments
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
             <div className="space-y-3">
               <input
                 type="file"
@@ -463,11 +463,14 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
                 onChange={handleFileChange}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
-              
+
               {attachments.length > 0 && (
                 <div className="space-y-2">
                   {attachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-md"
+                    >
                       <div className="flex items-center space-x-2">
                         <PaperClipIcon className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-700">{file.name}</span>
@@ -491,11 +494,7 @@ const CreateTicketForm: React.FC<CreateTicketFormProps> = ({
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => navigate('/customer')}
-              className="btn-secondary"
-            >
+            <button type="button" onClick={() => navigate('/customer')} className="btn-secondary">
               Cancel
             </button>
             <button

@@ -32,7 +32,7 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
 
   // Override res.end to capture response time
   const originalEnd = res.end;
-  res.end = function(chunk?: any, encoding?: any) {
+  res.end = function (chunk?: any, encoding?: any) {
     const endTime = Date.now();
     const responseTime = endTime - startTime;
     const endMemory = process.memoryUsage();
@@ -91,16 +91,16 @@ async function storeMetricsInCache(metrics: PerformanceMetrics): Promise<void> {
   try {
     const timestamp = Math.floor(Date.now() / 60000); // Round to minute
     const key = `performance:${timestamp}`;
-    
+
     // Get existing metrics for this minute
-    const existing = await CacheService.get<PerformanceMetrics[]>(key, CacheConfigs.SHORT) || [];
+    const existing = (await CacheService.get<PerformanceMetrics[]>(key, CacheConfigs.SHORT)) || [];
     existing.push(metrics);
-    
+
     // Keep only last 100 requests per minute
     if (existing.length > 100) {
       existing.splice(0, existing.length - 100);
     }
-    
+
     await CacheService.set(key, existing, { ttl: 300 }); // 5 minutes
   } catch (error) {
     enhancedLogger.error('Failed to store performance metrics in cache:', error);
@@ -119,18 +119,18 @@ export class QueryPerformanceMonitor {
     context?: { userId?: string; requestId?: string }
   ): Promise<T> {
     const startTime = Date.now();
-    
+
     try {
       const result = await queryFunction();
       const duration = Date.now() - startTime;
-      
+
       // Log query performance
       enhancedLogger.database('Database query executed', {
         queryName,
         duration,
         ...context,
       });
-      
+
       // Alert on slow queries
       if (duration > this.slowQueryThreshold) {
         const alert: SlowQueryAlert = {
@@ -139,27 +139,27 @@ export class QueryPerformanceMonitor {
           timestamp: new Date().toISOString(),
           ...context,
         };
-        
+
         enhancedLogger.warn('Slow database query detected', {
           ...alert,
           category: 'slow_query_alert',
         });
-        
+
         // Store slow query alert in cache
         await this.storeSlowQueryAlert(alert);
       }
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
-      
+
       enhancedLogger.error('Database query failed', {
         queryName,
         duration,
         error: error instanceof Error ? error.message : 'Unknown error',
         ...context,
       });
-      
+
       throw error;
     }
   }
@@ -167,14 +167,14 @@ export class QueryPerformanceMonitor {
   private static async storeSlowQueryAlert(alert: SlowQueryAlert): Promise<void> {
     try {
       const key = 'slow_queries';
-      const existing = await CacheService.get<SlowQueryAlert[]>(key, CacheConfigs.MEDIUM) || [];
+      const existing = (await CacheService.get<SlowQueryAlert[]>(key, CacheConfigs.MEDIUM)) || [];
       existing.push(alert);
-      
+
       // Keep only last 50 slow queries
       if (existing.length > 50) {
         existing.splice(0, existing.length - 50);
       }
-      
+
       await CacheService.set(key, existing, CacheConfigs.MEDIUM);
     } catch (error) {
       enhancedLogger.error('Failed to store slow query alert:', error);
@@ -201,7 +201,8 @@ export const memoryMonitoring = (): void => {
     });
 
     // Alert on high memory usage
-    if (memUsageMB.heapUsed > 500) { // 500MB
+    if (memUsageMB.heapUsed > 500) {
+      // 500MB
       enhancedLogger.warn('High memory usage alert', {
         memoryUsage: memUsageMB,
         category: 'memory_alert',
@@ -215,7 +216,7 @@ export const memoryMonitoring = (): void => {
  */
 export const cpuMonitoring = (): void => {
   let lastCpuUsage = process.cpuUsage();
-  
+
   setInterval(() => {
     const currentCpuUsage = process.cpuUsage(lastCpuUsage);
     const cpuPercent = {
@@ -242,15 +243,20 @@ export const getPerformanceMetrics = async (): Promise<{
   try {
     const currentMinute = Math.floor(Date.now() / 60000);
     const recentMinutes = Array.from({ length: 5 }, (_, i) => currentMinute - i);
-    
+
     const recentRequests: PerformanceMetrics[] = [];
     for (const minute of recentMinutes) {
-      const metrics = await CacheService.get<PerformanceMetrics[]>(`performance:${minute}`, CacheConfigs.SHORT) || [];
+      const metrics =
+        (await CacheService.get<PerformanceMetrics[]>(
+          `performance:${minute}`,
+          CacheConfigs.SHORT
+        )) || [];
       recentRequests.push(...metrics);
     }
-    
-    const slowQueries = await CacheService.get<SlowQueryAlert[]>('slow_queries', CacheConfigs.MEDIUM) || [];
-    
+
+    const slowQueries =
+      (await CacheService.get<SlowQueryAlert[]>('slow_queries', CacheConfigs.MEDIUM)) || [];
+
     return {
       recentRequests: recentRequests.slice(-100), // Last 100 requests
       slowQueries: slowQueries.slice(-20), // Last 20 slow queries

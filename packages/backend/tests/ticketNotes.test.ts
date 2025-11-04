@@ -77,12 +77,15 @@ describe('Ticket Notes API', () => {
     queueId = queue.id;
 
     // Create test ticket
-    const ticket = await TicketService.createTicket({
-      title: 'Test Ticket for Notes',
-      description: 'Test ticket description',
-      companyId,
-      teamId,
-    }, customerId);
+    const ticket = await TicketService.createTicket(
+      {
+        title: 'Test Ticket for Notes',
+        description: 'Test ticket description',
+        companyId,
+        teamId,
+      },
+      customerId
+    );
     ticketId = ticket.id;
   });
 
@@ -132,11 +135,9 @@ describe('Ticket Notes API', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
-        .post(`/api/tickets/${ticketId}/notes`)
-        .send({
-          content: 'Unauthorized note',
-        });
+      const response = await request(app).post(`/api/tickets/${ticketId}/notes`).send({
+        content: 'Unauthorized note',
+      });
 
       expect(response.status).toBe(401);
     });
@@ -183,7 +184,7 @@ describe('Ticket Notes API', () => {
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
       expect(response.body.data).toBeInstanceOf(Array);
-      
+
       // Should not include internal notes
       const hasInternalNotes = response.body.data.some((note: any) => note.isInternal);
       expect(hasInternalNotes).toBe(false);
@@ -200,8 +201,7 @@ describe('Ticket Notes API', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
-        .get(`/api/tickets/${ticketId}/notes`);
+      const response = await request(app).get(`/api/tickets/${ticketId}/notes`);
 
       expect(response.status).toBe(401);
     });
@@ -247,11 +247,9 @@ describe('Ticket Notes API', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
-        .put(`/api/notes/${noteId}`)
-        .send({
-          content: 'Unauthorized update',
-        });
+      const response = await request(app).put(`/api/notes/${noteId}`).send({
+        content: 'Unauthorized update',
+      });
 
       expect(response.status).toBe(401);
     });
@@ -290,8 +288,7 @@ describe('Ticket Notes API', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
-        .delete('/api/notes/some-id');
+      const response = await request(app).delete('/api/notes/some-id');
 
       expect(response.status).toBe(401);
     });
@@ -335,7 +332,7 @@ describe('Ticket Notes API', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      
+
       // Should not include internal notes
       const hasInternalNotes = response.body.data.some((note: any) => note.isInternal);
       expect(hasInternalNotes).toBe(false);
@@ -352,8 +349,7 @@ describe('Ticket Notes API', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
-        .get('/api/notes/search?q=keyword');
+      const response = await request(app).get('/api/notes/search?q=keyword');
 
       expect(response.status).toBe(401);
     });
@@ -371,8 +367,7 @@ describe('Ticket Notes API', () => {
     });
 
     it('should require authentication', async () => {
-      const response = await request(app)
-        .get(`/api/tickets/${ticketId}/notes/history`);
+      const response = await request(app).get(`/api/tickets/${ticketId}/notes/history`);
 
       expect(response.status).toBe(401);
     });

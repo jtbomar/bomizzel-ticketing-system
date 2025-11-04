@@ -12,12 +12,10 @@ interface HSL {
   l: number; // 0-100
 }
 
-
-
 const DragColorPicker: React.FC<DragColorPickerProps> = ({
   initialColor = '#3B82F6',
   onColorChange,
-  onClose
+  onClose,
 }) => {
   // Convert hex to HSL for initial state
   const hexToHsl = (hex: string): HSL => {
@@ -34,11 +32,17 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
     if (max !== min) {
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-      
+
       switch (max) {
-        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-        case g: h = (b - r) / d + 2; break;
-        case b: h = (r - g) / d + 4; break;
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
       }
       h /= 6;
     }
@@ -46,7 +50,7 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
     return {
       h: Math.round(h * 360),
       s: Math.round(s * 100),
-      l: Math.round(l * 100)
+      l: Math.round(l * 100),
     };
   };
 
@@ -59,9 +63,9 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
     const hue2rgb = (p: number, q: number, t: number) => {
       if (t < 0) t += 1;
       if (t > 1) t -= 1;
-      if (t < 1/6) return p + (q - p) * 6 * t;
-      if (t < 1/2) return q;
-      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
       return p;
     };
 
@@ -72,9 +76,9 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
     } else {
       const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
       const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1/3);
+      r = hue2rgb(p, q, h + 1 / 3);
       g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1/3);
+      b = hue2rgb(p, q, h - 1 / 3);
     }
 
     const toHex = (c: number) => {
@@ -107,12 +111,12 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
 
   const updateHue = useCallback((e: React.MouseEvent | MouseEvent) => {
     if (!hueSliderRef.current) return;
-    
+
     const rect = hueSliderRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const hue = Math.round((x / rect.width) * 360);
-    
-    setHsl(prev => ({ ...prev, h: hue }));
+
+    setHsl((prev) => ({ ...prev, h: hue }));
   }, []);
 
   // Handle saturation/lightness area dragging
@@ -123,15 +127,15 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
 
   const updateSL = useCallback((e: React.MouseEvent | MouseEvent) => {
     if (!slAreaRef.current) return;
-    
+
     const rect = slAreaRef.current.getBoundingClientRect();
     const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
     const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
-    
+
     const saturation = Math.round((x / rect.width) * 100);
     const lightness = Math.round(100 - (y / rect.height) * 100);
-    
-    setHsl(prev => ({ ...prev, s: saturation, l: lightness }));
+
+    setHsl((prev) => ({ ...prev, s: saturation, l: lightness }));
   }, []);
 
   // Mouse move and up handlers
@@ -152,7 +156,7 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
     if (isDraggingHue || isDraggingSL) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      
+
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
@@ -166,15 +170,18 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
   return (
     <div className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg w-80">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Drag Color Picker
-        </h4>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">Drag Color Picker</h4>
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
@@ -186,7 +193,7 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
             ref={slAreaRef}
             className="w-full h-48 cursor-crosshair relative overflow-hidden rounded-lg border border-gray-300 dark:border-gray-600"
             style={{
-              background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${hueColor})`
+              background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, ${hueColor})`,
             }}
             onMouseDown={handleSLMouseDown}
           >
@@ -196,7 +203,7 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
               style={{
                 left: `${hsl.s}%`,
                 top: `${100 - hsl.l}%`,
-                backgroundColor: currentColor
+                backgroundColor: currentColor,
               }}
             />
           </div>
@@ -211,7 +218,8 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
             ref={hueSliderRef}
             className="w-full h-6 cursor-pointer relative overflow-hidden rounded-lg border border-gray-300 dark:border-gray-600"
             style={{
-              background: 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)'
+              background:
+                'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)',
             }}
             onMouseDown={handleHueMouseDown}
           >
@@ -219,7 +227,7 @@ const DragColorPicker: React.FC<DragColorPickerProps> = ({
             <div
               className="absolute w-2 h-full bg-white border border-gray-400 shadow-lg transform -translate-x-1 pointer-events-none"
               style={{
-                left: `${(hsl.h / 360) * 100}%`
+                left: `${(hsl.h / 360) * 100}%`,
               }}
             />
           </div>

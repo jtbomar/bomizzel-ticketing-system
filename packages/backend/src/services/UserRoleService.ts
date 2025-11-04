@@ -9,53 +9,52 @@ export class UserRoleService {
   /**
    * Get all users with pagination and filtering
    */
-  static async getUsers(options: {
-    page?: number;
-    limit?: number;
-    role?: string;
-    search?: string;
-    isActive?: boolean;
-  } = {}): Promise<PaginatedResponse<UserModel & { teamCount: number }>> {
+  static async getUsers(
+    options: {
+      page?: number;
+      limit?: number;
+      role?: string;
+      search?: string;
+      isActive?: boolean;
+    } = {}
+  ): Promise<PaginatedResponse<UserModel & { teamCount: number }>> {
     try {
       const { page = 1, limit = 25, role, search, isActive } = options;
       const offset = (page - 1) * limit;
 
       let query = User.query;
-      
+
       if (role) {
         query = query.where('role', role);
       }
-      
+
       if (isActive !== undefined) {
         query = query.where('is_active', isActive);
       }
-      
+
       if (search) {
-        query = query.where(function(this: any) {
+        query = query.where(function (this: any) {
           this.where('first_name', 'ilike', `%${search}%`)
             .orWhere('last_name', 'ilike', `%${search}%`)
             .orWhere('email', 'ilike', `%${search}%`);
         });
       }
 
-      const users = await query
-        .limit(limit)
-        .offset(offset)
-        .orderBy('created_at', 'desc');
+      const users = await query.limit(limit).offset(offset).orderBy('created_at', 'desc');
 
       // Get total count
       let countQuery = User.query;
-      
+
       if (role) {
         countQuery = countQuery.where('role', role);
       }
-      
+
       if (isActive !== undefined) {
         countQuery = countQuery.where('is_active', isActive);
       }
-      
+
       if (search) {
-        countQuery = countQuery.where(function(this: any) {
+        countQuery = countQuery.where(function (this: any) {
           this.where('first_name', 'ilike', `%${search}%`)
             .orWhere('last_name', 'ilike', `%${search}%`)
             .orWhere('email', 'ilike', `%${search}%`);
@@ -178,10 +177,12 @@ export class UserRoleService {
   /**
    * Get user details with teams and permissions
    */
-  static async getUserDetails(userId: string): Promise<UserModel & { 
-    teams: { id: string; name: string; role: string; membershipDate: Date }[];
-    permissions: string[];
-  }> {
+  static async getUserDetails(userId: string): Promise<
+    UserModel & {
+      teams: { id: string; name: string; role: string; membershipDate: Date }[];
+      permissions: string[];
+    }
+  > {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -197,7 +198,7 @@ export class UserRoleService {
             .where('team_id', team.id)
             .select('created_at')
             .first();
-          
+
           return {
             id: team.id,
             name: team.name,
@@ -238,12 +239,7 @@ export class UserRoleService {
 
     // Customer permissions
     if (role === 'customer') {
-      permissions.push(
-        'create_ticket',
-        'view_own_tickets',
-        'add_ticket_notes',
-        'upload_files'
-      );
+      permissions.push('create_ticket', 'view_own_tickets', 'add_ticket_notes', 'upload_files');
     }
 
     // Employee permissions
@@ -260,7 +256,7 @@ export class UserRoleService {
     }
 
     // Team lead permissions
-    const isTeamLead = teams.some(team => team.role === 'lead' || team.role === 'admin');
+    const isTeamLead = teams.some((team) => team.role === 'lead' || team.role === 'admin');
     if (isTeamLead || role === 'admin') {
       permissions.push(
         'manage_custom_fields',
@@ -373,7 +369,12 @@ export class UserRoleService {
       }
 
       // Prevent self-demotion from admin
-      if (userId === updatedById && user.role === 'admin' && updateData.role && updateData.role !== 'admin') {
+      if (
+        userId === updatedById &&
+        user.role === 'admin' &&
+        updateData.role &&
+        updateData.role !== 'admin'
+      ) {
         throw new AppError('Cannot demote yourself from admin role', 400, 'CANNOT_DEMOTE_SELF');
       }
 
@@ -445,7 +446,7 @@ export class UserRoleService {
     try {
       const totalUsers = await User.query.count('* as count').first();
       const activeUsers = await User.query.where('is_active', true).count('* as count').first();
-      
+
       const roleDistribution = await User.query
         .select('role')
         .count('* as count')

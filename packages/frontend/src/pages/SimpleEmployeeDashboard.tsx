@@ -61,10 +61,42 @@ const SimpleEmployeeDashboard: React.FC = () => {
     }
     // Default statuses if none configured
     return [
-      { id: '1', label: 'Open', value: 'open', color: 'red', order: 1, isActive: true, isDefault: true },
-      { id: '2', label: 'In Progress', value: 'in_progress', color: 'yellow', order: 2, isActive: true, isDefault: true },
-      { id: '3', label: 'Review', value: 'review', color: 'blue', order: 3, isActive: true, isDefault: true },
-      { id: '4', label: 'Resolved', value: 'resolved', color: 'green', order: 4, isActive: true, isDefault: true },
+      {
+        id: '1',
+        label: 'Open',
+        value: 'open',
+        color: 'red',
+        order: 1,
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: '2',
+        label: 'In Progress',
+        value: 'in_progress',
+        color: 'yellow',
+        order: 2,
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: '3',
+        label: 'Review',
+        value: 'review',
+        color: 'blue',
+        order: 3,
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: '4',
+        label: 'Resolved',
+        value: 'resolved',
+        color: 'green',
+        order: 4,
+        isActive: true,
+        isDefault: true,
+      },
     ];
   };
 
@@ -79,16 +111,48 @@ const SimpleEmployeeDashboard: React.FC = () => {
     }
     // Default priorities if none configured
     return [
-      { id: '1', label: 'Low', value: 'low', color: 'green', order: 1, isActive: true, isDefault: true },
-      { id: '2', label: 'Medium', value: 'medium', color: 'yellow', order: 2, isActive: true, isDefault: true },
-      { id: '3', label: 'High', value: 'high', color: 'red', order: 3, isActive: true, isDefault: true },
-      { id: '4', label: 'Critical', value: 'critical', color: 'purple', order: 4, isActive: true, isDefault: true },
+      {
+        id: '1',
+        label: 'Low',
+        value: 'low',
+        color: 'green',
+        order: 1,
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: '2',
+        label: 'Medium',
+        value: 'medium',
+        color: 'yellow',
+        order: 2,
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: '3',
+        label: 'High',
+        value: 'high',
+        color: 'red',
+        order: 3,
+        isActive: true,
+        isDefault: true,
+      },
+      {
+        id: '4',
+        label: 'Critical',
+        value: 'critical',
+        color: 'purple',
+        order: 4,
+        isActive: true,
+        isDefault: true,
+      },
     ];
   };
 
   const [statuses] = useState<StatusOption[]>(getStatuses());
   const [priorities] = useState<PriorityOption[]>(getPriorities());
-  
+
   // Load tickets from localStorage or use defaults
   const getInitialTickets = (): Ticket[] => {
     const saved = localStorage.getItem('agent-tickets');
@@ -100,45 +164,97 @@ const SimpleEmployeeDashboard: React.FC = () => {
       }
     }
     return [
-      { id: 1, title: 'Login Issue', status: 'open', priority: 'high', customer: 'John Doe', assigned: 'You', created: '2024-01-15', description: 'Cannot access account', order: 1 },
-      { id: 2, title: 'Feature Request', status: 'in_progress', priority: 'medium', customer: 'Jane Smith', assigned: 'Alice Johnson', created: '2024-01-10', description: 'Need dark mode', order: 1 },
-      { id: 3, title: 'Bug Report', status: 'review', priority: 'low', customer: 'Bob Wilson', assigned: 'You', created: '2024-01-05', description: 'Button not working', order: 1 },
-      { id: 4, title: 'Account Setup', status: 'open', priority: 'medium', customer: 'Sarah Davis', assigned: 'Unassigned', created: '2024-01-12', description: 'Need help with setup', order: 2 },
-      { id: 5, title: 'Payment Issue', status: 'resolved', priority: 'high', customer: 'Mike Brown', assigned: 'You', created: '2024-01-08', description: 'Payment not processing', order: 1 }
+      {
+        id: 1,
+        title: 'Login Issue',
+        status: 'open',
+        priority: 'high',
+        customer: 'John Doe',
+        assigned: 'You',
+        created: '2024-01-15',
+        description: 'Cannot access account',
+        order: 1,
+      },
+      {
+        id: 2,
+        title: 'Feature Request',
+        status: 'in_progress',
+        priority: 'medium',
+        customer: 'Jane Smith',
+        assigned: 'Alice Johnson',
+        created: '2024-01-10',
+        description: 'Need dark mode',
+        order: 1,
+      },
+      {
+        id: 3,
+        title: 'Bug Report',
+        status: 'review',
+        priority: 'low',
+        customer: 'Bob Wilson',
+        assigned: 'You',
+        created: '2024-01-05',
+        description: 'Button not working',
+        order: 1,
+      },
+      {
+        id: 4,
+        title: 'Account Setup',
+        status: 'open',
+        priority: 'medium',
+        customer: 'Sarah Davis',
+        assigned: 'Unassigned',
+        created: '2024-01-12',
+        description: 'Need help with setup',
+        order: 2,
+      },
+      {
+        id: 5,
+        title: 'Payment Issue',
+        status: 'resolved',
+        priority: 'high',
+        customer: 'Mike Brown',
+        assigned: 'You',
+        created: '2024-01-08',
+        description: 'Payment not processing',
+        order: 1,
+      },
     ];
   };
 
   // Migrate tickets to match current status configuration
   const migrateTickets = (tickets: Ticket[], statuses: StatusOption[]): Ticket[] => {
     const statusValueMap: { [key: string]: string } = {
-      'Open': 'open',
-      'In Progress': 'in_progress', 
-      'Waiting': 'waiting',
-      'Testing': 'testing',
-      'Review': 'review',
-      'Resolved': 'resolved'
+      Open: 'open',
+      'In Progress': 'in_progress',
+      Waiting: 'waiting',
+      Testing: 'testing',
+      Review: 'review',
+      Resolved: 'resolved',
     };
 
-    return tickets.map(ticket => {
+    return tickets.map((ticket) => {
       // Ensure notes array exists
       const ticketWithNotes = { ...ticket, notes: ticket.notes || [] };
-      
+
       // Check if ticket status exists in current statuses
-      const statusExists = statuses.some(s => s.value === ticketWithNotes.status);
+      const statusExists = statuses.some((s) => s.value === ticketWithNotes.status);
       if (statusExists) {
         return ticketWithNotes;
       }
 
       // Try to map old status to new status
       const mappedStatus = statusValueMap[ticketWithNotes.status];
-      if (mappedStatus && statuses.some(s => s.value === mappedStatus)) {
+      if (mappedStatus && statuses.some((s) => s.value === mappedStatus)) {
         return { ...ticketWithNotes, status: mappedStatus };
       }
 
       // If no mapping found, assign to first available status
       const firstStatus = statuses[0];
       if (firstStatus) {
-        console.log(`Migrating ticket ${ticketWithNotes.id} from status "${ticketWithNotes.status}" to "${firstStatus.value}"`);
+        console.log(
+          `Migrating ticket ${ticketWithNotes.id} from status "${ticketWithNotes.status}" to "${firstStatus.value}"`
+        );
         return { ...ticketWithNotes, status: firstStatus.value };
       }
 
@@ -154,40 +270,40 @@ const SimpleEmployeeDashboard: React.FC = () => {
   const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
-  
+
   // Modal state
   const [activeModalTab, setActiveModalTab] = useState<'details' | 'notes'>('details');
   const [newNoteContent, setNewNoteContent] = useState('');
   const [newNoteIsInternal, setNewNoteIsInternal] = useState(false);
-  
+
   // Views state
   const [activeViewFilter, setActiveViewFilter] = useState('my-queue');
-  
+
   // Default views for filtering
   const defaultViews = [
     {
       id: 'my-queue',
       name: 'My Queue',
       icon: '👤',
-      filter: (ticket: Ticket) => ticket.assigned === 'You'
+      filter: (ticket: Ticket) => ticket.assigned === 'You',
     },
     {
       id: 'unassigned',
       name: 'Unassigned',
       icon: '📥',
-      filter: (ticket: Ticket) => ticket.assigned === 'Unassigned'
+      filter: (ticket: Ticket) => ticket.assigned === 'Unassigned',
     },
     {
       id: 'all-open',
       name: 'All Open',
       icon: '🔓',
-      filter: (ticket: Ticket) => ticket.status === 'open'
-    }
+      filter: (ticket: Ticket) => ticket.status === 'open',
+    },
   ];
 
   // Get filtered tickets
   const getFilteredTickets = () => {
-    const view = defaultViews.find(v => v.id === activeViewFilter);
+    const view = defaultViews.find((v) => v.id === activeViewFilter);
     return view ? tickets.filter(view.filter) : tickets;
   };
 
@@ -215,15 +331,13 @@ const SimpleEmployeeDashboard: React.FC = () => {
     localStorage.setItem('agent-tickets', JSON.stringify(initialTickets));
   }, []);
 
-
-
   // Load board settings from localStorage
   useEffect(() => {
     const savedSettings = localStorage.getItem('agent-board-settings');
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
-        setBoardSettings(prev => ({ ...prev, ...parsed }));
+        setBoardSettings((prev) => ({ ...prev, ...parsed }));
       } catch (error) {
         console.error('Failed to load board settings:', error);
       }
@@ -239,83 +353,99 @@ const SimpleEmployeeDashboard: React.FC = () => {
   // Add note to ticket
   const addNoteToTicket = (ticketId: number, content: string, isInternal: boolean) => {
     if (!content.trim()) return;
-    
+
     const newNote: TicketNote = {
       id: Date.now().toString(),
       content: content.trim(),
       author: user?.firstName || 'You',
       timestamp: new Date().toLocaleString(),
-      isInternal
+      isInternal,
     };
-    
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === ticketId 
-        ? { ...ticket, notes: [...(ticket.notes || []), newNote] }
-        : ticket
-    ));
-    
+
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId ? { ...ticket, notes: [...(ticket.notes || []), newNote] } : ticket
+      )
+    );
+
     // Update selected ticket if it's the same one
     if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket(prev => prev ? {
-        ...prev,
-        notes: [...(prev.notes || []), newNote]
-      } : null);
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: [...(prev.notes || []), newNote],
+            }
+          : null
+      );
     }
-    
+
     setNewNoteContent('');
   };
 
+  const getStatusTickets = (status: string) =>
+    filteredTickets.filter((t) => t.status === status).sort((a, b) => a.order - b.order);
 
-
-  const getStatusTickets = (status: string) => filteredTickets
-    .filter(t => t.status === status)
-    .sort((a, b) => a.order - b.order);
-  
   const getStatusColor = (statusValue: string) => {
-    const status = statuses.find(s => s.value === statusValue);
-    if (!status) return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
-    
+    const status = statuses.find((s) => s.value === statusValue);
+    if (!status)
+      return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
+
     const color = status.color;
     if (color.startsWith('custom-')) {
       return `border-l-4 text-gray-800 dark:text-gray-200`;
     }
-    
+
     // Map preset colors to Tailwind classes
     const colorMap: { [key: string]: string } = {
       red: 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 border-red-200 dark:border-red-700',
-      orange: 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700',
-      yellow: 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700',
-      green: 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700',
+      orange:
+        'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-700',
+      yellow:
+        'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-700',
+      green:
+        'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border-green-200 dark:border-green-700',
       blue: 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 border-blue-200 dark:border-blue-700',
-      purple: 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700',
+      purple:
+        'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 border-purple-200 dark:border-purple-700',
       pink: 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200 border-pink-200 dark:border-pink-700',
       teal: 'bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 border-teal-200 dark:border-teal-700',
-      indigo: 'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-indigo-200 dark:border-indigo-700',
+      indigo:
+        'bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 border-indigo-200 dark:border-indigo-700',
       cyan: 'bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-200 border-cyan-200 dark:border-cyan-700',
-      emerald: 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-700',
+      emerald:
+        'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border-emerald-200 dark:border-emerald-700',
       lime: 'bg-lime-100 dark:bg-lime-900 text-lime-800 dark:text-lime-200 border-lime-200 dark:border-lime-700',
-      amber: 'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-700',
+      amber:
+        'bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-700',
       rose: 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-700',
-      violet: 'bg-violet-100 dark:bg-violet-900 text-violet-800 dark:text-violet-200 border-violet-200 dark:border-violet-700',
-      slate: 'bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700',
+      violet:
+        'bg-violet-100 dark:bg-violet-900 text-violet-800 dark:text-violet-200 border-violet-200 dark:border-violet-700',
+      slate:
+        'bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700',
       gray: 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700',
       zinc: 'bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-700',
-      stone: 'bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700',
-      neutral: 'bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700'
+      stone:
+        'bg-stone-100 dark:bg-stone-900 text-stone-800 dark:text-stone-200 border-stone-200 dark:border-stone-700',
+      neutral:
+        'bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-700',
     };
-    
-    return colorMap[color] || 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600';
+
+    return (
+      colorMap[color] ||
+      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-600'
+    );
   };
 
   const getPriorityColor = (priorityValue: string) => {
-    const priority = priorities.find(p => p.value === priorityValue);
+    const priority = priorities.find((p) => p.value === priorityValue);
     if (!priority) return 'text-gray-600 dark:text-gray-400';
-    
+
     const color = priority.color;
     if (color.startsWith('custom-')) {
       return 'text-gray-600 dark:text-gray-400'; // Fallback for custom colors
     }
-    
+
     // Map preset colors to text colors
     const colorMap: { [key: string]: string } = {
       red: 'text-red-600 dark:text-red-400',
@@ -337,52 +467,55 @@ const SimpleEmployeeDashboard: React.FC = () => {
       gray: 'text-gray-600 dark:text-gray-400',
       zinc: 'text-zinc-600 dark:text-zinc-400',
       stone: 'text-stone-600 dark:text-stone-400',
-      neutral: 'text-neutral-600 dark:text-neutral-400'
+      neutral: 'text-neutral-600 dark:text-neutral-400',
     };
-    
+
     return colorMap[color] || 'text-gray-600 dark:text-gray-400';
   };
 
   const moveTicket = (ticketId: number, newStatus: string) => {
-    setTickets(prev => {
-      const targetStatusTickets = prev.filter(t => t.status === newStatus);
-      const maxOrder = targetStatusTickets.length > 0 ? Math.max(...targetStatusTickets.map(t => t.order)) : 0;
-      
-      return prev.map(ticket => 
-        ticket.id === ticketId 
-          ? { ...ticket, status: newStatus, order: maxOrder + 1 } 
-          : ticket
+    setTickets((prev) => {
+      const targetStatusTickets = prev.filter((t) => t.status === newStatus);
+      const maxOrder =
+        targetStatusTickets.length > 0 ? Math.max(...targetStatusTickets.map((t) => t.order)) : 0;
+
+      return prev.map((ticket) =>
+        ticket.id === ticketId ? { ...ticket, status: newStatus, order: maxOrder + 1 } : ticket
       );
     });
   };
 
   const changePriority = (ticketId: number, newPriority: string) => {
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === ticketId ? { ...ticket, priority: newPriority } : ticket
-    ));
+    setTickets((prev) =>
+      prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, priority: newPriority } : ticket))
+    );
   };
 
   const moveTicketInColumn = (ticketId: number, direction: 'up' | 'down') => {
-    const ticket = tickets.find(t => t.id === ticketId);
+    const ticket = tickets.find((t) => t.id === ticketId);
     if (!ticket) return;
 
     const statusTickets = getStatusTickets(ticket.status);
-    const currentIndex = statusTickets.findIndex(t => t.id === ticketId);
-    
+    const currentIndex = statusTickets.findIndex((t) => t.id === ticketId);
+
     if (direction === 'up' && currentIndex > 0) {
       const otherTicket = statusTickets[currentIndex - 1];
-      setTickets(prev => prev.map(t => {
-        if (t.id === ticketId) return { ...t, order: otherTicket.order };
-        if (t.id === otherTicket.id) return { ...t, order: ticket.order };
-        return t;
-      }));
+      setTickets((prev) =>
+        prev.map((t) => {
+          if (t.id === ticketId) return { ...t, order: otherTicket.order };
+          if (t.id === otherTicket.id) return { ...t, order: ticket.order };
+          return t;
+        })
+      );
     } else if (direction === 'down' && currentIndex < statusTickets.length - 1) {
       const otherTicket = statusTickets[currentIndex + 1];
-      setTickets(prev => prev.map(t => {
-        if (t.id === ticketId) return { ...t, order: otherTicket.order };
-        if (t.id === otherTicket.id) return { ...t, order: ticket.order };
-        return t;
-      }));
+      setTickets((prev) =>
+        prev.map((t) => {
+          if (t.id === ticketId) return { ...t, order: otherTicket.order };
+          if (t.id === otherTicket.id) return { ...t, order: ticket.order };
+          return t;
+        })
+      );
     }
   };
 
@@ -390,7 +523,7 @@ const SimpleEmployeeDashboard: React.FC = () => {
   const handleDragStart = (e: React.DragEvent, ticket: Ticket) => {
     setDraggedTicket(ticket);
     e.dataTransfer.effectAllowed = 'move';
-    
+
     // Create a custom drag image for better UX
     const dragElement = e.currentTarget.cloneNode(true) as HTMLElement;
     dragElement.style.transform = 'rotate(5deg)';
@@ -398,7 +531,7 @@ const SimpleEmployeeDashboard: React.FC = () => {
     dragElement.style.width = e.currentTarget.getBoundingClientRect().width + 'px';
     document.body.appendChild(dragElement);
     e.dataTransfer.setDragImage(dragElement, 0, 0);
-    
+
     // Clean up the drag image after a short delay
     setTimeout(() => {
       if (document.body.contains(dragElement)) {
@@ -415,13 +548,13 @@ const SimpleEmployeeDashboard: React.FC = () => {
   const handleTicketDragOver = (e: React.DragEvent, ticket: Ticket) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!draggedTicket || draggedTicket.id === ticket.id) return;
-    
+
     const rect = e.currentTarget.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
     const position = e.clientY < midY ? 'above' : 'below';
-    
+
     setDragOverTicket(ticket.id);
     setDragOverPosition(position);
   };
@@ -431,7 +564,7 @@ const SimpleEmployeeDashboard: React.FC = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
-    
+
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       setDragOverTicket(null);
       setDragOverPosition(null);
@@ -441,7 +574,7 @@ const SimpleEmployeeDashboard: React.FC = () => {
   const handleTicketDrop = (e: React.DragEvent, targetTicket: Ticket) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!draggedTicket || draggedTicket.id === targetTicket.id) {
       setDraggedTicket(null);
       setDragOverTicket(null);
@@ -451,15 +584,20 @@ const SimpleEmployeeDashboard: React.FC = () => {
 
     const sourceStatus = draggedTicket.status;
     const targetStatus = targetTicket.status;
-    
+
     if (sourceStatus === targetStatus) {
       // Reordering within the same column
       reorderTicketsInColumn(draggedTicket.id, targetTicket.id, dragOverPosition || 'below');
     } else {
       // Moving to different column
-      moveTicketToPosition(draggedTicket.id, targetStatus, targetTicket.id, dragOverPosition || 'below');
+      moveTicketToPosition(
+        draggedTicket.id,
+        targetStatus,
+        targetTicket.id,
+        dragOverPosition || 'below'
+      );
     }
-    
+
     setDraggedTicket(null);
     setDragOverTicket(null);
     setDragOverPosition(null);
@@ -467,27 +605,31 @@ const SimpleEmployeeDashboard: React.FC = () => {
 
   const handleColumnDrop = (e: React.DragEvent, newStatus: string) => {
     e.preventDefault();
-    
+
     if (draggedTicket && draggedTicket.status !== newStatus) {
       moveTicket(draggedTicket.id, newStatus);
     }
-    
+
     setDraggedTicket(null);
     setDragOverTicket(null);
     setDragOverPosition(null);
   };
 
-  const reorderTicketsInColumn = (draggedId: number, targetId: number, position: 'above' | 'below') => {
-    const draggedTicket = tickets.find(t => t.id === draggedId);
-    const targetTicket = tickets.find(t => t.id === targetId);
-    
+  const reorderTicketsInColumn = (
+    draggedId: number,
+    targetId: number,
+    position: 'above' | 'below'
+  ) => {
+    const draggedTicket = tickets.find((t) => t.id === draggedId);
+    const targetTicket = tickets.find((t) => t.id === targetId);
+
     if (!draggedTicket || !targetTicket || draggedTicket.status !== targetTicket.status) return;
-    
+
     const statusTickets = getStatusTickets(draggedTicket.status);
-    const targetIndex = statusTickets.findIndex(t => t.id === targetId);
-    
+    const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
+
     let newOrder: number;
-    
+
     if (position === 'above') {
       if (targetIndex === 0) {
         newOrder = Math.max(1, targetTicket.order - 1);
@@ -503,21 +645,26 @@ const SimpleEmployeeDashboard: React.FC = () => {
         newOrder = (targetTicket.order + nextTicket.order) / 2;
       }
     }
-    
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket
-    ));
+
+    setTickets((prev) =>
+      prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
+    );
   };
 
-  const moveTicketToPosition = (draggedId: number, newStatus: string, targetId: number, position: 'above' | 'below') => {
-    const targetTicket = tickets.find(t => t.id === targetId);
+  const moveTicketToPosition = (
+    draggedId: number,
+    newStatus: string,
+    targetId: number,
+    position: 'above' | 'below'
+  ) => {
+    const targetTicket = tickets.find((t) => t.id === targetId);
     if (!targetTicket) return;
-    
+
     const statusTickets = getStatusTickets(newStatus);
-    const targetIndex = statusTickets.findIndex(t => t.id === targetId);
-    
+    const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
+
     let newOrder: number;
-    
+
     if (position === 'above') {
       if (targetIndex === 0) {
         newOrder = Math.max(1, targetTicket.order - 1);
@@ -533,17 +680,22 @@ const SimpleEmployeeDashboard: React.FC = () => {
         newOrder = (targetTicket.order + nextTicket.order) / 2;
       }
     }
-    
-    setTickets(prev => prev.map(ticket => 
-      ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
-    ));
+
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
+      )
+    );
   };
 
   const renderKanbanBoard = () => (
-    <div className={`grid grid-cols-1 gap-6`} style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}>
+    <div
+      className={`grid grid-cols-1 gap-6`}
+      style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
+    >
       {statuses.map((statusConfig) => (
-        <div 
-          key={statusConfig.value} 
+        <div
+          key={statusConfig.value}
           className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 min-h-96 transition-colors"
           onDragOver={handleDragOver}
           onDrop={(e) => handleColumnDrop(e, statusConfig.value)}
@@ -558,111 +710,126 @@ const SimpleEmployeeDashboard: React.FC = () => {
                 {dragOverTicket === ticket.id && dragOverPosition === 'above' && (
                   <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
                 )}
-                
-                <div 
+
+                <div
                   draggable={boardSettings.dragAndDrop}
-                  onDragStart={boardSettings.dragAndDrop ? (e) => handleDragStart(e, ticket) : undefined}
-                  onDragOver={boardSettings.dragAndDrop ? (e) => handleTicketDragOver(e, ticket) : undefined}
+                  onDragStart={
+                    boardSettings.dragAndDrop ? (e) => handleDragStart(e, ticket) : undefined
+                  }
+                  onDragOver={
+                    boardSettings.dragAndDrop ? (e) => handleTicketDragOver(e, ticket) : undefined
+                  }
                   onDragLeave={boardSettings.dragAndDrop ? handleTicketDragLeave : undefined}
-                  onDrop={boardSettings.dragAndDrop ? (e) => handleTicketDrop(e, ticket) : undefined}
-                  className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-move hover:shadow-md transition-all duration-200 ${
-                    getStatusColor(ticket.status)
-                  } ${
-                    draggedTicket?.id === ticket.id ? 'opacity-50 rotate-2 scale-105' : ''
-                  } ${
-                    dragOverTicket === ticket.id ? 'ring-2 ring-blue-300 dark:ring-blue-500 ring-opacity-50' : ''
+                  onDrop={
+                    boardSettings.dragAndDrop ? (e) => handleTicketDrop(e, ticket) : undefined
+                  }
+                  className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-move hover:shadow-md transition-all duration-200 ${getStatusColor(
+                    ticket.status
+                  )} ${draggedTicket?.id === ticket.id ? 'opacity-50 rotate-2 scale-105' : ''} ${
+                    dragOverTicket === ticket.id
+                      ? 'ring-2 ring-blue-300 dark:ring-blue-500 ring-opacity-50'
+                      : ''
                   }`}
                   onClick={() => setSelectedTicket(ticket)}
                 >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-2 flex-1">
-                    {/* Drag handle */}
-                    {boardSettings.dragAndDrop && (
-                      <div className="flex flex-col space-y-0.5 mt-1 opacity-40 hover:opacity-70 transition-opacity">
-                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                        <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                      </div>
-                    )}
-                    
-                    <div className="flex-1">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">{ticket.title}</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {boardSettings.showTicketIds && `#${ticket.id} • `}{ticket.customer}
-                      </p>
-                      {boardSettings.showAssignee && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Assigned: {ticket.assigned}</p>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-2 flex-1">
+                      {/* Drag handle */}
+                      {boardSettings.dragAndDrop && (
+                        <div className="flex flex-col space-y-0.5 mt-1 opacity-40 hover:opacity-70 transition-opacity">
+                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                        </div>
                       )}
-                      {ticket.notes && ticket.notes.length > 0 && (
-                        <div className="flex items-center mt-1">
-                          <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
-                            💬 {ticket.notes.length} note{ticket.notes.length !== 1 ? 's' : ''}
-                          </span>
+
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                          {ticket.title}
+                        </h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {boardSettings.showTicketIds && `#${ticket.id} • `}
+                          {ticket.customer}
+                        </p>
+                        {boardSettings.showAssignee && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Assigned: {ticket.assigned}
+                          </p>
+                        )}
+                        {ticket.notes && ticket.notes.length > 0 && (
+                          <div className="flex items-center mt-1">
+                            <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                              💬 {ticket.notes.length} note{ticket.notes.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end space-y-1">
+                      <select
+                        value={ticket.priority}
+                        onChange={(e) =>
+                          changePriority(ticket.id, e.target.value as 'High' | 'Medium' | 'Low')
+                        }
+                        className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                      {boardSettings.showPriorityArrows && (
+                        <div className="flex flex-col space-y-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveTicketInColumn(ticket.id, 'up');
+                            }}
+                            disabled={index === 0}
+                            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Move up"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveTicketInColumn(ticket.id, 'down');
+                            }}
+                            disabled={index === getStatusTickets(status).length - 1}
+                            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Move down"
+                          >
+                            ↓
+                          </button>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-col items-end space-y-1">
-                    <select
-                      value={ticket.priority}
-                      onChange={(e) => changePriority(ticket.id, e.target.value as 'High' | 'Medium' | 'Low')}
-                      className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
-                      onClick={(e) => e.stopPropagation()}
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {ticket.created}
+                    </span>
+                    <button
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTicket(ticket);
+                      }}
                     >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-                    {boardSettings.showPriorityArrows && (
-                      <div className="flex flex-col space-y-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveTicketInColumn(ticket.id, 'up');
-                          }}
-                          disabled={index === 0}
-                          className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="Move up"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            moveTicketInColumn(ticket.id, 'down');
-                          }}
-                          disabled={index === getStatusTickets(status).length - 1}
-                          className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="Move down"
-                        >
-                          ↓
-                        </button>
-                      </div>
-                    )}
+                      View
+                    </button>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{ticket.created}</span>
-                  <button 
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTicket(ticket);
-                    }}
-                  >
-                    View
-                  </button>
-                </div>
-                </div>
-                
+
                 {/* Drop indicator below */}
                 {dragOverTicket === ticket.id && dragOverPosition === 'below' && (
                   <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
                 )}
               </div>
             ))}
-            
+
             {getStatusTickets(status).length === 0 && (
               <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                 Drop tickets here
@@ -682,23 +849,32 @@ const SimpleEmployeeDashboard: React.FC = () => {
       <ul className="divide-y divide-gray-200 dark:divide-gray-700">
         {filteredTickets.map((ticket) => (
           <li key={ticket.id}>
-            <div className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onClick={() => setSelectedTicket(ticket)}>
+            <div
+              className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+              onClick={() => setSelectedTicket(ticket)}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                     #{ticket.id}
                   </span>
                   <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{ticket.title}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{ticket.customer} • Assigned: {ticket.assigned}</div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {ticket.title}
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {ticket.customer} • Assigned: {ticket.assigned}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className={`text-xs font-medium ${getPriorityColor(ticket.priority)}`}>
-                    {priorities.find(p => p.value === ticket.priority)?.label || ticket.priority}
+                    {priorities.find((p) => p.value === ticket.priority)?.label || ticket.priority}
                   </span>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ticket.status).replace('border-', 'border ')}`}>
-                    {statuses.find(s => s.value === ticket.status)?.label || ticket.status}
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ticket.status).replace('border-', 'border ')}`}
+                  >
+                    {statuses.find((s) => s.value === ticket.status)?.label || ticket.status}
                   </span>
                   <div className="text-sm text-gray-500 dark:text-gray-400">{ticket.created}</div>
                 </div>
@@ -708,8 +884,8 @@ const SimpleEmployeeDashboard: React.FC = () => {
         ))}
       </ul>
     </div>
-  );  
-const renderCreateTicketModal = () => {
+  );
+  const renderCreateTicketModal = () => {
     if (!showCreateTicket) return null;
 
     return (
@@ -731,7 +907,12 @@ const renderCreateTicketModal = () => {
                 className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -742,7 +923,9 @@ const renderCreateTicketModal = () => {
             <div className="space-y-8">
               {/* Basic Information */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Basic Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Basic Information
+                </h3>
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -754,7 +937,7 @@ const renderCreateTicketModal = () => {
                       placeholder="Brief description of the issue or request"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                       Description *
@@ -770,34 +953,36 @@ const renderCreateTicketModal = () => {
 
               {/* Assignment & Priority */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Assignment & Priority</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Assignment & Priority
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                       Priority *
                     </label>
                     <select className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-                      {priorities.map(priority => (
+                      {priorities.map((priority) => (
                         <option key={priority.value} value={priority.value}>
                           {priority.label}
                         </option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                       Status
                     </label>
                     <select className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-                      {statuses.map(status => (
+                      {statuses.map((status) => (
                         <option key={status.value} value={status.value}>
                           {status.label}
                         </option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                       Assigned To
@@ -814,7 +999,9 @@ const renderCreateTicketModal = () => {
 
               {/* Customer Information */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Customer Information</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Customer Information
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -826,7 +1013,7 @@ const renderCreateTicketModal = () => {
                       placeholder="Enter customer's full name"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                       Customer Email
@@ -842,7 +1029,9 @@ const renderCreateTicketModal = () => {
 
               {/* Additional Options */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Additional Options</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Additional Options
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
                     <input
@@ -854,7 +1043,7 @@ const renderCreateTicketModal = () => {
                       Mark as urgent (requires immediate attention)
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -866,7 +1055,7 @@ const renderCreateTicketModal = () => {
                       Send email notification to customer
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -882,10 +1071,22 @@ const renderCreateTicketModal = () => {
 
               {/* File Attachments */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Attachments</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                  Attachments
+                </h3>
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  <svg
+                    className="w-12 h-12 text-gray-400 mx-auto mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
                   </svg>
                   <p className="text-gray-600 dark:text-gray-400 mb-2">
                     Drag and drop files here, or click to browse
@@ -903,9 +1104,7 @@ const renderCreateTicketModal = () => {
 
           {/* Footer */}
           <div className="px-8 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center">
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              * Required fields
-            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">* Required fields</div>
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowCreateTicket(false)}
@@ -926,8 +1125,6 @@ const renderCreateTicketModal = () => {
     );
   };
 
-
-
   const renderTicketModal = () => {
     if (!selectedTicket) return null;
 
@@ -942,11 +1139,17 @@ const renderCreateTicketModal = () => {
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                     #{selectedTicket.id}
                   </span>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTicket.status)}`}>
-                    {statuses.find(s => s.value === selectedTicket.status)?.label || selectedTicket.status}
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTicket.status)}`}
+                  >
+                    {statuses.find((s) => s.value === selectedTicket.status)?.label ||
+                      selectedTicket.status}
                   </span>
-                  <span className={`text-xs font-medium ${getPriorityColor(selectedTicket.priority)}`}>
-                    {priorities.find(p => p.value === selectedTicket.priority)?.label || selectedTicket.priority}
+                  <span
+                    className={`text-xs font-medium ${getPriorityColor(selectedTicket.priority)}`}
+                  >
+                    {priorities.find((p) => p.value === selectedTicket.priority)?.label ||
+                      selectedTicket.priority}
                   </span>
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white truncate">
@@ -965,7 +1168,12 @@ const renderCreateTicketModal = () => {
                 className="ml-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -1009,7 +1217,9 @@ const renderCreateTicketModal = () => {
                 {/* Description */}
                 {selectedTicket.description && (
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Description</h3>
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Description
+                    </h3>
                     <div className="prose prose-sm max-w-none">
                       <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                         {selectedTicket.description}
@@ -1017,38 +1227,42 @@ const renderCreateTicketModal = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Status & Priority */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">Status</label>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Status
+                    </label>
                     <select
                       value={selectedTicket.status}
                       onChange={(e) => {
                         moveTicket(selectedTicket.id, e.target.value);
-                        setSelectedTicket({...selectedTicket, status: e.target.value});
+                        setSelectedTicket({ ...selectedTicket, status: e.target.value });
                       }}
                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     >
-                      {statuses.map(status => (
+                      {statuses.map((status) => (
                         <option key={status.value} value={status.value}>
                           {status.label}
                         </option>
                       ))}
                     </select>
                   </div>
-                  
+
                   <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">Priority</label>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Priority
+                    </label>
                     <select
                       value={selectedTicket.priority}
                       onChange={(e) => {
                         changePriority(selectedTicket.id, e.target.value);
-                        setSelectedTicket({...selectedTicket, priority: e.target.value});
+                        setSelectedTicket({ ...selectedTicket, priority: e.target.value });
                       }}
                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                     >
-                      {priorities.map(priority => (
+                      {priorities.map((priority) => (
                         <option key={priority.value} value={priority.value}>
                           {priority.label}
                         </option>
@@ -1084,7 +1298,9 @@ const renderCreateTicketModal = () => {
                         </span>
                       </label>
                       <button
-                        onClick={() => addNoteToTicket(selectedTicket.id, newNoteContent, newNoteIsInternal)}
+                        onClick={() =>
+                          addNoteToTicket(selectedTicket.id, newNoteContent, newNoteIsInternal)
+                        }
                         disabled={!newNoteContent.trim()}
                         className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                       >
@@ -1113,7 +1329,7 @@ const renderCreateTicketModal = () => {
                             </span>
                           </div>
                         )}
-                        
+
                         <div className="flex items-center space-x-3 mb-3">
                           <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
                             <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
@@ -1129,7 +1345,7 @@ const renderCreateTicketModal = () => {
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="prose prose-sm max-w-none">
                           <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
                             {note.content}
@@ -1140,12 +1356,26 @@ const renderCreateTicketModal = () => {
                   ) : (
                     <div className="text-center py-12">
                       <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                          />
                         </svg>
                       </div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">No notes yet</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Start the conversation by adding the first note</p>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        No notes yet
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Start the conversation by adding the first note
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1179,7 +1409,9 @@ const renderCreateTicketModal = () => {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Agent Dashboard</h1>
-              <p className="text-sm text-gray-600 dark:text-gray-300">Welcome back, {user?.firstName}! Drag tickets to reorder or move between columns</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                Welcome back, {user?.firstName}! Drag tickets to reorder or move between columns
+              </p>
             </div>
             <div className="flex items-center space-x-3">
               {/* Create Ticket Button */}
@@ -1188,7 +1420,12 @@ const renderCreateTicketModal = () => {
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 <span>New Ticket</span>
               </button>
@@ -1198,8 +1435,8 @@ const renderCreateTicketModal = () => {
                 <button
                   onClick={() => setActiveView('kanban')}
                   className={`px-3 py-2 text-sm font-medium rounded-l-md border ${
-                    activeView === 'kanban' 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    activeView === 'kanban'
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }`}
                 >
@@ -1208,8 +1445,8 @@ const renderCreateTicketModal = () => {
                 <button
                   onClick={() => setActiveView('list')}
                   className={`px-3 py-2 text-sm font-medium rounded-r-md border-t border-r border-b ${
-                    activeView === 'list' 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    activeView === 'list'
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }`}
                 >
@@ -1225,11 +1462,21 @@ const renderCreateTicketModal = () => {
               >
                 {theme === 'light' ? (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
                   </svg>
                 ) : (
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
                   </svg>
                 )}
               </button>
@@ -1241,12 +1488,20 @@ const renderCreateTicketModal = () => {
                 title="Admin Setup"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                 </svg>
               </a>
-
-
 
               {/* Profile Avatar */}
               <button
@@ -1255,11 +1510,12 @@ const renderCreateTicketModal = () => {
                 title="Profile"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                  {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                  {user?.firstName?.charAt(0)}
+                  {user?.lastName?.charAt(0)}
                 </div>
               </button>
 
-              <button 
+              <button
                 onClick={logout}
                 className="px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm"
               >
@@ -1281,10 +1537,10 @@ const renderCreateTicketModal = () => {
               <div className="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-100 dark:bg-gray-700 rounded">
                 <div>Total tickets: {tickets.length}</div>
                 <div>Filtered tickets: {filteredTickets.length}</div>
-                <div>Active statuses: {statuses.map(s => s.value).join(', ')}</div>
-                <div>Ticket statuses: {[...new Set(tickets.map(t => t.status))].join(', ')}</div>
+                <div>Active statuses: {statuses.map((s) => s.value).join(', ')}</div>
+                <div>Ticket statuses: {[...new Set(tickets.map((t) => t.status))].join(', ')}</div>
               </div>
-              
+
               {defaultViews.map((view) => {
                 const count = tickets.filter(view.filter).length;
                 return (
@@ -1301,11 +1557,13 @@ const renderCreateTicketModal = () => {
                       <span className="mr-2">{view.icon}</span>
                       <span>{view.name}</span>
                     </div>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      activeViewFilter === view.id
-                        ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
-                        : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
-                    }`}>
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full ${
+                        activeViewFilter === view.id
+                          ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
                       {count}
                     </span>
                   </button>
@@ -1325,8 +1583,12 @@ const renderCreateTicketModal = () => {
                   <div className="flex items-center">
                     <div className="ml-5 w-0 flex-1">
                       <dl>
-                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total</dt>
-                        <dd className="text-lg font-medium text-gray-900 dark:text-white">{filteredTickets.length}</dd>
+                        <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                          Total
+                        </dt>
+                        <dd className="text-lg font-medium text-gray-900 dark:text-white">
+                          {filteredTickets.length}
+                        </dd>
                       </dl>
                     </div>
                   </div>
@@ -1334,13 +1596,20 @@ const renderCreateTicketModal = () => {
               </div>
 
               {statuses.map((statusConfig) => (
-                <div key={statusConfig.value} className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-colors">
+                <div
+                  key={statusConfig.value}
+                  className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-colors"
+                >
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{statusConfig.label}</dt>
-                          <dd className="text-lg font-medium text-gray-900 dark:text-white">{getStatusTickets(statusConfig.value).length}</dd>
+                          <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+                            {statusConfig.label}
+                          </dt>
+                          <dd className="text-lg font-medium text-gray-900 dark:text-white">
+                            {getStatusTickets(statusConfig.value).length}
+                          </dd>
                         </dl>
                       </div>
                     </div>
@@ -1355,12 +1624,10 @@ const renderCreateTicketModal = () => {
         </div>
       </div>
 
-
-
       {/* Profile Modal */}
       {showProfile && (
-        <AgentProfile 
-          onClose={() => setShowProfile(false)} 
+        <AgentProfile
+          onClose={() => setShowProfile(false)}
           boardSettings={boardSettings}
           onBoardSettingsChange={handleBoardSettingsChange}
         />

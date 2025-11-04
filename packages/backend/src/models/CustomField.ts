@@ -36,10 +36,7 @@ export class CustomField extends BaseModel {
   }
 
   static async findByTeamAndName(teamId: string, name: string): Promise<CustomFieldTable | null> {
-    const result = await this.query
-      .where('team_id', teamId)
-      .where('name', name)
-      .first();
+    const result = await this.query.where('team_id', teamId).where('name', name).first();
     return result || null;
   }
 
@@ -47,7 +44,10 @@ export class CustomField extends BaseModel {
     return this.update(fieldId, { order });
   }
 
-  static async validateFieldValue(field: CustomFieldTable, value: any): Promise<{ isValid: boolean; error?: string }> {
+  static async validateFieldValue(
+    field: CustomFieldTable,
+    value: any
+  ): Promise<{ isValid: boolean; error?: string }> {
     // Required field validation
     if (field.is_required && (value === null || value === undefined || value === '')) {
       return { isValid: false, error: `${field.label} is required` };
@@ -84,7 +84,10 @@ export class CustomField extends BaseModel {
           return { isValid: false, error: `${field.label} has no valid options configured` };
         }
         if (!field.options.includes(value)) {
-          return { isValid: false, error: `${field.label} must be one of: ${field.options.join(', ')}` };
+          return {
+            isValid: false,
+            error: `${field.label} must be one of: ${field.options.join(', ')}`,
+          };
         }
         break;
     }
@@ -94,7 +97,10 @@ export class CustomField extends BaseModel {
       const validation = field.validation;
 
       // Min/Max validation for numbers
-      if ((field.type === 'number' || field.type === 'decimal' || field.type === 'integer') && typeof value === 'number') {
+      if (
+        (field.type === 'number' || field.type === 'decimal' || field.type === 'integer') &&
+        typeof value === 'number'
+      ) {
         if (validation.min !== undefined && value < validation.min) {
           return { isValid: false, error: `${field.label} must be at least ${validation.min}` };
         }
@@ -106,10 +112,16 @@ export class CustomField extends BaseModel {
       // Length validation for strings
       if (field.type === 'string' && typeof value === 'string') {
         if (validation.min !== undefined && value.length < validation.min) {
-          return { isValid: false, error: `${field.label} must be at least ${validation.min} characters` };
+          return {
+            isValid: false,
+            error: `${field.label} must be at least ${validation.min} characters`,
+          };
         }
         if (validation.max !== undefined && value.length > validation.max) {
-          return { isValid: false, error: `${field.label} must be at most ${validation.max} characters` };
+          return {
+            isValid: false,
+            error: `${field.label} must be at most ${validation.max} characters`,
+          };
         }
       }
 
@@ -117,9 +129,9 @@ export class CustomField extends BaseModel {
       if (field.type === 'string' && validation.pattern && typeof value === 'string') {
         const regex = new RegExp(validation.pattern);
         if (!regex.test(value)) {
-          return { 
-            isValid: false, 
-            error: validation.message || `${field.label} format is invalid` 
+          return {
+            isValid: false,
+            error: validation.message || `${field.label} format is invalid`,
           };
         }
       }
@@ -128,14 +140,17 @@ export class CustomField extends BaseModel {
     return { isValid: true };
   }
 
-  static async validateCustomFieldValues(teamId: string, values: Record<string, any>): Promise<{ isValid: boolean; errors: Record<string, string> }> {
+  static async validateCustomFieldValues(
+    teamId: string,
+    values: Record<string, any>
+  ): Promise<{ isValid: boolean; errors: Record<string, string> }> {
     const fields = await this.findByTeam(teamId);
     const errors: Record<string, string> = {};
 
     for (const field of fields) {
       const value = values[field.name];
       const validation = await this.validateFieldValue(field, value);
-      
+
       if (!validation.isValid && validation.error) {
         errors[field.name] = validation.error;
       }
@@ -147,7 +162,10 @@ export class CustomField extends BaseModel {
     };
   }
 
-  static async reorderFields(teamId: string, fieldOrders: { fieldId: string; order: number }[]): Promise<void> {
+  static async reorderFields(
+    teamId: string,
+    fieldOrders: { fieldId: string; order: number }[]
+  ): Promise<void> {
     await this.transaction(async (trx) => {
       for (const { fieldId, order } of fieldOrders) {
         await trx('custom_fields')

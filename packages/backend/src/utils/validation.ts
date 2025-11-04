@@ -195,7 +195,10 @@ export const uuidSchema = Joi.string().uuid().required().messages({
 });
 
 // Validation middleware factory
-export const validate = (schema: Joi.ObjectSchema, property: 'body' | 'params' | 'query' = 'body') => {
+export const validate = (
+  schema: Joi.ObjectSchema,
+  property: 'body' | 'params' | 'query' = 'body'
+) => {
   return (req: any, res: any, next: any) => {
     const { error, value } = schema.validate(req[property], {
       abortEarly: false,
@@ -250,7 +253,7 @@ export const validateRequest = (schema: ValidationSchema) => {
     const errors: Record<string, string> = {};
 
     // Validate each section
-    ['body', 'params', 'query'].forEach(section => {
+    ['body', 'params', 'query'].forEach((section) => {
       const sectionSchema = schema[section as keyof ValidationSchema];
       if (!sectionSchema) return;
 
@@ -291,7 +294,12 @@ export const validateRequest = (schema: ValidationSchema) => {
               errors[fieldPath] = `${field} must be one of: ${rules.enum.join(', ')}`;
               return;
             }
-            if (rules.format === 'uuid' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
+            if (
+              rules.format === 'uuid' &&
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+                value
+              )
+            ) {
               errors[fieldPath] = `${field} must be a valid UUID`;
               return;
             }

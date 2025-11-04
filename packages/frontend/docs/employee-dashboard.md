@@ -7,17 +7,20 @@ The Employee Dashboard provides a comprehensive interface for Bomizzel employees
 ## Features Implemented
 
 ### 1. Employee Login and Profile Management
+
 - **Profile Management Modal**: Allows employees to update their personal information and preferences
 - **User Preferences**: Theme selection, notification settings, and dashboard preferences
 - **Preference Persistence**: Settings are saved to the backend and persist across sessions
 
 ### 2. Personal Queue View with Ticket Listings
+
 - **Queue Selection**: Dropdown to switch between available queues
 - **Personal Queue Priority**: Automatically selects user's personal queue if available
 - **Ticket Count Display**: Shows number of tickets in each queue
 - **Real-time Updates**: Auto-refreshes ticket data every 30 seconds
 
 ### 3. Kanban Board View with Drag-and-Drop
+
 - **Status Columns**: Dynamic columns based on team's custom statuses
 - **Drag-and-Drop**: Move tickets between statuses with automatic priority calculation
 - **Visual Feedback**: Hover states and drag indicators
@@ -25,18 +28,21 @@ The Employee Dashboard provides a comprehensive interface for Bomizzel employees
 - **Priority-based Sorting**: Tickets sorted by priority within each column
 
 ### 4. List View Toggle and Preference Persistence
+
 - **View Toggle**: Switch between Kanban and List views
 - **Sortable Columns**: Click column headers to sort by different fields
 - **Pagination Support**: Built-in pagination for large ticket lists
 - **Preference Storage**: Remembers user's preferred view
 
 ### 5. Ticket Assignment and Status Update Interface
+
 - **Ticket Cards**: Rich ticket information display
 - **Status Updates**: Visual status indicators with color coding
 - **Assignment Display**: Shows assigned employee information
 - **Priority Indicators**: Color-coded priority levels (High, Medium, Low, Lowest)
 
 ### 6. Custom Field Configuration Forms (Team Leads)
+
 - **Field Type Support**: String, Number, Integer, Decimal, Picklist
 - **Validation Rules**: Required field settings and validation options
 - **Dynamic Options**: Picklist fields with configurable options
@@ -44,6 +50,7 @@ The Employee Dashboard provides a comprehensive interface for Bomizzel employees
 - **Team-specific**: Fields are scoped to specific teams
 
 ### 7. Dashboard Metrics and Analytics Views
+
 - **Overall Metrics**: Total, open, assigned, and resolved ticket counts
 - **Queue Breakdown**: Individual queue performance metrics
 - **Resolution Time**: Average resolution time tracking
@@ -51,6 +58,7 @@ The Employee Dashboard provides a comprehensive interface for Bomizzel employees
 - **Real-time Updates**: Metrics refresh automatically
 
 ### 8. Ticket Detail Modal
+
 - **Comprehensive View**: Full ticket information including description and custom fields
 - **Notes Management**: Add internal and customer-visible notes
 - **File Attachments**: View and download ticket attachments

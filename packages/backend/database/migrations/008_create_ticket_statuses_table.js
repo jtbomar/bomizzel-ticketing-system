@@ -2,8 +2,8 @@
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('ticket_statuses', function(table) {
+exports.up = function (knex) {
+  return knex.schema.createTable('ticket_statuses', function (table) {
     table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.uuid('team_id').notNullable();
     table.string('name').notNullable();
@@ -14,10 +14,10 @@ exports.up = function(knex) {
     table.boolean('is_closed').defaultTo(false);
     table.boolean('is_active').defaultTo(true);
     table.timestamps(true, true);
-    
+
     // Foreign keys
     table.foreign('team_id').references('id').inTable('teams').onDelete('CASCADE');
-    
+
     // Indexes
     table.index('team_id');
     table.index('name');
@@ -25,7 +25,7 @@ exports.up = function(knex) {
     table.index('is_default');
     table.index('is_closed');
     table.index('is_active');
-    
+
     // Unique constraint for name within team
     table.unique(['team_id', 'name']);
   });
@@ -35,6 +35,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns { Promise<void> }
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('ticket_statuses');
 };

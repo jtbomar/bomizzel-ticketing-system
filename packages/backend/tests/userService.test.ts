@@ -61,8 +61,7 @@ describe('UserService', () => {
     });
 
     it('should throw error for non-existent user', async () => {
-      await expect(UserService.getUserProfile('non-existent-id'))
-        .rejects.toThrow('User not found');
+      await expect(UserService.getUserProfile('non-existent-id')).rejects.toThrow('User not found');
     });
   });
 
@@ -96,8 +95,9 @@ describe('UserService', () => {
         firstName: '', // Invalid empty name
       };
 
-      await expect(UserService.updateUserProfile(userId, updateData))
-        .rejects.toThrow('Validation error');
+      await expect(UserService.updateUserProfile(userId, updateData)).rejects.toThrow(
+        'Validation error'
+      );
     });
   });
 
@@ -146,7 +146,7 @@ describe('UserService', () => {
       await UserService.addUserToCompany(userId, newCompany.id);
 
       const profile = await UserService.getUserProfile(userId);
-      const companyIds = profile.companies.map(c => c.id);
+      const companyIds = profile.companies.map((c) => c.id);
       expect(companyIds).toContain(newCompany.id);
     });
 
@@ -154,15 +154,16 @@ describe('UserService', () => {
       await UserService.removeUserFromCompany(userId, companyId);
 
       const profile = await UserService.getUserProfile(userId);
-      const companyIds = profile.companies.map(c => c.id);
+      const companyIds = profile.companies.map((c) => c.id);
       expect(companyIds).not.toContain(companyId);
     });
 
     it('should prevent duplicate company associations', async () => {
       await UserService.addUserToCompany(userId, companyId);
 
-      await expect(UserService.addUserToCompany(userId, companyId))
-        .rejects.toThrow('User already associated with company');
+      await expect(UserService.addUserToCompany(userId, companyId)).rejects.toThrow(
+        'User already associated with company'
+      );
     });
   });
 
@@ -206,11 +207,11 @@ describe('UserService', () => {
       const employees = await UserService.getUsersByRole('employee');
 
       expect(customers.length).toBeGreaterThan(0);
-      customers.forEach(user => {
+      customers.forEach((user) => {
         expect(user.role).toBe('customer');
       });
 
-      employees.forEach(user => {
+      employees.forEach((user) => {
         expect(user.role).toBe('employee');
       });
     });

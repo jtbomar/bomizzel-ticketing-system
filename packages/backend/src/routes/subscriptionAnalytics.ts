@@ -30,10 +30,10 @@ router.get('/mrr', async (req, res, next) => {
     }
 
     const mrr = await SubscriptionAnalyticsService.calculateMRR(targetYear, targetMonth);
-    
+
     res.json({
       success: true,
-      data: mrr
+      data: mrr,
     });
   } catch (error) {
     next(error);
@@ -59,10 +59,10 @@ router.get('/mrr/historical', async (req, res, next) => {
     }
 
     const historicalMrr = await SubscriptionAnalyticsService.getHistoricalMRR(monthsCount);
-    
+
     res.json({
       success: true,
-      data: historicalMrr
+      data: historicalMrr,
     });
   } catch (error) {
     next(error);
@@ -88,16 +88,19 @@ router.get('/clv', async (req, res, next) => {
       throw new AppError('Invalid limit parameter. Must be between 1 and 500.', 400);
     }
 
-    const clvData = await SubscriptionAnalyticsService.calculateCustomerLifetimeValue(limitCount, offsetCount);
-    
+    const clvData = await SubscriptionAnalyticsService.calculateCustomerLifetimeValue(
+      limitCount,
+      offsetCount
+    );
+
     res.json({
       success: true,
       data: clvData,
       pagination: {
         limit: limitCount,
         offset: offsetCount,
-        total: clvData.length
-      }
+        total: clvData.length,
+      },
     });
   } catch (error) {
     next(error);
@@ -124,11 +127,14 @@ router.get('/conversion-rates', async (req, res, next) => {
       throw new AppError('Invalid month. Must be between 1 and 12.', 400);
     }
 
-    const conversionRates = await SubscriptionAnalyticsService.calculateConversionRates(targetYear, targetMonth);
-    
+    const conversionRates = await SubscriptionAnalyticsService.calculateConversionRates(
+      targetYear,
+      targetMonth
+    );
+
     res.json({
       success: true,
-      data: conversionRates
+      data: conversionRates,
     });
   } catch (error) {
     next(error);
@@ -153,11 +159,12 @@ router.get('/conversion-rates/historical', async (req, res, next) => {
       throw new AppError('Invalid months parameter. Must be between 1 and 24.', 400);
     }
 
-    const historicalConversion = await SubscriptionAnalyticsService.getHistoricalConversionRates(monthsCount);
-    
+    const historicalConversion =
+      await SubscriptionAnalyticsService.getHistoricalConversionRates(monthsCount);
+
     res.json({
       success: true,
-      data: historicalConversion
+      data: historicalConversion,
     });
   } catch (error) {
     next(error);
@@ -176,10 +183,10 @@ router.get('/plan-distribution', async (req, res, next) => {
     }
 
     const planDistribution = await SubscriptionAnalyticsService.getPlanDistribution();
-    
+
     res.json({
       success: true,
-      data: planDistribution
+      data: planDistribution,
     });
   } catch (error) {
     next(error);
@@ -207,10 +214,10 @@ router.get('/churn', async (req, res, next) => {
     }
 
     const churnAnalysis = await SubscriptionAnalyticsService.analyzeChurn(targetYear, targetMonth);
-    
+
     res.json({
       success: true,
-      data: churnAnalysis
+      data: churnAnalysis,
     });
   } catch (error) {
     next(error);
@@ -229,10 +236,10 @@ router.get('/usage', async (req, res, next) => {
     }
 
     const usageAnalytics = await SubscriptionAnalyticsService.getUsageAnalytics();
-    
+
     res.json({
       success: true,
-      data: usageAnalytics
+      data: usageAnalytics,
     });
   } catch (error) {
     next(error);
@@ -251,7 +258,7 @@ router.get('/revenue-metrics', async (req, res, next) => {
     }
 
     const { startDate, endDate } = req.query;
-    
+
     // Default to current month if no dates provided
     const now = new Date();
     const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -265,14 +272,14 @@ router.get('/revenue-metrics', async (req, res, next) => {
     }
 
     const revenueMetrics = await SubscriptionAnalyticsService.getRevenueMetrics(start, end);
-    
+
     res.json({
       success: true,
       data: revenueMetrics,
       period: {
         startDate: start.toISOString(),
-        endDate: end.toISOString()
-      }
+        endDate: end.toISOString(),
+      },
     });
   } catch (error) {
     next(error);
@@ -302,7 +309,7 @@ router.get('/dashboard', async (req, res, next) => {
       churnAnalysis,
       usageAnalytics,
       revenueMetrics,
-      historicalMrr
+      historicalMrr,
     ] = await Promise.all([
       SubscriptionAnalyticsService.calculateMRR(currentYear, currentMonth),
       SubscriptionAnalyticsService.calculateConversionRates(currentYear, currentMonth),
@@ -313,7 +320,7 @@ router.get('/dashboard', async (req, res, next) => {
         new Date(currentYear, currentMonth - 1, 1),
         new Date(currentYear, currentMonth, 0, 23, 59, 59, 999)
       ),
-      SubscriptionAnalyticsService.getHistoricalMRR(6) // Last 6 months
+      SubscriptionAnalyticsService.getHistoricalMRR(6), // Last 6 months
     ]);
 
     res.json({
@@ -323,11 +330,11 @@ router.get('/dashboard', async (req, res, next) => {
           mrr: currentMrr,
           revenueMetrics,
           conversionRates,
-          churnAnalysis
+          churnAnalysis,
         },
         charts: {
           historicalMrr,
-          planDistribution
+          planDistribution,
         },
         insights: {
           usageAnalytics,
@@ -335,11 +342,11 @@ router.get('/dashboard', async (req, res, next) => {
           growthTrends: {
             mrrGrowth: currentMrr.netMrrGrowth,
             customerGrowth: currentMrr.newSubscriptions - currentMrr.churnedSubscriptions,
-            conversionTrend: conversionRates.overallConversionRate
-          }
-        }
+            conversionTrend: conversionRates.overallConversionRate,
+          },
+        },
       },
-      generatedAt: new Date().toISOString()
+      generatedAt: new Date().toISOString(),
     });
   } catch (error) {
     next(error);

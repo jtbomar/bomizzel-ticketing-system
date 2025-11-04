@@ -112,9 +112,9 @@ describe('SubscriptionService', () => {
     });
 
     it('should throw error if user already has subscription', async () => {
-      await expect(
-        SubscriptionService.createSubscription(userId, starterPlanId)
-      ).rejects.toThrow('User already has an active subscription');
+      await expect(SubscriptionService.createSubscription(userId, starterPlanId)).rejects.toThrow(
+        'User already has an active subscription'
+      );
     });
   });
 
@@ -162,10 +162,7 @@ describe('SubscriptionService', () => {
         role: 'customer',
       });
 
-      const subscription = await SubscriptionService.createSubscription(
-        testUser.id,
-        starterPlanId
-      );
+      const subscription = await SubscriptionService.createSubscription(testUser.id, starterPlanId);
 
       const cancelledSubscription = await SubscriptionService.cancelSubscription(
         subscription.id,
@@ -176,9 +173,9 @@ describe('SubscriptionService', () => {
     });
 
     it('should throw error for already cancelled subscription', async () => {
-      await expect(
-        SubscriptionService.cancelSubscription(subscriptionId, false)
-      ).rejects.toThrow('Subscription is already cancelled');
+      await expect(SubscriptionService.cancelSubscription(subscriptionId, false)).rejects.toThrow(
+        'Subscription is already cancelled'
+      );
     });
   });
 
@@ -232,9 +229,9 @@ describe('SubscriptionService', () => {
       const plans = await SubscriptionService.getAvailablePlans();
 
       expect(plans.length).toBeGreaterThanOrEqual(3);
-      expect(plans.every(plan => plan.isActive)).toBe(true);
-      
-      const planSlugs = plans.map(p => p.slug);
+      expect(plans.every((plan) => plan.isActive)).toBe(true);
+
+      const planSlugs = plans.map((p) => p.slug);
       expect(planSlugs).toContain('free-tier');
       expect(planSlugs).toContain('starter');
       expect(planSlugs).toContain('professional');
@@ -311,10 +308,7 @@ describe('SubscriptionService', () => {
     });
 
     it('should extend trial period', async () => {
-      const extendedSubscription = await SubscriptionService.extendTrial(
-        trialSubscriptionId,
-        7
-      );
+      const extendedSubscription = await SubscriptionService.extendTrial(trialSubscriptionId, 7);
 
       const trialStatus = await SubscriptionService.getTrialStatus(trialSubscriptionId);
       expect(trialStatus.daysRemaining).toBeGreaterThan(14);

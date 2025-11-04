@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeftIcon, 
-  PaperClipIcon, 
+import {
+  ArrowLeftIcon,
+  PaperClipIcon,
   ArrowDownTrayIcon,
   ChatBubbleLeftRightIcon,
   ClockIcon,
@@ -11,7 +11,7 @@ import {
   TagIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { Ticket, TicketNote, FileAttachment } from '../types';
@@ -65,18 +65,18 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
 
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newNote.trim() || !ticketId) return;
 
     try {
       setSubmittingNote(true);
-      
+
       // Create the note
       const noteResponse = await apiService.createTicketNote(ticketId, {
         content: newNote.trim(),
         isInternal: false,
       });
-      
+
       const createdNote = noteResponse.note || noteResponse;
 
       // Upload attachments if any
@@ -92,7 +92,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
 
       // Refresh notes and attachments
       await loadTicketDetails();
-      
+
       // Clear form
       setNewNote('');
       setNewAttachments([]);
@@ -106,11 +106,11 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setNewAttachments(prev => [...prev, ...files]);
+    setNewAttachments((prev) => [...prev, ...files]);
   };
 
   const removeNewAttachment = (index: number) => {
-    setNewAttachments(prev => prev.filter((_, i) => i !== index));
+    setNewAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDownloadFile = async (attachment: FileAttachment) => {
@@ -187,10 +187,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
           <XCircleIcon className="h-6 w-6 mx-auto mb-2" />
           <p className="font-medium">Error loading ticket</p>
           <p className="text-sm mt-1">{error || 'Ticket not found'}</p>
-          <button 
-            onClick={() => navigate('/customer')}
-            className="mt-3 btn-primary text-sm"
-          >
+          <button onClick={() => navigate('/customer')} className="mt-3 btn-primary text-sm">
             Back to Tickets
           </button>
         </div>
@@ -234,9 +231,11 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
               </span>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
-            <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(ticket.status)}`}>
+            <div
+              className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(ticket.status)}`}
+            >
               {getStatusIcon(ticket.status)}
               <span className="ml-2">{ticket.status.replace('_', ' ')}</span>
             </div>
@@ -264,9 +263,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
                   <div className="text-sm font-medium text-gray-700 capitalize">
                     {key.replace(/([A-Z])/g, ' $1').trim()}
                   </div>
-                  <div className="text-sm text-gray-900 mt-1">
-                    {value?.toString() || 'N/A'}
-                  </div>
+                  <div className="text-sm text-gray-900 mt-1">{value?.toString() || 'N/A'}</div>
                 </div>
               ))}
             </div>
@@ -295,7 +292,10 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {attachments.map((attachment) => (
-              <div key={attachment.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div
+                key={attachment.id}
+                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
@@ -304,9 +304,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
                     <p className="text-xs text-gray-500 mt-1">
                       {formatFileSize(attachment.fileSize)}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {formatDate(attachment.createdAt)}
-                    </p>
+                    <p className="text-xs text-gray-500">{formatDate(attachment.createdAt)}</p>
                   </div>
                   <button
                     onClick={() => handleDownloadFile(attachment)}
@@ -333,9 +331,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
         <form onSubmit={handleAddNote} className="mb-6 p-4 bg-gray-50 rounded-lg">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Add a comment
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Add a comment</label>
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
@@ -353,17 +349,18 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
                 onChange={handleFileChange}
                 className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
               />
-              
+
               {newAttachments.length > 0 && (
                 <div className="mt-2 space-y-2">
                   {newAttachments.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-white rounded-md border">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-white rounded-md border"
+                    >
                       <div className="flex items-center space-x-2">
                         <PaperClipIcon className="h-4 w-4 text-gray-400" />
                         <span className="text-sm text-gray-700">{file.name}</span>
-                        <span className="text-xs text-gray-500">
-                          ({formatFileSize(file.size)})
-                        </span>
+                        <span className="text-xs text-gray-500">({formatFileSize(file.size)})</span>
                       </div>
                       <button
                         type="button"
@@ -409,14 +406,10 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">
-                    {formatDate(note.createdAt)}
-                  </span>
+                  <span className="text-xs text-gray-500">{formatDate(note.createdAt)}</span>
                 </div>
-                <div className="text-gray-700 whitespace-pre-wrap">
-                  {note.content}
-                </div>
-                
+                <div className="text-gray-700 whitespace-pre-wrap">{note.content}</div>
+
                 {/* Note attachments */}
                 {note.attachments && note.attachments.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-gray-100">

@@ -5,12 +5,14 @@ The custom fields system allows teams to define additional form fields for their
 ## Features
 
 ### Field Types
+
 - **String**: Text input with optional length and pattern validation
 - **Number/Decimal**: Numeric input with optional min/max validation
 - **Integer**: Whole number input with optional min/max validation
 - **Picklist**: Dropdown selection from predefined options
 
 ### Validation Rules
+
 - **Required/Optional**: Fields can be marked as required or optional
 - **Length Validation**: String fields support min/max character limits
 - **Numeric Validation**: Number fields support min/max value limits
@@ -20,18 +22,23 @@ The custom fields system allows teams to define additional form fields for their
 ## API Endpoints
 
 ### Get Team Custom Fields
+
 ```
 GET /api/custom-fields/teams/:teamId
 ```
+
 Returns all active custom fields for a team, ordered by their configured order.
 
 ### Create Custom Field
+
 ```
 POST /api/custom-fields/teams/:teamId
 ```
+
 Creates a new custom field for a team. Only team leads and admins can create fields.
 
 **Request Body:**
+
 ```json
 {
   "name": "customer_priority",
@@ -46,24 +53,31 @@ Creates a new custom field for a team. Only team leads and admins can create fie
 ```
 
 ### Update Custom Field
+
 ```
 PUT /api/custom-fields/:fieldId/teams/:teamId
 ```
+
 Updates an existing custom field. Field name and type cannot be changed.
 
 ### Delete Custom Field
+
 ```
 DELETE /api/custom-fields/:fieldId/teams/:teamId
 ```
+
 Soft deletes a custom field (sets is_active to false).
 
 ### Reorder Custom Fields
+
 ```
 PUT /api/custom-fields/teams/:teamId/reorder
 ```
+
 Updates the display order of custom fields.
 
 **Request Body:**
+
 ```json
 {
   "fieldOrders": [
@@ -74,12 +88,15 @@ Updates the display order of custom fields.
 ```
 
 ### Validate Field Values
+
 ```
 POST /api/custom-fields/teams/:teamId/validate
 ```
+
 Validates custom field values against the team's field definitions.
 
 **Request Body:**
+
 ```json
 {
   "values": {
@@ -90,6 +107,7 @@ Validates custom field values against the team's field definitions.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,

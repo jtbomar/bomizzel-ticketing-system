@@ -9,12 +9,12 @@ export const securityHeaders = (req: Request, res: Response, next: NextFunction)
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "font-src 'self' data:; " +
-    "connect-src 'self' ws: wss:; " +
-    "frame-ancestors 'none';"
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' data:; " +
+      "connect-src 'self' ws: wss:; " +
+      "frame-ancestors 'none';"
   );
 
   // Additional security headers
@@ -23,10 +23,10 @@ export const securityHeaders = (req: Request, res: Response, next: NextFunction)
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-  
+
   // Remove server information
   res.removeHeader('X-Powered-By');
-  
+
   next();
 };
 
@@ -78,7 +78,7 @@ export const validateOrigin = (req: Request, res: Response, next: NextFunction):
  */
 export const validateMethod = (req: Request, res: Response, next: NextFunction): void => {
   const allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'];
-  
+
   if (!allowedMethods.includes(req.method)) {
     return res.status(405).json({
       error: {
@@ -98,7 +98,7 @@ export const validateMethod = (req: Request, res: Response, next: NextFunction):
  */
 export const validateUserAgent = (req: Request, res: Response, next: NextFunction): void => {
   const userAgent = req.get('User-Agent');
-  
+
   // Block requests without user agent (potential bots)
   if (!userAgent) {
     logger.warn('Blocked request without User-Agent', {
@@ -128,8 +128,8 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
     /wget/i,
   ];
 
-  const isBlocked = blockedPatterns.some(pattern => pattern.test(userAgent));
-  
+  const isBlocked = blockedPatterns.some((pattern) => pattern.test(userAgent));
+
   if (isBlocked) {
     logger.warn('Blocked request from suspicious User-Agent', {
       userAgent,
@@ -155,10 +155,10 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
  */
 export const ipFilter = (req: Request, res: Response, next: NextFunction): void => {
   const clientIP = req.ip;
-  
+
   // Get IP blacklist from environment or use default
   const blacklistedIPs = (process.env['IP_BLACKLIST'] || '').split(',').filter(Boolean);
-  
+
   if (blacklistedIPs.includes(clientIP)) {
     logger.warn('Blocked request from blacklisted IP', {
       ip: clientIP,

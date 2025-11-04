@@ -16,14 +16,14 @@ export class TrialScheduledJobs {
     }
 
     this.reminderJobRunning = true;
-    
+
     try {
       logger.info('Starting trial reminder job');
       const result = await TrialManagementService.sendTrialReminders();
-      
+
       logger.info('Trial reminder job completed', {
         sent: result.sent,
-        errors: result.errors
+        errors: result.errors,
       });
     } catch (error) {
       logger.error('Error in trial reminder job', { error });
@@ -43,16 +43,16 @@ export class TrialScheduledJobs {
     }
 
     this.expiredTrialJobRunning = true;
-    
+
     try {
       logger.info('Starting expired trial processing job');
       const result = await TrialManagementService.processExpiredTrials();
-      
+
       logger.info('Expired trial processing job completed', {
         processed: result.processed,
         cancelled: result.cancelled,
         convertedToFree: result.convertedToFree,
-        errors: result.errors
+        errors: result.errors,
       });
     } catch (error) {
       logger.error('Error in expired trial processing job', { error });
@@ -66,12 +66,12 @@ export class TrialScheduledJobs {
    */
   static async runDailyTrialJobs(): Promise<void> {
     logger.info('Starting daily trial jobs');
-    
+
     try {
       // Run jobs sequentially to avoid conflicts
       await this.sendTrialReminders();
       await this.processExpiredTrials();
-      
+
       logger.info('Daily trial jobs completed successfully');
     } catch (error) {
       logger.error('Error in daily trial jobs', { error });
@@ -85,7 +85,7 @@ export class TrialScheduledJobs {
   static initializeScheduledJobs(): void {
     // Example using node-cron (you would need to install it)
     // const cron = require('node-cron');
-    
+
     // Run daily at 9:00 AM
     // cron.schedule('0 9 * * *', () => {
     //   this.runDailyTrialJobs();
@@ -103,7 +103,7 @@ export class TrialScheduledJobs {
   } {
     return {
       reminderJobRunning: this.reminderJobRunning,
-      expiredTrialJobRunning: this.expiredTrialJobRunning
+      expiredTrialJobRunning: this.expiredTrialJobRunning,
     };
   }
 }

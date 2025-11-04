@@ -162,10 +162,12 @@ export class EmailService {
       subject,
       html: htmlBody,
       text: textBody,
-      headers: metadata ? {
-        'X-Notification-Type': metadata['type'] || 'general',
-        'X-Ticket-ID': metadata['ticketId'],
-      } : undefined,
+      headers: metadata
+        ? {
+            'X-Notification-Type': metadata['type'] || 'general',
+            'X-Ticket-ID': metadata['ticketId'],
+          }
+        : undefined,
     };
 
     const info = await this.transporter.sendMail(mailOptions);
@@ -186,7 +188,7 @@ export class EmailService {
 
     // Get company details
     const company = await Company.findById(ticket.company_id);
-    
+
     // Generate notification content based on type
     const { subject, htmlBody, textBody } = this.generateNotificationContent(
       notificationType,
@@ -195,35 +197,32 @@ export class EmailService {
       additionalData
     );
 
-    await this.sendNotificationEmail(
-      recipients,
-      subject,
-      htmlBody,
-      textBody,
-      {
-        type: 'ticket_notification',
-        ticketId,
-        notificationType,
-      }
-    );
+    await this.sendNotificationEmail(recipients, subject, htmlBody, textBody, {
+      type: 'ticket_notification',
+      ticketId,
+      notificationType,
+    });
   }
 
   private static formatEmailContent(emailRequest: SendEmailRequest): string {
     let content = `Email sent to: ${emailRequest.to.join(', ')}\n`;
-    
+
     if (emailRequest.cc && emailRequest.cc.length > 0) {
       content += `CC: ${emailRequest.cc.join(', ')}\n`;
     }
-    
+
     content += `Subject: ${emailRequest.subject}\n\n`;
     content += emailRequest.textBody || this.stripHtml(emailRequest.htmlBody);
-    
+
     return content;
   }
 
   private static stripHtml(html: string | undefined): string {
     if (!html) return '';
-    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    return html
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
   }
 
   private static generateNotificationContent(
@@ -327,13 +326,16 @@ Please log in to your account to view the full ticket details.
     return { subject, htmlBody, textBody };
   }
 
-  static parseEmailThread(references: string[], inReplyTo?: string): {
+  static parseEmailThread(
+    references: string[],
+    inReplyTo?: string
+  ): {
     threadId: string;
     parentMessageId?: string;
   } {
     // Use the first reference as thread ID, or inReplyTo if no references
     const threadId = references.length > 0 ? (references[0] ?? '') : (inReplyTo ?? '');
-    
+
     const result: { threadId: string; parentMessageId?: string } = { threadId };
     if (inReplyTo) {
       result.parentMessageId = inReplyTo;
@@ -342,9 +344,12 @@ Please log in to your account to view the full ticket details.
     return result;
   }
 
-  static generateReplyReferences(originalMessageId: string, existingReferences?: string[]): string[] {
+  static generateReplyReferences(
+    originalMessageId: string,
+    existingReferences?: string[]
+  ): string[] {
     const references = existingReferences || [];
-    
+
     // Add original message ID to references if not already present
     if (!references.includes(originalMessageId)) {
       references.push(originalMessageId);
@@ -370,9 +375,21 @@ Please log in to your account to view the full ticket details.
     }
 
     const subject = `Welcome to Bomizzel - Your ${planName} ${isTrialPlan ? 'Trial' : 'Account'} is Ready!`;
-    
-    const htmlBody = this.generateWelcomeEmailHTML(userName, planName, planFeatures, isTrialPlan, trialDays);
-    const textBody = this.generateWelcomeEmailText(userName, planName, planFeatures, isTrialPlan, trialDays);
+
+    const htmlBody = this.generateWelcomeEmailHTML(
+      userName,
+      planName,
+      planFeatures,
+      isTrialPlan,
+      trialDays
+    );
+    const textBody = this.generateWelcomeEmailText(
+      userName,
+      planName,
+      planFeatures,
+      isTrialPlan,
+      trialDays
+    );
 
     const mailOptions = {
       from: this.config.from,
@@ -401,12 +418,14 @@ Please log in to your account to view the full ticket details.
     isTrialPlan: boolean,
     trialDays?: number
   ): string {
-    const trialText = isTrialPlan && trialDays ? 
-      `<p style="color: #059669; font-weight: 600;">🎉 You're starting with a ${trialDays}-day free trial!</p>` : '';
-    
-    const featuresHTML = planFeatures.map(feature => 
-      `<li style="margin-bottom: 8px;">✅ ${feature}</li>`
-    ).join('');
+    const trialText =
+      isTrialPlan && trialDays
+        ? `<p style="color: #059669; font-weight: 600;">🎉 You're starting with a ${trialDays}-day free trial!</p>`
+        : '';
+
+    const featuresHTML = planFeatures
+      .map((feature) => `<li style="margin-bottom: 8px;">✅ ${feature}</li>`)
+      .join('');
 
     return `
       <!DOCTYPE html>
@@ -446,12 +465,16 @@ Please log in to your account to view the full ticket details.
           </ol>
         </div>
 
-        ${isTrialPlan ? `
+        ${
+          isTrialPlan
+            ? `
         <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
           <h3 style="color: #92400e; margin-top: 0;">Your Trial Period</h3>
           <p>You have ${trialDays} days to explore all the features of the ${planName} plan. We'll send you reminders as your trial progresses, and you can upgrade to a paid plan at any time.</p>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <div style="text-align: center; margin-top: 40px;">
           <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/customer" 
@@ -479,10 +502,10 @@ Please log in to your account to view the full ticket details.
     isTrialPlan: boolean,
     trialDays?: number
   ): string {
-    const trialText = isTrialPlan && trialDays ? 
-      `🎉 You're starting with a ${trialDays}-day free trial!\n\n` : '';
-    
-    const featuresText = planFeatures.map(feature => `✅ ${feature}`).join('\n');
+    const trialText =
+      isTrialPlan && trialDays ? `🎉 You're starting with a ${trialDays}-day free trial!\n\n` : '';
+
+    const featuresText = planFeatures.map((feature) => `✅ ${feature}`).join('\n');
 
     return `
 Welcome to Bomizzel!
@@ -503,10 +526,14 @@ Getting Started:
 4. Invite team members (if applicable)
 5. Explore the features included in your plan
 
-${isTrialPlan ? `
+${
+  isTrialPlan
+    ? `
 Your Trial Period:
 You have ${trialDays} days to explore all the features of the ${planName} plan. We'll send you reminders as your trial progresses, and you can upgrade to a paid plan at any time.
-` : ''}
+`
+    : ''
+}
 
 Access your dashboard: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/customer
 

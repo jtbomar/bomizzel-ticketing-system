@@ -27,12 +27,7 @@ export class FileService {
     'application/zip',
     'application/x-zip-compressed',
   ];
-  private static readonly IMAGE_MIME_TYPES = [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-  ];
+  private static readonly IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
   /**
    * Upload a file attachment to a ticket
@@ -87,7 +82,14 @@ export class FileService {
       });
 
       // Add to ticket history
-      await Ticket.addHistory(ticketId, uploadedById, 'file_attached', 'attachment', undefined, fileName);
+      await Ticket.addHistory(
+        ticketId,
+        uploadedById,
+        'file_attached',
+        'attachment',
+        undefined,
+        fileName
+      );
 
       return FileAttachment.toModel(attachmentData);
     } catch (error) {
@@ -117,7 +119,7 @@ export class FileService {
     await this.validateTicketAccess(attachment.ticket_id, userId);
 
     const filePath = attachment.storage_path;
-    
+
     // Check if file exists on disk
     try {
       await fs.promises.access(filePath);
@@ -166,10 +168,7 @@ export class FileService {
   /**
    * Delete a file attachment
    */
-  static async deleteFile(
-    attachmentId: string,
-    userId: string
-  ): Promise<void> {
+  static async deleteFile(attachmentId: string, userId: string): Promise<void> {
     const attachment = await FileAttachment.findById(attachmentId);
     if (!attachment) {
       throw new NotFoundError('File attachment not found');
@@ -184,9 +183,10 @@ export class FileService {
       throw new NotFoundError('User not found');
     }
 
-    const canDelete = attachment.uploaded_by_id === userId || 
-                     ['admin', 'employee', 'team_lead'].includes(user.role);
-    
+    const canDelete =
+      attachment.uploaded_by_id === userId ||
+      ['admin', 'employee', 'team_lead'].includes(user.role);
+
     if (!canDelete) {
       throw new ForbiddenError('You do not have permission to delete this file');
     }
@@ -194,7 +194,7 @@ export class FileService {
     try {
       // Delete file from disk
       await fs.promises.unlink(attachment.storage_path);
-      
+
       // Delete thumbnail if exists
       if (attachment.thumbnail_path) {
         try {
@@ -212,7 +212,14 @@ export class FileService {
     await FileAttachment.deleteAttachment(attachmentId);
 
     // Add to ticket history
-    await Ticket.addHistory(attachment.ticket_id, userId, 'file_attached', 'attachment', attachment.file_name, undefined);
+    await Ticket.addHistory(
+      attachment.ticket_id,
+      userId,
+      'file_attached',
+      'attachment',
+      attachment.file_name,
+      undefined
+    );
   }
 
   /**
@@ -238,7 +245,9 @@ export class FileService {
     }
 
     if (file.size > this.MAX_FILE_SIZE) {
-      throw new ValidationError(`File size exceeds maximum allowed size of ${this.MAX_FILE_SIZE} bytes`);
+      throw new ValidationError(
+        `File size exceeds maximum allowed size of ${this.MAX_FILE_SIZE} bytes`
+      );
     }
 
     if (!this.ALLOWED_MIME_TYPES.includes(file.mimetype)) {
@@ -246,7 +255,11 @@ export class FileService {
     }
 
     // Additional security checks
-    if (file.originalname.includes('..') || file.originalname.includes('/') || file.originalname.includes('\\')) {
+    if (
+      file.originalname.includes('..') ||
+      file.originalname.includes('/') ||
+      file.originalname.includes('\\')
+    ) {
       throw new ValidationError('Invalid filename');
     }
   }
@@ -272,8 +285,8 @@ export class FileService {
 
     // Customers can only access tickets from their companies
     const userCompanies = await User.getUserCompanies(userId);
-    const hasAccess = userCompanies.some(uc => uc.companyId === ticket.company_id);
-    
+    const hasAccess = userCompanies.some((uc) => uc.companyId === ticket.company_id);
+
     if (!hasAccess) {
       throw new ForbiddenError('You do not have access to this ticket');
     }
@@ -295,7 +308,7 @@ export class FileService {
    */
   private static async generateThumbnail(filePath: string, fileName: string): Promise<string> {
     const thumbnailDir = path.join(this.UPLOAD_DIR, 'thumbnails');
-    
+
     // Ensure thumbnail directory exists
     try {
       await fs.promises.access(thumbnailDir);

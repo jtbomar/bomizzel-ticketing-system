@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   ArchiveBoxIcon,
   Cog6ToothIcon,
   ClockIcon,
   ChartBarIcon,
   PlayIcon,
-  PauseIcon
+  PauseIcon,
 } from '@heroicons/react/24/outline';
 import { api } from '../services/api';
 
@@ -56,7 +56,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
   const [configForm, setConfigForm] = useState({
     enabled: true,
     daysAfterCompletion: 30,
-    maxTicketsPerRun: 50
+    maxTicketsPerRun: 50,
   });
   const [saving, setSaving] = useState(false);
 
@@ -72,7 +72,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
       const [statsResponse, statusResponse, configResponse] = await Promise.all([
         api.get('/tickets/archive/stats'),
         api.get('/tickets/archive/automation-status'),
-        api.get('/tickets/archive/auto-config')
+        api.get('/tickets/archive/auto-config'),
       ]);
 
       setStats(statsResponse.data.data);
@@ -83,7 +83,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
         setConfigForm({
           enabled: configResponse.data.data.config.enabled,
           daysAfterCompletion: configResponse.data.data.config.daysAfterCompletion,
-          maxTicketsPerRun: configResponse.data.data.config.maxTicketsPerRun
+          maxTicketsPerRun: configResponse.data.data.config.maxTicketsPerRun,
         });
       }
     } catch (err: any) {
@@ -112,9 +112,9 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
     try {
       const response = await api.post('/tickets/archive/trigger-immediate', {
         daysAfterCompletion: configForm.daysAfterCompletion,
-        maxTickets: configForm.maxTicketsPerRun
+        maxTickets: configForm.maxTicketsPerRun,
       });
-      
+
       alert(`Successfully archived ${response.data.data.archivedCount} tickets`);
       await loadArchivalData();
     } catch (err: any) {
@@ -130,7 +130,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -155,7 +155,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           <p className="font-medium">Error loading archival data</p>
           <p className="text-sm mt-1">{error}</p>
-          <button 
+          <button
             onClick={loadArchivalData}
             className="mt-3 text-sm bg-red-100 hover:bg-red-200 px-3 py-1 rounded transition-colors"
           >
@@ -175,9 +175,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
             <div className="flex items-center">
               <ArchiveBoxIcon className="h-6 w-6 text-blue-600 mr-3" />
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Archival Management
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900">Archival Management</h3>
                 <p className="text-sm text-gray-600">
                   Manage your ticket archival settings and view statistics
                 </p>
@@ -235,7 +233,7 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
         {automationConfig?.available && automationStatus && (
           <div className="p-6">
             <h4 className="text-md font-medium text-gray-900 mb-4">Automation Status</h4>
-            
+
             <div className="bg-blue-50 rounded-lg p-4 mb-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-start">
@@ -249,18 +247,19 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
                       Automation {automationStatus.isRunning ? 'Active' : 'Inactive'}
                     </p>
                     <p className="text-xs text-blue-700 mt-1">
-                      {automationStatus.isRunning 
+                      {automationStatus.isRunning
                         ? `Next run: ${formatDate(automationStatus.nextRun)}`
-                        : 'Automation is currently disabled'
-                      }
+                        : 'Automation is currently disabled'}
                     </p>
                   </div>
                 </div>
-                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  automationStatus.isRunning 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
+                <span
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    automationStatus.isRunning
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
                   {automationStatus.isRunning ? 'Running' : 'Stopped'}
                 </span>
               </div>
@@ -272,11 +271,15 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">Processed</p>
-                    <p className="font-medium">{automationStatus.lastRunResults.processedSubscriptions} subscriptions</p>
+                    <p className="font-medium">
+                      {automationStatus.lastRunResults.processedSubscriptions} subscriptions
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Archived</p>
-                    <p className="font-medium">{automationStatus.lastRunResults.totalTicketsArchived} tickets</p>
+                    <p className="font-medium">
+                      {automationStatus.lastRunResults.totalTicketsArchived} tickets
+                    </p>
                   </div>
                   <div>
                     <p className="text-gray-600">Errors</p>
@@ -317,7 +320,8 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
                     Automatic Archival Not Available
                   </p>
                   <p className="text-xs text-yellow-700 mt-1">
-                    Upgrade to Enterprise plan to enable automatic ticket archival and advanced management features.
+                    Upgrade to Enterprise plan to enable automatic ticket archival and advanced
+                    management features.
                   </p>
                   <p className="text-xs text-yellow-600 mt-2">
                     Current plan: {automationConfig?.planName || 'Unknown'}
@@ -336,22 +340,22 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Configure Automatic Archival
             </h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="flex items-center">
                   <input
                     type="checkbox"
                     checked={configForm.enabled}
-                    onChange={(e) => setConfigForm(prev => ({
-                      ...prev,
-                      enabled: e.target.checked
-                    }))}
+                    onChange={(e) =>
+                      setConfigForm((prev) => ({
+                        ...prev,
+                        enabled: e.target.checked,
+                      }))
+                    }
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="ml-2 text-sm text-gray-700">
-                    Enable automatic archival
-                  </span>
+                  <span className="ml-2 text-sm text-gray-700">Enable automatic archival</span>
                 </label>
                 <p className="text-xs text-gray-500 mt-1 ml-6">
                   Automatically archive old completed tickets to free up space
@@ -367,10 +371,12 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
                   min="1"
                   max="365"
                   value={configForm.daysAfterCompletion}
-                  onChange={(e) => setConfigForm(prev => ({
-                    ...prev,
-                    daysAfterCompletion: parseInt(e.target.value) || 30
-                  }))}
+                  onChange={(e) =>
+                    setConfigForm((prev) => ({
+                      ...prev,
+                      daysAfterCompletion: parseInt(e.target.value) || 30,
+                    }))
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -387,10 +393,12 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
                   min="1"
                   max="1000"
                   value={configForm.maxTicketsPerRun}
-                  onChange={(e) => setConfigForm(prev => ({
-                    ...prev,
-                    maxTicketsPerRun: parseInt(e.target.value) || 50
-                  }))}
+                  onChange={(e) =>
+                    setConfigForm((prev) => ({
+                      ...prev,
+                      maxTicketsPerRun: parseInt(e.target.value) || 50,
+                    }))
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -401,7 +409,8 @@ const ArchivalManagement: React.FC<ArchivalManagementProps> = ({ className = '' 
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
               <p className="text-xs text-blue-800">
-                <strong>Enterprise Feature:</strong> Automatic archival runs daily and helps maintain optimal performance by managing your ticket history.
+                <strong>Enterprise Feature:</strong> Automatic archival runs daily and helps
+                maintain optimal performance by managing your ticket history.
               </p>
             </div>
 

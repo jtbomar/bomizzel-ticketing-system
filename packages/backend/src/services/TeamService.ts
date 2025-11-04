@@ -2,21 +2,24 @@ import { Team } from '@/models/Team';
 import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
-  Team as TeamModel, 
+import {
+  Team as TeamModel,
   User as UserModel,
   TeamMembership,
-  PaginatedResponse 
+  PaginatedResponse,
 } from '@/types/models';
 
 export class TeamService {
   /**
    * Create a new team
    */
-  static async createTeam(teamData: {
-    name: string;
-    description?: string;
-  }, createdById: string): Promise<TeamModel> {
+  static async createTeam(
+    teamData: {
+      name: string;
+      description?: string;
+    },
+    createdById: string
+  ): Promise<TeamModel> {
     try {
       // Check if team name already exists
       const existingTeam = await Team.findByName(teamData.name);
@@ -44,12 +47,14 @@ export class TeamService {
   /**
    * Get all teams with pagination and filtering
    */
-  static async getTeams(options: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    isActive?: boolean;
-  } = {}): Promise<PaginatedResponse<TeamModel>> {
+  static async getTeams(
+    options: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      isActive?: boolean;
+    } = {}
+  ): Promise<PaginatedResponse<TeamModel>> {
     try {
       const { page = 1, limit = 25, search, isActive } = options;
       const offset = (page - 1) * limit;
@@ -62,11 +67,11 @@ export class TeamService {
 
       // Get total count
       let countQuery = Team.query;
-      
+
       if (isActive !== undefined) {
         countQuery = countQuery.where('is_active', isActive);
       }
-      
+
       if (search) {
         countQuery = countQuery.where('name', 'ilike', `%${search}%`);
       }
@@ -74,7 +79,7 @@ export class TeamService {
       const total = await countQuery.count('* as count').first();
       const totalCount = parseInt(total?.count || '0', 10);
 
-      const teamModels = teams.map(team => Team.toModel(team));
+      const teamModels = teams.map((team) => Team.toModel(team));
 
       return {
         data: teamModels,
@@ -114,11 +119,15 @@ export class TeamService {
   /**
    * Update team information
    */
-  static async updateTeam(teamId: string, updateData: {
-    name?: string;
-    description?: string;
-    isActive?: boolean;
-  }, updatedById: string): Promise<TeamModel> {
+  static async updateTeam(
+    teamId: string,
+    updateData: {
+      name?: string;
+      description?: string;
+      isActive?: boolean;
+    },
+    updatedById: string
+  ): Promise<TeamModel> {
     try {
       const team = await Team.findById(teamId);
       if (!team) {
@@ -128,9 +137,13 @@ export class TeamService {
       // Check if user has permission to update team
       const isTeamLead = await Team.isTeamLead(updatedById, teamId);
       const user = await User.findById(updatedById);
-      
+
       if (!isTeamLead && user?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can update team information', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can update team information',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       // Check for name conflicts (if name is being updated)
@@ -143,15 +156,15 @@ export class TeamService {
 
       // Prepare update data
       const updateFields: any = {};
-      
+
       if (updateData.name !== undefined) {
         updateFields.name = updateData.name;
       }
-      
+
       if (updateData.description !== undefined) {
         updateFields.description = updateData.description;
       }
-      
+
       if (updateData.isActive !== undefined) {
         updateFields.is_active = updateData.isActive;
       }
@@ -176,7 +189,9 @@ export class TeamService {
   /**
    * Get team members with their roles
    */
-  static async getTeamMembers(teamId: string): Promise<(UserModel & { teamRole: string; membershipDate: Date })[]> {
+  static async getTeamMembers(
+    teamId: string
+  ): Promise<(UserModel & { teamRole: string; membershipDate: Date })[]> {
     try {
       const team = await Team.findById(teamId);
       if (!team) {
@@ -184,8 +199,8 @@ export class TeamService {
       }
 
       const members = await Team.getTeamMembers(teamId);
-      
-      return members.map(member => ({
+
+      return members.map((member) => ({
         ...User.toModel(member),
         teamRole: member.team_role,
         membershipDate: member.membership_created_at,
@@ -202,7 +217,12 @@ export class TeamService {
   /**
    * Add user to team
    */
-  static async addUserToTeam(teamId: string, userId: string, role: 'member' | 'lead' | 'admin' = 'member', addedById: string): Promise<void> {
+  static async addUserToTeam(
+    teamId: string,
+    userId: string,
+    role: 'member' | 'lead' | 'admin' = 'member',
+    addedById: string
+  ): Promise<void> {
     try {
       const team = await Team.findById(teamId);
       if (!team) {
@@ -221,9 +241,13 @@ export class TeamService {
       // Check if user has permission to add members
       const isTeamLead = await Team.isTeamLead(addedById, teamId);
       const addedByUser = await User.findById(addedById);
-      
+
       if (!isTeamLead && addedByUser?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can add team members', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can add team members',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       // Check if user is already in the team
@@ -247,7 +271,11 @@ export class TeamService {
   /**
    * Remove user from team
    */
-  static async removeUserFromTeam(teamId: string, userId: string, removedById: string): Promise<void> {
+  static async removeUserFromTeam(
+    teamId: string,
+    userId: string,
+    removedById: string
+  ): Promise<void> {
     try {
       const team = await Team.findById(teamId);
       if (!team) {
@@ -262,9 +290,13 @@ export class TeamService {
       // Check if user has permission to remove members
       const isTeamLead = await Team.isTeamLead(removedById, teamId);
       const removedByUser = await User.findById(removedById);
-      
+
       if (!isTeamLead && removedByUser?.role !== 'admin' && removedById !== userId) {
-        throw new AppError('Only team leads, admins, or the user themselves can remove team members', 403, 'INSUFFICIENT_PERMISSIONS');
+        throw new AppError(
+          'Only team leads, admins, or the user themselves can remove team members',
+          403,
+          'INSUFFICIENT_PERMISSIONS'
+        );
       }
 
       // Check if user is in the team
@@ -288,7 +320,12 @@ export class TeamService {
   /**
    * Update user's role in team
    */
-  static async updateUserTeamRole(teamId: string, userId: string, role: 'member' | 'lead' | 'admin', updatedById: string): Promise<void> {
+  static async updateUserTeamRole(
+    teamId: string,
+    userId: string,
+    role: 'member' | 'lead' | 'admin',
+    updatedById: string
+  ): Promise<void> {
     try {
       const team = await Team.findById(teamId);
       if (!team) {
@@ -303,9 +340,13 @@ export class TeamService {
       // Check if user has permission to update roles
       const isTeamLead = await Team.isTeamLead(updatedById, teamId);
       const updatedByUser = await User.findById(updatedById);
-      
+
       if (!isTeamLead && updatedByUser?.role !== 'admin') {
-        throw new AppError('Only team leads or admins can update team member roles', 403, 'TEAM_LEAD_REQUIRED');
+        throw new AppError(
+          'Only team leads or admins can update team member roles',
+          403,
+          'TEAM_LEAD_REQUIRED'
+        );
       }
 
       // Check if user is in the team
@@ -337,7 +378,7 @@ export class TeamService {
       }
 
       const teams = await Team.getUserTeams(userId);
-      return teams.map(team => Team.toModel(team));
+      return teams.map((team) => Team.toModel(team));
     } catch (error) {
       if (error instanceof AppError) {
         throw error;

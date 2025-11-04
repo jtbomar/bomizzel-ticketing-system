@@ -26,17 +26,11 @@ export class TicketStatus extends BaseModel {
   }
 
   static async findByTeam(teamId: string): Promise<TicketStatusTable[]> {
-    return this.query
-      .where('team_id', teamId)
-      .where('is_active', true)
-      .orderBy('order', 'asc');
+    return this.query.where('team_id', teamId).where('is_active', true).orderBy('order', 'asc');
   }
 
   static async findByTeamAndName(teamId: string, name: string): Promise<TicketStatusTable | null> {
-    const result = await this.query
-      .where('team_id', teamId)
-      .where('name', name)
-      .first();
+    const result = await this.query.where('team_id', teamId).where('name', name).first();
     return result || null;
   }
 
@@ -49,9 +43,12 @@ export class TicketStatus extends BaseModel {
     return result || null;
   }
 
-  static async updateOrder(teamId: string, statusOrders: { id: string; order: number }[]): Promise<void> {
+  static async updateOrder(
+    teamId: string,
+    statusOrders: { id: string; order: number }[]
+  ): Promise<void> {
     const trx = await this.db.transaction();
-    
+
     try {
       for (const { id, order } of statusOrders) {
         await trx('ticket_statuses')
@@ -59,7 +56,7 @@ export class TicketStatus extends BaseModel {
           .where('team_id', teamId)
           .update({ order, updated_at: new Date() });
       }
-      
+
       await trx.commit();
     } catch (error) {
       await trx.rollback();
@@ -69,19 +66,19 @@ export class TicketStatus extends BaseModel {
 
   static async setDefaultStatus(teamId: string, statusId: string): Promise<void> {
     const trx = await this.db.transaction();
-    
+
     try {
       // Remove default from all statuses in team
       await trx('ticket_statuses')
         .where('team_id', teamId)
         .update({ is_default: false, updated_at: new Date() });
-      
+
       // Set new default
       await trx('ticket_statuses')
         .where('id', statusId)
         .where('team_id', teamId)
         .update({ is_default: true, updated_at: new Date() });
-      
+
       await trx.commit();
     } catch (error) {
       await trx.rollback();
@@ -89,21 +86,17 @@ export class TicketStatus extends BaseModel {
     }
   }
 
-  static async getStatusStats(teamId: string): Promise<{ statusId: string; name: string; label: string; ticketCount: number }[]> {
+  static async getStatusStats(
+    teamId: string
+  ): Promise<{ statusId: string; name: string; label: string; ticketCount: number }[]> {
     return this.db('ticket_statuses as ts')
-      .leftJoin('tickets as t', function() {
-        this.on('ts.name', '=', 't.status')
-          .andOn('ts.team_id', '=', 't.team_id');
+      .leftJoin('tickets as t', function () {
+        this.on('ts.name', '=', 't.status').andOn('ts.team_id', '=', 't.team_id');
       })
       .where('ts.team_id', teamId)
       .where('ts.is_active', true)
       .groupBy('ts.id', 'ts.name', 'ts.label', 'ts.order')
-      .select(
-        'ts.id as statusId',
-        'ts.name',
-        'ts.label',
-        this.db.raw('COUNT(t.id) as ticketCount')
-      )
+      .select('ts.id as statusId', 'ts.name', 'ts.label', this.db.raw('COUNT(t.id) as ticketCount'))
       .orderBy('ts.order', 'asc');
   }
 

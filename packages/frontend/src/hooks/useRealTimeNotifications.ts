@@ -20,9 +20,9 @@ export const useRealTimeNotifications = () => {
 
     const handleNotification = (notification: any) => {
       const { type, data } = notification;
-      
+
       // Determine if this notification is relevant to the current user
-      const isRelevant = 
+      const isRelevant =
         notification.userId === user.id || // Direct user notification
         (user.role !== 'customer' && notification.teamId) || // Team notification for employees
         (user.role !== 'customer' && notification.queueId); // Queue notification for employees
@@ -46,13 +46,9 @@ export const useRealTimeNotifications = () => {
             toastType = 'warning';
             title = 'Ticket Assigned';
             message = `You have been assigned "${data.ticket.title}"`;
-            
+
             // Show browser notification for assignments
-            browserNotificationService.showTicketNotification(
-              type,
-              data.ticket.title,
-              message
-            );
+            browserNotificationService.showTicketNotification(type, data.ticket.title, message);
           } else {
             toastType = 'info';
             title = 'Ticket Assigned';
@@ -86,7 +82,7 @@ export const useRealTimeNotifications = () => {
           toastType = 'warning';
           title = 'New Assignment';
           message = `You have been assigned "${data.ticket?.title}"`;
-          
+
           // Show browser notification for direct assignments
           browserNotificationService.showUrgentNotification(
             title,

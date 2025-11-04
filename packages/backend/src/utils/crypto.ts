@@ -14,11 +14,11 @@ export class CryptoUtils {
   static generateVerificationCode(length: number = 6): string {
     const digits = '0123456789';
     let result = '';
-    
+
     for (let i = 0; i < length; i++) {
       result += digits[crypto.randomInt(0, digits.length)];
     }
-    
+
     return result;
   }
 
@@ -29,7 +29,7 @@ export class CryptoUtils {
     const token = this.generateSecureToken(32);
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiration
-    
+
     return { token, expiresAt };
   }
 
@@ -40,7 +40,7 @@ export class CryptoUtils {
     const token = this.generateSecureToken(32);
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiration
-    
+
     return { token, expiresAt };
   }
 

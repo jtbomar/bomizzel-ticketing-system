@@ -9,7 +9,7 @@ const ColorPickerDemo: React.FC = () => {
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
     if (!colorHistory.includes(color)) {
-      setColorHistory(prev => [color, ...prev].slice(0, 10)); // Keep last 10 colors
+      setColorHistory((prev) => [color, ...prev].slice(0, 10)); // Keep last 10 colors
     }
   };
 
@@ -31,7 +31,7 @@ const ColorPickerDemo: React.FC = () => {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Color Picker
             </h2>
-            
+
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
                 <div
@@ -57,7 +57,9 @@ const ColorPickerDemo: React.FC = () => {
                   <SimpleColorPicker
                     selectedColor={`custom-${selectedColor.replace('#', '')}`}
                     onColorSelect={(color) => {
-                      const hex = color.startsWith('custom-') ? '#' + color.replace('custom-', '') : color;
+                      const hex = color.startsWith('custom-')
+                        ? '#' + color.replace('custom-', '')
+                        : color;
                       handleColorChange(hex);
                     }}
                   />
@@ -68,10 +70,8 @@ const ColorPickerDemo: React.FC = () => {
 
           {/* Features Section */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Features
-            </h2>
-            
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Features</h2>
+
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
@@ -82,7 +82,7 @@ const ColorPickerDemo: React.FC = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
                 <div>
@@ -92,7 +92,7 @@ const ColorPickerDemo: React.FC = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
                 <div>
@@ -102,7 +102,7 @@ const ColorPickerDemo: React.FC = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                 <div>
@@ -149,10 +149,19 @@ const ColorPickerDemo: React.FC = () => {
             How to Use the Simple Color Picker
           </h2>
           <div className="space-y-2 text-blue-800 dark:text-blue-200">
-            <p>• <strong>Hex Input:</strong> Type hex codes like #178be4 directly in the input field</p>
-            <p>• <strong>Drag Selection:</strong> Click and drag anywhere in the color area to pick colors visually</p>
-            <p>• <strong>Live Preview:</strong> See your color and hex code update in real-time</p>
-            <p>• <strong>Apply:</strong> Click "Apply" to confirm your color selection</p>
+            <p>
+              • <strong>Hex Input:</strong> Type hex codes like #178be4 directly in the input field
+            </p>
+            <p>
+              • <strong>Drag Selection:</strong> Click and drag anywhere in the color area to pick
+              colors visually
+            </p>
+            <p>
+              • <strong>Live Preview:</strong> See your color and hex code update in real-time
+            </p>
+            <p>
+              • <strong>Apply:</strong> Click "Apply" to confirm your color selection
+            </p>
           </div>
         </div>
       </div>

@@ -67,28 +67,28 @@ describe('QueueService', () => {
     });
 
     it('should throw ForbiddenError for customers', async () => {
-      await expect(
-        QueueService.createQueue(mockQueueData, 'user-123', 'customer')
-      ).rejects.toThrow(ForbiddenError);
+      await expect(QueueService.createQueue(mockQueueData, 'user-123', 'customer')).rejects.toThrow(
+        ForbiddenError
+      );
     });
 
     it('should throw NotFoundError for invalid team', async () => {
       MockedTeam.findById.mockResolvedValue(null);
 
-      await expect(
-        QueueService.createQueue(mockQueueData, 'user-123', 'admin')
-      ).rejects.toThrow(NotFoundError);
+      await expect(QueueService.createQueue(mockQueueData, 'user-123', 'admin')).rejects.toThrow(
+        NotFoundError
+      );
     });
 
     it('should throw ValidationError for duplicate queue name', async () => {
       MockedTeam.findById.mockResolvedValue(mockTeam);
       MockedQueue.findByTeam.mockResolvedValue([
-        { ...mockCreatedQueue, name: 'test queue' } // Case insensitive match
+        { ...mockCreatedQueue, name: 'test queue' }, // Case insensitive match
       ]);
 
-      await expect(
-        QueueService.createQueue(mockQueueData, 'user-123', 'admin')
-      ).rejects.toThrow(ValidationError);
+      await expect(QueueService.createQueue(mockQueueData, 'user-123', 'admin')).rejects.toThrow(
+        ValidationError
+      );
     });
   });
 
@@ -106,7 +106,7 @@ describe('QueueService', () => {
     it('should return queue metrics for authorized user', async () => {
       MockedQueue.findById.mockResolvedValue(mockQueue);
       MockedUser.getUserTeams.mockResolvedValue([
-        { userId: 'user-123', teamId: 'team-123', role: 'member', createdAt: new Date() }
+        { userId: 'user-123', teamId: 'team-123', role: 'member', createdAt: new Date() },
       ]);
 
       // Mock the database query for metrics
@@ -169,11 +169,11 @@ describe('QueueService', () => {
     it('should assign queue to employee successfully', async () => {
       MockedQueue.findById.mockResolvedValue(mockQueue);
       MockedUser.getUserTeams.mockResolvedValueOnce([
-        { userId: 'user-123', teamId: 'team-123', role: 'lead', createdAt: new Date() }
+        { userId: 'user-123', teamId: 'team-123', role: 'lead', createdAt: new Date() },
       ]);
       MockedUser.findById.mockResolvedValue(mockAssignee);
       MockedUser.getUserTeams.mockResolvedValueOnce([
-        { userId: 'assignee-123', teamId: 'team-123', role: 'member', createdAt: new Date() }
+        { userId: 'assignee-123', teamId: 'team-123', role: 'member', createdAt: new Date() },
       ]);
       MockedQueue.assignToEmployee.mockResolvedValue({
         ...mockQueue,
@@ -191,7 +191,12 @@ describe('QueueService', () => {
         updatedAt: new Date(),
       });
 
-      const result = await QueueService.assignQueue('queue-123', 'assignee-123', 'user-123', 'employee');
+      const result = await QueueService.assignQueue(
+        'queue-123',
+        'assignee-123',
+        'user-123',
+        'employee'
+      );
 
       expect(result.assignedToId).toBe('assignee-123');
       expect(MockedQueue.assignToEmployee).toHaveBeenCalledWith('queue-123', 'assignee-123');
@@ -200,7 +205,7 @@ describe('QueueService', () => {
     it('should throw ValidationError for customer assignee', async () => {
       MockedQueue.findById.mockResolvedValue(mockQueue);
       MockedUser.getUserTeams.mockResolvedValue([
-        { userId: 'user-123', teamId: 'team-123', role: 'lead', createdAt: new Date() }
+        { userId: 'user-123', teamId: 'team-123', role: 'lead', createdAt: new Date() },
       ]);
       MockedUser.findById.mockResolvedValue({
         ...mockAssignee,
@@ -237,7 +242,7 @@ describe('QueueService', () => {
       ];
 
       MockedUser.getUserTeams.mockResolvedValue([
-        { userId: 'user-123', teamId: 'team-123', role: 'member', createdAt: new Date() }
+        { userId: 'user-123', teamId: 'team-123', role: 'member', createdAt: new Date() },
       ]);
       MockedQueue.findByTeam.mockResolvedValue(mockQueues);
 
@@ -245,8 +250,9 @@ describe('QueueService', () => {
       const mockDb = {
         where: jest.fn().mockReturnThis(),
         count: jest.fn().mockReturnThis(),
-        first: jest.fn()
-          .mockResolvedValueOnce({ count: '5' })  // First queue
+        first: jest
+          .fn()
+          .mockResolvedValueOnce({ count: '5' }) // First queue
           .mockResolvedValueOnce({ count: '3' }), // Second queue
       };
       MockedQueue.db = jest.fn().mockReturnValue(mockDb);

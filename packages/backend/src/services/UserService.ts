@@ -3,46 +3,48 @@ import { Company } from '@/models/Company';
 import { Team } from '@/models/Team';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
-  User as UserModel, 
+import {
+  User as UserModel,
   UserCompanyAssociation,
   TeamMembership,
-  PaginatedResponse 
+  PaginatedResponse,
 } from '@/types/models';
 
 export class UserService {
   /**
    * Get all users with pagination and filtering
    */
-  static async getUsers(options: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    role?: string;
-    isActive?: boolean;
-  } = {}): Promise<PaginatedResponse<UserModel>> {
+  static async getUsers(
+    options: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      role?: string;
+      isActive?: boolean;
+    } = {}
+  ): Promise<PaginatedResponse<UserModel>> {
     try {
       const { page = 1, limit = 25, search, role, isActive } = options;
       const offset = (page - 1) * limit;
 
       let whereClause: any = {};
-      
+
       if (role) {
         whereClause.role = role;
       }
-      
+
       if (isActive !== undefined) {
         whereClause.is_active = isActive;
       }
 
       // Build search query
       let searchQuery = User.query;
-      
+
       if (search) {
-        searchQuery = searchQuery.where(function() {
+        searchQuery = searchQuery.where(function () {
           this.where('first_name', 'ilike', `%${search}%`)
-              .orWhere('last_name', 'ilike', `%${search}%`)
-              .orWhere('email', 'ilike', `%${search}%`);
+            .orWhere('last_name', 'ilike', `%${search}%`)
+            .orWhere('email', 'ilike', `%${search}%`);
         });
       }
 
@@ -56,12 +58,9 @@ export class UserService {
       const totalCount = parseInt(total?.count || '0', 10);
 
       // Get paginated results
-      const users = await searchQuery
-        .limit(limit)
-        .offset(offset)
-        .orderBy('created_at', 'desc');
+      const users = await searchQuery.limit(limit).offset(offset).orderBy('created_at', 'desc');
 
-      const userModels = users.map(user => User.toModel(user));
+      const userModels = users.map((user) => User.toModel(user));
 
       return {
         data: userModels,
@@ -81,7 +80,9 @@ export class UserService {
   /**
    * Get user by ID with company associations
    */
-  static async getUserById(userId: string): Promise<UserModel & { companies?: UserCompanyAssociation[] }> {
+  static async getUserById(
+    userId: string
+  ): Promise<UserModel & { companies?: UserCompanyAssociation[] }> {
     try {
       const userWithCompanies = await User.findWithCompanies(userId);
       if (!userWithCompanies) {
@@ -89,7 +90,7 @@ export class UserService {
       }
 
       const userModel = User.toModel(userWithCompanies);
-      
+
       return {
         ...userModel,
         companies: userWithCompanies.companies,
@@ -106,13 +107,17 @@ export class UserService {
   /**
    * Update user information
    */
-  static async updateUser(userId: string, updateData: {
-    firstName?: string;
-    lastName?: string;
-    role?: string;
-    isActive?: boolean;
-    preferences?: any;
-  }, updatedById: string): Promise<UserModel> {
+  static async updateUser(
+    userId: string,
+    updateData: {
+      firstName?: string;
+      lastName?: string;
+      role?: string;
+      isActive?: boolean;
+      preferences?: any;
+    },
+    updatedById: string
+  ): Promise<UserModel> {
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -121,23 +126,23 @@ export class UserService {
 
       // Prepare update data
       const updateFields: any = {};
-      
+
       if (updateData.firstName !== undefined) {
         updateFields.first_name = updateData.firstName;
       }
-      
+
       if (updateData.lastName !== undefined) {
         updateFields.last_name = updateData.lastName;
       }
-      
+
       if (updateData.role !== undefined) {
         updateFields.role = updateData.role;
       }
-      
+
       if (updateData.isActive !== undefined) {
         updateFields.is_active = updateData.isActive;
       }
-      
+
       if (updateData.preferences !== undefined) {
         updateFields.preferences = { ...user.preferences, ...updateData.preferences };
       }
@@ -222,8 +227,8 @@ export class UserService {
       }
 
       const companies = await Company.getUserCompanies(userId);
-      
-      return companies.map(company => ({
+
+      return companies.map((company) => ({
         userId,
         companyId: company.id,
         role: 'member', // This would come from the association table
@@ -250,8 +255,8 @@ export class UserService {
       }
 
       const teams = await Team.getUserTeams(userId);
-      
-      return teams.map(team => ({
+
+      return teams.map((team) => ({
         userId,
         teamId: team.id,
         role: 'member', // This would come from the membership table
@@ -299,21 +304,22 @@ export class UserService {
   /**
    * Search users by email or name
    */
-  static async searchUsers(query: string, options: {
-    limit?: number;
-    excludeUserIds?: string[];
-    role?: string;
-  } = {}): Promise<UserModel[]> {
+  static async searchUsers(
+    query: string,
+    options: {
+      limit?: number;
+      excludeUserIds?: string[];
+      role?: string;
+    } = {}
+  ): Promise<UserModel[]> {
     try {
       const { limit = 10, excludeUserIds = [], role } = options;
 
-      let searchQuery = User.query
-        .where('is_active', true)
-        .where(function() {
-          this.where('first_name', 'ilike', `%${query}%`)
-              .orWhere('last_name', 'ilike', `%${query}%`)
-              .orWhere('email', 'ilike', `%${query}%`);
-        });
+      let searchQuery = User.query.where('is_active', true).where(function () {
+        this.where('first_name', 'ilike', `%${query}%`)
+          .orWhere('last_name', 'ilike', `%${query}%`)
+          .orWhere('email', 'ilike', `%${query}%`);
+      });
 
       if (excludeUserIds.length > 0) {
         searchQuery = searchQuery.whereNotIn('id', excludeUserIds);
@@ -323,11 +329,9 @@ export class UserService {
         searchQuery = searchQuery.where('role', role);
       }
 
-      const users = await searchQuery
-        .limit(limit)
-        .orderBy('first_name', 'asc');
+      const users = await searchQuery.limit(limit).orderBy('first_name', 'asc');
 
-      return users.map(user => User.toModel(user));
+      return users.map((user) => User.toModel(user));
     } catch (error) {
       logger.error('Search users error:', error);
       throw new AppError('Failed to search users', 500, 'SEARCH_USERS_FAILED');

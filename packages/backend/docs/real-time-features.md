@@ -50,6 +50,7 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ### Server-to-Client Events
 
 #### Ticket Events
+
 - `ticket:created` - New ticket created
 - `ticket:assigned` - Ticket assigned to employee
 - `ticket:status_changed` - Ticket status updated
@@ -57,11 +58,13 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 - `ticket:priority_changed` - Ticket priority changed
 
 #### Queue Events
+
 - `queue:metrics_updated` - Queue metrics refreshed
 - `queue:ticket_added` - Ticket added to queue
 - `queue:ticket_removed` - Ticket removed from queue
 
 #### User Events
+
 - `user:ticket_assigned` - User-specific assignment notification
 - `user:mention` - User mentioned in note/comment
 - `user:queue_updated` - User's queue configuration changed
@@ -69,10 +72,12 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ### Client-to-Server Events
 
 #### Authentication
+
 - `authenticate` - Authenticate user with JWT token
 - `authenticated` - Server response to authentication
 
 #### Room Management
+
 - `join_team` - Join team-specific room
 - `leave_team` - Leave team room
 - `join_queue` - Join queue-specific room
@@ -81,27 +86,33 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ## Room Structure
 
 ### User Rooms
+
 - `user:{userId}` - Personal notifications for specific user
 
 ### Team Rooms
+
 - `team:{teamId}` - Team-wide notifications and updates
 
 ### Queue Rooms
+
 - `queue:{queueId}` - Queue-specific updates and metrics
 
 ## Notification Types
 
 ### High Priority (Browser Notifications)
+
 - Ticket assignments to current user
 - Urgent status changes
 - Direct mentions
 
 ### Medium Priority (In-App Notifications)
+
 - New tickets in watched queues
 - Status changes on assigned tickets
 - Team announcements
 
 ### Low Priority (Background Updates)
+
 - Metrics updates
 - General ticket updates
 - Queue statistics
@@ -109,6 +120,7 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ## Implementation Details
 
 ### Authentication Flow
+
 1. Client connects to Socket.IO server
 2. Client sends `authenticate` event with user ID and JWT token
 3. Server validates token and stores user-socket mapping
@@ -116,6 +128,7 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 5. Client receives `authenticated` confirmation
 
 ### Notification Broadcasting
+
 1. Business logic triggers notification (e.g., ticket creation)
 2. NotificationService creates structured notification payload
 3. Service determines target audience (user, team, queue)
@@ -123,6 +136,7 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 5. Clients receive and process notifications
 
 ### Metrics Updates
+
 1. Ticket changes trigger metrics recalculation
 2. MetricsService calculates new queue metrics
 3. Updated metrics broadcast to queue watchers
@@ -132,11 +146,13 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ## Browser Notifications
 
 ### Permission Handling
+
 - Request permission on first user interaction
 - Graceful fallback if notifications not supported
 - Respect user's browser notification settings
 
 ### Notification Content
+
 - Title: Brief description of event
 - Body: Detailed message with context
 - Icon: Application favicon
@@ -145,16 +161,19 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ## Performance Considerations
 
 ### Connection Management
+
 - Automatic reconnection on network issues
 - Graceful handling of connection drops
 - Efficient room management to minimize memory usage
 
 ### Scalability
+
 - Room-based broadcasting reduces unnecessary traffic
 - Periodic cleanup of inactive connections
 - Metrics updates batched to prevent spam
 
 ### Error Handling
+
 - Robust error handling for socket events
 - Fallback to polling for critical updates
 - Logging of connection issues for monitoring
@@ -162,16 +181,19 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ## Security Features
 
 ### Authentication
+
 - JWT token validation for socket connections
 - User-socket mapping for access control
 - Automatic disconnection on token expiry
 
 ### Authorization
+
 - Room access based on user permissions
 - Team and queue membership validation
 - Prevent unauthorized data access
 
 ### Data Protection
+
 - No sensitive data in real-time payloads
 - Reference-based notifications (IDs only)
 - Secure room naming conventions
@@ -179,6 +201,7 @@ The Bomizzel ticketing system implements comprehensive real-time features using 
 ## Configuration
 
 ### Environment Variables
+
 ```bash
 # Socket.IO Configuration
 FRONTEND_URL=http://localhost:3000  # CORS origin
@@ -189,6 +212,7 @@ METRICS_UPDATE_INTERVAL=5           # Minutes between metric updates
 ```
 
 ### Client Configuration
+
 ```typescript
 // Socket.IO client configuration
 const socket = io(API_URL, {
@@ -203,6 +227,7 @@ const socket = io(API_URL, {
 ## Monitoring and Debugging
 
 ### Server-Side Logging
+
 - Connection/disconnection events
 - Authentication attempts
 - Room join/leave activities
@@ -210,12 +235,14 @@ const socket = io(API_URL, {
 - Error conditions and failures
 
 ### Client-Side Debugging
+
 - Connection state monitoring
 - Notification receipt logging
 - Room subscription tracking
 - Performance metrics collection
 
 ### Health Checks
+
 - Socket.IO server status endpoint
 - Connected users count
 - Active rooms monitoring
@@ -224,18 +251,21 @@ const socket = io(API_URL, {
 ## Testing
 
 ### Unit Tests
+
 - NotificationService methods
 - MetricsService calculations
 - Socket event handlers
 - Notification formatting
 
 ### Integration Tests
+
 - End-to-end notification flow
 - Room management functionality
 - Authentication and authorization
 - Metrics update propagation
 
 ### Load Testing
+
 - Concurrent connection handling
 - Message broadcasting performance
 - Room scalability limits
@@ -244,6 +274,7 @@ const socket = io(API_URL, {
 ## Future Enhancements
 
 ### Planned Features
+
 - Typing indicators for collaborative editing
 - Presence indicators (online/offline status)
 - Real-time collaborative ticket editing
@@ -251,6 +282,7 @@ const socket = io(API_URL, {
 - Mobile push notifications
 
 ### Performance Improvements
+
 - Redis adapter for horizontal scaling
 - Message queuing for reliability
 - Compression for large payloads

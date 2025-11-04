@@ -11,12 +11,14 @@ The advanced ticket management features provide powerful tools for efficiently m
 **Location**: Kanban Board View
 
 **Functionality**:
+
 - Improved drag-and-drop logic with better priority calculation
 - Automatic priority spacing to prevent conflicts
 - Visual feedback during drag operations
 - Smart priority redistribution when limits are reached
 
 **How it works**:
+
 - When dragging to the top: Sets priority 10 points higher than current top ticket
 - When dragging to bottom: Sets priority 10 points lower than current bottom ticket
 - When dragging between tickets: Calculates midpoint with minimum 2-point gap
@@ -27,6 +29,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 **Location**: Employee Dashboard Header (appears when tickets are selected)
 
 **Available Operations**:
+
 - **Bulk Assign**: Assign multiple tickets to an employee
 - **Bulk Status Update**: Change status of multiple tickets
 - **Bulk Priority Update**: Set priority for multiple tickets
@@ -34,6 +37,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 - **Bulk Delete**: Soft delete multiple tickets (admin/team lead only)
 
 **Features**:
+
 - Operation validation and permission checking
 - Detailed results showing success/failure counts
 - Error handling with specific failure reasons
@@ -41,6 +45,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 - Confirmation dialogs for destructive operations
 
 **Usage**:
+
 1. Select tickets using checkboxes (when implemented)
 2. Click "Bulk Actions (X)" button in header
 3. Choose operation type
@@ -52,6 +57,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 **Location**: Ticket Detail Modal → History Button
 
 **Tracked Events**:
+
 - Ticket creation
 - Assignment changes
 - Status updates
@@ -61,6 +67,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 - Deletions
 
 **Information Displayed**:
+
 - Action type with descriptive icons
 - User who performed the action
 - Timestamp of the change
@@ -68,6 +75,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 - Additional metadata for complex changes
 
 **Features**:
+
 - Chronological timeline view
 - User-friendly action descriptions
 - Visual icons for different action types
@@ -79,12 +87,14 @@ The advanced ticket management features provide powerful tools for efficiently m
 **Location**: Employee Dashboard Header → "Advanced Search" Button
 
 **Search Capabilities**:
+
 - **General Text Search**: Searches across title, description, submitter, assignee, and company
 - **Field-Specific Filters**: Target specific fields with precise operators
 - **Custom Field Support**: Search within team-specific custom fields
 - **Multiple Filter Combinations**: AND logic between multiple filters
 
 **Supported Operators**:
+
 - **Text Fields**: Equals, Contains, Starts With, Ends With
 - **Numeric Fields**: Equals, Greater Than, Less Than
 - **Date Fields**: Equals, Greater Than, Less Than
@@ -92,11 +102,13 @@ The advanced ticket management features provide powerful tools for efficiently m
 - **All Fields**: Is Empty, Is Not Empty
 
 **Filter Types by Field**:
+
 - **Standard Fields**: Title, Description, Status, Priority, Dates, Users, Company, Queue
 - **Custom Fields**: Dynamic based on team configuration
 - **Relationship Fields**: Submitter, Assignee with user search
 
 **Sorting Options**:
+
 - Sort by any searchable field
 - Ascending or descending order
 - Custom field sorting support
@@ -106,6 +118,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 **Status**: Foundation implemented, UI pending
 
 **Planned Features**:
+
 - Link related tickets together
 - Parent-child ticket relationships
 - Dependency tracking
@@ -157,6 +170,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 ### API Endpoints
 
 #### Bulk Operations
+
 - `POST /api/bulk/assign` - Bulk assign tickets
 - `POST /api/bulk/status` - Bulk status update
 - `POST /api/bulk/priority` - Bulk priority update
@@ -165,29 +179,34 @@ The advanced ticket management features provide powerful tools for efficiently m
 - `POST /api/bulk/validate-access` - Validate ticket access
 
 #### Advanced Search
+
 - `GET /api/search/fields/:teamId` - Get searchable fields
 - `POST /api/search/tickets` - Perform advanced search
 - `POST /api/search/save` - Save search query
 - `GET /api/search/saved` - Get saved searches
 
 #### Ticket History
+
 - `GET /api/tickets/:id/history` - Get ticket history
 
 ## User Experience Enhancements
 
 ### Visual Feedback
+
 - Loading states for all operations
 - Progress indicators for bulk operations
 - Success/error notifications
 - Confirmation dialogs for destructive actions
 
 ### Performance Optimizations
+
 - Efficient database queries with proper indexing
 - Pagination for large result sets
 - Debounced search input
 - Optimistic UI updates where appropriate
 
 ### Accessibility
+
 - Keyboard navigation support
 - Screen reader compatible
 - High contrast mode support
@@ -227,6 +246,7 @@ The advanced ticket management features provide powerful tools for efficiently m
 ## Future Enhancements
 
 ### Planned Features
+
 1. **Ticket Relationships**
    - Visual relationship mapping
    - Dependency tracking
@@ -248,6 +268,7 @@ The advanced ticket management features provide powerful tools for efficiently m
    - Advanced query builder UI
 
 ### Integration Opportunities
+
 1. **External Systems**
    - CRM integration for customer data
    - Project management tool sync
@@ -278,6 +299,7 @@ The advanced ticket management features provide powerful tools for efficiently m
    - Review network connectivity
 
 ### Support Resources
+
 - API documentation for endpoint details
 - Database schema for field references
 - Permission matrix for access control

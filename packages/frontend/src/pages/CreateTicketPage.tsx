@@ -22,9 +22,9 @@ const CreateTicketPage: React.FC = () => {
       setLoading(true);
       const layouts = await ticketLayoutApi.getLayoutsByTeam(selectedTeamId);
       setAvailableLayouts(layouts);
-      
+
       // Auto-select default layout if available
-      const defaultLayout = layouts.find(layout => layout.isDefault);
+      const defaultLayout = layouts.find((layout) => layout.isDefault);
       if (defaultLayout) {
         setSelectedLayoutId(defaultLayout.id);
       } else if (layouts.length > 0) {
@@ -41,10 +41,10 @@ const CreateTicketPage: React.FC = () => {
     try {
       // In a real application, you would submit to your tickets API
       console.log('Submitting ticket with data:', formData);
-      
+
       // Extract core fields and custom fields
       const { title, description, status, priority, ...customFields } = formData;
-      
+
       // Mock API call - in production, submit to your tickets API
       console.log('Ticket data:', {
         title: title || 'New Ticket',
@@ -54,12 +54,12 @@ const CreateTicketPage: React.FC = () => {
         customFieldValues: customFields,
         submitterId: user?.id,
         teamId: selectedTeamId,
-        layoutId: selectedLayoutId
+        layoutId: selectedLayoutId,
       });
-      
+
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       alert('Ticket created successfully!');
       navigate('/dashboard');
     } catch (error) {
@@ -130,7 +130,7 @@ const CreateTicketPage: React.FC = () => {
                 </select>
                 {selectedLayoutId && (
                   <p className="text-sm text-gray-600 mt-2">
-                    {availableLayouts.find(l => l.id === selectedLayoutId)?.description}
+                    {availableLayouts.find((l) => l.id === selectedLayoutId)?.description}
                   </p>
                 )}
               </div>

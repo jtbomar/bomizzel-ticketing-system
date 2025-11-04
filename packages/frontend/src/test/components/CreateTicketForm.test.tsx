@@ -92,9 +92,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        {children}
-      </BrowserRouter>
+      <BrowserRouter>{children}</BrowserRouter>
     </QueryClientProvider>
   );
 };
@@ -105,7 +103,7 @@ describe('CreateTicketForm Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockApi.getCurrentUser.mockResolvedValue({ data: mockUser });
     mockApi.getTeams.mockResolvedValue({ data: mockTeams });
     mockApi.createTicket.mockResolvedValue({

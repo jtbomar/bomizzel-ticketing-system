@@ -22,9 +22,12 @@ export class ArchivalScheduledJobs {
     this.runArchivalJob();
 
     // Schedule to run every 24 hours (86400000 ms)
-    this.intervalId = setInterval(() => {
-      this.runArchivalJob();
-    }, 24 * 60 * 60 * 1000);
+    this.intervalId = setInterval(
+      () => {
+        this.runArchivalJob();
+      },
+      24 * 60 * 60 * 1000
+    );
   }
 
   /**
@@ -67,7 +70,7 @@ export class ArchivalScheduledJobs {
   } {
     return {
       isRunning: this.isRunning,
-      nextRun: this.isRunning ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined
+      nextRun: this.isRunning ? new Date(Date.now() + 24 * 60 * 60 * 1000) : undefined,
     };
   }
 }

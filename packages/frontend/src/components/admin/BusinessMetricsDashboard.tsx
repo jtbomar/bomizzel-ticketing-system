@@ -114,7 +114,7 @@ const BusinessMetricsDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('current');
   const [selectedMetric, setSelectedMetric] = useState('overview');
-  
+
   // Analytics data state
   const [mrrData, setMrrData] = useState<MRRData | null>(null);
   const [historicalMrr, setHistoricalMrr] = useState<MRRData[]>([]);
@@ -136,17 +136,13 @@ const BusinessMetricsDashboard: React.FC = () => {
       setError(null);
 
       // Load comprehensive business metrics
-      const [
-        dashboardResponse,
-        historicalMrrResponse,
-        historicalConversionResponse,
-        clvResponse,
-      ] = await Promise.all([
-        api.get('/subscription-analytics/dashboard'),
-        api.get('/subscription-analytics/mrr/historical?months=12'),
-        api.get('/subscription-analytics/conversion-rates/historical?months=6'),
-        api.get('/subscription-analytics/clv?limit=10'),
-      ]);
+      const [dashboardResponse, historicalMrrResponse, historicalConversionResponse, clvResponse] =
+        await Promise.all([
+          api.get('/subscription-analytics/dashboard'),
+          api.get('/subscription-analytics/mrr/historical?months=12'),
+          api.get('/subscription-analytics/conversion-rates/historical?months=6'),
+          api.get('/subscription-analytics/clv?limit=10'),
+        ]);
 
       if (dashboardResponse.data.success) {
         const data = dashboardResponse.data.data;
@@ -224,9 +220,12 @@ const BusinessMetricsDashboard: React.FC = () => {
             const previousMrr = index > 0 ? historicalMrr[index - 1].mrr : data.mrr;
             const growth = data.mrr - previousMrr;
             const growthPercentage = previousMrr > 0 ? (growth / previousMrr) * 100 : 0;
-            
+
             return (
-              <div key={data.month} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+              <div
+                key={data.month}
+                className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+              >
                 <div>
                   <span className="text-sm font-medium text-white">{data.month}</span>
                   <div className="text-xs text-white/60">
@@ -240,9 +239,7 @@ const BusinessMetricsDashboard: React.FC = () => {
                   {index > 0 && (
                     <div className={`text-xs flex items-center ${getGrowthColor(growth)}`}>
                       {getGrowthIcon(growth)}
-                      <span className="ml-1">
-                        {formatPercentage(Math.abs(growthPercentage))}
-                      </span>
+                      <span className="ml-1">{formatPercentage(Math.abs(growthPercentage))}</span>
                     </div>
                   )}
                 </div>
@@ -280,11 +277,15 @@ const BusinessMetricsDashboard: React.FC = () => {
                 <div className="text-xs text-white/60">Total Customers</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-green-400">+{revenueMetrics.newCustomers}</div>
+                <div className="text-lg font-bold text-green-400">
+                  +{revenueMetrics.newCustomers}
+                </div>
                 <div className="text-xs text-white/60">New This Month</div>
               </div>
               <div>
-                <div className="text-lg font-bold text-red-400">-{revenueMetrics.churnedCustomers}</div>
+                <div className="text-lg font-bold text-red-400">
+                  -{revenueMetrics.churnedCustomers}
+                </div>
                 <div className="text-xs text-white/60">Churned</div>
               </div>
             </div>
@@ -310,9 +311,15 @@ const BusinessMetricsDashboard: React.FC = () => {
         </div>
         <div className="space-y-3">
           {planDistribution.map((plan, index) => {
-            const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-red-500'];
+            const colors = [
+              'bg-blue-500',
+              'bg-green-500',
+              'bg-yellow-500',
+              'bg-purple-500',
+              'bg-red-500',
+            ];
             const color = colors[index % colors.length];
-            
+
             return (
               <div key={plan.planId} className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -327,9 +334,7 @@ const BusinessMetricsDashboard: React.FC = () => {
                     <div className="text-sm text-white">
                       {formatPercentage(plan.percentageOfRevenue)}
                     </div>
-                    <div className="text-xs text-white/60">
-                      {formatCurrency(plan.totalRevenue)}
-                    </div>
+                    <div className="text-xs text-white/60">{formatCurrency(plan.totalRevenue)}</div>
                   </div>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
@@ -361,17 +366,24 @@ const BusinessMetricsDashboard: React.FC = () => {
               <div className="flex items-center justify-between p-3 bg-blue-500/20 rounded-lg">
                 <span className="text-sm text-blue-300">Free Trial Starts</span>
                 <div className="text-right">
-                  <span className="text-lg font-bold text-blue-300">{conversionRates.freeTrialStarts}</span>
+                  <span className="text-lg font-bold text-blue-300">
+                    {conversionRates.freeTrialStarts}
+                  </span>
                   <div className="text-xs text-blue-400">
-                    {conversionRates.totalSignups > 0 ? 
-                      formatPercentage((conversionRates.freeTrialStarts / conversionRates.totalSignups) * 100) : '0%'}
+                    {conversionRates.totalSignups > 0
+                      ? formatPercentage(
+                          (conversionRates.freeTrialStarts / conversionRates.totalSignups) * 100
+                        )
+                      : '0%'}
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-between p-3 bg-green-500/20 rounded-lg">
                 <span className="text-sm text-green-300">Trial → Paid</span>
                 <div className="text-right">
-                  <span className="text-lg font-bold text-green-300">{conversionRates.trialToPaidConversions}</span>
+                  <span className="text-lg font-bold text-green-300">
+                    {conversionRates.trialToPaidConversions}
+                  </span>
                   <div className="text-xs text-green-400">
                     {formatPercentage(conversionRates.trialConversionRate)}
                   </div>
@@ -380,7 +392,9 @@ const BusinessMetricsDashboard: React.FC = () => {
               <div className="flex items-center justify-between p-3 bg-purple-500/20 rounded-lg">
                 <span className="text-sm text-purple-300">Free → Paid</span>
                 <div className="text-right">
-                  <span className="text-lg font-bold text-purple-300">{conversionRates.freeTierToPaidConversions}</span>
+                  <span className="text-lg font-bold text-purple-300">
+                    {conversionRates.freeTierToPaidConversions}
+                  </span>
                   <div className="text-xs text-purple-400">
                     {formatPercentage(conversionRates.freeTierConversionRate)}
                   </div>
@@ -434,7 +448,10 @@ const BusinessMetricsDashboard: React.FC = () => {
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-white/80">Churn Reasons</h4>
               {churnAnalysis.churnReasons.map((reason) => (
-                <div key={reason.reason} className="flex items-center justify-between p-2 bg-white/5 rounded">
+                <div
+                  key={reason.reason}
+                  className="flex items-center justify-between p-2 bg-white/5 rounded"
+                >
                   <span className="text-sm text-white/80">{reason.reason}</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-white">{reason.count}</span>
@@ -455,20 +472,19 @@ const BusinessMetricsDashboard: React.FC = () => {
         </div>
         <div className="space-y-3 max-h-80 overflow-y-auto">
           {historicalConversion.map((data) => (
-            <div key={data.period} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+            <div
+              key={data.period}
+              className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+            >
               <div>
                 <span className="text-sm font-medium text-white">{data.period}</span>
-                <div className="text-xs text-white/60">
-                  {data.totalSignups} signups
-                </div>
+                <div className="text-xs text-white/60">{data.totalSignups} signups</div>
               </div>
               <div className="text-right">
                 <div className="text-sm font-bold text-white">
                   {formatPercentage(data.overallConversionRate)}
                 </div>
-                <div className="text-xs text-white/60">
-                  Overall conversion
-                </div>
+                <div className="text-xs text-white/60">Overall conversion</div>
               </div>
             </div>
           ))}
@@ -495,9 +511,12 @@ const BusinessMetricsDashboard: React.FC = () => {
                 customer.usagePercentage.completed,
                 customer.usagePercentage.total
               );
-              
+
               return (
-                <div key={customer.userId} className="p-4 bg-white/5 rounded-lg border border-yellow-500/20">
+                <div
+                  key={customer.userId}
+                  className="p-4 bg-white/5 rounded-lg border border-yellow-500/20"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <div>
                       <span className="text-sm font-medium text-white">{customer.email}</span>
@@ -514,11 +533,15 @@ const BusinessMetricsDashboard: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="text-center p-2 bg-white/5 rounded">
-                      <div className="text-white">{customer.usagePercentage.active.toFixed(0)}%</div>
+                      <div className="text-white">
+                        {customer.usagePercentage.active.toFixed(0)}%
+                      </div>
                       <div className="text-white/60">Active</div>
                     </div>
                     <div className="text-center p-2 bg-white/5 rounded">
-                      <div className="text-white">{customer.usagePercentage.completed.toFixed(0)}%</div>
+                      <div className="text-white">
+                        {customer.usagePercentage.completed.toFixed(0)}%
+                      </div>
                       <div className="text-white/60">Completed</div>
                     </div>
                     <div className="text-center p-2 bg-blue-500/20 rounded">
@@ -547,7 +570,10 @@ const BusinessMetricsDashboard: React.FC = () => {
         {usageAnalytics && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {usageAnalytics.averageUsageByPlan.map((planUsage) => (
-              <div key={planUsage.planName} className="p-4 bg-white/5 rounded-lg border border-white/10">
+              <div
+                key={planUsage.planName}
+                className="p-4 bg-white/5 rounded-lg border border-white/10"
+              >
                 <h5 className="text-sm font-medium text-white mb-3">{planUsage.planName}</h5>
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs">
@@ -586,7 +612,10 @@ const BusinessMetricsDashboard: React.FC = () => {
         {topCustomers.length > 0 ? (
           <div className="space-y-3">
             {topCustomers.slice(0, 5).map((customer, index) => (
-              <div key={customer.userId} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+              <div
+                key={customer.userId}
+                className="flex items-center justify-between p-3 bg-white/5 rounded-lg"
+              >
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                     {index + 1}
@@ -663,7 +692,9 @@ const BusinessMetricsDashboard: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-lg font-medium text-white">Business Metrics Dashboard</h2>
-          <p className="text-sm text-white/60">Revenue charts, subscription distribution, and customer analytics</p>
+          <p className="text-sm text-white/60">
+            Revenue charts, subscription distribution, and customer analytics
+          </p>
         </div>
         <div className="flex space-x-2">
           <select
@@ -720,7 +751,9 @@ const BusinessMetricsDashboard: React.FC = () => {
             </div>
             <div className="mt-4 flex items-center">
               {getGrowthIcon(mrrData.newSubscriptions - mrrData.churnedSubscriptions)}
-              <span className={`ml-1 text-sm ${getGrowthColor(mrrData.newSubscriptions - mrrData.churnedSubscriptions)}`}>
+              <span
+                className={`ml-1 text-sm ${getGrowthColor(mrrData.newSubscriptions - mrrData.churnedSubscriptions)}`}
+              >
                 {Math.abs(mrrData.newSubscriptions - mrrData.churnedSubscriptions)} net growth
               </span>
             </div>

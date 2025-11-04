@@ -96,10 +96,7 @@ class BrowserNotificationService {
    * Show notification for high-priority ticket events
    */
   showTicketNotification(type: string, ticketTitle: string, message: string): Notification | null {
-    const isHighPriority = [
-      'ticket:assigned',
-      'user:ticket_assigned',
-    ].includes(type);
+    const isHighPriority = ['ticket:assigned', 'user:ticket_assigned'].includes(type);
 
     if (!isHighPriority) {
       return null;

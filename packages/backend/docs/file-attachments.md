@@ -36,6 +36,7 @@ Body:
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -107,11 +108,13 @@ Returns all attachments for a specific ticket.
 ## Access Control
 
 ### Customers
+
 - Can upload files to tickets from their associated companies
 - Can download files from tickets they have access to
 - Can only delete files they uploaded
 
 ### Employees/Team Leads/Admins
+
 - Can access all ticket attachments
 - Can delete any file attachment
 - Can upload files to any ticket

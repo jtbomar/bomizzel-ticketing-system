@@ -47,13 +47,13 @@ async function runTestSuite(suite: TestSuite): Promise<boolean> {
     const command = `npx jest ${suite.pattern} --verbose --coverage=false${
       suite.timeout ? ` --testTimeout=${suite.timeout}` : ''
     }`;
-    
+
     console.log(`Command: ${command}`);
-    execSync(command, { 
+    execSync(command, {
       stdio: 'inherit',
       cwd: path.resolve(__dirname, '..'),
     });
-    
+
     console.log(`✅ ${suite.name} completed successfully`);
     return true;
   } catch (error) {
@@ -97,13 +97,13 @@ async function main(): Promise<void> {
   // Print summary
   console.log('\n📋 Test Execution Summary');
   console.log('='.repeat(50));
-  
+
   results.forEach(({ suite, passed }) => {
     console.log(`${passed ? '✅' : '❌'} ${suite}`);
   });
 
   console.log(`\n📊 Overall Results: ${totalPassed}/${results.length} test suites passed`);
-  
+
   if (totalPassed === results.length) {
     console.log('🎉 All test suites passed successfully!');
     process.exit(0);

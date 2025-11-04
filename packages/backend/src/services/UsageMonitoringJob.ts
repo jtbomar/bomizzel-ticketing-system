@@ -16,7 +16,7 @@ export class UsageMonitoringJob {
     }
 
     const intervalMs = intervalMinutes * 60 * 1000;
-    
+
     logger.info('Starting usage monitoring job', { intervalMinutes });
 
     // Run immediately on start
@@ -53,12 +53,12 @@ export class UsageMonitoringJob {
 
     try {
       logger.info('Starting scheduled usage monitoring check');
-      
+
       await UsageAlertService.checkAllUsersUsage();
-      
+
       const duration = Date.now() - startTime;
-      logger.info('Completed scheduled usage monitoring check', { 
-        durationMs: duration 
+      logger.info('Completed scheduled usage monitoring check', {
+        durationMs: duration,
       });
     } catch (error) {
       logger.error('Error in scheduled usage monitoring check', { error });

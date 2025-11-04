@@ -13,16 +13,16 @@ export const checkTicketCreationLimit = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    
+
     const canCreateResult = await UsageTrackingService.canCreateTicket(userId);
-    
+
     if (!canCreateResult.canCreate) {
       logger.warn('Ticket creation blocked due to subscription limits', {
         userId,
         reason: canCreateResult.reason,
         limitType: canCreateResult.limitType,
         usage: canCreateResult.usage,
-        limits: canCreateResult.limits
+        limits: canCreateResult.limits,
       });
 
       // Return detailed error with upgrade information
@@ -35,7 +35,8 @@ export const checkTicketCreationLimit = async (
           usage: canCreateResult.usage,
           limits: canCreateResult.limits,
           upgradeRequired: true,
-          message: 'You have reached your subscription limit. Please upgrade your plan to create more tickets.'
+          message:
+            'You have reached your subscription limit. Please upgrade your plan to create more tickets.',
         }
       );
     }
@@ -43,7 +44,7 @@ export const checkTicketCreationLimit = async (
     // Add usage information to request for potential use in response
     req.subscriptionUsage = {
       usage: canCreateResult.usage,
-      limits: canCreateResult.limits
+      limits: canCreateResult.limits,
     };
 
     next();
@@ -62,15 +63,15 @@ export const checkTicketCompletionLimit = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    
+
     const canCompleteResult = await UsageTrackingService.canCompleteTicket(userId);
-    
+
     if (!canCompleteResult.canComplete) {
       logger.warn('Ticket completion blocked due to subscription limits', {
         userId,
         reason: canCompleteResult.reason,
         usage: canCompleteResult.usage,
-        limits: canCompleteResult.limits
+        limits: canCompleteResult.limits,
       });
 
       throw new AppError(
@@ -82,7 +83,8 @@ export const checkTicketCompletionLimit = async (
           usage: canCompleteResult.usage,
           limits: canCompleteResult.limits,
           upgradeRequired: true,
-          message: 'You have reached your completed ticket limit. Please upgrade your plan or archive some completed tickets.'
+          message:
+            'You have reached your completed ticket limit. Please upgrade your plan or archive some completed tickets.',
         }
       );
     }
@@ -90,7 +92,7 @@ export const checkTicketCompletionLimit = async (
     // Add usage information to request
     req.subscriptionUsage = {
       usage: canCompleteResult.usage,
-      limits: canCompleteResult.limits
+      limits: canCompleteResult.limits,
     };
 
     next();
@@ -109,25 +111,25 @@ export const trackTicketCreation = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    
+
     // Store original res.json to intercept response
     const originalJson = res.json;
-    
-    res.json = function(body: any) {
+
+    res.json = function (body: any) {
       // Check if ticket was successfully created
       if (res.statusCode === 201 && body.success && body.data && body.data.id) {
         const ticketId = body.data.id;
-        
+
         // Track ticket creation asynchronously
         UsageTrackingService.recordTicketCreation(userId, ticketId, {
           title: body.data.title,
           companyId: body.data.companyId,
-          teamId: body.data.teamId
-        }).catch(error => {
+          teamId: body.data.teamId,
+        }).catch((error) => {
           logger.error('Failed to track ticket creation', { userId, ticketId, error });
         });
       }
-      
+
       // Call original json method
       return originalJson.call(this, body);
     };
@@ -149,10 +151,10 @@ export const trackTicketStatusChange = async (
   try {
     const userId = req.user!.id;
     const ticketId = req.params.id;
-    
+
     // Get current ticket status before update (if this is a status change)
     let previousStatus: string | undefined;
-    
+
     if (req.body.status || req.path.includes('/status')) {
       try {
         // We'll need to get the current status from the ticket
@@ -162,39 +164,39 @@ export const trackTicketStatusChange = async (
         logger.warn('Could not get previous status for tracking', { ticketId, error });
       }
     }
-    
+
     // Store original res.json to intercept response
     const originalJson = res.json;
-    
-    res.json = function(body: any) {
+
+    res.json = function (body: any) {
       // Check if ticket was successfully updated
       if (res.statusCode === 200 && body.success && body.data) {
         const newStatus = body.data.status;
-        
+
         // Track status change if status was modified
         if (newStatus && (req.body.status || req.path.includes('/status'))) {
           UsageTrackingService.recordTicketStatusChange(
-            userId, 
-            ticketId, 
-            previousStatus || 'unknown', 
+            userId,
+            ticketId,
+            previousStatus || 'unknown',
             newStatus,
             {
               updatedBy: userId,
               endpoint: req.path,
-              method: req.method
+              method: req.method,
             }
-          ).catch(error => {
-            logger.error('Failed to track ticket status change', { 
-              userId, 
-              ticketId, 
-              previousStatus, 
-              newStatus, 
-              error 
+          ).catch((error) => {
+            logger.error('Failed to track ticket status change', {
+              userId,
+              ticketId,
+              previousStatus,
+              newStatus,
+              error,
             });
           });
         }
       }
-      
+
       // Call original json method
       return originalJson.call(this, body);
     };
@@ -215,76 +217,76 @@ export const addUsageWarnings = async (
 ): Promise<void> => {
   try {
     const userId = req.user!.id;
-    
+
     // Store original res.json to intercept response
     const originalJson = res.json;
-    
-    res.json = function(body: any) {
+
+    res.json = function (body: any) {
       // Only add warnings to successful responses
       if (res.statusCode < 400 && body.success) {
         // Get usage percentages asynchronously and add to response
         UsageTrackingService.getUsagePercentages(userId)
-          .then(percentages => {
+          .then((percentages) => {
             // Add usage warnings if approaching limits
             const warnings = [];
-            
+
             if (percentages.active >= 90) {
               warnings.push({
                 type: 'active_tickets_limit',
                 message: 'You are approaching your active ticket limit',
                 percentage: percentages.active,
-                severity: 'high'
+                severity: 'high',
               });
             } else if (percentages.active >= 75) {
               warnings.push({
                 type: 'active_tickets_limit',
                 message: 'You are approaching your active ticket limit',
                 percentage: percentages.active,
-                severity: 'medium'
+                severity: 'medium',
               });
             }
-            
+
             if (percentages.completed >= 90) {
               warnings.push({
                 type: 'completed_tickets_limit',
                 message: 'You are approaching your completed ticket limit',
                 percentage: percentages.completed,
-                severity: 'high'
+                severity: 'high',
               });
             } else if (percentages.completed >= 75) {
               warnings.push({
                 type: 'completed_tickets_limit',
                 message: 'You are approaching your completed ticket limit',
                 percentage: percentages.completed,
-                severity: 'medium'
+                severity: 'medium',
               });
             }
-            
+
             if (percentages.total >= 90) {
               warnings.push({
                 type: 'total_tickets_limit',
                 message: 'You are approaching your total ticket limit',
                 percentage: percentages.total,
-                severity: 'high'
+                severity: 'high',
               });
             } else if (percentages.total >= 75) {
               warnings.push({
                 type: 'total_tickets_limit',
                 message: 'You are approaching your total ticket limit',
                 percentage: percentages.total,
-                severity: 'medium'
+                severity: 'medium',
               });
             }
-            
+
             if (warnings.length > 0) {
               body.subscriptionWarnings = warnings;
             }
           })
-          .catch(error => {
+          .catch((error) => {
             logger.error('Failed to get usage percentages for warnings', { userId, error });
           });
       }
-      
+
       // Call original json method
       return originalJson.call(this, body);
     };
@@ -301,16 +303,13 @@ export const addUsageWarnings = async (
 export const enforceAndTrackTicketCreation = [
   checkTicketCreationLimit,
   trackTicketCreation,
-  addUsageWarnings
+  addUsageWarnings,
 ];
 
 /**
  * Combined middleware for ticket status changes that need both limit checking and tracking
  */
-export const enforceAndTrackTicketStatusChange = [
-  trackTicketStatusChange,
-  addUsageWarnings
-];
+export const enforceAndTrackTicketStatusChange = [trackTicketStatusChange, addUsageWarnings];
 
 /**
  * Middleware to check subscription limits for ticket completion specifically
@@ -318,7 +317,7 @@ export const enforceAndTrackTicketStatusChange = [
 export const enforceAndTrackTicketCompletion = [
   checkTicketCompletionLimit,
   trackTicketStatusChange,
-  addUsageWarnings
+  addUsageWarnings,
 ];
 
 // Extend Request interface to include subscription usage data

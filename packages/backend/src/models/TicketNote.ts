@@ -23,11 +23,14 @@ export class TicketNote extends BaseModel {
     });
   }
 
-  static async findByTicket(ticketId: string, options: {
-    includeInternal?: boolean;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<TicketNoteTable[]> {
+  static async findByTicket(
+    ticketId: string,
+    options: {
+      includeInternal?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<TicketNoteTable[]> {
     let query = this.query.where('ticket_id', ticketId);
 
     // Filter out internal notes for customers
@@ -46,10 +49,13 @@ export class TicketNote extends BaseModel {
     return query.orderBy('created_at', 'asc');
   }
 
-  static async findByAuthor(authorId: string, options: {
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<TicketNoteTable[]> {
+  static async findByAuthor(
+    authorId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<TicketNoteTable[]> {
     let query = this.query.where('author_id', authorId);
 
     if (options.limit) {
@@ -105,10 +111,13 @@ export class TicketNote extends BaseModel {
     return query.orderBy('created_at', 'desc');
   }
 
-  static async updateNote(noteId: string, updates: {
-    content?: string;
-    isInternal?: boolean;
-  }): Promise<TicketNoteTable | null> {
+  static async updateNote(
+    noteId: string,
+    updates: {
+      content?: string;
+      isInternal?: boolean;
+    }
+  ): Promise<TicketNoteTable | null> {
     const updateData: any = {};
 
     if (updates.content !== undefined) {
@@ -126,11 +135,14 @@ export class TicketNote extends BaseModel {
     return this.delete(noteId);
   }
 
-  static async getNotesWithAttachments(ticketId: string, options: {
-    includeInternal?: boolean;
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<any[]> {
+  static async getNotesWithAttachments(
+    ticketId: string,
+    options: {
+      includeInternal?: boolean;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<any[]> {
     let query = this.db('ticket_notes as tn')
       .leftJoin('file_attachments as fa', 'tn.id', 'fa.note_id')
       .leftJoin('users as u', 'tn.author_id', 'u.id')
@@ -167,7 +179,7 @@ export class TicketNote extends BaseModel {
 
     // Group results by note
     const notesMap = new Map();
-    
+
     results.forEach((row: any) => {
       if (!notesMap.has(row.id)) {
         notesMap.set(row.id, {

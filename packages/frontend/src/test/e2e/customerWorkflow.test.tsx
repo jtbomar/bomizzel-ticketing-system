@@ -89,9 +89,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
@@ -101,7 +99,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 describe('Customer Workflow E2E Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Setup default API mocks
     mockApi.getCurrentUser.mockResolvedValue({ data: mockUser });
     mockApi.getTickets.mockResolvedValue({
@@ -429,7 +427,7 @@ describe('Customer Workflow E2E Tests', () => {
       // Upload new file
       const fileInput = screen.getByLabelText('Upload file');
       const file = new File(['test content'], 'new-file.jpg', { type: 'image/jpeg' });
-      
+
       fireEvent.change(fileInput, { target: { files: [file] } });
 
       // Verify API call
@@ -475,13 +473,9 @@ describe('Customer Workflow E2E Tests', () => {
 
     it('should show company-specific tickets only', async () => {
       mockApi.getCurrentUser.mockResolvedValue({ data: mockMultiCompanyUser });
-      
-      const companyATickets = [
-        { ...mockTickets[0], companyId: '1' },
-      ];
-      const companyBTickets = [
-        { ...mockTickets[1], companyId: '2' },
-      ];
+
+      const companyATickets = [{ ...mockTickets[0], companyId: '1' }];
+      const companyBTickets = [{ ...mockTickets[1], companyId: '2' }];
 
       mockApi.getTickets
         .mockResolvedValueOnce({

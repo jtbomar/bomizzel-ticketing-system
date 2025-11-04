@@ -31,22 +31,18 @@ describe('Company Management Endpoints', () => {
     testUserId = regularUser.id;
 
     // Get admin token
-    const adminLoginResponse = await request(app)
-      .post('/api/auth/login')
-      .send({
-        email: 'admin@bomizzel.com',
-        password: 'password123',
-      });
+    const adminLoginResponse = await request(app).post('/api/auth/login').send({
+      email: 'admin@bomizzel.com',
+      password: 'password123',
+    });
 
     adminToken = adminLoginResponse.body.token;
 
     // Get user token
-    const userLoginResponse = await request(app)
-      .post('/api/auth/login')
-      .send({
-        email: 'user@example.com',
-        password: 'password123',
-      });
+    const userLoginResponse = await request(app).post('/api/auth/login').send({
+      email: 'user@example.com',
+      password: 'password123',
+    });
 
     userToken = userLoginResponse.body.token;
   });
@@ -185,12 +181,10 @@ describe('Company Management Endpoints', () => {
         lastName: 'User',
       });
 
-      const loginResponse = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'another@example.com',
-          password: 'password123',
-        });
+      const loginResponse = await request(app).post('/api/auth/login').send({
+        email: 'another@example.com',
+        password: 'password123',
+      });
 
       const anotherToken = loginResponse.body.token;
 

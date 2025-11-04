@@ -16,17 +16,17 @@ import { useUsageWarnings } from '../hooks/useUsageWarnings';
 const CustomerDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   // Real-time notifications
   useRealTimeNotifications();
-  
+
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
-  
+
   const { dashboardWarnings } = useUsageWarnings();
 
   useEffect(() => {
@@ -45,7 +45,7 @@ const CustomerDashboard: React.FC = () => {
       const response = await apiService.getCompanies();
       const userCompanies = response.data || response;
       setCompanies(userCompanies);
-      
+
       // Auto-select first company if only one exists
       if (userCompanies.length === 1) {
         setSelectedCompanyId(userCompanies[0].id);
@@ -63,7 +63,7 @@ const CustomerDashboard: React.FC = () => {
 
   const loadTickets = async () => {
     if (!selectedCompanyId) return;
-    
+
     try {
       setLoading(true);
       const response = await apiService.getTickets({
@@ -96,15 +96,13 @@ const CustomerDashboard: React.FC = () => {
   };
 
   const handleTicketCreated = (newTicket: Ticket) => {
-    setTickets(prev => [newTicket, ...prev]);
+    setTickets((prev) => [newTicket, ...prev]);
     navigate('/customer');
   };
 
   const handleTicketUpdated = (updatedTicket: Ticket) => {
-    setTickets(prev => 
-      prev.map(ticket => 
-        ticket.id === updatedTicket.id ? updatedTicket : ticket
-      )
+    setTickets((prev) =>
+      prev.map((ticket) => (ticket.id === updatedTicket.id ? updatedTicket : ticket))
     );
   };
 
@@ -126,10 +124,7 @@ const CustomerDashboard: React.FC = () => {
           <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
             <p className="font-medium">Error loading dashboard</p>
             <p className="text-sm mt-1">{error}</p>
-            <button 
-              onClick={loadUserCompanies}
-              className="mt-3 btn-primary text-sm"
-            >
+            <button onClick={loadUserCompanies} className="mt-3 btn-primary text-sm">
               Try Again
             </button>
           </div>
@@ -141,7 +136,7 @@ const CustomerDashboard: React.FC = () => {
   if (companies.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <CustomerHeader 
+        <CustomerHeader
           user={user}
           companies={companies}
           selectedCompanyId={selectedCompanyId}
@@ -152,7 +147,10 @@ const CustomerDashboard: React.FC = () => {
           <div className="text-center">
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-6 py-8 rounded-lg">
               <h2 className="text-xl font-semibold mb-2">No Companies Found</h2>
-              <p>You don't have access to any companies yet. Please contact your administrator to get access.</p>
+              <p>
+                You don't have access to any companies yet. Please contact your administrator to get
+                access.
+              </p>
             </div>
           </div>
         </div>
@@ -162,14 +160,14 @@ const CustomerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <CustomerHeader 
+      <CustomerHeader
         user={user}
         companies={companies}
         selectedCompanyId={selectedCompanyId}
         onCompanyChange={handleCompanyChange}
         onLogout={logout}
       />
-      
+
       <div className="container mx-auto px-4 py-8">
         {/* Trial Status */}
         {subscriptionId && (
@@ -189,9 +187,16 @@ const CustomerDashboard: React.FC = () => {
                 key={`${warning.limitType}-${warning.warningType}-${index}`}
                 warning={{
                   message: `${warning.warningType === 'at_limit' ? 'You have reached' : 'You are approaching'} your ${warning.limitType} ticket limit (${warning.percentage}% used) on your ${warning.planName} plan.`,
-                  severity: warning.warningType === 'at_limit' ? 'error' : warning.warningType === 'approaching_90' ? 'warning' : 'info',
+                  severity:
+                    warning.warningType === 'at_limit'
+                      ? 'error'
+                      : warning.warningType === 'approaching_90'
+                        ? 'warning'
+                        : 'info',
                   showUpgradePrompt: warning.percentage >= 90,
-                  upgradeOptions: dashboardWarnings.shouldShowUpgradePrompt ? ['Starter', 'Professional', 'Business', 'Enterprise'] : undefined
+                  upgradeOptions: dashboardWarnings.shouldShowUpgradePrompt
+                    ? ['Starter', 'Professional', 'Business', 'Enterprise']
+                    : undefined,
                 }}
                 showDismiss={false}
               />
@@ -201,48 +206,41 @@ const CustomerDashboard: React.FC = () => {
                 warning={{
                   message: dashboardWarnings.upgradeMessage,
                   severity: 'warning',
-                  showUpgradePrompt: true
+                  showUpgradePrompt: true,
                 }}
                 showDismiss={false}
               />
             )}
           </div>
         )}
-        
+
         <Routes>
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              <CustomerTicketList 
+              <CustomerTicketList
                 tickets={tickets}
                 loading={loading}
                 error={error}
                 onRefresh={loadTickets}
                 selectedCompanyId={selectedCompanyId}
               />
-            } 
+            }
           />
-          <Route 
-            path="/create" 
+          <Route
+            path="/create"
             element={
-              <CreateTicketForm 
+              <CreateTicketForm
                 companyId={selectedCompanyId}
                 onTicketCreated={handleTicketCreated}
               />
-            } 
+            }
           />
-          <Route 
-            path="/ticket/:ticketId" 
-            element={
-              <CustomerTicketDetail 
-                onTicketUpdated={handleTicketUpdated}
-              />
-            } 
+          <Route
+            path="/ticket/:ticketId"
+            element={<CustomerTicketDetail onTicketUpdated={handleTicketUpdated} />}
           />
-          <Route 
-            path="/subscription" 
-            element={<SubscriptionManagement />} 
-          />
+          <Route path="/subscription" element={<SubscriptionManagement />} />
         </Routes>
       </div>
     </div>

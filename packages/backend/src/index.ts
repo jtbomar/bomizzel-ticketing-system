@@ -11,21 +11,23 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Basic middleware
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://192.168.0.117:3000',
-    /^http:\/\/192\.168\.0\.\d+:3000$/
-  ],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'http://192.168.0.117:3000',
+      /^http:\/\/192\.168\.0\.\d+:3000$/,
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Simple company profile endpoints for testing
 app.get('/api/company-registration/profile', (req: Request, res: Response) => {
   console.log('GET /api/company-registration/profile called');
   console.log('Authorization header:', req.headers.authorization);
-  
+
   res.json({
     success: true,
     data: {
@@ -40,7 +42,7 @@ app.get('/api/company-registration/profile', (req: Request, res: Response) => {
       language: 'en',
       allowPublicRegistration: false,
       requireEmailVerification: true,
-    }
+    },
   });
 });
 
@@ -52,24 +54,24 @@ app.put('/api/company-registration/profile', (req: Request, res: Response) => {
     data: {
       ...req.body,
       id: '1',
-    }
+    },
   });
 });
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    service: 'bomizzel-backend'
+    service: 'bomizzel-backend',
   });
 });
 
 app.get('/api/health', (_req: Request, res: Response) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Bomizzel API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
@@ -86,7 +88,7 @@ const users = [
     password: 'password123', // In real app, this would be hashed
     firstName: 'Admin',
     lastName: 'User',
-    role: 'admin'
+    role: 'admin',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440002',
@@ -94,7 +96,7 @@ const users = [
     password: 'password123',
     firstName: 'John',
     lastName: 'Doe',
-    role: 'customer'
+    role: 'customer',
   },
   {
     id: '550e8400-e29b-41d4-a716-446655440003',
@@ -102,33 +104,33 @@ const users = [
     password: 'password123',
     firstName: 'Jane',
     lastName: 'Smith',
-    role: 'user'
-  }
+    role: 'user',
+  },
 ];
 
 // Login endpoint
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
+
     // Find user
-    const user = users.find(u => u.email === email);
+    const user = users.find((u) => u.email === email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     // Check password (in real app, compare with hashed password)
     if (password !== user.password) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    
+
     // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '24h' }
     );
-    
+
     return res.json({
       token,
       user: {
@@ -136,8 +138,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role
-      }
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -151,22 +153,22 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const user = users.find(u => u.id === decoded.userId);
-    
+    const user = users.find((u) => u.id === decoded.userId);
+
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
-    
+
     return res.json({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role
+      role: user.role,
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -182,7 +184,7 @@ let mockTickets = [
     status: 'open',
     priority: 75, // High priority
     createdAt: new Date().toISOString(),
-    submitter: { firstName: 'John', lastName: 'Doe' }
+    submitter: { firstName: 'John', lastName: 'Doe' },
   },
   {
     id: 'bb0e8400-e29b-41d4-a716-446655440002',
@@ -191,7 +193,7 @@ let mockTickets = [
     status: 'in_progress',
     priority: 50, // Medium priority
     createdAt: new Date().toISOString(),
-    submitter: { firstName: 'Jane', lastName: 'Smith' }
+    submitter: { firstName: 'Jane', lastName: 'Smith' },
   },
   {
     id: 'bb0e8400-e29b-41d4-a716-446655440003',
@@ -200,7 +202,7 @@ let mockTickets = [
     status: 'open',
     priority: 25, // Low priority
     createdAt: new Date().toISOString(),
-    submitter: { firstName: 'Alice', lastName: 'Johnson' }
+    submitter: { firstName: 'Alice', lastName: 'Johnson' },
   },
   {
     id: 'bb0e8400-e29b-41d4-a716-446655440004',
@@ -209,8 +211,8 @@ let mockTickets = [
     status: 'open',
     priority: 95, // Critical priority
     createdAt: new Date().toISOString(),
-    submitter: { firstName: 'Bob', lastName: 'Wilson' }
-  }
+    submitter: { firstName: 'Bob', lastName: 'Wilson' },
+  },
 ];
 
 app.get('/api/tickets', (_req: Request, res: Response) => {
@@ -225,27 +227,27 @@ app.get('/api/queues', (_req: Request, res: Response) => {
       name: 'Technical Support',
       teamId: 'team-1',
       ticketCount: mockTickets.length,
-      assignedToId: null
+      assignedToId: null,
     },
     {
-      id: 'queue-2', 
+      id: 'queue-2',
       name: 'Customer Success',
       teamId: 'team-2',
       ticketCount: 0,
-      assignedToId: null
-    }
+      assignedToId: null,
+    },
   ];
-  
+
   res.json({
     success: true,
-    data: mockQueues
+    data: mockQueues,
   });
 });
 
 // Mock queue tickets endpoint
 app.get('/api/queues/:queueId/tickets', (req: Request, res: Response) => {
   const { queueId } = req.params;
-  
+
   // For now, return all tickets for any queue
   res.json({
     success: true,
@@ -254,15 +256,15 @@ app.get('/api/queues/:queueId/tickets', (req: Request, res: Response) => {
       page: 1,
       limit: 20,
       total: mockTickets.length,
-      totalPages: 1
-    }
+      totalPages: 1,
+    },
   });
 });
 
 // Mock team statuses endpoint
 app.get('/api/teams/:teamId/statuses', (req: Request, res: Response) => {
   const { teamId } = req.params;
-  
+
   const mockStatuses = [
     {
       id: 'status-1',
@@ -275,7 +277,7 @@ app.get('/api/teams/:teamId/statuses', (req: Request, res: Response) => {
       isClosed: false,
       isActive: true,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     },
     {
       id: 'status-2',
@@ -288,7 +290,7 @@ app.get('/api/teams/:teamId/statuses', (req: Request, res: Response) => {
       isClosed: false,
       isActive: true,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     },
     {
       id: 'status-3',
@@ -301,13 +303,13 @@ app.get('/api/teams/:teamId/statuses', (req: Request, res: Response) => {
       isClosed: true,
       isActive: true,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
+      updatedAt: new Date().toISOString(),
+    },
   ];
-  
+
   res.json({
     success: true,
-    data: mockStatuses
+    data: mockStatuses,
   });
 });
 
@@ -315,17 +317,17 @@ app.get('/api/teams/:teamId/statuses', (req: Request, res: Response) => {
 app.put('/api/tickets/:id/status', (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
-  
-  const ticketIndex = mockTickets.findIndex(t => t.id === id);
+
+  const ticketIndex = mockTickets.findIndex((t) => t.id === id);
   if (ticketIndex === -1) {
     return res.status(404).json({ error: 'Ticket not found' });
   }
-  
+
   mockTickets[ticketIndex].status = status;
-  
+
   return res.json({
     success: true,
-    data: mockTickets[ticketIndex]
+    data: mockTickets[ticketIndex],
   });
 });
 
@@ -333,21 +335,21 @@ app.put('/api/tickets/:id/status', (req: Request, res: Response) => {
 app.put('/api/tickets/:id/priority', (req: Request, res: Response) => {
   const { id } = req.params;
   const { priority } = req.body;
-  
+
   if (typeof priority !== 'number' || priority < 0 || priority > 100) {
     return res.status(400).json({ error: 'Priority must be a number between 0 and 100' });
   }
-  
-  const ticketIndex = mockTickets.findIndex(t => t.id === id);
+
+  const ticketIndex = mockTickets.findIndex((t) => t.id === id);
   if (ticketIndex === -1) {
     return res.status(404).json({ error: 'Ticket not found' });
   }
-  
+
   mockTickets[ticketIndex].priority = priority;
-  
+
   return res.json({
     success: true,
-    data: mockTickets[ticketIndex]
+    data: mockTickets[ticketIndex],
   });
 });
 
@@ -357,26 +359,26 @@ app.get('/api/admin/users', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser || currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     // Add more mock internal users for demonstration (employees and admins only)
     const allInternalUsers = [
-      ...users.filter(u => u.role !== 'customer'), // Exclude customers from internal user management
+      ...users.filter((u) => u.role !== 'customer'), // Exclude customers from internal user management
       {
         id: '550e8400-e29b-41d4-a716-446655440004',
         email: 'mike.johnson@bomizzel.com',
         password: 'password123',
         firstName: 'Mike',
         lastName: 'Johnson',
-        role: 'user'
+        role: 'user',
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440007',
@@ -384,7 +386,7 @@ app.get('/api/admin/users', (req: Request, res: Response) => {
         password: 'password123',
         firstName: 'Sarah',
         lastName: 'Davis',
-        role: 'user'
+        role: 'user',
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440008',
@@ -392,13 +394,13 @@ app.get('/api/admin/users', (req: Request, res: Response) => {
         password: 'password123',
         firstName: 'David',
         lastName: 'Wilson',
-        role: 'admin'
-      }
+        role: 'admin',
+      },
     ];
-    
+
     const { page = 1, limit = 25, search = '', role = '', isActive = '' } = req.query;
-    
-    let filteredUsers = allInternalUsers.map(user => ({
+
+    let filteredUsers = allInternalUsers.map((user) => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -406,43 +408,44 @@ app.get('/api/admin/users', (req: Request, res: Response) => {
       role: user.role,
       isActive: true,
       teamCount: Math.floor(Math.random() * 3),
-      createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString()
+      createdAt: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
     }));
-    
+
     // Apply filters
     if (search) {
       const searchLower = search.toString().toLowerCase();
-      filteredUsers = filteredUsers.filter(user => 
-        user.firstName.toLowerCase().includes(searchLower) ||
-        user.lastName.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower)
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          user.firstName.toLowerCase().includes(searchLower) ||
+          user.lastName.toLowerCase().includes(searchLower) ||
+          user.email.toLowerCase().includes(searchLower)
       );
     }
-    
+
     if (role) {
-      filteredUsers = filteredUsers.filter(user => user.role === role);
+      filteredUsers = filteredUsers.filter((user) => user.role === role);
     }
-    
+
     if (isActive !== '') {
       const activeFilter = isActive === 'true';
-      filteredUsers = filteredUsers.filter(user => user.isActive === activeFilter);
+      filteredUsers = filteredUsers.filter((user) => user.isActive === activeFilter);
     }
-    
+
     // Pagination
     const pageNum = parseInt(page.toString());
     const limitNum = parseInt(limit.toString());
     const startIndex = (pageNum - 1) * limitNum;
     const endIndex = startIndex + limitNum;
     const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-    
+
     return res.json({
       data: paginatedUsers,
       pagination: {
         page: pageNum,
         limit: limitNum,
         total: filteredUsers.length,
-        totalPages: Math.ceil(filteredUsers.length / limitNum)
-      }
+        totalPages: Math.ceil(filteredUsers.length / limitNum),
+      },
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -455,28 +458,28 @@ app.put('/api/admin/users/:userId/role', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser || currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { userId } = req.params;
     const { role } = req.body;
-    
+
     // Find and update user (in a real app, this would update the database)
-    const userIndex = users.findIndex(u => u.id === userId);
+    const userIndex = users.findIndex((u) => u.id === userId);
     if (userIndex !== -1) {
       users[userIndex].role = role;
     }
-    
-    return res.json({ 
+
+    return res.json({
       message: 'User role updated successfully',
-      user: users[userIndex] 
+      user: users[userIndex],
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -489,35 +492,35 @@ app.put('/api/admin/users/:userId', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser || currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { userId } = req.params;
     const { firstName, lastName, email, role, isActive, teamId } = req.body;
-    
+
     // Find and update user (in a real app, this would update the database)
-    const userIndex = users.findIndex(u => u.id === userId);
+    const userIndex = users.findIndex((u) => u.id === userId);
     if (userIndex === -1) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     // Update user properties
     if (firstName !== undefined) users[userIndex].firstName = firstName;
     if (lastName !== undefined) users[userIndex].lastName = lastName;
     if (email !== undefined) users[userIndex].email = email;
     if (role !== undefined) users[userIndex].role = role;
     // Note: isActive and teamId would be handled in a real database
-    
-    return res.json({ 
+
+    return res.json({
       message: 'User updated successfully',
-      user: users[userIndex] 
+      user: users[userIndex],
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -526,27 +529,27 @@ app.put('/api/admin/users/:userId', (req: Request, res: Response) => {
 
 // Mock teams data
 let teams = [
-  { 
-    id: '1', 
-    name: 'Technical Support', 
+  {
+    id: '1',
+    name: 'Technical Support',
     description: 'Handles technical issues and bug reports',
     isActive: true,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
-  { 
-    id: '2', 
-    name: 'Customer Success', 
+  {
+    id: '2',
+    name: 'Customer Success',
     description: 'Manages customer onboarding and account issues',
     isActive: true,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
   },
-  { 
-    id: '3', 
-    name: 'Sales Team', 
+  {
+    id: '3',
+    name: 'Sales Team',
     description: 'Handles sales inquiries and demos',
     isActive: true,
-    createdAt: new Date().toISOString()
-  }
+    createdAt: new Date().toISOString(),
+  },
 ];
 
 // Get teams endpoint
@@ -555,16 +558,16 @@ app.get('/api/teams', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser) {
       return res.status(401).json({ error: 'User not found' });
     }
-    
+
     return res.json({ data: teams });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -577,38 +580,38 @@ app.post('/api/teams', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser || currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { name, description } = req.body;
-    
+
     if (!name) {
       return res.status(400).json({ error: 'Team name is required' });
     }
-    
+
     // Check if team name already exists
-    const existingTeam = teams.find(t => t.name.toLowerCase() === name.toLowerCase());
+    const existingTeam = teams.find((t) => t.name.toLowerCase() === name.toLowerCase());
     if (existingTeam) {
       return res.status(409).json({ error: 'Team with this name already exists' });
     }
-    
+
     const newTeam = {
       id: (teams.length + 1).toString(),
       name,
       description: description || '',
       isActive: true,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    
+
     teams.push(newTeam);
-    
+
     return res.status(201).json({ team: newTeam });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -621,29 +624,29 @@ app.put('/api/teams/:teamId', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser || currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { teamId } = req.params;
     const { name, description, isActive } = req.body;
-    
-    const teamIndex = teams.findIndex(t => t.id === teamId);
+
+    const teamIndex = teams.findIndex((t) => t.id === teamId);
     if (teamIndex === -1) {
       return res.status(404).json({ error: 'Team not found' });
     }
-    
+
     // Update team properties
     if (name !== undefined) teams[teamIndex].name = name;
     if (description !== undefined) teams[teamIndex].description = description;
     if (isActive !== undefined) teams[teamIndex].isActive = isActive;
-    
+
     return res.json({ team: teams[teamIndex] });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -656,18 +659,18 @@ app.get('/api/teams/:teamId/members', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser) {
       return res.status(401).json({ error: 'User not found' });
     }
-    
+
     const { teamId } = req.params;
-    
+
     // Mock team members data
     const mockMembers = [
       {
@@ -676,7 +679,7 @@ app.get('/api/teams/:teamId/members', (req: Request, res: Response) => {
         lastName: 'Smith',
         email: 'jane.smith@bomizzel.com',
         teamRole: 'lead',
-        membershipDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        membershipDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
       },
       {
         id: '550e8400-e29b-41d4-a716-446655440004',
@@ -684,10 +687,10 @@ app.get('/api/teams/:teamId/members', (req: Request, res: Response) => {
         lastName: 'Johnson',
         email: 'mike.johnson@bomizzel.com',
         teamRole: 'member',
-        membershipDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
-      }
+        membershipDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+      },
     ];
-    
+
     return res.json({ members: mockMembers });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -700,22 +703,22 @@ app.put('/api/admin/users/:userId/status', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const currentUser = users.find(u => u.id === decoded.userId);
-    
+    const currentUser = users.find((u) => u.id === decoded.userId);
+
     if (!currentUser || currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Admin access required' });
     }
-    
+
     const { userId } = req.params;
     const { isActive } = req.body;
-    
-    return res.json({ 
+
+    return res.json({
       message: 'User status updated successfully',
-      user: { id: userId, isActive }
+      user: { id: userId, isActive },
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -728,28 +731,28 @@ app.put('/api/auth/profile', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const userIndex = users.findIndex(u => u.id === decoded.userId);
-    
+    const userIndex = users.findIndex((u) => u.id === decoded.userId);
+
     if (userIndex === -1) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     const { firstName, lastName, email, phone, bio } = req.body;
-    
+
     // Update user data
     if (firstName !== undefined) users[userIndex].firstName = firstName;
     if (lastName !== undefined) users[userIndex].lastName = lastName;
     if (email !== undefined) users[userIndex].email = email;
     // Note: phone and bio would be stored in a real database
-    
+
     return res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: users[userIndex]
+      user: users[userIndex],
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -762,29 +765,29 @@ app.put('/api/auth/change-password', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const userIndex = users.findIndex(u => u.id === decoded.userId);
-    
+    const userIndex = users.findIndex((u) => u.id === decoded.userId);
+
     if (userIndex === -1) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     const { currentPassword, newPassword } = req.body;
-    
+
     // Verify current password
     if (users[userIndex].password !== currentPassword) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
-    
+
     // Update password
     users[userIndex].password = newPassword;
-    
+
     return res.json({
       success: true,
-      message: 'Password changed successfully'
+      message: 'Password changed successfully',
     });
   } catch (error) {
     return res.status(401).json({ error: 'Invalid token' });
@@ -797,15 +800,15 @@ app.post('/api/auth/profile-picture', (req: Request, res: Response) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
   }
-  
+
   // In a real app, you'd handle file upload with multer
   // For now, just return a mock URL
   const mockProfilePictureUrl = `https://ui-avatars.com/api/?name=Profile&size=96&background=3b82f6&color=ffffff&t=${Date.now()}`;
-  
+
   return res.json({
     success: true,
     message: 'Profile picture uploaded successfully',
-    profilePictureUrl: mockProfilePictureUrl
+    profilePictureUrl: mockProfilePictureUrl,
   });
 });
 
@@ -822,17 +825,17 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
       limits: {
         activeTickets: 10,
         completedTickets: 50,
-        totalTickets: 60
+        totalTickets: 60,
       },
       features: [
         'Up to 10 active tickets',
         'Basic ticket management',
         'Email notifications',
-        'Community support'
+        'Community support',
       ],
       trialDays: 0,
       description: 'Perfect for small teams getting started',
-      sortOrder: 1
+      sortOrder: 1,
     },
     {
       id: '2',
@@ -844,18 +847,18 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
       limits: {
         activeTickets: 50,
         completedTickets: 500,
-        totalTickets: 550
+        totalTickets: 550,
       },
       features: [
         'Up to 50 active tickets',
         'Advanced ticket management',
         'Custom fields',
         'Email integration',
-        'Priority support'
+        'Priority support',
       ],
       trialDays: 14,
       description: 'Great for growing teams',
-      sortOrder: 2
+      sortOrder: 2,
     },
     {
       id: '3',
@@ -867,7 +870,7 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
       limits: {
         activeTickets: 200,
         completedTickets: 2000,
-        totalTickets: 2200
+        totalTickets: 2200,
       },
       features: [
         'Up to 200 active tickets',
@@ -876,11 +879,11 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
         'Custom workflows',
         'Analytics & reporting',
         'API access',
-        'Priority support'
+        'Priority support',
       ],
       trialDays: 14,
       description: 'Perfect for professional teams',
-      sortOrder: 3
+      sortOrder: 3,
     },
     {
       id: '4',
@@ -892,7 +895,7 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
       limits: {
         activeTickets: 500,
         completedTickets: 5000,
-        totalTickets: 5500
+        totalTickets: 5500,
       },
       features: [
         'Up to 500 active tickets',
@@ -901,11 +904,11 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
         'Advanced security',
         'Custom branding',
         'Dedicated support',
-        'SLA guarantees'
+        'SLA guarantees',
       ],
       trialDays: 14,
       description: 'Ideal for larger organizations',
-      sortOrder: 4
+      sortOrder: 4,
     },
     {
       id: '5',
@@ -917,7 +920,7 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
       limits: {
         activeTickets: -1,
         completedTickets: -1,
-        totalTickets: -1
+        totalTickets: -1,
       },
       features: [
         'Unlimited tickets',
@@ -926,17 +929,17 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
         'Custom development',
         'Dedicated account manager',
         '24/7 phone support',
-        'Custom SLA'
+        'Custom SLA',
       ],
       trialDays: 30,
       description: 'Complete solution for enterprises',
-      sortOrder: 5
-    }
+      sortOrder: 5,
+    },
   ];
 
   res.json({
     success: true,
-    data: mockPlans
+    data: mockPlans,
   });
 });
 
@@ -944,7 +947,7 @@ app.get('/api/subscriptions/plans', (_req: Request, res: Response) => {
 app.get('/api/ticket-layouts', (req: Request, res: Response) => {
   const { teamId } = req.query;
   console.log('GET /api/ticket-layouts called for team:', teamId);
-  
+
   // Mock layouts data
   const mockLayouts = [
     {
@@ -955,7 +958,7 @@ app.get('/api/ticket-layouts', (req: Request, res: Response) => {
       layoutConfig: {
         gridColumns: 12,
         gridRows: 10,
-        theme: 'default'
+        theme: 'default',
       },
       isDefault: true,
       isActive: true,
@@ -974,8 +977,8 @@ app.get('/api/ticket-layouts', (req: Request, res: Response) => {
               { value: 'technical', label: 'Technical Support', isDefault: true },
               { value: 'billing', label: 'Billing' },
               { value: 'general', label: 'General Inquiry' },
-              { value: 'feature', label: 'Feature Request' }
-            ]
+              { value: 'feature', label: 'Feature Request' },
+            ],
           },
           isRequired: true,
           sortOrder: 0,
@@ -984,19 +987,19 @@ app.get('/api/ticket-layouts', (req: Request, res: Response) => {
           gridWidth: 6,
           gridHeight: 1,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ]
-    }
+          updatedAt: new Date().toISOString(),
+        },
+      ],
+    },
   ];
-  
+
   res.json({ layouts: mockLayouts });
 });
 
 app.get('/api/ticket-layouts/team/:teamId/default', (req: Request, res: Response) => {
   const { teamId } = req.params;
   console.log('GET default layout for team:', teamId);
-  
+
   const mockLayout = {
     layout: {
       id: '1',
@@ -1006,13 +1009,13 @@ app.get('/api/ticket-layouts/team/:teamId/default', (req: Request, res: Response
       layoutConfig: {
         gridColumns: 12,
         gridRows: 10,
-        theme: 'default'
+        theme: 'default',
       },
       isDefault: true,
       isActive: true,
       sortOrder: 1,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     },
     fields: [
       {
@@ -1026,8 +1029,8 @@ app.get('/api/ticket-layouts/team/:teamId/default', (req: Request, res: Response
             { value: 'technical', label: 'Technical Support', isDefault: true },
             { value: 'billing', label: 'Billing' },
             { value: 'general', label: 'General Inquiry' },
-            { value: 'feature', label: 'Feature Request' }
-          ]
+            { value: 'feature', label: 'Feature Request' },
+          ],
         },
         isRequired: true,
         sortOrder: 0,
@@ -1036,27 +1039,27 @@ app.get('/api/ticket-layouts/team/:teamId/default', (req: Request, res: Response
         gridWidth: 6,
         gridHeight: 1,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ]
+        updatedAt: new Date().toISOString(),
+      },
+    ],
   };
-  
+
   res.json(mockLayout);
 });
 
 app.post('/api/ticket-layouts', (req: Request, res: Response) => {
   console.log('POST /api/ticket-layouts called with:', req.body);
-  
+
   const mockResponse = {
     layout: {
       id: Date.now().toString(),
       ...req.body,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     },
-    fields: req.body.fields || []
+    fields: req.body.fields || [],
   };
-  
+
   res.status(201).json(mockResponse);
 });
 

@@ -4,11 +4,11 @@ import { CustomField } from '@/models/CustomField';
 import { Team } from '@/models/Team';
 import { User } from '@/models/User';
 import { Company } from '@/models/Company';
-import { 
-  CreateTicketRequest, 
-  UpdateTicketRequest, 
+import {
+  CreateTicketRequest,
+  UpdateTicketRequest,
   Ticket as TicketModel,
-  PaginatedResponse 
+  PaginatedResponse,
 } from '@/types/models';
 import { TicketTable } from '@/types/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
@@ -30,8 +30,8 @@ export class TicketService {
   ): Promise<TicketModel> {
     // Validate company association
     const userCompanies = await User.getUserCompanies(submitterId);
-    const hasCompanyAccess = userCompanies.some(uc => uc.companyId === ticketData.companyId);
-    
+    const hasCompanyAccess = userCompanies.some((uc) => uc.companyId === ticketData.companyId);
+
     if (!hasCompanyAccess) {
       throw new ForbiddenError('User does not have access to this company');
     }
@@ -44,8 +44,8 @@ export class TicketService {
 
     // Get team's default queue (unassigned queue)
     const queues = await Queue.findByTeam(ticketData.teamId);
-    const defaultQueue = queues.find(q => q.type === 'unassigned') || queues[0];
-    
+    const defaultQueue = queues.find((q) => q.type === 'unassigned') || queues[0];
+
     if (!defaultQueue) {
       throw new ValidationError('No available queue found for team');
     }
@@ -70,20 +70,20 @@ export class TicketService {
     await Ticket.addHistory(ticket.id, submitterId, 'created');
 
     const createdTicket = await this.getTicketWithRelations(ticket.id);
-    
+
     // Emit real-time notification
     const submitter = await User.findById(submitterId);
-    notificationService.notifyTicketCreated(createdTicket, submitter ? User.toModel(submitter) : undefined);
+    notificationService.notifyTicketCreated(
+      createdTicket,
+      submitter ? User.toModel(submitter) : undefined
+    );
 
     // Send email notification to customer
     if (EmailService.isInitialized() && submitter) {
       try {
-        await EmailService.sendTicketNotification(
-          createdTicket.id,
-          'created',
-          [submitter.email],
-          { customerName: `${submitter.first_name} ${submitter.last_name}` }
-        );
+        await EmailService.sendTicketNotification(createdTicket.id, 'created', [submitter.email], {
+          customerName: `${submitter.first_name} ${submitter.last_name}`,
+        });
       } catch (error) {
         console.error('Failed to send ticket creation email:', error);
         // Don't fail the ticket creation if email fails
@@ -95,21 +95,17 @@ export class TicketService {
 
     // Track ticket creation for subscription usage
     try {
-      await UsageTrackingService.recordTicketCreation(
-        submitterId,
-        createdTicket.id,
-        {
-          title: createdTicket.title,
-          companyId: createdTicket.companyId,
-          teamId: createdTicket.teamId,
-          queueId: createdTicket.queueId
-        }
-      );
+      await UsageTrackingService.recordTicketCreation(submitterId, createdTicket.id, {
+        title: createdTicket.title,
+        companyId: createdTicket.companyId,
+        teamId: createdTicket.teamId,
+        queueId: createdTicket.queueId,
+      });
     } catch (error) {
       logger.error('Failed to track ticket creation for subscription usage', {
         ticketId: createdTicket.id,
         submitterId,
-        error
+        error,
       });
       // Don't fail ticket creation if usage tracking fails
     }
@@ -146,17 +142,17 @@ export class TicketService {
     if (userRole === 'customer') {
       // Customers can only see tickets from their companies
       const userCompanies = await User.getUserCompanies(userId);
-      const companyIds = userCompanies.map(uc => uc.companyId);
-      
+      const companyIds = userCompanies.map((uc) => uc.companyId);
+
       if (companyIds.length === 0) {
         return {
           data: [],
-          pagination: { page, limit, total: 0, totalPages: 0 }
+          pagination: { page, limit, total: 0, totalPages: 0 },
         };
       }
-      
+
       searchOptions.companyIds = companyIds;
-      
+
       // If specific company requested, validate access
       if (options.companyId) {
         if (!companyIds.includes(options.companyId)) {
@@ -167,14 +163,14 @@ export class TicketService {
     } else if (userRole === 'employee') {
       // Employees can see tickets from their teams or assigned to them
       const userTeams = await User.getUserTeams(userId);
-      const teamIds = userTeams.map(ut => ut.teamId);
-      
+      const teamIds = userTeams.map((ut) => ut.teamId);
+
       if (options.assignedToId === userId) {
         searchOptions.assignedToId = userId;
       } else if (teamIds.length > 0) {
         searchOptions.teamIds = teamIds;
       }
-      
+
       // If specific company requested, no additional filtering needed for employees
       if (options.companyId) {
         searchOptions.companyIds = [options.companyId];
@@ -189,32 +185,32 @@ export class TicketService {
         const queue = await Queue.findById(options.queueId);
         if (queue && queue.assigned_to_id && queue.assigned_to_id !== userId) {
           const userTeams = await User.getUserTeams(userId);
-          const hasTeamAccess = userTeams.some(ut => ut.teamId === queue.team_id);
+          const hasTeamAccess = userTeams.some((ut) => ut.teamId === queue.team_id);
           if (!hasTeamAccess) {
             throw new ForbiddenError('Access denied to queue');
           }
         }
       }
-      
+
       const queueTickets = await Ticket.findByQueue(options.queueId, {
         ...(options.status && { status: options.status }),
         limit,
         offset,
       });
-      
+
       const total = await this.getQueueTicketCount(options.queueId, options.status);
       const tickets = await Promise.all(
-        queueTickets.map(ticket => this.enrichTicketData(ticket))
+        queueTickets.map((ticket) => this.enrichTicketData(ticket))
       );
-      
+
       return {
         data: tickets,
         pagination: {
           page,
           limit,
           total,
-          totalPages: Math.ceil(total / limit)
-        }
+          totalPages: Math.ceil(total / limit),
+        },
       };
     }
 
@@ -229,9 +225,9 @@ export class TicketService {
     // Get tickets and total count
     const tickets = await Ticket.searchTickets(searchOptions);
     const totalCount = await this.getTicketCount(searchOptions);
-    
+
     const enrichedTickets = await Promise.all(
-      tickets.map(ticket => this.enrichTicketData(ticket))
+      tickets.map((ticket) => this.enrichTicketData(ticket))
     );
 
     return {
@@ -240,8 +236,8 @@ export class TicketService {
         page,
         limit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / limit)
-      }
+        totalPages: Math.ceil(totalCount / limit),
+      },
     };
   }
 
@@ -255,7 +251,7 @@ export class TicketService {
         // Try to get from cache first
         const cacheKey = CacheKeys.ticket(ticketId);
         const cached = await CacheService.get<TicketModel>(cacheKey, CacheConfigs.SHORT);
-        
+
         if (cached) {
           // Still need to validate access for cached tickets
           await this.validateTicketAccess(cached as any, userId, userRole);
@@ -271,10 +267,10 @@ export class TicketService {
         await this.validateTicketAccess(ticket, userId, userRole);
 
         const enrichedTicket = await this.getTicketWithRelations(ticketId);
-        
+
         // Cache the enriched ticket
         await CacheService.set(cacheKey, enrichedTicket, CacheConfigs.SHORT);
-        
+
         return enrichedTicket;
       },
       { userId, requestId: `ticket-${ticketId}` }
@@ -294,7 +290,7 @@ export class TicketService {
     if (!ticket) {
       throw new NotFoundError('Ticket not found');
     }
-    
+
     // TypeScript assertion - we know ticket is not null after the check above
     const ticketData = ticket as NonNullable<typeof ticket>;
 
@@ -310,8 +306,8 @@ export class TicketService {
     }
 
     const assigneeTeams = await User.getUserTeams(assignedToId);
-    const hasTeamAccess = assigneeTeams.some(ut => ut.teamId === ticketData.team_id);
-    
+    const hasTeamAccess = assigneeTeams.some((ut) => ut.teamId === ticketData.team_id);
+
     if (!hasTeamAccess) {
       throw new ValidationError('Assignee does not belong to ticket team');
     }
@@ -326,16 +322,16 @@ export class TicketService {
     }
 
     const updatedTicket = await this.getTicketWithRelations(ticketId);
-    
+
     // Emit real-time notifications
     const [assignedBy, assignedToUser] = await Promise.all([
       User.findById(assignedById),
-      User.findById(assignedToId)
+      User.findById(assignedToId),
     ]);
-    
+
     if (assignedToUser) {
       notificationService.notifyTicketAssigned(
-        updatedTicket, 
+        updatedTicket,
         User.toModel(assignedToUser),
         assignedBy ? User.toModel(assignedBy) : undefined
       );
@@ -350,9 +346,9 @@ export class TicketService {
             updatedTicket.id,
             'assigned',
             [submitter.email],
-            { 
+            {
               assigneeName: `${assignedToUser.first_name} ${assignedToUser.last_name}`,
-              customerName: `${submitter.first_name} ${submitter.last_name}`
+              customerName: `${submitter.first_name} ${submitter.last_name}`,
             }
           );
         }
@@ -383,7 +379,7 @@ export class TicketService {
     if (!ticket) {
       throw new NotFoundError('Ticket not found');
     }
-    
+
     const ticketData = ticket as NonNullable<typeof ticket>;
 
     if (userRole === 'customer') {
@@ -392,8 +388,8 @@ export class TicketService {
 
     // Move back to team's unassigned queue
     const teamQueues = await Queue.findByTeam(ticketData.team_id);
-    const unassignedQueue = teamQueues.find(q => q.type === 'unassigned');
-    
+    const unassignedQueue = teamQueues.find((q) => q.type === 'unassigned');
+
     if (unassignedQueue) {
       await Ticket.update(ticketId, { queue_id: unassignedQueue.id });
     }
@@ -416,7 +412,7 @@ export class TicketService {
     if (!ticket) {
       throw new NotFoundError('Ticket not found');
     }
-    
+
     const ticketData = ticket as NonNullable<typeof ticket>;
 
     // Validate status exists for team
@@ -428,9 +424,9 @@ export class TicketService {
     // Customers can only update their own tickets to limited statuses
     if (userRole === 'customer') {
       if (ticketData.submitter_id !== updatedById) {
-        throw new ForbiddenError('Cannot update other users\' tickets');
+        throw new ForbiddenError("Cannot update other users' tickets");
       }
-      
+
       // Customers can only close their tickets or reopen them
       const allowedCustomerStatuses = ['open', 'closed'];
       if (!allowedCustomerStatuses.includes(status)) {
@@ -453,7 +449,7 @@ export class TicketService {
         {
           updatedBy: updatedById,
           userRole,
-          teamId: ticketData.team_id
+          teamId: ticketData.team_id,
         }
       );
     } catch (error) {
@@ -462,11 +458,11 @@ export class TicketService {
         submitterId: ticketData.submitter_id,
         oldStatus,
         newStatus: status,
-        error
+        error,
       });
       // Don't fail status update if usage tracking fails
     }
-    
+
     // Emit real-time notification
     const updatedBy = await User.findById(updatedById);
     notificationService.notifyTicketStatusChanged(
@@ -482,7 +478,7 @@ export class TicketService {
         const submitter = await User.findById(updatedTicket.submitterId);
         if (submitter) {
           let notificationType: 'updated' | 'resolved' | 'closed' = 'updated';
-          
+
           // Determine notification type based on status
           if (status.toLowerCase() === 'resolved') {
             notificationType = 'resolved';
@@ -494,11 +490,11 @@ export class TicketService {
             updatedTicket.id,
             notificationType,
             [submitter.email],
-            { 
+            {
               oldStatus,
               newStatus: status,
               customerName: `${submitter.first_name} ${submitter.last_name}`,
-              updatedBy: updatedBy ? `${updatedBy.first_name} ${updatedBy.last_name}` : 'System'
+              updatedBy: updatedBy ? `${updatedBy.first_name} ${updatedBy.last_name}` : 'System',
             }
           );
         }
@@ -540,7 +536,7 @@ export class TicketService {
     await Ticket.updatePriority(ticketId, priority, updatedById);
 
     const updatedTicket = await this.getTicketWithRelations(ticketId);
-    
+
     // Emit real-time notification
     const updatedBy = await User.findById(updatedById);
     notificationService.notifyTicketPriorityChanged(
@@ -569,7 +565,7 @@ export class TicketService {
     if (!ticket) {
       throw new NotFoundError('Ticket not found');
     }
-    
+
     const ticketData = ticket as NonNullable<typeof ticket>;
 
     // Validate permissions
@@ -578,14 +574,14 @@ export class TicketService {
     // Customers can only update title and description of their own tickets
     if (userRole === 'customer') {
       if (ticketData.submitter_id !== updatedById) {
-        throw new ForbiddenError('Cannot update other users\' tickets');
+        throw new ForbiddenError("Cannot update other users' tickets");
       }
-      
+
       const allowedFields = ['title', 'description', 'customFieldValues'];
       const hasDisallowedFields = Object.keys(updateData).some(
-        field => !allowedFields.includes(field)
+        (field) => !allowedFields.includes(field)
       );
-      
+
       if (hasDisallowedFields) {
         throw new ForbiddenError('Customers can only update title, description, and custom fields');
       }
@@ -598,15 +594,15 @@ export class TicketService {
 
     // Handle different update types
     const updates: any = {};
-    
+
     if (updateData.title !== undefined) {
       updates.title = updateData.title;
     }
-    
+
     if (updateData.description !== undefined) {
       updates.description = updateData.description;
     }
-    
+
     if (updateData.customFieldValues !== undefined) {
       updates.custom_field_values = updateData.customFieldValues;
     }
@@ -661,7 +657,7 @@ export class TicketService {
     // Check permissions for employee queues
     if (userRole === 'employee' && queue.type === 'employee' && queue.assigned_to_id !== userId) {
       const userTeams = await User.getUserTeams(userId);
-      const hasTeamAccess = userTeams.some(ut => ut.teamId === queue.team_id);
+      const hasTeamAccess = userTeams.some((ut) => ut.teamId === queue.team_id);
       if (!hasTeamAccess) {
         throw new ForbiddenError('Access denied to queue');
       }
@@ -678,9 +674,9 @@ export class TicketService {
     });
 
     const total = await this.getQueueTicketCount(queueId, options.status);
-    
+
     const enrichedTickets = await Promise.all(
-      tickets.map(ticket => this.enrichTicketData(ticket))
+      tickets.map((ticket) => this.enrichTicketData(ticket))
     );
 
     return {
@@ -689,8 +685,8 @@ export class TicketService {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -701,20 +697,20 @@ export class TicketService {
     customFieldValues: Record<string, any>
   ): Promise<void> {
     const customFields = await CustomField.findByTeam(teamId);
-    
+
     for (const field of customFields) {
       const value = customFieldValues[field.name];
-      
+
       // Check required fields
       if (field.is_required && (value === undefined || value === null || value === '')) {
         throw new ValidationError(`Field '${field.label}' is required`);
       }
-      
+
       // Skip validation if field is not provided and not required
       if (value === undefined || value === null) {
         continue;
       }
-      
+
       // Type-specific validation
       switch (field.type) {
         case 'integer':
@@ -722,37 +718,43 @@ export class TicketService {
             throw new ValidationError(`Field '${field.label}' must be an integer`);
           }
           break;
-          
+
         case 'number':
         case 'decimal':
           if (isNaN(Number(value))) {
             throw new ValidationError(`Field '${field.label}' must be a number`);
           }
           break;
-          
+
         case 'picklist':
           if (field.options && !field.options.includes(value)) {
-            throw new ValidationError(`Field '${field.label}' must be one of: ${field.options.join(', ')}`);
+            throw new ValidationError(
+              `Field '${field.label}' must be one of: ${field.options.join(', ')}`
+            );
           }
           break;
-          
+
         case 'string':
           if (typeof value !== 'string') {
             throw new ValidationError(`Field '${field.label}' must be a string`);
           }
           break;
       }
-      
+
       // Additional validation rules
       if (field.validation) {
         if (field.validation['min'] !== undefined && Number(value) < field.validation['min']) {
-          throw new ValidationError(`Field '${field.label}' must be at least ${field.validation['min']}`);
+          throw new ValidationError(
+            `Field '${field.label}' must be at least ${field.validation['min']}`
+          );
         }
-        
+
         if (field.validation['max'] !== undefined && Number(value) > field.validation['max']) {
-          throw new ValidationError(`Field '${field.label}' must be at most ${field.validation['max']}`);
+          throw new ValidationError(
+            `Field '${field.label}' must be at most ${field.validation['max']}`
+          );
         }
-        
+
         if (field.validation['pattern'] && typeof value === 'string') {
           const regex = new RegExp(field.validation['pattern']);
           if (!regex.test(value)) {
@@ -773,8 +775,8 @@ export class TicketService {
     if (userRole === 'customer') {
       // Customers can only access tickets from their companies
       const userCompanies = await User.getUserCompanies(userId);
-      const hasAccess = userCompanies.some(uc => uc.companyId === ticket.company_id);
-      
+      const hasAccess = userCompanies.some((uc) => uc.companyId === ticket.company_id);
+
       if (!hasAccess) {
         throw new ForbiddenError('Access denied to ticket');
       }
@@ -783,10 +785,10 @@ export class TicketService {
       if (ticket.assigned_to_id === userId) {
         return; // Can access assigned tickets
       }
-      
+
       const userTeams = await User.getUserTeams(userId);
-      const hasTeamAccess = userTeams.some(ut => ut.teamId === ticket.team_id);
-      
+      const hasTeamAccess = userTeams.some((ut) => ut.teamId === ticket.team_id);
+
       if (!hasTeamAccess) {
         throw new ForbiddenError('Access denied to ticket');
       }
@@ -797,19 +799,19 @@ export class TicketService {
   private static async getValidStatusesForTeam(teamId: string): Promise<string[]> {
     // Get custom statuses for team
     const customStatuses = await Team.getCustomStatuses(teamId);
-    const statusNames = customStatuses.map(s => s.name);
-    
+    const statusNames = customStatuses.map((s) => s.name);
+
     // Always include default 'open' status
     if (!statusNames.includes('open')) {
       statusNames.unshift('open');
     }
-    
+
     return statusNames;
   }
 
   private static async enrichTicketData(ticket: TicketTable): Promise<TicketModel> {
     const ticketModel = Ticket.toModel(ticket);
-    
+
     // Add related data
     const [submitter, company, assignedTo, queue, team] = await Promise.all([
       User.findById(ticket.submitter_id),
@@ -843,7 +845,11 @@ export class TicketService {
 
   private static async getTicketCount(searchOptions: any): Promise<number> {
     // This is a simplified count - in production you'd want to optimize this
-    const tickets = await Ticket.searchTickets({ ...searchOptions, limit: undefined, offset: undefined });
+    const tickets = await Ticket.searchTickets({
+      ...searchOptions,
+      limit: undefined,
+      offset: undefined,
+    });
     return tickets.length;
   }
 

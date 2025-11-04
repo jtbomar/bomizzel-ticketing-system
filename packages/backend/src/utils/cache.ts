@@ -17,9 +17,9 @@ export class CacheService {
     try {
       const { prefix = this.DEFAULT_PREFIX } = options;
       const fullKey = `${prefix}:${key}`;
-      
+
       const value = await redisClient.get(fullKey);
-      
+
       if (value === null) {
         return null;
       }
@@ -38,15 +38,15 @@ export class CacheService {
     try {
       const { ttl = this.DEFAULT_TTL, prefix = this.DEFAULT_PREFIX } = options;
       const fullKey = `${prefix}:${key}`;
-      
+
       const serializedValue = JSON.stringify(value);
-      
+
       if (ttl > 0) {
         await redisClient.setEx(fullKey, ttl, serializedValue);
       } else {
         await redisClient.set(fullKey, serializedValue);
       }
-      
+
       return true;
     } catch (error) {
       logger.error('Cache set error:', { key, error });
@@ -61,7 +61,7 @@ export class CacheService {
     try {
       const { prefix = this.DEFAULT_PREFIX } = options;
       const fullKey = `${prefix}:${key}`;
-      
+
       await redisClient.del(fullKey);
       return true;
     } catch (error) {
@@ -77,9 +77,9 @@ export class CacheService {
     try {
       const { prefix = this.DEFAULT_PREFIX } = options;
       const fullPattern = `${prefix}:${pattern}`;
-      
+
       const keys = await redisClient.keys(fullPattern);
-      
+
       if (keys.length === 0) {
         return 0;
       }
@@ -99,7 +99,7 @@ export class CacheService {
     try {
       const { prefix = this.DEFAULT_PREFIX } = options;
       const fullKey = `${prefix}:${key}`;
-      
+
       const exists = await redisClient.exists(fullKey);
       return exists === 1;
     } catch (error) {
@@ -119,14 +119,14 @@ export class CacheService {
     try {
       // Try to get from cache first
       const cached = await this.get<T>(key, options);
-      
+
       if (cached !== null) {
         return cached;
       }
 
       // If not in cache, fetch the data
       const data = await fetchFunction();
-      
+
       if (data !== null && data !== undefined) {
         // Store in cache for next time
         await this.set(key, data, options);
@@ -152,14 +152,14 @@ export class CacheService {
     try {
       const { ttl = this.DEFAULT_TTL, prefix = this.DEFAULT_PREFIX } = options;
       const fullKey = `${prefix}:${key}`;
-      
+
       const value = await redisClient.incr(fullKey);
-      
+
       // Set TTL if this is the first increment
       if (value === 1 && ttl > 0) {
         await redisClient.expire(fullKey, ttl);
       }
-      
+
       return value;
     } catch (error) {
       logger.error('Cache increment error:', { key, error });
@@ -175,7 +175,7 @@ export class CacheService {
       try {
         const cacheKey = keyGenerator(req);
         const cached = await this.get(cacheKey, options);
-        
+
         if (cached !== null) {
           res.setHeader('X-Cache', 'HIT');
           return res.json(cached);
@@ -183,16 +183,16 @@ export class CacheService {
 
         // Store original json method
         const originalJson = res.json;
-        
+
         // Override json method to cache the response
-        res.json = function(data: any) {
+        res.json = function (data: any) {
           res.setHeader('X-Cache', 'MISS');
-          
+
           // Cache the response data
-          CacheService.set(cacheKey, data, options).catch(error => {
+          CacheService.set(cacheKey, data, options).catch((error) => {
             logger.error('Failed to cache response:', { cacheKey, error });
           });
-          
+
           // Call original json method
           return originalJson.call(this, data);
         };
@@ -210,19 +210,19 @@ export class CacheService {
 export const CacheConfigs = {
   // Short-term cache for frequently accessed data
   SHORT: { ttl: 60, prefix: 'bomizzel:short' }, // 1 minute
-  
+
   // Medium-term cache for moderately changing data
   MEDIUM: { ttl: 300, prefix: 'bomizzel:medium' }, // 5 minutes
-  
+
   // Long-term cache for rarely changing data
   LONG: { ttl: 3600, prefix: 'bomizzel:long' }, // 1 hour
-  
+
   // User-specific cache
   USER: { ttl: 900, prefix: 'bomizzel:user' }, // 15 minutes
-  
+
   // Metrics cache
   METRICS: { ttl: 60, prefix: 'bomizzel:metrics' }, // 1 minute
-  
+
   // Search results cache
   SEARCH: { ttl: 300, prefix: 'bomizzel:search' }, // 5 minutes
 };
@@ -235,11 +235,11 @@ export const CacheKeys = {
   ticket: (ticketId: string) => `ticket:${ticketId}`,
   ticketNotes: (ticketId: string) => `ticket:${ticketId}:notes`,
   ticketAttachments: (ticketId: string) => `ticket:${ticketId}:attachments`,
-  queueTickets: (queueId: string, page: number, limit: number) => 
+  queueTickets: (queueId: string, page: number, limit: number) =>
     `queue:${queueId}:tickets:${page}:${limit}`,
   teamCustomFields: (teamId: string) => `team:${teamId}:custom-fields`,
   teamStatuses: (teamId: string) => `team:${teamId}:statuses`,
   dashboardMetrics: (userId: string) => `dashboard:${userId}:metrics`,
-  searchResults: (query: string, filters: string) => 
+  searchResults: (query: string, filters: string) =>
     `search:${Buffer.from(query + filters).toString('base64')}`,
 };

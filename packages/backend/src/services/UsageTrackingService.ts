@@ -3,11 +3,11 @@ import { CustomerSubscription } from '@/models/CustomerSubscription';
 import { SubscriptionPlan } from '@/models/SubscriptionPlan';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
+import {
   UsageRecord,
   UsageStats,
   UsageLimitStatus,
-  CustomerSubscription as CustomerSubscriptionModel
+  CustomerSubscription as CustomerSubscriptionModel,
 } from '@/types/models';
 
 export class UsageTrackingService {
@@ -23,7 +23,10 @@ export class UsageTrackingService {
       // Get user's subscription
       const subscription = await CustomerSubscription.findByUserId(userId);
       if (!subscription) {
-        logger.warn('No subscription found for user when recording ticket creation', { userId, ticketId });
+        logger.warn('No subscription found for user when recording ticket creation', {
+          userId,
+          ticketId,
+        });
         return;
       }
 
@@ -31,13 +34,13 @@ export class UsageTrackingService {
         subscriptionId: subscription.id,
         ticketId,
         action: 'created',
-        metadata
+        metadata,
       });
 
       logger.debug('Ticket creation recorded', {
         userId,
         subscriptionId: subscription.id,
-        ticketId
+        ticketId,
       });
     } catch (error) {
       logger.error('Error recording ticket creation', { userId, ticketId, error });
@@ -59,18 +62,18 @@ export class UsageTrackingService {
       // Get user's subscription
       const subscription = await CustomerSubscription.findByUserId(userId);
       if (!subscription) {
-        logger.warn('No subscription found for user when recording ticket status change', { 
-          userId, 
-          ticketId, 
-          previousStatus, 
-          newStatus 
+        logger.warn('No subscription found for user when recording ticket status change', {
+          userId,
+          ticketId,
+          previousStatus,
+          newStatus,
         });
         return;
       }
 
       // Determine the action based on status change
       let action: 'created' | 'completed' | 'archived' | 'deleted' = 'created';
-      
+
       if (newStatus === 'completed' || newStatus === 'resolved' || newStatus === 'closed') {
         action = 'completed';
       } else if (newStatus === 'archived') {
@@ -85,7 +88,7 @@ export class UsageTrackingService {
         action,
         previousStatus,
         newStatus,
-        metadata
+        metadata,
       });
 
       logger.debug('Ticket status change recorded', {
@@ -94,15 +97,15 @@ export class UsageTrackingService {
         ticketId,
         previousStatus,
         newStatus,
-        action
+        action,
       });
     } catch (error) {
-      logger.error('Error recording ticket status change', { 
-        userId, 
-        ticketId, 
-        previousStatus, 
-        newStatus, 
-        error 
+      logger.error('Error recording ticket status change', {
+        userId,
+        ticketId,
+        previousStatus,
+        newStatus,
+        error,
       });
       throw error;
     }
@@ -120,7 +123,7 @@ export class UsageTrackingService {
           activeTickets: 0,
           completedTickets: 0,
           totalTickets: 0,
-          archivedTickets: 0
+          archivedTickets: 0,
         };
       }
 
@@ -145,7 +148,7 @@ export class UsageTrackingService {
           activeTickets: 0,
           completedTickets: 0,
           totalTickets: 0,
-          archivedTickets: 0
+          archivedTickets: 0,
         };
       }
 
@@ -179,7 +182,7 @@ export class UsageTrackingService {
       return this.calculateLimitStatus(usage, {
         activeTickets: plan.active_ticket_limit,
         completedTickets: plan.completed_ticket_limit,
-        totalTickets: plan.total_ticket_limit
+        totalTickets: plan.total_ticket_limit,
       });
     } catch (error) {
       logger.error('Error checking limit status', { userId, error });
@@ -221,7 +224,7 @@ export class UsageTrackingService {
       const limits = {
         activeTickets: plan.active_ticket_limit,
         completedTickets: plan.completed_ticket_limit,
-        totalTickets: plan.total_ticket_limit
+        totalTickets: plan.total_ticket_limit,
       };
 
       // Check active ticket limit
@@ -231,7 +234,7 @@ export class UsageTrackingService {
           reason: `Active ticket limit reached (${limits.activeTickets})`,
           limitType: 'active',
           usage,
-          limits
+          limits,
         };
       }
 
@@ -242,7 +245,7 @@ export class UsageTrackingService {
           reason: `Total ticket limit reached (${limits.totalTickets})`,
           limitType: 'total',
           usage,
-          limits
+          limits,
         };
       }
 
@@ -283,7 +286,7 @@ export class UsageTrackingService {
       const limits = {
         activeTickets: plan.active_ticket_limit,
         completedTickets: plan.completed_ticket_limit,
-        totalTickets: plan.total_ticket_limit
+        totalTickets: plan.total_ticket_limit,
       };
 
       // Check completed ticket limit
@@ -292,7 +295,7 @@ export class UsageTrackingService {
           canComplete: false,
           reason: `Completed ticket limit reached (${limits.completedTickets})`,
           usage,
-          limits
+          limits,
         };
       }
 
@@ -323,19 +326,18 @@ export class UsageTrackingService {
   /**
    * Get users approaching limits (for notifications)
    */
-  static async getUsersApproachingLimits(
-    warningThreshold: number = 75
-  ): Promise<Array<{
-    userId: string;
-    subscriptionId: string;
-    usage: UsageStats;
-    limits: { activeTickets: number; completedTickets: number; totalTickets: number };
-    percentageUsed: { active: number; completed: number; total: number };
-  }>> {
+  static async getUsersApproachingLimits(warningThreshold: number = 75): Promise<
+    Array<{
+      userId: string;
+      subscriptionId: string;
+      usage: UsageStats;
+      limits: { activeTickets: number; completedTickets: number; totalTickets: number };
+      percentageUsed: { active: number; completed: number; total: number };
+    }>
+  > {
     try {
       // Get all active subscriptions
-      const subscriptions = await CustomerSubscription.query
-        .whereIn('status', ['active', 'trial']);
+      const subscriptions = await CustomerSubscription.query.whereIn('status', ['active', 'trial']);
 
       const usersApproachingLimits = [];
 
@@ -350,28 +352,29 @@ export class UsageTrackingService {
           const limits = {
             activeTickets: plan.active_ticket_limit,
             completedTickets: plan.completed_ticket_limit,
-            totalTickets: plan.total_ticket_limit
+            totalTickets: plan.total_ticket_limit,
           };
 
           const limitStatus = this.calculateLimitStatus(usage, limits);
 
           // Check if any usage is above threshold
-          if (limitStatus.percentageUsed.active >= warningThreshold ||
-              limitStatus.percentageUsed.completed >= warningThreshold ||
-              limitStatus.percentageUsed.total >= warningThreshold) {
-            
+          if (
+            limitStatus.percentageUsed.active >= warningThreshold ||
+            limitStatus.percentageUsed.completed >= warningThreshold ||
+            limitStatus.percentageUsed.total >= warningThreshold
+          ) {
             usersApproachingLimits.push({
               userId: subscription.user_id,
               subscriptionId: subscription.id,
               usage,
               limits,
-              percentageUsed: limitStatus.percentageUsed
+              percentageUsed: limitStatus.percentageUsed,
             });
           }
         } catch (error) {
-          logger.error('Error checking limits for subscription', { 
-            subscriptionId: subscription.id, 
-            error 
+          logger.error('Error checking limits for subscription', {
+            subscriptionId: subscription.id,
+            error,
           });
           continue;
         }
@@ -387,16 +390,13 @@ export class UsageTrackingService {
   /**
    * Update usage summary for a subscription (for optimization)
    */
-  static async updateUsageSummary(
-    subscriptionId: string,
-    period?: string
-  ): Promise<void> {
+  static async updateUsageSummary(subscriptionId: string, period?: string): Promise<void> {
     try {
       const currentPeriod = period || new Date().toISOString().slice(0, 7); // YYYY-MM
       const usage = await UsageTracking.getCurrentUsageStats(subscriptionId);
-      
+
       await UsageSummary.updateSummary(subscriptionId, currentPeriod, usage);
-      
+
       logger.debug('Usage summary updated', { subscriptionId, period: currentPeriod });
     } catch (error) {
       logger.error('Error updating usage summary', { subscriptionId, period, error });
@@ -410,7 +410,7 @@ export class UsageTrackingService {
   static async getTicketHistory(ticketId: string): Promise<UsageRecord[]> {
     try {
       const history = await UsageTracking.getTicketHistory(ticketId);
-      return history.map(record => UsageTracking.toModel(record));
+      return history.map((record) => UsageTracking.toModel(record));
     } catch (error) {
       logger.error('Error getting ticket history', { ticketId, error });
       throw error;
@@ -420,10 +420,7 @@ export class UsageTrackingService {
   /**
    * Get recent usage activity for a user
    */
-  static async getRecentActivity(
-    userId: string,
-    limit: number = 50
-  ): Promise<UsageRecord[]> {
+  static async getRecentActivity(userId: string, limit: number = 50): Promise<UsageRecord[]> {
     try {
       const subscription = await CustomerSubscription.findByUserId(userId);
       if (!subscription) {
@@ -431,7 +428,7 @@ export class UsageTrackingService {
       }
 
       const activity = await UsageTracking.getRecentActivity(subscription.id, limit);
-      return activity.map(record => UsageTracking.toModel(record));
+      return activity.map((record) => UsageTracking.toModel(record));
     } catch (error) {
       logger.error('Error getting recent activity', { userId, limit, error });
       throw error;
@@ -449,7 +446,10 @@ export class UsageTrackingService {
     try {
       const subscription = await CustomerSubscription.findByUserId(userId);
       if (!subscription) {
-        logger.warn('No subscription found for user when recording ticket archival', { userId, ticketId });
+        logger.warn('No subscription found for user when recording ticket archival', {
+          userId,
+          ticketId,
+        });
         return;
       }
 
@@ -457,13 +457,13 @@ export class UsageTrackingService {
         subscriptionId: subscription.id,
         ticketId,
         action: 'archived',
-        metadata
+        metadata,
       });
 
       logger.debug('Ticket archival recorded', {
         userId,
         subscriptionId: subscription.id,
-        ticketId
+        ticketId,
       });
     } catch (error) {
       logger.error('Error recording ticket archival', { userId, ticketId, error });
@@ -482,7 +482,10 @@ export class UsageTrackingService {
     try {
       const subscription = await CustomerSubscription.findByUserId(userId);
       if (!subscription) {
-        logger.warn('No subscription found for user when recording ticket restoration', { userId, ticketId });
+        logger.warn('No subscription found for user when recording ticket restoration', {
+          userId,
+          ticketId,
+        });
         return;
       }
 
@@ -495,14 +498,14 @@ export class UsageTrackingService {
         newStatus: 'restored',
         metadata: {
           ...metadata,
-          isRestoration: true
-        }
+          isRestoration: true,
+        },
       });
 
       logger.debug('Ticket restoration recorded', {
         userId,
         subscriptionId: subscription.id,
-        ticketId
+        ticketId,
       });
     } catch (error) {
       logger.error('Error recording ticket restoration', { userId, ticketId, error });
@@ -518,9 +521,8 @@ export class UsageTrackingService {
     limits: { activeTickets: number; completedTickets: number; totalTickets: number }
   ): UsageLimitStatus {
     // Handle unlimited plans
-    const isUnlimited = limits.activeTickets === -1 && 
-                       limits.completedTickets === -1 && 
-                       limits.totalTickets === -1;
+    const isUnlimited =
+      limits.activeTickets === -1 && limits.completedTickets === -1 && limits.totalTickets === -1;
 
     if (isUnlimited) {
       return {
@@ -529,29 +531,29 @@ export class UsageTrackingService {
         percentageUsed: {
           active: 0,
           completed: 0,
-          total: 0
+          total: 0,
         },
         limits,
-        current: usage
+        current: usage,
       };
     }
 
     // Calculate percentages
-    const activePercentage = limits.activeTickets > 0 ? 
-      (usage.activeTickets / limits.activeTickets) * 100 : 0;
-    const completedPercentage = limits.completedTickets > 0 ? 
-      (usage.completedTickets / limits.completedTickets) * 100 : 0;
-    const totalPercentage = limits.totalTickets > 0 ? 
-      (usage.totalTickets / limits.totalTickets) * 100 : 0;
+    const activePercentage =
+      limits.activeTickets > 0 ? (usage.activeTickets / limits.activeTickets) * 100 : 0;
+    const completedPercentage =
+      limits.completedTickets > 0 ? (usage.completedTickets / limits.completedTickets) * 100 : 0;
+    const totalPercentage =
+      limits.totalTickets > 0 ? (usage.totalTickets / limits.totalTickets) * 100 : 0;
 
     // Check if at or near limits
-    const isAtLimit = usage.activeTickets >= limits.activeTickets ||
-                     usage.completedTickets >= limits.completedTickets ||
-                     usage.totalTickets >= limits.totalTickets;
+    const isAtLimit =
+      usage.activeTickets >= limits.activeTickets ||
+      usage.completedTickets >= limits.completedTickets ||
+      usage.totalTickets >= limits.totalTickets;
 
-    const isNearLimit = activePercentage >= 75 || 
-                       completedPercentage >= 75 || 
-                       totalPercentage >= 75;
+    const isNearLimit =
+      activePercentage >= 75 || completedPercentage >= 75 || totalPercentage >= 75;
 
     return {
       isAtLimit,
@@ -559,10 +561,10 @@ export class UsageTrackingService {
       percentageUsed: {
         active: Math.min(activePercentage, 100),
         completed: Math.min(completedPercentage, 100),
-        total: Math.min(totalPercentage, 100)
+        total: Math.min(totalPercentage, 100),
       },
       limits,
-      current: usage
+      current: usage,
     };
   }
 }

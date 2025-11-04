@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  ClockIcon, 
-  CheckCircleIcon, 
+import {
+  ClockIcon,
+  CheckCircleIcon,
   ExclamationTriangleIcon,
   XMarkIcon,
-  ArrowUpIcon
+  ArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { TrialStatus } from './TrialStatus';
@@ -27,7 +27,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
   subscriptionId,
   onTrialConverted,
   onTrialCancelled,
-  className = ''
+  className = '',
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,13 +40,13 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       await apiService.startTrial(planSlug, {
-        sendWelcomeEmail: true
+        sendWelcomeEmail: true,
       });
 
       setSuccess('Trial started successfully!');
-      
+
       // Refresh the page or call a callback to update the UI
       setTimeout(() => {
         window.location.reload();
@@ -64,12 +64,12 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       await apiService.convertTrial(subscriptionId, paymentData);
 
       setSuccess('Trial converted to paid subscription successfully!');
       setShowConvertModal(false);
-      
+
       if (onTrialConverted) {
         onTrialConverted();
       }
@@ -86,13 +86,13 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       await apiService.cancelTrial(subscriptionId, cancelReason || 'No reason provided');
 
       setSuccess('Trial cancelled successfully');
       setShowCancelConfirm(false);
       setCancelReason('');
-      
+
       if (onTrialCancelled) {
         onTrialCancelled();
       }
@@ -118,10 +118,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
               <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
               <span className="text-red-700 text-sm">{error}</span>
             </div>
-            <button
-              onClick={clearMessages}
-              className="text-red-500 hover:text-red-700"
-            >
+            <button onClick={clearMessages} className="text-red-500 hover:text-red-700">
               <XMarkIcon className="h-4 w-4" />
             </button>
           </div>
@@ -135,10 +132,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
               <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
               <span className="text-green-700 text-sm">{success}</span>
             </div>
-            <button
-              onClick={clearMessages}
-              className="text-green-500 hover:text-green-700"
-            >
+            <button onClick={clearMessages} className="text-green-500 hover:text-green-700">
               <XMarkIcon className="h-4 w-4" />
             </button>
           </div>
@@ -157,7 +151,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
       {subscriptionId && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Trial Management</h3>
-          
+
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => setShowConvertModal(true)}
@@ -167,7 +161,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
               <ArrowUpIcon className="h-4 w-4 mr-2" />
               Convert to Paid
             </button>
-            
+
             <button
               onClick={() => setShowCancelConfirm(true)}
               disabled={loading}
@@ -187,7 +181,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
           <p className="text-gray-600 mb-6">
             Try any of our premium plans for 14 days, completely free. No credit card required.
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {['starter', 'professional', 'business'].map((plan) => (
               <button
@@ -197,9 +191,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
                 className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <h4 className="font-medium text-gray-900 capitalize">{plan}</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Start 14-day free trial
-                </p>
+                <p className="text-sm text-gray-600 mt-1">Start 14-day free trial</p>
               </button>
             ))}
           </div>
@@ -213,12 +205,12 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Convert Trial to Paid Subscription
             </h3>
-            
+
             <p className="text-gray-600 mb-6">
-              To convert your trial to a paid subscription, you'll need to provide payment information.
-              This will activate your monthly billing cycle.
+              To convert your trial to a paid subscription, you'll need to provide payment
+              information. This will activate your monthly billing cycle.
             </p>
-            
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <div className="flex items-center">
                 <ClockIcon className="h-5 w-5 text-blue-500 mr-2" />
@@ -227,7 +219,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
                 </span>
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => {
@@ -235,7 +227,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
                   // For now, we'll simulate the conversion
                   handleConvertTrial({
                     paymentMethodId: 'pm_simulated',
-                    sendWelcomeEmail: true
+                    sendWelcomeEmail: true,
                   });
                 }}
                 disabled={loading}
@@ -243,7 +235,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
               >
                 {loading ? 'Converting...' : 'Add Payment & Convert'}
               </button>
-              
+
               <button
                 onClick={() => setShowConvertModal(false)}
                 disabled={loading}
@@ -260,16 +252,17 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
       {showCancelConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Cancel Trial
-            </h3>
-            
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Cancel Trial</h3>
+
             <p className="text-gray-600 mb-4">
               Are you sure you want to cancel your trial? This action cannot be undone.
             </p>
-            
+
             <div className="mb-4">
-              <label htmlFor="cancelReason" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="cancelReason"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Reason for cancellation (optional)
               </label>
               <textarea
@@ -281,7 +274,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
                 placeholder="Help us improve by sharing why you're cancelling..."
               />
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleCancelTrial}
@@ -290,7 +283,7 @@ export const TrialManagement: React.FC<TrialManagementProps> = ({
               >
                 {loading ? 'Cancelling...' : 'Yes, Cancel Trial'}
               </button>
-              
+
               <button
                 onClick={() => {
                   setShowCancelConfirm(false);

@@ -67,27 +67,33 @@ const TicketListView: React.FC<TicketListViewProps> = ({
   const sortedTickets = [...tickets].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
-    
+
     if (aValue === bValue) return 0;
     if (aValue === undefined || aValue === null) return 1;
     if (bValue === undefined || bValue === null) return -1;
-    
+
     const comparison = aValue > bValue ? 1 : -1;
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const SortIcon: React.FC<{ field: keyof Ticket }> = ({ field }) => (
     <svg
-      className={`w-4 h-4 ml-1 ${
-        sortField === field ? 'text-blue-600' : 'text-gray-400'
-      }`}
+      className={`w-4 h-4 ml-1 ${sortField === field ? 'text-blue-600' : 'text-gray-400'}`}
       fill="currentColor"
       viewBox="0 0 20 20"
     >
       {sortField === field && sortDirection === 'asc' ? (
-        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+        <path
+          fillRule="evenodd"
+          d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+          clipRule="evenodd"
+        />
       ) : (
-        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        <path
+          fillRule="evenodd"
+          d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+          clipRule="evenodd"
+        />
       )}
     </svg>
   );
@@ -111,7 +117,9 @@ const TicketListView: React.FC<TicketListViewProps> = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <input
                     type="checkbox"
-                    checked={tickets.length > 0 && tickets.every(t => selectedTickets.includes(t.id))}
+                    checked={
+                      tickets.length > 0 && tickets.every((t) => selectedTickets.includes(t.id))
+                    }
                     onChange={() => onSelectAll?.(tickets)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
@@ -190,20 +198,25 @@ const TicketListView: React.FC<TicketListViewProps> = ({
                       <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
                         {ticket.title}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        #{ticket.id.slice(-8)}
-                      </div>
+                      <div className="text-sm text-gray-500">#{ticket.id.slice(-8)}</div>
                     </div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`
+                  <span
+                    className={`
                     inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                    ${ticket.status === 'open' ? 'bg-blue-100 text-blue-800' : 
-                      ticket.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                      ticket.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                      'bg-purple-100 text-purple-800'}
-                  `}>
+                    ${
+                      ticket.status === 'open'
+                        ? 'bg-blue-100 text-blue-800'
+                        : ticket.status === 'resolved'
+                          ? 'bg-green-100 text-green-800'
+                          : ticket.status === 'closed'
+                            ? 'bg-gray-100 text-gray-800'
+                            : 'bg-purple-100 text-purple-800'
+                    }
+                  `}
+                  >
                     {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
                   </span>
                 </td>
@@ -221,7 +234,8 @@ const TicketListView: React.FC<TicketListViewProps> = ({
                       <div className="flex-shrink-0 h-6 w-6">
                         <div className="h-6 w-6 rounded-full bg-blue-500 flex items-center justify-center">
                           <span className="text-xs font-medium text-white">
-                            {ticket.assignedTo.firstName[0]}{ticket.assignedTo.lastName[0]}
+                            {ticket.assignedTo.firstName[0]}
+                            {ticket.assignedTo.lastName[0]}
                           </span>
                         </div>
                       </div>
@@ -269,8 +283,16 @@ const TicketListView: React.FC<TicketListViewProps> = ({
       {/* Empty State */}
       {tickets.length === 0 && (
         <div className="text-center py-12">
-          <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+          <svg
+            className="w-12 h-12 mx-auto text-gray-400 mb-4"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+              clipRule="evenodd"
+            />
           </svg>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets found</h3>
           <p className="text-gray-500">There are no tickets to display.</p>

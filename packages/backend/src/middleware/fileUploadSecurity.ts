@@ -23,9 +23,32 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 const DANGEROUS_EXTENSIONS = [
-  '.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js', '.jar',
-  '.app', '.deb', '.pkg', '.dmg', '.rpm', '.msi', '.run', '.bin',
-  '.sh', '.ps1', '.php', '.asp', '.aspx', '.jsp', '.py', '.rb', '.pl',
+  '.exe',
+  '.bat',
+  '.cmd',
+  '.com',
+  '.pif',
+  '.scr',
+  '.vbs',
+  '.js',
+  '.jar',
+  '.app',
+  '.deb',
+  '.pkg',
+  '.dmg',
+  '.rpm',
+  '.msi',
+  '.run',
+  '.bin',
+  '.sh',
+  '.ps1',
+  '.php',
+  '.asp',
+  '.aspx',
+  '.jsp',
+  '.py',
+  '.rb',
+  '.pl',
 ];
 
 const MAX_FILE_SIZE = parseInt(process.env['MAX_FILE_SIZE'] || '10485760'); // 10MB
@@ -62,9 +85,11 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
     }
 
     // Check filename for path traversal attempts
-    if (file.originalname.includes('..') || 
-        file.originalname.includes('/') || 
-        file.originalname.includes('\\')) {
+    if (
+      file.originalname.includes('..') ||
+      file.originalname.includes('/') ||
+      file.originalname.includes('\\')
+    ) {
       logger.warn('File upload blocked - invalid filename', {
         filename: file.originalname,
         userId: req.user?.id,
@@ -105,20 +130,28 @@ export const upload = multer({
 /**
  * File content security scanning middleware
  */
-export const scanFileContent = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const scanFileContent = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     if (!req.file && !req.files) {
       return next();
     }
 
-    const files = req.files ? (Array.isArray(req.files) ? req.files : Object.values(req.files).flat()) : [req.file];
+    const files = req.files
+      ? Array.isArray(req.files)
+        ? req.files
+        : Object.values(req.files).flat()
+      : [req.file];
 
     for (const file of files) {
       if (!file) continue;
 
       // Check for malicious content patterns
       await scanForMaliciousContent(file);
-      
+
       // Validate file headers match MIME type
       await validateFileHeaders(file);
     }
@@ -142,7 +175,7 @@ export const scanFileContent = async (req: Request, res: Response, next: NextFun
  */
 async function scanForMaliciousContent(file: Express.Multer.File): Promise<void> {
   const content = file.buffer.toString('utf8', 0, Math.min(file.buffer.length, 1024));
-  
+
   // Check for script tags and other dangerous patterns
   const maliciousPatterns = [
     /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
@@ -167,7 +200,8 @@ async function scanForMaliciousContent(file: Express.Multer.File): Promise<void>
   // Check for embedded executables (PE header)
   if (file.buffer.length >= 2) {
     const header = file.buffer.readUInt16LE(0);
-    if (header === 0x5A4D) { // MZ header (PE executable)
+    if (header === 0x5a4d) {
+      // MZ header (PE executable)
       throw new Error('Executable files are not allowed');
     }
   }
@@ -191,21 +225,21 @@ async function validateFileHeaders(file: Express.Multer.File): Promise<void> {
   }
 
   const header = file.buffer.subarray(0, 4);
-  
+
   // Common file signatures
   const signatures: Record<string, number[]> = {
-    'image/jpeg': [0xFF, 0xD8, 0xFF],
-    'image/png': [0x89, 0x50, 0x4E, 0x47],
+    'image/jpeg': [0xff, 0xd8, 0xff],
+    'image/png': [0x89, 0x50, 0x4e, 0x47],
     'image/gif': [0x47, 0x49, 0x46, 0x38],
     'application/pdf': [0x25, 0x50, 0x44, 0x46],
-    'application/zip': [0x50, 0x4B, 0x03, 0x04],
-    'application/x-zip-compressed': [0x50, 0x4B, 0x03, 0x04],
+    'application/zip': [0x50, 0x4b, 0x03, 0x04],
+    'application/x-zip-compressed': [0x50, 0x4b, 0x03, 0x04],
   };
 
   const expectedSignature = signatures[file.mimetype];
   if (expectedSignature) {
-    const matches = expectedSignature.every((byte, index) => 
-      index < header.length && header[index] === byte
+    const matches = expectedSignature.every(
+      (byte, index) => index < header.length && header[index] === byte
     );
 
     if (!matches) {
@@ -217,11 +251,7 @@ async function validateFileHeaders(file: Express.Multer.File): Promise<void> {
 /**
  * File upload middleware with rate limiting and security
  */
-export const secureFileUpload = [
-  fileUploadRateLimiter,
-  upload.single('file'),
-  scanFileContent,
-];
+export const secureFileUpload = [fileUploadRateLimiter, upload.single('file'), scanFileContent];
 
 /**
  * Multiple file upload middleware with rate limiting and security
@@ -235,7 +265,12 @@ export const secureMultipleFileUpload = [
 /**
  * File upload error handler
  */
-export const handleFileUploadError = (error: any, req: Request, res: Response, next: NextFunction): void => {
+export const handleFileUploadError = (
+  error: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   if (error instanceof multer.MulterError) {
     let message = 'File upload error';
     let code = 'FILE_UPLOAD_ERROR';

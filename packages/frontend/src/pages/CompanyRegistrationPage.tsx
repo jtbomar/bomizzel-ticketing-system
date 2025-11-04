@@ -6,14 +6,14 @@ interface CompanyRegistrationData {
   companyName: string;
   domain: string;
   description: string;
-  
+
   // Admin user info
   adminFirstName: string;
   adminLastName: string;
   adminEmail: string;
   adminPassword: string;
   confirmPassword: string;
-  
+
   // Organization profile
   timezone: string;
   primaryContactName: string;
@@ -21,7 +21,7 @@ interface CompanyRegistrationData {
   primaryContactPhone: string;
   mobilePhone: string;
   websiteUrl: string;
-  
+
   // Address
   addressLine1: string;
   addressLine2: string;
@@ -36,20 +36,20 @@ const CompanyRegistrationPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [formData, setFormData] = useState<CompanyRegistrationData>({
     // Company info
     companyName: '',
     domain: '',
     description: '',
-    
+
     // Admin user info
     adminFirstName: '',
     adminLastName: '',
     adminEmail: '',
     adminPassword: '',
     confirmPassword: '',
-    
+
     // Organization profile
     timezone: 'UTC',
     primaryContactName: '',
@@ -57,7 +57,7 @@ const CompanyRegistrationPage: React.FC = () => {
     primaryContactPhone: '',
     mobilePhone: '',
     websiteUrl: '',
-    
+
     // Address
     addressLine1: '',
     addressLine2: '',
@@ -67,18 +67,29 @@ const CompanyRegistrationPage: React.FC = () => {
     country: 'United States',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
   };
 
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(formData.companyName && formData.adminFirstName && formData.adminLastName && formData.adminEmail);
+        return !!(
+          formData.companyName &&
+          formData.adminFirstName &&
+          formData.adminLastName &&
+          formData.adminEmail
+        );
       case 2:
-        return !!(formData.adminPassword && formData.confirmPassword && formData.adminPassword === formData.confirmPassword);
+        return !!(
+          formData.adminPassword &&
+          formData.confirmPassword &&
+          formData.adminPassword === formData.confirmPassword
+        );
       case 3:
         return true; // Organization profile is optional
       default:
@@ -88,24 +99,24 @@ const CompanyRegistrationPage: React.FC = () => {
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 4));
+      setCurrentStep((prev) => Math.min(prev + 1, 4));
     } else {
       setError('Please fill in all required fields');
     }
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    setCurrentStep((prev) => Math.max(prev - 1, 1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.adminPassword !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-    
+
     setLoading(true);
     setError('');
 
@@ -115,13 +126,13 @@ const CompanyRegistrationPage: React.FC = () => {
         companyName: formData.companyName,
         domain: formData.domain || undefined,
         description: formData.description || undefined,
-        
+
         // Admin user info
         adminFirstName: formData.adminFirstName,
         adminLastName: formData.adminLastName,
         adminEmail: formData.adminEmail,
         adminPassword: formData.adminPassword,
-        
+
         // Organization profile
         timezone: formData.timezone,
         primaryContactName: formData.primaryContactName || undefined,
@@ -129,7 +140,7 @@ const CompanyRegistrationPage: React.FC = () => {
         primaryContactPhone: formData.primaryContactPhone || undefined,
         mobilePhone: formData.mobilePhone || undefined,
         websiteUrl: formData.websiteUrl || undefined,
-        
+
         // Address
         addressLine1: formData.addressLine1 || undefined,
         addressLine2: formData.addressLine2 || undefined,
@@ -137,7 +148,7 @@ const CompanyRegistrationPage: React.FC = () => {
         stateProvince: formData.stateProvince || undefined,
         postalCode: formData.postalCode || undefined,
         country: formData.country || undefined,
-        
+
         startTrial: true,
       };
 
@@ -157,10 +168,10 @@ const CompanyRegistrationPage: React.FC = () => {
         if (data.data.tokens.refreshToken) {
           localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
         }
-        
+
         // Show success message
         alert(`✅ Company registered successfully! Welcome to ${formData.companyName}!`);
-        
+
         // Redirect to admin dashboard
         navigate('/admin');
       } else {
@@ -178,12 +189,10 @@ const CompanyRegistrationPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Company Information</h3>
-        
+
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Company Name *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
             <input
               type="text"
               name="companyName"
@@ -194,7 +203,7 @@ const CompanyRegistrationPage: React.FC = () => {
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Company Domain (Optional)
@@ -208,7 +217,7 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="yourcompany.com"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Description (Optional)
@@ -223,15 +232,13 @@ const CompanyRegistrationPage: React.FC = () => {
             />
           </div>
         </div>
-      </div>     
- <div>
+      </div>
+      <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Admin User Information</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              First Name *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
             <input
               type="text"
               name="adminFirstName"
@@ -242,11 +249,9 @@ const CompanyRegistrationPage: React.FC = () => {
               required
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Last Name *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
             <input
               type="text"
               name="adminLastName"
@@ -257,11 +262,9 @@ const CompanyRegistrationPage: React.FC = () => {
               required
             />
           </div>
-          
+
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email Address *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
             <input
               type="email"
               name="adminEmail"
@@ -281,12 +284,10 @@ const CompanyRegistrationPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Set Admin Password</h3>
-        
+
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
             <input
               type="password"
               name="adminPassword"
@@ -297,7 +298,7 @@ const CompanyRegistrationPage: React.FC = () => {
               required
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Confirm Password *
@@ -321,12 +322,10 @@ const CompanyRegistrationPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Profile</h3>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Timezone
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
             <select
               name="timezone"
               value={formData.timezone}
@@ -343,7 +342,7 @@ const CompanyRegistrationPage: React.FC = () => {
               <option value="Asia/Tokyo">Tokyo</option>
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Primary Contact Name
@@ -357,7 +356,7 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="Contact person name"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Primary Contact Email
@@ -371,11 +370,9 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="contact@yourcompany.com"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
             <input
               type="tel"
               name="primaryContactPhone"
@@ -385,11 +382,9 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="+1 (555) 123-4567"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mobile Phone
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Phone</label>
             <input
               type="tel"
               name="mobilePhone"
@@ -399,11 +394,9 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="+1 (555) 987-6543"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Website URL
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Website URL</label>
             <input
               type="url"
               name="websiteUrl"
@@ -422,12 +415,10 @@ const CompanyRegistrationPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Company Address</h3>
-        
+
         <div className="grid grid-cols-1 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address Line 1
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
             <input
               type="text"
               name="addressLine1"
@@ -437,11 +428,9 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="123 Main Street"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Address Line 2
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
             <input
               type="text"
               name="addressLine2"
@@ -451,12 +440,10 @@ const CompanyRegistrationPage: React.FC = () => {
               placeholder="Suite 100"
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                City
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
               <input
                 type="text"
                 name="city"
@@ -466,11 +453,9 @@ const CompanyRegistrationPage: React.FC = () => {
                 placeholder="New York"
               />
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                State/Province
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
               <input
                 type="text"
                 name="stateProvince"
@@ -480,11 +465,9 @@ const CompanyRegistrationPage: React.FC = () => {
                 placeholder="NY"
               />
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Postal Code
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
               <input
                 type="text"
                 name="postalCode"
@@ -495,11 +478,9 @@ const CompanyRegistrationPage: React.FC = () => {
               />
             </div>
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Country
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
             <select
               name="country"
               value={formData.country}
@@ -541,9 +522,7 @@ const CompanyRegistrationPage: React.FC = () => {
                 <div key={step} className="flex items-center">
                   <div
                     className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-medium ${
-                      step <= currentStep
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-300 text-gray-500'
+                      step <= currentStep ? 'bg-blue-600 text-white' : 'bg-gray-300 text-gray-500'
                     }`}
                   >
                     {step}
@@ -613,10 +592,7 @@ const CompanyRegistrationPage: React.FC = () => {
           </form>
 
           <div className="mt-6 text-center">
-            <Link
-              to="/login"
-              className="text-sm text-blue-600 hover:text-blue-500"
-            >
+            <Link to="/login" className="text-sm text-blue-600 hover:text-blue-500">
               Already have an account? Sign in
             </Link>
           </div>

@@ -81,27 +81,25 @@ export const useTickets = (options: UseTicketsOptions = {}) => {
 
     const handleTicketNotification = (notification: any) => {
       const { type, data } = notification;
-      
+
       switch (type) {
         case 'ticket:created':
           // Add new ticket if it belongs to current queue
           if (!queueId || data.ticket.queueId === queueId) {
-            setTickets(prev => [data.ticket, ...prev]);
+            setTickets((prev) => [data.ticket, ...prev]);
           }
           break;
-          
+
         case 'ticket:updated':
         case 'ticket:assigned':
         case 'ticket:status_changed':
         case 'ticket:priority_changed':
           // Update existing ticket
-          setTickets(prev => 
-            prev.map(ticket => 
-              ticket.id === data.ticket.id ? data.ticket : ticket
-            )
+          setTickets((prev) =>
+            prev.map((ticket) => (ticket.id === data.ticket.id ? data.ticket : ticket))
           );
           break;
-          
+
         default:
           break;
       }
@@ -117,10 +115,8 @@ export const useTickets = (options: UseTicketsOptions = {}) => {
   const updateTicket = async (ticketId: string, updates: Partial<Ticket>) => {
     try {
       const updatedTicket = await apiService.updateTicket(ticketId, updates);
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket
-        )
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket))
       );
       return updatedTicket;
     } catch (err) {
@@ -132,10 +128,8 @@ export const useTickets = (options: UseTicketsOptions = {}) => {
   const assignTicket = async (ticketId: string, assignedToId: string) => {
     try {
       const updatedTicket = await apiService.assignTicket(ticketId, assignedToId);
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket
-        )
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket))
       );
       return updatedTicket;
     } catch (err) {
@@ -147,10 +141,8 @@ export const useTickets = (options: UseTicketsOptions = {}) => {
   const updateTicketStatus = async (ticketId: string, newStatus: string) => {
     try {
       const updatedTicket = await apiService.updateTicketStatus(ticketId, newStatus);
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket
-        )
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket))
       );
       return updatedTicket;
     } catch (err) {
@@ -162,10 +154,8 @@ export const useTickets = (options: UseTicketsOptions = {}) => {
   const updateTicketPriority = async (ticketId: string, priority: number) => {
     try {
       const updatedTicket = await apiService.updateTicketPriority(ticketId, priority);
-      setTickets(prev => 
-        prev.map(ticket => 
-          ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket
-        )
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, ...updatedTicket } : ticket))
       );
       return updatedTicket;
     } catch (err) {

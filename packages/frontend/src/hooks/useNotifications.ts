@@ -30,77 +30,80 @@ export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Convert real-time notification to display notification
-  const convertToDisplayNotification = useCallback((rtNotification: RealTimeNotification): Notification => {
-    const id = `${Date.now()}-${Math.random()}`;
-    let title = '';
-    let message = '';
-    let priority: 'low' | 'medium' | 'high' = 'medium';
+  const convertToDisplayNotification = useCallback(
+    (rtNotification: RealTimeNotification): Notification => {
+      const id = `${Date.now()}-${Math.random()}`;
+      let title = '';
+      let message = '';
+      let priority: 'low' | 'medium' | 'high' = 'medium';
 
-    switch (rtNotification.type) {
-      case 'ticket:created':
-        title = 'New Ticket Created';
-        message = `Ticket "${rtNotification.data.ticket.title}" has been created`;
-        priority = 'medium';
-        break;
-      
-      case 'ticket:assigned':
-        title = 'Ticket Assigned';
-        if (rtNotification.data.ticket.assignedToId === user?.id) {
-          message = `You have been assigned ticket "${rtNotification.data.ticket.title}"`;
-          priority = 'high';
-        } else {
-          message = `Ticket "${rtNotification.data.ticket.title}" has been assigned`;
+      switch (rtNotification.type) {
+        case 'ticket:created':
+          title = 'New Ticket Created';
+          message = `Ticket "${rtNotification.data.ticket.title}" has been created`;
+          priority = 'medium';
+          break;
+
+        case 'ticket:assigned':
+          title = 'Ticket Assigned';
+          if (rtNotification.data.ticket.assignedToId === user?.id) {
+            message = `You have been assigned ticket "${rtNotification.data.ticket.title}"`;
+            priority = 'high';
+          } else {
+            message = `Ticket "${rtNotification.data.ticket.title}" has been assigned`;
+            priority = 'low';
+          }
+          break;
+
+        case 'ticket:status_changed':
+          title = 'Ticket Status Updated';
+          message = `Ticket "${rtNotification.data.ticket.title}" status changed to ${rtNotification.data.changes?.status?.new}`;
+          priority = 'medium';
+          break;
+
+        case 'ticket:priority_changed':
+          title = 'Ticket Priority Updated';
+          message = `Ticket "${rtNotification.data.ticket.title}" priority changed to ${rtNotification.data.changes?.priority?.new}`;
+          priority = 'medium';
+          break;
+
+        case 'ticket:updated':
+          title = 'Ticket Updated';
+          message = `Ticket "${rtNotification.data.ticket.title}" has been updated`;
           priority = 'low';
-        }
-        break;
-      
-      case 'ticket:status_changed':
-        title = 'Ticket Status Updated';
-        message = `Ticket "${rtNotification.data.ticket.title}" status changed to ${rtNotification.data.changes?.status?.new}`;
-        priority = 'medium';
-        break;
-      
-      case 'ticket:priority_changed':
-        title = 'Ticket Priority Updated';
-        message = `Ticket "${rtNotification.data.ticket.title}" priority changed to ${rtNotification.data.changes?.priority?.new}`;
-        priority = 'medium';
-        break;
-      
-      case 'ticket:updated':
-        title = 'Ticket Updated';
-        message = `Ticket "${rtNotification.data.ticket.title}" has been updated`;
-        priority = 'low';
-        break;
-      
-      case 'queue:metrics_updated':
-        title = 'Queue Metrics Updated';
-        message = `Metrics for queue "${rtNotification.data.queue.name}" have been updated`;
-        priority = 'low';
-        break;
-      
-      case 'user:ticket_assigned':
-        title = 'New Assignment';
-        message = `You have been assigned ticket "${rtNotification.data.ticket?.title}"`;
-        priority = 'high';
-        break;
-      
-      default:
-        title = 'System Notification';
-        message = 'You have a new notification';
-        priority = 'low';
-    }
+          break;
 
-    return {
-      id,
-      type: rtNotification.type,
-      title,
-      message,
-      data: rtNotification.data,
-      timestamp: new Date(rtNotification.timestamp),
-      read: false,
-      priority,
-    };
-  }, [user?.id]);
+        case 'queue:metrics_updated':
+          title = 'Queue Metrics Updated';
+          message = `Metrics for queue "${rtNotification.data.queue.name}" have been updated`;
+          priority = 'low';
+          break;
+
+        case 'user:ticket_assigned':
+          title = 'New Assignment';
+          message = `You have been assigned ticket "${rtNotification.data.ticket?.title}"`;
+          priority = 'high';
+          break;
+
+        default:
+          title = 'System Notification';
+          message = 'You have a new notification';
+          priority = 'low';
+      }
+
+      return {
+        id,
+        type: rtNotification.type,
+        title,
+        message,
+        data: rtNotification.data,
+        timestamp: new Date(rtNotification.timestamp),
+        read: false,
+        priority,
+      };
+    },
+    [user?.id]
+  );
 
   // Show browser notification
   const showBrowserNotification = useCallback((notification: Notification) => {
@@ -120,31 +123,32 @@ export const useNotifications = () => {
   }, []);
 
   // Add notification
-  const addNotification = useCallback((rtNotification: RealTimeNotification) => {
-    const notification = convertToDisplayNotification(rtNotification);
-    
-    setNotifications(prev => [notification, ...prev.slice(0, 49)]); // Keep max 50 notifications
-    setUnreadCount(prev => prev + 1);
+  const addNotification = useCallback(
+    (rtNotification: RealTimeNotification) => {
+      const notification = convertToDisplayNotification(rtNotification);
 
-    // Show browser notification for high priority items
-    if (notification.priority === 'high') {
-      showBrowserNotification(notification);
-    }
-  }, [convertToDisplayNotification, showBrowserNotification]);
+      setNotifications((prev) => [notification, ...prev.slice(0, 49)]); // Keep max 50 notifications
+      setUnreadCount((prev) => prev + 1);
+
+      // Show browser notification for high priority items
+      if (notification.priority === 'high') {
+        showBrowserNotification(notification);
+      }
+    },
+    [convertToDisplayNotification, showBrowserNotification]
+  );
 
   // Mark notification as read
   const markAsRead = useCallback((notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      )
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
     );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   }, []);
 
   // Mark all as read
   const markAllAsRead = useCallback(() => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   }, []);
 
@@ -156,12 +160,12 @@ export const useNotifications = () => {
 
   // Remove specific notification
   const removeNotification = useCallback((notificationId: string) => {
-    setNotifications(prev => {
-      const notification = prev.find(n => n.id === notificationId);
+    setNotifications((prev) => {
+      const notification = prev.find((n) => n.id === notificationId);
       if (notification && !notification.read) {
-        setUnreadCount(count => Math.max(0, count - 1));
+        setUnreadCount((count) => Math.max(0, count - 1));
       }
-      return prev.filter(n => n.id !== notificationId);
+      return prev.filter((n) => n.id !== notificationId);
     });
   }, []);
 

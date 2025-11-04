@@ -34,9 +34,8 @@ export class CustomFieldService {
 
     // Get next order number
     const existingFields = await CustomField.findByTeam(teamId);
-    const nextOrder = existingFields.length > 0 
-      ? Math.max(...existingFields.map(f => f.order)) + 1 
-      : 0;
+    const nextOrder =
+      existingFields.length > 0 ? Math.max(...existingFields.map((f) => f.order)) + 1 : 0;
 
     // Create the field
     const field = await CustomField.createCustomField({
@@ -58,7 +57,7 @@ export class CustomFieldService {
    */
   static async getTeamCustomFields(teamId: string): Promise<CustomFieldModel[]> {
     const fields = await CustomField.findByTeam(teamId);
-    return fields.map(field => CustomField.toModel(field));
+    return fields.map((field) => CustomField.toModel(field));
   }
 
   /**
@@ -133,7 +132,7 @@ export class CustomFieldService {
   ): Promise<void> {
     // Validate all fields belong to the team
     const teamFields = await CustomField.findByTeam(teamId);
-    const teamFieldIds = new Set(teamFields.map(f => f.id));
+    const teamFieldIds = new Set(teamFields.map((f) => f.id));
 
     for (const { fieldId } of fieldOrders) {
       if (!teamFieldIds.has(fieldId)) {
@@ -183,7 +182,9 @@ export class CustomFieldService {
   }): void {
     // Validate field name (must be alphanumeric with underscores)
     if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(fieldData.name)) {
-      throw new Error('Field name must start with a letter and contain only letters, numbers, and underscores');
+      throw new Error(
+        'Field name must start with a letter and contain only letters, numbers, and underscores'
+      );
     }
 
     // Validate label
@@ -193,7 +194,11 @@ export class CustomFieldService {
 
     // Validate picklist options
     if (fieldData.type === 'picklist') {
-      if (!fieldData.options || !Array.isArray(fieldData.options) || fieldData.options.length === 0) {
+      if (
+        !fieldData.options ||
+        !Array.isArray(fieldData.options) ||
+        fieldData.options.length === 0
+      ) {
         throw new Error('Picklist fields must have at least one option');
       }
 

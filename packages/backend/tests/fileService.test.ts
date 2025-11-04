@@ -52,9 +52,7 @@ describe('FileService', () => {
         role: 'customer',
       } as any);
 
-      mockUser.getUserCompanies.mockResolvedValue([
-        { companyId: 'company-123' } as any,
-      ]);
+      mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
 
       // Mock file operations
       mockFs.promises = {
@@ -119,9 +117,9 @@ describe('FileService', () => {
         mimetype: 'application/exe',
       };
 
-      await expect(
-        FileService.uploadFile(invalidFile, ticketId, uploadedById)
-      ).rejects.toThrow(ValidationError);
+      await expect(FileService.uploadFile(invalidFile, ticketId, uploadedById)).rejects.toThrow(
+        ValidationError
+      );
     });
 
     it('should throw ValidationError for file too large', async () => {
@@ -130,17 +128,17 @@ describe('FileService', () => {
         size: 20 * 1024 * 1024, // 20MB
       };
 
-      await expect(
-        FileService.uploadFile(largeFile, ticketId, uploadedById)
-      ).rejects.toThrow(ValidationError);
+      await expect(FileService.uploadFile(largeFile, ticketId, uploadedById)).rejects.toThrow(
+        ValidationError
+      );
     });
 
     it('should throw NotFoundError for non-existent ticket', async () => {
       mockTicket.findById.mockResolvedValue(null);
 
-      await expect(
-        FileService.uploadFile(mockFile, 'non-existent', uploadedById)
-      ).rejects.toThrow(NotFoundError);
+      await expect(FileService.uploadFile(mockFile, 'non-existent', uploadedById)).rejects.toThrow(
+        NotFoundError
+      );
     });
   });
 
@@ -166,9 +164,7 @@ describe('FileService', () => {
         role: 'customer',
       } as any);
 
-      mockUser.getUserCompanies.mockResolvedValue([
-        { companyId: 'company-123' } as any,
-      ]);
+      mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
 
       mockFs.promises = {
         access: jest.fn().mockResolvedValue(undefined),
@@ -188,9 +184,7 @@ describe('FileService', () => {
     it('should throw NotFoundError for non-existent attachment', async () => {
       mockFileAttachment.findById.mockResolvedValue(null);
 
-      await expect(
-        FileService.getFile('non-existent', userId)
-      ).rejects.toThrow(NotFoundError);
+      await expect(FileService.getFile('non-existent', userId)).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -218,9 +212,7 @@ describe('FileService', () => {
         role: 'customer',
       } as any);
 
-      mockUser.getUserCompanies.mockResolvedValue([
-        { companyId: 'company-123' } as any,
-      ]);
+      mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
 
       mockFs.promises = {
         unlink: jest.fn().mockResolvedValue(undefined),
@@ -254,13 +246,9 @@ describe('FileService', () => {
         role: 'customer',
       } as any);
 
-      mockUser.getUserCompanies.mockResolvedValue([
-        { companyId: 'company-123' } as any,
-      ]);
+      mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
 
-      await expect(
-        FileService.deleteFile(attachmentId, userId)
-      ).rejects.toThrow(ForbiddenError);
+      await expect(FileService.deleteFile(attachmentId, userId)).rejects.toThrow(ForbiddenError);
     });
   });
 });

@@ -4,12 +4,12 @@ import { User } from '@/models/User';
 import { StripeService } from './StripeService';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
+import {
   SubscriptionPlan as SubscriptionPlanModel,
   CustomerSubscription as CustomerSubscriptionModel,
   SubscriptionDetails,
   UsageLimitStatus,
-  UsageStats
+  UsageStats,
 } from '@/types/models';
 
 export class SubscriptionService {
@@ -50,14 +50,10 @@ export class SubscriptionService {
       }
 
       // Create or get Stripe customer
-      const stripeCustomer = await StripeService.createOrGetCustomer(
-        userId,
-        user.email,
-        {
-          name: `${user.first_name} ${user.last_name}`.trim(),
-          metadata: { userId, ...options.metadata }
-        }
-      );
+      const stripeCustomer = await StripeService.createOrGetCustomer(userId, user.email, {
+        name: `${user.first_name} ${user.last_name}`.trim(),
+        metadata: { userId, ...options.metadata },
+      });
 
       let stripeSubscription: any = null;
       let requiresPaymentConfirmation = false;
@@ -73,7 +69,7 @@ export class SubscriptionService {
         const createOptions: any = {
           customerId: stripeCustomer.id,
           priceId: plan.stripe_price_id,
-          metadata: { userId, planId, ...options.metadata }
+          metadata: { userId, planId, ...options.metadata },
         };
 
         if (options.paymentMethodId) {
@@ -104,16 +100,21 @@ export class SubscriptionService {
       let subscriptionData: any = {
         userId,
         planId,
-        status: stripeSubscription ? 
-          (stripeSubscription.status === 'trialing' ? 'trial' : 'active') : 'active',
-        currentPeriodStart: stripeSubscription ? 
-          stripeSubscription.currentPeriodStart : currentPeriodStart,
-        currentPeriodEnd: stripeSubscription ? 
-          stripeSubscription.currentPeriodEnd : currentPeriodEnd,
+        status: stripeSubscription
+          ? stripeSubscription.status === 'trialing'
+            ? 'trial'
+            : 'active'
+          : 'active',
+        currentPeriodStart: stripeSubscription
+          ? stripeSubscription.currentPeriodStart
+          : currentPeriodStart,
+        currentPeriodEnd: stripeSubscription
+          ? stripeSubscription.currentPeriodEnd
+          : currentPeriodEnd,
         stripeCustomerId: stripeCustomer.id,
         stripeSubscriptionId: stripeSubscription?.id,
         paymentMethodId: options.paymentMethodId,
-        metadata: options.metadata || {}
+        metadata: options.metadata || {},
       };
 
       // Handle trial period
@@ -131,21 +132,21 @@ export class SubscriptionService {
       }
 
       const subscription = await CustomerSubscription.createSubscription(subscriptionData);
-      
+
       logger.info('Subscription created with Stripe integration', {
         userId,
         subscriptionId: subscription.id,
         planId,
         stripeCustomerId: stripeCustomer.id,
         stripeSubscriptionId: stripeSubscription?.id,
-        status: subscription.status
+        status: subscription.status,
       });
 
       return {
         subscription: CustomerSubscription.toModel(subscription),
         stripeSubscription,
         requiresPaymentConfirmation,
-        clientSecret
+        clientSecret,
       };
     } catch (error) {
       logger.error('Error creating subscription with Stripe', { userId, planId, error });
@@ -194,14 +195,14 @@ export class SubscriptionService {
         paymentMethodId: options.paymentMethodId,
         stripeCustomerId: options.stripeCustomerId,
         stripeSubscriptionId: options.stripeSubscriptionId,
-        metadata: options.metadata || {}
+        metadata: options.metadata || {},
       };
 
       // Handle trial period
       if (options.startTrial && plan.trial_days > 0) {
         const trialEnd = new Date(now);
         trialEnd.setDate(trialEnd.getDate() + plan.trial_days);
-        
+
         subscriptionData.status = 'trial';
         subscriptionData.trialStart = now;
         subscriptionData.trialEnd = trialEnd;
@@ -209,12 +210,12 @@ export class SubscriptionService {
       }
 
       const subscription = await CustomerSubscription.createSubscription(subscriptionData);
-      
+
       logger.info('Subscription created', {
         userId,
         subscriptionId: subscription.id,
         planId,
-        status: subscription.status
+        status: subscription.status,
       });
 
       return CustomerSubscription.toModel(subscription);
@@ -259,7 +260,7 @@ export class SubscriptionService {
         await StripeService.updateSubscription(currentSubscription.stripe_subscription_id, {
           priceId: newPlan.stripe_price_id,
           prorate: options.prorate !== false, // Default to true
-          metadata: { planId: newPlanId }
+          metadata: { planId: newPlanId },
         });
 
         // Sync the subscription from Stripe to get updated billing periods
@@ -282,12 +283,16 @@ export class SubscriptionService {
         oldPlanId: currentSubscription.plan_id,
         newPlanId,
         stripeSubscriptionId: currentSubscription.stripe_subscription_id,
-        effectiveDate
+        effectiveDate,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
     } catch (error) {
-      logger.error('Error upgrading subscription with Stripe', { subscriptionId, newPlanId, error });
+      logger.error('Error upgrading subscription with Stripe', {
+        subscriptionId,
+        newPlanId,
+        error,
+      });
       throw error;
     }
   }
@@ -342,7 +347,7 @@ export class SubscriptionService {
         subscriptionId,
         oldPlanId: currentSubscription.plan_id,
         newPlanId,
-        effectiveDate
+        effectiveDate,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -390,7 +395,7 @@ export class SubscriptionService {
         subscriptionId,
         stripeSubscriptionId: subscription.stripe_subscription_id,
         cancelAtPeriodEnd,
-        userId: subscription.user_id
+        userId: subscription.user_id,
       });
 
       return CustomerSubscription.toModel(cancelledSubscription);
@@ -429,7 +434,7 @@ export class SubscriptionService {
       logger.info('Subscription cancelled', {
         subscriptionId,
         cancelAtPeriodEnd,
-        userId: subscription.user_id
+        userId: subscription.user_id,
       });
 
       return CustomerSubscription.toModel(cancelledSubscription);
@@ -464,7 +469,7 @@ export class SubscriptionService {
       logger.info('Subscription status updated', {
         subscriptionId,
         oldStatus: subscription.status,
-        newStatus: status
+        newStatus: status,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -498,8 +503,10 @@ export class SubscriptionService {
           completedTickets: subscriptionWithPlan.completed_ticket_limit,
           totalTickets: subscriptionWithPlan.total_ticket_limit,
         },
-        features: typeof subscriptionWithPlan.plan_features === 'string' ? 
-          JSON.parse(subscriptionWithPlan.plan_features) : subscriptionWithPlan.plan_features,
+        features:
+          typeof subscriptionWithPlan.plan_features === 'string'
+            ? JSON.parse(subscriptionWithPlan.plan_features)
+            : subscriptionWithPlan.plan_features,
         trialDays: subscriptionWithPlan.plan_trial_days,
         isActive: true,
         sortOrder: 0,
@@ -512,7 +519,7 @@ export class SubscriptionService {
         activeTickets: 0,
         completedTickets: 0,
         totalTickets: 0,
-        archivedTickets: 0
+        archivedTickets: 0,
       };
 
       // Calculate limit status
@@ -522,7 +529,7 @@ export class SubscriptionService {
         subscription,
         plan,
         usage,
-        limitStatus
+        limitStatus,
       };
     } catch (error) {
       logger.error('Error getting user subscription', { userId, error });
@@ -536,7 +543,7 @@ export class SubscriptionService {
   static async getAvailablePlans(): Promise<SubscriptionPlanModel[]> {
     try {
       const plans = await SubscriptionPlan.findActivePlans();
-      return plans.map(plan => SubscriptionPlan.toModel(plan));
+      return plans.map((plan) => SubscriptionPlan.toModel(plan));
     } catch (error) {
       logger.error('Error getting available plans', { error });
       throw error;
@@ -593,7 +600,7 @@ export class SubscriptionService {
   static async getExpiredTrials(): Promise<CustomerSubscriptionModel[]> {
     try {
       const expiredTrials = await CustomerSubscription.findExpiredTrials();
-      return expiredTrials.map(subscription => CustomerSubscription.toModel(subscription));
+      return expiredTrials.map((subscription) => CustomerSubscription.toModel(subscription));
     } catch (error) {
       logger.error('Error getting expired trials', { error });
       throw error;
@@ -603,10 +610,14 @@ export class SubscriptionService {
   /**
    * Get expiring subscriptions
    */
-  static async getExpiringSubscriptions(daysAhead: number = 7): Promise<CustomerSubscriptionModel[]> {
+  static async getExpiringSubscriptions(
+    daysAhead: number = 7
+  ): Promise<CustomerSubscriptionModel[]> {
     try {
       const expiringSubscriptions = await CustomerSubscription.findExpiringSubscriptions(daysAhead);
-      return expiringSubscriptions.map(subscription => CustomerSubscription.toModel(subscription));
+      return expiringSubscriptions.map((subscription) =>
+        CustomerSubscription.toModel(subscription)
+      );
     } catch (error) {
       logger.error('Error getting expiring subscriptions', { daysAhead, error });
       throw error;
@@ -637,7 +648,7 @@ export class SubscriptionService {
 
       logger.info('Payment method updated', {
         subscriptionId,
-        paymentMethodId
+        paymentMethodId,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -690,17 +701,17 @@ export class SubscriptionService {
         currentPeriodEnd: trialEnd,
         trialStart,
         trialEnd,
-        metadata: options.metadata || {}
+        metadata: options.metadata || {},
       };
 
       const subscription = await CustomerSubscription.createSubscription(subscriptionData);
-      
+
       logger.info('Trial subscription started', {
         userId,
         subscriptionId: subscription.id,
         planId,
         trialDays,
-        trialEnd
+        trialEnd,
       });
 
       return CustomerSubscription.toModel(subscription);
@@ -754,7 +765,7 @@ export class SubscriptionService {
       logger.info('Trial converted to paid subscription', {
         subscriptionId,
         userId: subscription.user_id,
-        planId: subscription.plan_id
+        planId: subscription.plan_id,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -790,7 +801,7 @@ export class SubscriptionService {
       logger.info('Trial subscription cancelled', {
         subscriptionId,
         userId: subscription.user_id,
-        planId: subscription.plan_id
+        planId: subscription.plan_id,
       });
 
       return CustomerSubscription.toModel(cancelledSubscription);
@@ -823,14 +834,16 @@ export class SubscriptionService {
       const now = new Date();
       const trialEnd = new Date(subscription.trial_end);
       const hasExpired = now > trialEnd;
-      const daysRemaining = hasExpired ? 0 : Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const daysRemaining = hasExpired
+        ? 0
+        : Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       return {
         isInTrial: true,
         trialStart: subscription.trial_start,
         trialEnd: subscription.trial_end,
         daysRemaining,
-        hasExpired
+        hasExpired,
       };
     } catch (error) {
       logger.error('Error getting trial status', { subscriptionId, error });
@@ -858,33 +871,29 @@ export class SubscriptionService {
         try {
           if (freeTierPlan) {
             // Convert to free tier
-            await CustomerSubscription.upgradeSubscription(
-              trial.id,
-              freeTierPlan.id,
-              new Date()
-            );
+            await CustomerSubscription.upgradeSubscription(trial.id, freeTierPlan.id, new Date());
             await CustomerSubscription.updateSubscriptionStatus(trial.id, 'active');
             convertedToFree++;
-            
+
             logger.info('Expired trial converted to free tier', {
               subscriptionId: trial.id,
-              userId: trial.user_id
+              userId: trial.user_id,
             });
           } else {
             // Cancel the subscription
             await CustomerSubscription.updateSubscriptionStatus(trial.id, 'cancelled');
             cancelled++;
-            
+
             logger.info('Expired trial cancelled', {
               subscriptionId: trial.id,
-              userId: trial.user_id
+              userId: trial.user_id,
             });
           }
         } catch (error) {
           logger.error('Error processing expired trial', {
             subscriptionId: trial.id,
             userId: trial.user_id,
-            error
+            error,
           });
         }
       }
@@ -892,13 +901,13 @@ export class SubscriptionService {
       logger.info('Processed expired trials', {
         total: expiredTrials.length,
         cancelled,
-        convertedToFree
+        convertedToFree,
       });
 
       return {
         processed: expiredTrials.length,
         cancelled,
-        convertedToFree
+        convertedToFree,
       };
     } catch (error) {
       logger.error('Error processing expired trials', { error });
@@ -946,7 +955,7 @@ export class SubscriptionService {
         subscriptionId,
         userId: subscription.user_id,
         additionalDays,
-        newTrialEnd
+        newTrialEnd,
       });
 
       return CustomerSubscription.toModel(updatedSubscription);
@@ -964,9 +973,8 @@ export class SubscriptionService {
     limits: { activeTickets: number; completedTickets: number; totalTickets: number }
   ): UsageLimitStatus {
     // Handle unlimited plans
-    const isUnlimited = limits.activeTickets === -1 && 
-                       limits.completedTickets === -1 && 
-                       limits.totalTickets === -1;
+    const isUnlimited =
+      limits.activeTickets === -1 && limits.completedTickets === -1 && limits.totalTickets === -1;
 
     if (isUnlimited) {
       return {
@@ -975,29 +983,29 @@ export class SubscriptionService {
         percentageUsed: {
           active: 0,
           completed: 0,
-          total: 0
+          total: 0,
         },
         limits,
-        current: usage
+        current: usage,
       };
     }
 
     // Calculate percentages
-    const activePercentage = limits.activeTickets > 0 ? 
-      (usage.activeTickets / limits.activeTickets) * 100 : 0;
-    const completedPercentage = limits.completedTickets > 0 ? 
-      (usage.completedTickets / limits.completedTickets) * 100 : 0;
-    const totalPercentage = limits.totalTickets > 0 ? 
-      (usage.totalTickets / limits.totalTickets) * 100 : 0;
+    const activePercentage =
+      limits.activeTickets > 0 ? (usage.activeTickets / limits.activeTickets) * 100 : 0;
+    const completedPercentage =
+      limits.completedTickets > 0 ? (usage.completedTickets / limits.completedTickets) * 100 : 0;
+    const totalPercentage =
+      limits.totalTickets > 0 ? (usage.totalTickets / limits.totalTickets) * 100 : 0;
 
     // Check if at or near limits
-    const isAtLimit = usage.activeTickets >= limits.activeTickets ||
-                     usage.completedTickets >= limits.completedTickets ||
-                     usage.totalTickets >= limits.totalTickets;
+    const isAtLimit =
+      usage.activeTickets >= limits.activeTickets ||
+      usage.completedTickets >= limits.completedTickets ||
+      usage.totalTickets >= limits.totalTickets;
 
-    const isNearLimit = activePercentage >= 75 || 
-                       completedPercentage >= 75 || 
-                       totalPercentage >= 75;
+    const isNearLimit =
+      activePercentage >= 75 || completedPercentage >= 75 || totalPercentage >= 75;
 
     return {
       isAtLimit,
@@ -1005,10 +1013,10 @@ export class SubscriptionService {
       percentageUsed: {
         active: Math.min(activePercentage, 100),
         completed: Math.min(completedPercentage, 100),
-        total: Math.min(totalPercentage, 100)
+        total: Math.min(totalPercentage, 100),
       },
       limits,
-      current: usage
+      current: usage,
     };
   }
 }

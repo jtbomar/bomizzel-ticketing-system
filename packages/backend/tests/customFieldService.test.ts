@@ -181,9 +181,9 @@ describe('CustomFieldService', () => {
 
       mockTeam.findById.mockResolvedValue(null);
 
-      await expect(
-        CustomFieldService.createCustomField(teamId, fieldData)
-      ).rejects.toThrow('Team not found');
+      await expect(CustomFieldService.createCustomField(teamId, fieldData)).rejects.toThrow(
+        'Team not found'
+      );
     });
 
     it('should throw error if field name already exists', async () => {
@@ -200,9 +200,9 @@ describe('CustomFieldService', () => {
       mockTeam.findById.mockResolvedValue(mockTeamRecord);
       mockCustomField.findByTeamAndName.mockResolvedValue(mockExistingField);
 
-      await expect(
-        CustomFieldService.createCustomField(teamId, fieldData)
-      ).rejects.toThrow('Custom field with name \'existing_field\' already exists for this team');
+      await expect(CustomFieldService.createCustomField(teamId, fieldData)).rejects.toThrow(
+        "Custom field with name 'existing_field' already exists for this team"
+      );
     });
   });
 });

@@ -57,17 +57,17 @@ export const createRateLimiter = (options: RateLimitOptions) => {
       // Handle response to potentially skip counting
       if (skipSuccessfulRequests || skipFailedRequests) {
         const originalSend = res.send;
-        res.send = function(body) {
+        res.send = function (body) {
           const statusCode = res.statusCode;
-          const shouldSkip = 
+          const shouldSkip =
             (skipSuccessfulRequests && statusCode < 400) ||
             (skipFailedRequests && statusCode >= 400);
 
           if (shouldSkip) {
             // Decrement the counter
-            redisClient.decr(redisKey).catch(err => 
-              logger.error('Failed to decrement rate limit counter:', err)
-            );
+            redisClient
+              .decr(redisKey)
+              .catch((err) => logger.error('Failed to decrement rate limit counter:', err));
           }
 
           return originalSend.call(this, body);

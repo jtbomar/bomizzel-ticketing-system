@@ -22,23 +22,23 @@ const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
   const { preferences, updateDashboardView } = useUserPreferences();
   const { queues, loading: queuesLoading } = useQueues();
-  
+
   const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null);
-  
+
   // Real-time connections
   useRealTimeQueue({
     queueId: selectedQueue?.id,
     teamId: selectedQueue?.teamId,
   });
   useRealTimeNotifications();
-  
+
   const [currentView, setCurrentView] = useState<'kanban' | 'list'>('kanban');
   const [showMetrics, setShowMetrics] = useState(false);
   const [showCustomFields, setShowCustomFields] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [ticketStatuses, setTicketStatuses] = useState<TicketStatus[]>([]);
   // Real-time metrics for all queues
-  const { metrics: allMetrics } = useRealTimeMetrics(queues.map(q => q.id));
+  const { metrics: allMetrics } = useRealTimeMetrics(queues.map((q) => q.id));
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
@@ -71,7 +71,7 @@ const EmployeeDashboard: React.FC = () => {
   useEffect(() => {
     if (queues.length > 0 && !selectedQueue) {
       // Find user's personal queue or first available queue
-      const personalQueue = queues.find(q => q.assignedToId === user?.id);
+      const personalQueue = queues.find((q) => q.assignedToId === user?.id);
       setSelectedQueue(personalQueue || queues[0]);
     }
   }, [queues, selectedQueue, user]);
@@ -91,9 +91,45 @@ const EmployeeDashboard: React.FC = () => {
       console.error('Error loading team statuses:', err);
       // Fallback to default statuses
       setTicketStatuses([
-        { id: '1', teamId, name: 'open', label: 'Open', color: '#3B82F6', order: 1, isDefault: true, isClosed: false, isActive: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '2', teamId, name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, isDefault: false, isClosed: false, isActive: true, createdAt: new Date(), updatedAt: new Date() },
-        { id: '3', teamId, name: 'resolved', label: 'Resolved', color: '#10B981', order: 3, isDefault: false, isClosed: true, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+        {
+          id: '1',
+          teamId,
+          name: 'open',
+          label: 'Open',
+          color: '#3B82F6',
+          order: 1,
+          isDefault: true,
+          isClosed: false,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '2',
+          teamId,
+          name: 'in_progress',
+          label: 'In Progress',
+          color: '#F59E0B',
+          order: 2,
+          isDefault: false,
+          isClosed: false,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: '3',
+          teamId,
+          name: 'resolved',
+          label: 'Resolved',
+          color: '#10B981',
+          order: 3,
+          isDefault: false,
+          isClosed: true,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ]);
     }
   };
@@ -106,14 +142,14 @@ const EmployeeDashboard: React.FC = () => {
   const handleTicketMove = async (ticketId: string, newStatus: string, newPriority: number) => {
     try {
       // Find the current ticket to check what needs updating
-      const currentTicket = tickets.find(t => t.id === ticketId);
+      const currentTicket = tickets.find((t) => t.id === ticketId);
       if (!currentTicket) return;
 
       // Only update status if it changed
       if (currentTicket.status !== newStatus) {
         await updateTicketStatus(ticketId, newStatus);
       }
-      
+
       // Only update priority if it changed
       if (currentTicket.priority !== newPriority) {
         await updateTicketPriority(ticketId, newPriority);
@@ -131,19 +167,19 @@ const EmployeeDashboard: React.FC = () => {
 
   const handleTicketSelect = (ticketId: string, selected: boolean) => {
     if (selected) {
-      setSelectedTickets(prev => [...prev, ticketId]);
+      setSelectedTickets((prev) => [...prev, ticketId]);
     } else {
-      setSelectedTickets(prev => prev.filter(id => id !== ticketId));
+      setSelectedTickets((prev) => prev.filter((id) => id !== ticketId));
     }
   };
 
   const handleSelectAll = (tickets: Ticket[]) => {
-    const allSelected = tickets.every(t => selectedTickets.includes(t.id));
+    const allSelected = tickets.every((t) => selectedTickets.includes(t.id));
     if (allSelected) {
-      setSelectedTickets(prev => prev.filter(id => !tickets.some(t => t.id === id)));
+      setSelectedTickets((prev) => prev.filter((id) => !tickets.some((t) => t.id === id)));
     } else {
-      const newSelections = tickets.map(t => t.id).filter(id => !selectedTickets.includes(id));
-      setSelectedTickets(prev => [...prev, ...newSelections]);
+      const newSelections = tickets.map((t) => t.id).filter((id) => !selectedTickets.includes(id));
+      setSelectedTickets((prev) => [...prev, ...newSelections]);
     }
   };
 
@@ -180,12 +216,10 @@ const EmployeeDashboard: React.FC = () => {
             <div className="flex items-center">
               <h1 className="text-2xl font-bold text-gray-900">Employee Dashboard</h1>
               {user && (
-                <span className="ml-4 text-sm text-gray-500">
-                  Welcome back, {user.firstName}!
-                </span>
+                <span className="ml-4 text-sm text-gray-500">Welcome back, {user.firstName}!</span>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-4">
               {/* View Toggle */}
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -241,8 +275,18 @@ const EmployeeDashboard: React.FC = () => {
                 onClick={() => setShowAdvancedSearch(true)}
                 className="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
               >
-                <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="w-4 h-4 mr-2 inline"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
                 Advanced Search
               </button>
@@ -266,7 +310,11 @@ const EmployeeDashboard: React.FC = () => {
                 className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50"
               >
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Profile
               </button>
@@ -283,7 +331,7 @@ const EmployeeDashboard: React.FC = () => {
             <select
               value={selectedQueue?.id || ''}
               onChange={(e) => {
-                const queue = queues.find(q => q.id === e.target.value);
+                const queue = queues.find((q) => q.id === e.target.value);
                 setSelectedQueue(queue || null);
               }}
               className="border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
@@ -311,10 +359,7 @@ const EmployeeDashboard: React.FC = () => {
               <h3 className="text-lg font-medium text-gray-900">
                 Search Results ({searchResults.length} tickets)
               </h3>
-              <button
-                onClick={clearSearch}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
+              <button onClick={clearSearch} className="text-sm text-gray-500 hover:text-gray-700">
                 Clear Search
               </button>
             </div>
@@ -357,8 +402,16 @@ const EmployeeDashboard: React.FC = () => {
               </div>
             ) : (
               <div className="text-center py-12">
-                <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                <svg
+                  className="w-12 h-12 mx-auto text-gray-400 mb-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No queues available</h3>
                 <p className="text-gray-500">Contact your administrator to set up queues.</p>
@@ -380,16 +433,12 @@ const EmployeeDashboard: React.FC = () => {
       )}
 
       {/* Profile Management Modal */}
-      {showProfile && (
-        <ProfileManagement
-          onClose={() => setShowProfile(false)}
-        />
-      )}
+      {showProfile && <ProfileManagement onClose={() => setShowProfile(false)} />}
 
       {/* Bulk Operations Modal */}
       {showBulkOperations && selectedTickets.length > 0 && (
         <BulkOperations
-          selectedTickets={tickets.filter(t => selectedTickets.includes(t.id))}
+          selectedTickets={tickets.filter((t) => selectedTickets.includes(t.id))}
           onOperationComplete={() => {
             setSelectedTickets([]);
             reloadTickets();

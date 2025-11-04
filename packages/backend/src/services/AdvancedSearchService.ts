@@ -7,7 +7,17 @@ import { ValidationError } from '../utils/errors';
 
 export interface SearchFilter {
   field: string;
-  operator: 'equals' | 'contains' | 'starts_with' | 'ends_with' | 'greater_than' | 'less_than' | 'in' | 'not_in' | 'is_null' | 'is_not_null';
+  operator:
+    | 'equals'
+    | 'contains'
+    | 'starts_with'
+    | 'ends_with'
+    | 'greater_than'
+    | 'less_than'
+    | 'in'
+    | 'not_in'
+    | 'is_null'
+    | 'is_not_null';
   value?: any;
   values?: any[];
 }
@@ -40,14 +50,38 @@ export class AdvancedSearchService {
     const fields: SearchableField[] = [
       // Standard ticket fields
       { name: 'title', label: 'Title', type: 'string', searchable: true, sortable: true },
-      { name: 'description', label: 'Description', type: 'string', searchable: true, sortable: false },
+      {
+        name: 'description',
+        label: 'Description',
+        type: 'string',
+        searchable: true,
+        sortable: false,
+      },
       { name: 'status', label: 'Status', type: 'select', searchable: true, sortable: true },
       { name: 'priority', label: 'Priority', type: 'number', searchable: true, sortable: true },
       { name: 'created_at', label: 'Created Date', type: 'date', searchable: true, sortable: true },
       { name: 'updated_at', label: 'Updated Date', type: 'date', searchable: true, sortable: true },
-      { name: 'resolved_at', label: 'Resolved Date', type: 'date', searchable: true, sortable: true },
-      { name: 'submitter_id', label: 'Submitter', type: 'select', searchable: true, sortable: true },
-      { name: 'assigned_to_id', label: 'Assignee', type: 'select', searchable: true, sortable: true },
+      {
+        name: 'resolved_at',
+        label: 'Resolved Date',
+        type: 'date',
+        searchable: true,
+        sortable: true,
+      },
+      {
+        name: 'submitter_id',
+        label: 'Submitter',
+        type: 'select',
+        searchable: true,
+        sortable: true,
+      },
+      {
+        name: 'assigned_to_id',
+        label: 'Assignee',
+        type: 'select',
+        searchable: true,
+        sortable: true,
+      },
       { name: 'company_id', label: 'Company', type: 'select', searchable: true, sortable: true },
       { name: 'queue_id', label: 'Queue', type: 'select', searchable: true, sortable: true },
     ];
@@ -84,7 +118,7 @@ export class AdvancedSearchService {
       page = 1,
       limit = 20,
       teamId,
-      companyIds
+      companyIds,
     } = request;
 
     // Build base query
@@ -108,22 +142,22 @@ export class AdvancedSearchService {
     // Apply permission filtering
     if (userRole === 'customer') {
       const userCompanies = await User.getUserCompanies(userId);
-      const userCompanyIds = userCompanies.map(uc => uc.companyId);
-      
+      const userCompanyIds = userCompanies.map((uc) => uc.companyId);
+
       if (userCompanyIds.length === 0) {
         return {
           data: [],
-          pagination: { page, limit, total: 0, totalPages: 0 }
+          pagination: { page, limit, total: 0, totalPages: 0 },
         };
       }
-      
+
       dbQuery = dbQuery.whereIn('t.company_id', userCompanyIds);
     } else if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
-      const teamIds = userTeams.map(ut => ut.teamId);
-      
+      const teamIds = userTeams.map((ut) => ut.teamId);
+
       if (teamIds.length > 0) {
-        dbQuery = dbQuery.where(function() {
+        dbQuery = dbQuery.where(function () {
           this.whereIn('t.team_id', teamIds).orWhere('t.assigned_to_id', userId);
         });
       } else {
@@ -144,7 +178,7 @@ export class AdvancedSearchService {
     // Apply general text search
     if (query && query.trim()) {
       const searchTerm = `%${query.trim()}%`;
-      dbQuery = dbQuery.where(function() {
+      dbQuery = dbQuery.where(function () {
         this.where('t.title', 'ilike', searchTerm)
           .orWhere('t.description', 'ilike', searchTerm)
           .orWhere('submitter.first_name', 'ilike', searchTerm)
@@ -170,9 +204,13 @@ export class AdvancedSearchService {
       const customFieldName = sortBy.replace('custom_field_', '');
       dbQuery = dbQuery.orderByRaw(`t.custom_field_values->>'${customFieldName}' ${sortOrder}`);
     } else if (sortBy === 'submitter_name') {
-      dbQuery = dbQuery.orderBy('submitter.first_name', sortOrder).orderBy('submitter.last_name', sortOrder);
+      dbQuery = dbQuery
+        .orderBy('submitter.first_name', sortOrder)
+        .orderBy('submitter.last_name', sortOrder);
     } else if (sortBy === 'assignee_name') {
-      dbQuery = dbQuery.orderBy('assignee.first_name', sortOrder).orderBy('assignee.last_name', sortOrder);
+      dbQuery = dbQuery
+        .orderBy('assignee.first_name', sortOrder)
+        .orderBy('assignee.last_name', sortOrder);
     } else {
       dbQuery = dbQuery.orderBy(`t.${sortBy}`, sortOrder);
     }
@@ -185,7 +223,7 @@ export class AdvancedSearchService {
     const tickets = await dbQuery;
 
     // Convert to models
-    const ticketModels = tickets.map(ticket => this.enrichTicketFromJoin(ticket));
+    const ticketModels = tickets.map((ticket) => this.enrichTicketFromJoin(ticket));
 
     return {
       data: ticketModels,
@@ -193,8 +231,8 @@ export class AdvancedSearchService {
         page,
         limit,
         total: totalCount,
-        totalPages: Math.ceil(totalCount / limit)
-      }
+        totalPages: Math.ceil(totalCount / limit),
+      },
     };
   }
 
@@ -216,34 +254,34 @@ export class AdvancedSearchService {
     switch (operator) {
       case 'equals':
         return query.where(dbField, value);
-      
+
       case 'contains':
         return query.where(dbField, 'ilike', `%${value}%`);
-      
+
       case 'starts_with':
         return query.where(dbField, 'ilike', `${value}%`);
-      
+
       case 'ends_with':
         return query.where(dbField, 'ilike', `%${value}`);
-      
+
       case 'greater_than':
         return query.where(dbField, '>', value);
-      
+
       case 'less_than':
         return query.where(dbField, '<', value);
-      
+
       case 'in':
         return query.whereIn(dbField, values || []);
-      
+
       case 'not_in':
         return query.whereNotIn(dbField, values || []);
-      
+
       case 'is_null':
         return query.whereNull(dbField);
-      
+
       case 'is_not_null':
         return query.whereNotNull(dbField);
-      
+
       default:
         throw new ValidationError(`Unsupported operator: ${operator}`);
     }
@@ -264,34 +302,34 @@ export class AdvancedSearchService {
     switch (operator) {
       case 'equals':
         return query.whereRaw(`${jsonPath} = ?`, [value]);
-      
+
       case 'contains':
         return query.whereRaw(`${jsonPath} ILIKE ?`, [`%${value}%`]);
-      
+
       case 'starts_with':
         return query.whereRaw(`${jsonPath} ILIKE ?`, [`${value}%`]);
-      
+
       case 'ends_with':
         return query.whereRaw(`${jsonPath} ILIKE ?`, [`%${value}`]);
-      
+
       case 'greater_than':
         return query.whereRaw(`(${jsonPath})::numeric > ?`, [value]);
-      
+
       case 'less_than':
         return query.whereRaw(`(${jsonPath})::numeric < ?`, [value]);
-      
+
       case 'in':
         return query.whereRaw(`${jsonPath} = ANY(?)`, [values]);
-      
+
       case 'not_in':
         return query.whereRaw(`${jsonPath} != ALL(?)`, [values]);
-      
+
       case 'is_null':
         return query.whereRaw(`${jsonPath} IS NULL OR ${jsonPath} = ''`);
-      
+
       case 'is_not_null':
         return query.whereRaw(`${jsonPath} IS NOT NULL AND ${jsonPath} != ''`);
-      
+
       default:
         throw new ValidationError(`Unsupported operator for custom field: ${operator}`);
     }

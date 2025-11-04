@@ -39,13 +39,14 @@ const retryPaymentSchema = Joi.object({
  * Create setup intent for payment method collection
  * POST /api/billing/setup-intent
  */
-router.post('/setup-intent', 
-  authenticate, 
+router.post(
+  '/setup-intent',
+  authenticate,
   validateRequest(createSetupIntentSchema),
   async (req, res, next) => {
     try {
       const userId = req.user!.id;
-      
+
       // Get user details
       const user = await User.findById(userId);
       if (!user) {
@@ -53,14 +54,10 @@ router.post('/setup-intent',
       }
 
       // Create or get Stripe customer
-      const customer = await StripeService.createOrGetCustomer(
-        userId,
-        user.email,
-        {
-          name: `${user.first_name} ${user.last_name}`.trim(),
-          metadata: { userId }
-        }
-      );
+      const customer = await StripeService.createOrGetCustomer(userId, user.email, {
+        name: `${user.first_name} ${user.last_name}`.trim(),
+        metadata: { userId },
+      });
 
       // Create setup intent
       const setupIntent = await StripeService.createSetupIntent(customer.id);
@@ -70,7 +67,7 @@ router.post('/setup-intent',
         data: {
           clientSecret: setupIntent.clientSecret,
           customerId: customer.id,
-        }
+        },
       });
     } catch (error) {
       next(error);
@@ -82,7 +79,8 @@ router.post('/setup-intent',
  * Create checkout session for subscription
  * POST /api/billing/checkout-session
  */
-router.post('/checkout-session',
+router.post(
+  '/checkout-session',
   authenticate,
   validateRequest(createCheckoutSessionSchema),
   async (req, res, next) => {
@@ -103,33 +101,25 @@ router.post('/checkout-session',
       }
 
       // Create or get Stripe customer
-      const customer = await StripeService.createOrGetCustomer(
-        userId,
-        user.email,
-        {
-          name: `${user.first_name} ${user.last_name}`.trim(),
-          metadata: { userId }
-        }
-      );
+      const customer = await StripeService.createOrGetCustomer(userId, user.email, {
+        name: `${user.first_name} ${user.last_name}`.trim(),
+        metadata: { userId },
+      });
 
       // Create checkout session
-      const session = await StripeService.createCheckoutSession(
-        customer.id,
-        priceId,
-        {
-          trialPeriodDays,
-          successUrl,
-          cancelUrl,
-          metadata: { userId }
-        }
-      );
+      const session = await StripeService.createCheckoutSession(customer.id, priceId, {
+        trialPeriodDays,
+        successUrl,
+        cancelUrl,
+        metadata: { userId },
+      });
 
       res.json({
         success: true,
         data: {
           url: session.url,
           sessionId: session.sessionId,
-        }
+        },
       });
     } catch (error) {
       next(error);
@@ -144,34 +134,38 @@ router.post('/checkout-session',
 router.get('/payment-methods', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get user's subscription to find Stripe customer ID
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription?.stripe_customer_id) {
       return res.json({
         success: true,
-        data: []
+        data: [],
       });
     }
 
     // Get payment methods from Stripe
-    const paymentMethods = await StripeService.getCustomerPaymentMethods(subscription.stripe_customer_id);
+    const paymentMethods = await StripeService.getCustomerPaymentMethods(
+      subscription.stripe_customer_id
+    );
 
-    const formattedPaymentMethods = paymentMethods.map(pm => ({
+    const formattedPaymentMethods = paymentMethods.map((pm) => ({
       id: pm.id,
       type: pm.type,
-      card: pm.card ? {
-        brand: pm.card.brand,
-        last4: pm.card.last4,
-        expMonth: pm.card.exp_month,
-        expYear: pm.card.exp_year,
-      } : null,
+      card: pm.card
+        ? {
+            brand: pm.card.brand,
+            last4: pm.card.last4,
+            expMonth: pm.card.exp_month,
+            expYear: pm.card.exp_year,
+          }
+        : null,
       created: new Date(pm.created * 1000),
     }));
 
     res.json({
       success: true,
-      data: formattedPaymentMethods
+      data: formattedPaymentMethods,
     });
   } catch (error) {
     next(error);
@@ -182,7 +176,8 @@ router.get('/payment-methods', authenticate, async (req, res, next) => {
  * Update default payment method
  * PUT /api/billing/payment-method
  */
-router.put('/payment-method',
+router.put(
+  '/payment-method',
   authenticate,
   validateRequest(updatePaymentMethodSchema),
   async (req, res, next) => {
@@ -199,7 +194,7 @@ router.put('/payment-method',
       // Update payment method in Stripe
       if (subscription.stripe_subscription_id) {
         await StripeService.updateSubscription(subscription.stripe_subscription_id, {
-          paymentMethodId
+          paymentMethodId,
         });
       }
 
@@ -208,7 +203,7 @@ router.put('/payment-method',
 
       res.json({
         success: true,
-        message: 'Payment method updated successfully'
+        message: 'Payment method updated successfully',
       });
     } catch (error) {
       next(error);
@@ -223,13 +218,13 @@ router.put('/payment-method',
 router.delete('/payment-method/:paymentMethodId', authenticate, async (req, res, next) => {
   try {
     const { paymentMethodId } = req.params;
-    
+
     // Detach payment method from Stripe
     await StripeService.detachPaymentMethod(paymentMethodId);
 
     res.json({
       success: true,
-      message: 'Payment method removed successfully'
+      message: 'Payment method removed successfully',
     });
   } catch (error) {
     next(error);
@@ -244,22 +239,25 @@ router.get('/invoices', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const limit = parseInt(req.query.limit as string) || 10;
-    
+
     // Get user's subscription to find Stripe customer ID
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription?.stripe_customer_id) {
       return res.json({
         success: true,
-        data: []
+        data: [],
       });
     }
 
     // Get invoices from Stripe
-    const invoices = await StripeService.getCustomerInvoices(subscription.stripe_customer_id, limit);
+    const invoices = await StripeService.getCustomerInvoices(
+      subscription.stripe_customer_id,
+      limit
+    );
 
     res.json({
       success: true,
-      data: invoices
+      data: invoices,
     });
   } catch (error) {
     next(error);
@@ -273,7 +271,7 @@ router.get('/invoices', authenticate, async (req, res, next) => {
 router.get('/upcoming-invoice', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get user's subscription
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription?.stripe_subscription_id) {
@@ -281,11 +279,13 @@ router.get('/upcoming-invoice', authenticate, async (req, res, next) => {
     }
 
     // Get upcoming invoice from Stripe
-    const upcomingInvoice = await StripeService.getUpcomingInvoice(subscription.stripe_subscription_id);
+    const upcomingInvoice = await StripeService.getUpcomingInvoice(
+      subscription.stripe_subscription_id
+    );
 
     res.json({
       success: true,
-      data: upcomingInvoice
+      data: upcomingInvoice,
     });
   } catch (error) {
     next(error);
@@ -296,19 +296,20 @@ router.get('/upcoming-invoice', authenticate, async (req, res, next) => {
  * Retry failed payment
  * POST /api/billing/retry-payment
  */
-router.post('/retry-payment',
+router.post(
+  '/retry-payment',
   authenticate,
   validateRequest(retryPaymentSchema),
   async (req, res, next) => {
     try {
       const { invoiceId } = req.body;
-      
+
       // Retry payment
       const result = await StripeService.retryInvoicePayment(invoiceId);
 
       res.json({
         success: true,
-        data: result
+        data: result,
       });
     } catch (error) {
       next(error);
@@ -324,7 +325,7 @@ router.post('/customer-portal', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const { returnUrl } = req.body;
-    
+
     // Get user's subscription to find Stripe customer ID
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription?.stripe_customer_id) {
@@ -340,8 +341,8 @@ router.post('/customer-portal', authenticate, async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        url: session.url
-      }
+        url: session.url,
+      },
     });
   } catch (error) {
     next(error);
@@ -355,7 +356,7 @@ router.post('/customer-portal', authenticate, async (req, res, next) => {
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res, next) => {
   try {
     const signature = req.headers['stripe-signature'] as string;
-    
+
     if (!signature) {
       throw new AppError('Missing Stripe signature', 400);
     }
@@ -367,13 +368,13 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       logger.info('Webhook processed successfully', {
         eventType: result.eventType,
         eventId: result.eventId,
-        message: result.message
+        message: result.message,
       });
     } else {
       logger.warn('Webhook not processed', {
         eventType: result.eventType,
         eventId: result.eventId,
-        error: result.error
+        error: result.error,
       });
     }
 
@@ -381,17 +382,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     res.json({
       success: true,
       processed: result.processed,
-      message: result.message || result.error
+      message: result.message || result.error,
     });
   } catch (error) {
     logger.error('Webhook processing failed', {
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
-    
+
     // Return 400 for webhook errors to trigger retry
     res.status(400).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Webhook processing failed'
+      error: error instanceof Error ? error.message : 'Webhook processing failed',
     });
   }
 });
@@ -403,7 +404,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 router.get('/summary', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get subscription details
     const subscriptionDetails = await SubscriptionService.getUserSubscription(userId);
     if (!subscriptionDetails) {
@@ -413,8 +414,8 @@ router.get('/summary', authenticate, async (req, res, next) => {
           hasSubscription: false,
           subscription: null,
           upcomingInvoice: null,
-          paymentMethods: []
-        }
+          paymentMethods: [],
+        },
       });
     }
 
@@ -430,7 +431,7 @@ router.get('/summary', authenticate, async (req, res, next) => {
       } catch (error) {
         logger.warn('Could not fetch upcoming invoice', {
           subscriptionId: subscriptionDetails.subscription.id,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -440,21 +441,23 @@ router.get('/summary', authenticate, async (req, res, next) => {
         const stripePMs = await StripeService.getCustomerPaymentMethods(
           subscriptionDetails.subscription.stripeCustomerId
         );
-        paymentMethods = stripePMs.map(pm => ({
+        paymentMethods = stripePMs.map((pm) => ({
           id: pm.id,
           type: pm.type,
-          card: pm.card ? {
-            brand: pm.card.brand,
-            last4: pm.card.last4,
-            expMonth: pm.card.exp_month,
-            expYear: pm.card.exp_year,
-          } : null,
+          card: pm.card
+            ? {
+                brand: pm.card.brand,
+                last4: pm.card.last4,
+                expMonth: pm.card.exp_month,
+                expYear: pm.card.exp_year,
+              }
+            : null,
           created: new Date(pm.created * 1000),
         }));
       } catch (error) {
         logger.warn('Could not fetch payment methods', {
           customerId: subscriptionDetails.subscription.stripeCustomerId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -465,8 +468,8 @@ router.get('/summary', authenticate, async (req, res, next) => {
         hasSubscription: true,
         subscription: subscriptionDetails,
         upcomingInvoice,
-        paymentMethods
-      }
+        paymentMethods,
+      },
     });
   } catch (error) {
     next(error);
@@ -481,13 +484,13 @@ router.get('/history', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const limit = parseInt(req.query.limit as string) || 10;
-    
+
     // Get billing history from our database
     const billingHistory = await BillingService.getUserBillingHistory(userId, limit);
 
     res.json({
       success: true,
-      data: billingHistory
+      data: billingHistory,
     });
   } catch (error) {
     next(error);
@@ -501,25 +504,25 @@ router.get('/history', authenticate, async (req, res, next) => {
 router.get('/failed-payments', authenticate, async (req, res, next) => {
   try {
     const userId = req.user!.id;
-    
+
     // Get user's subscription
     const subscription = await CustomerSubscription.findByUserId(userId);
     if (!subscription) {
       return res.json({
         success: true,
-        data: []
+        data: [],
       });
     }
 
     // Get failed payments for this subscription
     const allFailedPayments = await BillingService.getFailedPayments();
     const userFailedPayments = allFailedPayments.filter(
-      payment => payment.subscriptionId === subscription.id
+      (payment) => payment.subscriptionId === subscription.id
     );
 
     res.json({
       success: true,
-      data: userFailedPayments
+      data: userFailedPayments,
     });
   } catch (error) {
     next(error);
@@ -533,21 +536,22 @@ router.get('/failed-payments', authenticate, async (req, res, next) => {
 router.get('/revenue-stats', authenticate, async (req, res, next) => {
   try {
     const user = req.user!;
-    
+
     // Check if user is admin
     if (user.role !== 'admin') {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : 
-      new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const startDate = req.query.startDate
+      ? new Date(req.query.startDate as string)
+      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
 
     const stats = await BillingService.getRevenueStats(startDate, endDate);
 
     res.json({
       success: true,
-      data: stats
+      data: stats,
     });
   } catch (error) {
     next(error);
@@ -561,7 +565,7 @@ router.get('/revenue-stats', authenticate, async (req, res, next) => {
 router.get('/monthly-revenue', authenticate, async (req, res, next) => {
   try {
     const user = req.user!;
-    
+
     // Check if user is admin
     if (user.role !== 'admin') {
       throw new AppError('Access denied. Admin role required.', 403);
@@ -572,7 +576,7 @@ router.get('/monthly-revenue', authenticate, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: monthlyRevenue
+      data: monthlyRevenue,
     });
   } catch (error) {
     next(error);
@@ -586,7 +590,7 @@ router.get('/monthly-revenue', authenticate, async (req, res, next) => {
 router.get('/dashboard', authenticate, async (req, res, next) => {
   try {
     const user = req.user!;
-    
+
     // Check if user is admin
     if (user.role !== 'admin') {
       throw new AppError('Access denied. Admin role required.', 403);
@@ -596,7 +600,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: summary
+      data: summary,
     });
   } catch (error) {
     next(error);
@@ -610,7 +614,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
 router.get('/pending-payments', authenticate, async (req, res, next) => {
   try {
     const user = req.user!;
-    
+
     // Check if user is admin
     if (user.role !== 'admin') {
       throw new AppError('Access denied. Admin role required.', 403);
@@ -620,7 +624,7 @@ router.get('/pending-payments', authenticate, async (req, res, next) => {
 
     res.json({
       success: true,
-      data: pendingPayments
+      data: pendingPayments,
     });
   } catch (error) {
     next(error);
@@ -634,7 +638,7 @@ router.get('/pending-payments', authenticate, async (req, res, next) => {
 router.post('/sync-invoice', authenticate, async (req, res, next) => {
   try {
     const user = req.user!;
-    
+
     // Check if user is admin
     if (user.role !== 'admin') {
       throw new AppError('Access denied. Admin role required.', 403);
@@ -647,14 +651,14 @@ router.post('/sync-invoice', authenticate, async (req, res, next) => {
 
     // Get invoice from Stripe
     const stripeInvoice = await stripe.invoices.retrieve(invoiceId);
-    
+
     // Create or update billing record
     const billingRecord = await BillingService.updateBillingRecordFromStripeInvoice(stripeInvoice);
 
     res.json({
       success: true,
       data: billingRecord,
-      message: 'Invoice synced successfully'
+      message: 'Invoice synced successfully',
     });
   } catch (error) {
     next(error);
@@ -668,7 +672,7 @@ router.post('/sync-invoice', authenticate, async (req, res, next) => {
 router.post('/run-jobs', authenticate, async (req, res, next) => {
   try {
     const user = req.user!;
-    
+
     // Check if user is admin
     if (user.role !== 'admin') {
       throw new AppError('Access denied. Admin role required.', 403);
@@ -701,7 +705,7 @@ router.post('/run-jobs', authenticate, async (req, res, next) => {
     res.json({
       success: true,
       data: result,
-      message: `${jobType} job completed successfully`
+      message: `${jobType} job completed successfully`,
     });
   } catch (error) {
     next(error);

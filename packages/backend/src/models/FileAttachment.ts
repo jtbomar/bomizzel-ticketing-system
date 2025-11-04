@@ -41,10 +41,13 @@ export class FileAttachment extends BaseModel {
     return this.query.where('note_id', noteId).orderBy('created_at', 'desc');
   }
 
-  static async findByUser(uploadedById: string, options: {
-    limit?: number;
-    offset?: number;
-  } = {}): Promise<FileAttachmentTable[]> {
+  static async findByUser(
+    uploadedById: string,
+    options: {
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<FileAttachmentTable[]> {
     let query = this.query.where('uploaded_by_id', uploadedById);
 
     if (options.limit) {
@@ -65,10 +68,8 @@ export class FileAttachment extends BaseModel {
 
   static async getAttachmentsByTickets(ticketIds: string[]): Promise<FileAttachmentTable[]> {
     if (ticketIds.length === 0) return [];
-    
-    return this.query
-      .whereIn('ticket_id', ticketIds)
-      .orderBy('created_at', 'desc');
+
+    return this.query.whereIn('ticket_id', ticketIds).orderBy('created_at', 'desc');
   }
 
   static async getTotalSizeByUser(uploadedById: string): Promise<number> {
@@ -76,7 +77,7 @@ export class FileAttachment extends BaseModel {
       .where('uploaded_by_id', uploadedById)
       .sum('file_size as total_size')
       .first();
-    
+
     return result?.total_size || 0;
   }
 
@@ -85,7 +86,7 @@ export class FileAttachment extends BaseModel {
       .where('ticket_id', ticketId)
       .sum('file_size as total_size')
       .first();
-    
+
     return result?.total_size || 0;
   }
 

@@ -56,7 +56,9 @@ export class TicketArchivalService {
 
     // Check if ticket can be archived
     if (!this.canArchiveTicket(ticket)) {
-      throw new ValidationError('Ticket cannot be archived. Only completed or closed tickets can be archived.');
+      throw new ValidationError(
+        'Ticket cannot be archived. Only completed or closed tickets can be archived.'
+      );
     }
 
     // Check if already archived
@@ -72,28 +74,24 @@ export class TicketArchivalService {
       await Ticket.addHistory(ticketId, archivedById, 'archived');
 
       // Track archival for subscription usage
-      await UsageTrackingService.recordTicketArchival(
-        ticket.submitter_id,
-        ticketId,
-        {
-          archivedBy: archivedById,
-          userRole,
-          originalStatus: ticket.status,
-          teamId: ticket.team_id
-        }
-      );
+      await UsageTrackingService.recordTicketArchival(ticket.submitter_id, ticketId, {
+        archivedBy: archivedById,
+        userRole,
+        originalStatus: ticket.status,
+        teamId: ticket.team_id,
+      });
 
       logger.info('Ticket archived successfully', {
         ticketId,
         archivedById,
         submitterId: ticket.submitter_id,
-        status: ticket.status
+        status: ticket.status,
       });
     } catch (error) {
       logger.error('Failed to archive ticket', {
         ticketId,
         archivedById,
-        error
+        error,
       });
       throw error;
     }
@@ -128,28 +126,24 @@ export class TicketArchivalService {
       await Ticket.addHistory(ticketId, restoredById, 'restored');
 
       // Track restoration for subscription usage (reverse archival)
-      await UsageTrackingService.recordTicketRestoration(
-        ticket.submitter_id,
-        ticketId,
-        {
-          restoredBy: restoredById,
-          userRole,
-          currentStatus: ticket.status,
-          teamId: ticket.team_id
-        }
-      );
+      await UsageTrackingService.recordTicketRestoration(ticket.submitter_id, ticketId, {
+        restoredBy: restoredById,
+        userRole,
+        currentStatus: ticket.status,
+        teamId: ticket.team_id,
+      });
 
       logger.info('Ticket restored successfully', {
         ticketId,
         restoredById,
         submitterId: ticket.submitter_id,
-        status: ticket.status
+        status: ticket.status,
       });
     } catch (error) {
       logger.error('Failed to restore ticket', {
         ticketId,
         restoredById,
-        error
+        error,
       });
       throw error;
     }
@@ -167,7 +161,7 @@ export class TicketArchivalService {
       successful: [],
       failed: [],
       totalProcessed: ticketIds.length,
-      archivedCount: 0
+      archivedCount: 0,
     };
 
     for (const ticketId of ticketIds) {
@@ -178,7 +172,7 @@ export class TicketArchivalService {
       } catch (error) {
         result.failed.push({
           ticketId,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -187,7 +181,7 @@ export class TicketArchivalService {
       totalProcessed: result.totalProcessed,
       successful: result.archivedCount,
       failed: result.failed.length,
-      archivedById
+      archivedById,
     });
 
     return result;
@@ -209,15 +203,16 @@ export class TicketArchivalService {
 
     // Get current usage
     const usage = await UsageTrackingService.getCurrentUsage(userId);
-    
+
     // Check if user is approaching completed ticket limits
     const completedLimit = 100; // Mock limit for demo
-    if (completedLimit < 0) { // Unlimited plan
+    if (completedLimit < 0) {
+      // Unlimited plan
       return [];
     }
 
     const completedUsagePercentage = (usage.completedTickets / completedLimit) * 100;
-    
+
     // Only suggest archival if approaching limits (75% or more)
     if (completedUsagePercentage < 75) {
       return [];
@@ -225,8 +220,8 @@ export class TicketArchivalService {
 
     // Get completed tickets that can be archived
     const archivableTickets = await this.getArchivableTickets(userId, userRole, limit);
-    
-    const suggestions: ArchivalSuggestion[] = archivableTickets.map(ticket => {
+
+    const suggestions: ArchivalSuggestion[] = archivableTickets.map((ticket) => {
       const completedAt = ticket.resolved_at || ticket.closed_at || ticket.updated_at;
       const daysSinceCompletion = Math.floor(
         (Date.now() - new Date(completedAt).getTime()) / (1000 * 60 * 60 * 24)
@@ -239,9 +234,10 @@ export class TicketArchivalService {
         completedAt: new Date(completedAt),
         daysSinceCompletion,
         canArchive: this.canArchiveTicket(ticket),
-        reason: daysSinceCompletion > 30 
-          ? 'Completed over 30 days ago' 
-          : 'Approaching completed ticket limit'
+        reason:
+          daysSinceCompletion > 30
+            ? 'Completed over 30 days ago'
+            : 'Approaching completed ticket limit',
       };
     });
 
@@ -267,18 +263,18 @@ export class TicketArchivalService {
     if (userRole === 'customer') {
       // Customers can only see their own tickets
       const userCompanies = await User.getUserCompanies(userId);
-      const companyIds = userCompanies.map(uc => uc.companyId);
-      
+      const companyIds = userCompanies.map((uc) => uc.companyId);
+
       if (companyIds.length === 0) {
         return [];
       }
-      
+
       query = query.whereIn('company_id', companyIds);
     } else if (userRole === 'employee') {
       // Employees can see tickets from their teams
       const userTeams = await User.getUserTeams(userId);
-      const teamIds = userTeams.map(ut => ut.teamId);
-      
+      const teamIds = userTeams.map((ut) => ut.teamId);
+
       if (teamIds.length > 0) {
         query = query.whereIn('team_id', teamIds);
       }
@@ -304,17 +300,17 @@ export class TicketArchivalService {
     // Apply permission filtering
     if (userRole === 'customer') {
       const userCompanies = await User.getUserCompanies(userId);
-      const companyIds = userCompanies.map(uc => uc.companyId);
-      
+      const companyIds = userCompanies.map((uc) => uc.companyId);
+
       if (companyIds.length === 0) {
         return { tickets: [], total: 0 };
       }
-      
+
       query = query.whereIn('company_id', companyIds);
     } else if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
-      const teamIds = userTeams.map(ut => ut.teamId);
-      
+      const teamIds = userTeams.map((ut) => ut.teamId);
+
       if (teamIds.length > 0) {
         query = query.whereIn('team_id', teamIds);
       }
@@ -322,9 +318,12 @@ export class TicketArchivalService {
 
     // Apply search filters
     if (options.query) {
-      query = query.where(function() {
-        this.where('title', 'ilike', `%${options.query}%`)
-            .orWhere('description', 'ilike', `%${options.query}%`);
+      query = query.where(function () {
+        this.where('title', 'ilike', `%${options.query}%`).orWhere(
+          'description',
+          'ilike',
+          `%${options.query}%`
+        );
       });
     }
 
@@ -333,16 +332,13 @@ export class TicketArchivalService {
     }
 
     if (options.dateRange) {
-      query = query.whereBetween('archived_at', [
-        options.dateRange.start,
-        options.dateRange.end
-      ]);
+      query = query.whereBetween('archived_at', [options.dateRange.start, options.dateRange.end]);
     }
 
     // Get total count
     const totalQuery = query.clone();
     const totalResult = await totalQuery.count('* as count').first();
-    const total = parseInt(totalResult?.count as string || '0');
+    const total = parseInt((totalResult?.count as string) || '0');
 
     // Apply pagination
     if (options.limit) {
@@ -364,7 +360,10 @@ export class TicketArchivalService {
   /**
    * Get archival statistics for a user
    */
-  static async getArchivalStats(userId: string, userRole: string): Promise<{
+  static async getArchivalStats(
+    userId: string,
+    userRole: string
+  ): Promise<{
     totalArchived: number;
     archivedThisMonth: number;
     archivedThisYear: number;
@@ -376,21 +375,21 @@ export class TicketArchivalService {
     // Apply permission filtering
     if (userRole === 'customer') {
       const userCompanies = await User.getUserCompanies(userId);
-      const companyIds = userCompanies.map(uc => uc.companyId);
-      
+      const companyIds = userCompanies.map((uc) => uc.companyId);
+
       if (companyIds.length === 0) {
         return {
           totalArchived: 0,
           archivedThisMonth: 0,
-          archivedThisYear: 0
+          archivedThisYear: 0,
         };
       }
-      
+
       baseQuery = baseQuery.whereIn('company_id', companyIds);
     } else if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
-      const teamIds = userTeams.map(ut => ut.teamId);
-      
+      const teamIds = userTeams.map((ut) => ut.teamId);
+
       if (teamIds.length > 0) {
         baseQuery = baseQuery.whereIn('team_id', teamIds);
       }
@@ -400,26 +399,20 @@ export class TicketArchivalService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    const [
-      totalResult,
-      monthResult,
-      yearResult,
-      oldestResult,
-      newestResult
-    ] = await Promise.all([
+    const [totalResult, monthResult, yearResult, oldestResult, newestResult] = await Promise.all([
       baseQuery.clone().count('* as count').first(),
       baseQuery.clone().where('archived_at', '>=', startOfMonth).count('* as count').first(),
       baseQuery.clone().where('archived_at', '>=', startOfYear).count('* as count').first(),
       baseQuery.clone().orderBy('archived_at', 'asc').select('archived_at').first(),
-      baseQuery.clone().orderBy('archived_at', 'desc').select('archived_at').first()
+      baseQuery.clone().orderBy('archived_at', 'desc').select('archived_at').first(),
     ]);
 
     return {
-      totalArchived: parseInt(totalResult?.count as string || '0'),
-      archivedThisMonth: parseInt(monthResult?.count as string || '0'),
-      archivedThisYear: parseInt(yearResult?.count as string || '0'),
+      totalArchived: parseInt((totalResult?.count as string) || '0'),
+      archivedThisMonth: parseInt((monthResult?.count as string) || '0'),
+      archivedThisYear: parseInt((yearResult?.count as string) || '0'),
       oldestArchived: oldestResult?.archived_at || undefined,
-      newestArchived: newestResult?.archived_at || undefined
+      newestArchived: newestResult?.archived_at || undefined,
     };
   }
 
@@ -443,8 +436,8 @@ export class TicketArchivalService {
     if (userRole === 'customer') {
       // Customers can only archive tickets from their companies
       const userCompanies = await User.getUserCompanies(userId);
-      const hasAccess = userCompanies.some(uc => uc.companyId === ticket.company_id);
-      
+      const hasAccess = userCompanies.some((uc) => uc.companyId === ticket.company_id);
+
       if (!hasAccess) {
         throw new ForbiddenError('Access denied to ticket');
       }
@@ -453,10 +446,10 @@ export class TicketArchivalService {
       if (ticket.assigned_to_id === userId) {
         return; // Can archive assigned tickets
       }
-      
+
       const userTeams = await User.getUserTeams(userId);
-      const hasTeamAccess = userTeams.some(ut => ut.teamId === ticket.team_id);
-      
+      const hasTeamAccess = userTeams.some((ut) => ut.teamId === ticket.team_id);
+
       if (!hasTeamAccess) {
         throw new ForbiddenError('Access denied to ticket');
       }

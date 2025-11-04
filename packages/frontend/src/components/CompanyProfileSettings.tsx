@@ -8,14 +8,14 @@ interface CompanyProfile {
   logoUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;
-  
+
   // Contact info
   primaryContactName?: string;
   primaryContactEmail?: string;
   primaryContactPhone?: string;
   mobilePhone?: string;
   websiteUrl?: string;
-  
+
   // Address
   addressLine1?: string;
   addressLine2?: string;
@@ -23,14 +23,14 @@ interface CompanyProfile {
   stateProvince?: string;
   postalCode?: string;
   country?: string;
-  
+
   // Settings
   timezone: string;
   dateFormat: string;
   timeFormat: string;
   currency: string;
   language: string;
-  
+
   // Company settings
   allowPublicRegistration: boolean;
   requireEmailVerification: boolean;
@@ -56,13 +56,13 @@ const CompanyProfileSettings: React.FC = () => {
       const token = localStorage.getItem('token');
       console.log('Loading company profile...');
       console.log('Token:', token ? 'Present' : 'Missing');
-      
+
       const url = `http://localhost:3001/api/company-registration/profile`;
       console.log('Fetching:', url);
-      
+
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -99,7 +99,7 @@ const CompanyProfileSettings: React.FC = () => {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(profile),
       });
@@ -152,9 +152,7 @@ const CompanyProfileSettings: React.FC = () => {
   const renderBasicInfo = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Company Name *
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Company Name *</label>
         <input
           type="text"
           value={profile.name}
@@ -164,9 +162,7 @@ const CompanyProfileSettings: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Company Domain
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Company Domain</label>
         <input
           type="text"
           value={profile.domain || ''}
@@ -177,9 +173,7 @@ const CompanyProfileSettings: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Description
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
         <textarea
           value={profile.description || ''}
           onChange={(e) => handleChange('description', e.target.value)}
@@ -190,9 +184,7 @@ const CompanyProfileSettings: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Website URL
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Website URL</label>
         <input
           type="url"
           value={profile.websiteUrl || ''}
@@ -232,9 +224,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Primary Phone
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Primary Phone</label>
           <input
             type="tel"
             value={profile.primaryContactPhone || ''}
@@ -245,9 +235,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mobile Phone
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Phone</label>
           <input
             type="tel"
             value={profile.mobilePhone || ''}
@@ -263,9 +251,7 @@ const CompanyProfileSettings: React.FC = () => {
   const renderAddress = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Address Line 1
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 1</label>
         <input
           type="text"
           value={profile.addressLine1 || ''}
@@ -276,9 +262,7 @@ const CompanyProfileSettings: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Address Line 2
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
         <input
           type="text"
           value={profile.addressLine2 || ''}
@@ -290,9 +274,7 @@ const CompanyProfileSettings: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            City
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
           <input
             type="text"
             value={profile.city || ''}
@@ -302,9 +284,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            State/Province
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
           <input
             type="text"
             value={profile.stateProvince || ''}
@@ -314,9 +294,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Postal Code
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
           <input
             type="text"
             value={profile.postalCode || ''}
@@ -327,9 +305,7 @@ const CompanyProfileSettings: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Country
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
         <select
           value={profile.country || ''}
           onChange={(e) => handleChange('country', e.target.value)}
@@ -352,9 +328,7 @@ const CompanyProfileSettings: React.FC = () => {
   const renderBranding = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Logo URL
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Logo URL</label>
         <input
           type="url"
           value={profile.logoUrl || ''}
@@ -378,9 +352,7 @@ const CompanyProfileSettings: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Primary Color
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Primary Color</label>
           <div className="flex items-center space-x-2">
             <input
               type="color"
@@ -399,9 +371,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Secondary Color
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Secondary Color</label>
           <div className="flex items-center space-x-2">
             <input
               type="color"
@@ -426,9 +396,7 @@ const CompanyProfileSettings: React.FC = () => {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Timezone
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
           <select
             value={profile.timezone}
             onChange={(e) => handleChange('timezone', e.target.value)}
@@ -446,9 +414,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Date Format
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
           <select
             value={profile.dateFormat}
             onChange={(e) => handleChange('dateFormat', e.target.value)}
@@ -461,9 +427,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Time Format
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Time Format</label>
           <select
             value={profile.timeFormat}
             onChange={(e) => handleChange('timeFormat', e.target.value)}
@@ -475,9 +439,7 @@ const CompanyProfileSettings: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Currency
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
           <select
             value={profile.currency}
             onChange={(e) => handleChange('currency', e.target.value)}
@@ -521,9 +483,7 @@ const CompanyProfileSettings: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Welcome Message
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Welcome Message</label>
         <textarea
           value={profile.welcomeMessage || ''}
           onChange={(e) => handleChange('welcomeMessage', e.target.value)}

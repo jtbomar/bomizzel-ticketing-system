@@ -1,7 +1,11 @@
 import { TicketNote } from '@/models/TicketNote';
 import { Ticket } from '@/models/Ticket';
 import { FileAttachment } from '@/models/FileAttachment';
-import { TicketNote as TicketNoteModel, CreateNoteRequest, PaginatedResponse } from '@/types/models';
+import {
+  TicketNote as TicketNoteModel,
+  CreateNoteRequest,
+  PaginatedResponse,
+} from '@/types/models';
 
 export class TicketNoteService {
   static async createNote(
@@ -169,7 +173,8 @@ export class TicketNoteService {
     if (options.ticketIds) searchOptions.ticketIds = options.ticketIds;
     if (options.authorId) searchOptions.authorId = options.authorId;
     if (options.isInternal !== undefined) searchOptions.isInternal = options.isInternal;
-    if (options.isEmailGenerated !== undefined) searchOptions.isEmailGenerated = options.isEmailGenerated;
+    if (options.isEmailGenerated !== undefined)
+      searchOptions.isEmailGenerated = options.isEmailGenerated;
 
     const notes = await TicketNote.searchNotes(searchOptions);
 
@@ -179,12 +184,13 @@ export class TicketNoteService {
     if (options.ticketIds) totalOptions.ticketIds = options.ticketIds;
     if (options.authorId) totalOptions.authorId = options.authorId;
     if (options.isInternal !== undefined) totalOptions.isInternal = options.isInternal;
-    if (options.isEmailGenerated !== undefined) totalOptions.isEmailGenerated = options.isEmailGenerated;
+    if (options.isEmailGenerated !== undefined)
+      totalOptions.isEmailGenerated = options.isEmailGenerated;
 
     const total = await TicketNote.searchNotes(totalOptions);
 
     return {
-      data: notes.map(note => TicketNote.toModel(note)),
+      data: notes.map((note) => TicketNote.toModel(note)),
       pagination: {
         page,
         limit,

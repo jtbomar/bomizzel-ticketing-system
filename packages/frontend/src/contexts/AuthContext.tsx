@@ -54,10 +54,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Use the backend API for authentication
       const response = await apiService.login(email, password);
       const { token, user: backendUser } = response;
-      
+
       // Store the token
       localStorage.setItem('token', token);
-      
+
       // Convert backend user to frontend User type
       const frontendUser: User = {
         id: backendUser.id,
@@ -84,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: new Date(backendUser.createdAt || Date.now()),
         updatedAt: new Date(backendUser.updatedAt || Date.now()),
       };
-      
+
       setUser(frontendUser);
       localStorage.setItem('user', JSON.stringify(frontendUser));
     } catch (error: any) {
@@ -120,16 +120,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         lastName: userData.lastName,
         role: userData.role || 'customer',
         selectedPlanId: userData.selectedPlanId,
-        startTrial: userData.startTrial
+        startTrial: userData.startTrial,
       });
-      
+
       const { user: registeredUser, token, refreshToken } = response;
-      
+
       // Store tokens
       localStorage.setItem('token', token);
       localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(registeredUser));
-      
+
       setUser(registeredUser);
     } catch (error: any) {
       throw new Error(error.response?.data?.message || error.message || 'Registration failed');

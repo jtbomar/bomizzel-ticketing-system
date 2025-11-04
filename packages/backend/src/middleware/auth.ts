@@ -21,23 +21,27 @@ declare global {
 /**
  * Middleware to authenticate requests using JWT tokens
  */
-export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const token = JWTUtils.extractTokenFromHeader(req.headers.authorization);
-    
+
     if (!token) {
       throw new AppError('Authentication token required', 401, 'MISSING_TOKEN');
     }
 
     const payload = JWTUtils.verifyAccessToken(token);
-    
+
     if (!payload) {
       throw new AppError('Invalid or expired token', 401, 'INVALID_TOKEN');
     }
 
     // Verify user still exists and is active
     const user = await User.findById(payload.userId);
-    
+
     if (!user) {
       throw new AppError('User not found', 401, 'USER_NOT_FOUND');
     }
@@ -76,10 +80,12 @@ export const authorize = (...allowedRoles: string[]) => {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      next(new AppError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS', {
-        requiredRoles: allowedRoles,
-        userRole: req.user.role,
-      }));
+      next(
+        new AppError('Insufficient permissions', 403, 'INSUFFICIENT_PERMISSIONS', {
+          requiredRoles: allowedRoles,
+          userRole: req.user.role,
+        })
+      );
       return;
     }
 
@@ -90,20 +96,24 @@ export const authorize = (...allowedRoles: string[]) => {
 /**
  * Middleware for optional authentication (doesn't fail if no token)
  */
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const optionalAuth = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const token = JWTUtils.extractTokenFromHeader(req.headers.authorization);
-    
+
     if (!token) {
       next();
       return;
     }
 
     const payload = JWTUtils.verifyAccessToken(token);
-    
+
     if (payload) {
       const user = await User.findById(payload.userId);
-      
+
       if (user && user.is_active) {
         req.user = {
           id: user.id,
@@ -133,7 +143,7 @@ export const authorizeOwnerOrAdmin = (userIdParam: string = 'userId') => {
     }
 
     const resourceUserId = req.params[userIdParam];
-    
+
     // Allow if user is admin or owns the resource
     if (req.user.role === 'admin' || req.user.id === resourceUserId) {
       next();
@@ -147,14 +157,18 @@ export const authorizeOwnerOrAdmin = (userIdParam: string = 'userId') => {
 /**
  * Middleware to check if user belongs to a company
  */
-export const authorizeCompanyMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authorizeCompanyMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     if (!req.user) {
       throw new AppError('Authentication required', 401, 'AUTH_REQUIRED');
     }
 
     const companyId = req.params.companyId || req.body.companyId;
-    
+
     if (!companyId) {
       throw new AppError('Company ID required', 400, 'COMPANY_ID_REQUIRED');
     }
@@ -168,7 +182,7 @@ export const authorizeCompanyMember = async (req: Request, res: Response, next: 
     // Check if user is associated with the company
     const { Company } = await import('@/models/Company');
     const isCompanyMember = await Company.isUserInCompany(req.user.id, companyId);
-    
+
     if (!isCompanyMember) {
       throw new AppError('Access denied to company resources', 403, 'COMPANY_ACCESS_DENIED');
     }
@@ -187,14 +201,18 @@ export const authorizeCompanyMember = async (req: Request, res: Response, next: 
 /**
  * Middleware to check if user belongs to a team
  */
-export const authorizeTeamMember = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authorizeTeamMember = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     if (!req.user) {
       throw new AppError('Authentication required', 401, 'AUTH_REQUIRED');
     }
 
     const teamId = req.params.teamId || req.body.teamId;
-    
+
     if (!teamId) {
       throw new AppError('Team ID required', 400, 'TEAM_ID_REQUIRED');
     }
@@ -208,7 +226,7 @@ export const authorizeTeamMember = async (req: Request, res: Response, next: Nex
     // Check if user is a member of the team
     const { Team } = await import('@/models/Team');
     const isTeamMember = await Team.isUserInTeam(req.user.id, teamId);
-    
+
     if (!isTeamMember) {
       throw new AppError('Access denied to team resources', 403, 'TEAM_ACCESS_DENIED');
     }
@@ -227,14 +245,18 @@ export const authorizeTeamMember = async (req: Request, res: Response, next: Nex
 /**
  * Middleware to check if user is a team lead or admin
  */
-export const authorizeTeamLead = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const authorizeTeamLead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     if (!req.user) {
       throw new AppError('Authentication required', 401, 'AUTH_REQUIRED');
     }
 
     const teamId = req.params.teamId || req.body.teamId;
-    
+
     if (!teamId) {
       throw new AppError('Team ID required', 400, 'TEAM_ID_REQUIRED');
     }
@@ -248,7 +270,7 @@ export const authorizeTeamLead = async (req: Request, res: Response, next: NextF
     // Check if user is a team lead
     const { Team } = await import('@/models/Team');
     const isTeamLead = await Team.isTeamLead(req.user.id, teamId);
-    
+
     if (!isTeamLead) {
       throw new AppError('Team lead privileges required', 403, 'TEAM_LEAD_REQUIRED');
     }

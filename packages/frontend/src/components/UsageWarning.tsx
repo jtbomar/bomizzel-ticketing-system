@@ -1,5 +1,9 @@
 import React from 'react';
-import { ExclamationTriangleIcon, InformationCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import {
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  XCircleIcon,
+} from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 
 export interface UsageWarningData {
@@ -20,7 +24,7 @@ const UsageWarning: React.FC<UsageWarningProps> = ({
   warning,
   onDismiss,
   showDismiss = false,
-  className = ''
+  className = '',
 }) => {
   const getIcon = () => {
     switch (warning.severity) {
@@ -61,14 +65,10 @@ const UsageWarning: React.FC<UsageWarningProps> = ({
   return (
     <div className={`rounded-md border p-4 ${getBackgroundColor()} ${className}`}>
       <div className="flex">
-        <div className="flex-shrink-0">
-          {getIcon()}
-        </div>
+        <div className="flex-shrink-0">{getIcon()}</div>
         <div className="ml-3 flex-1">
-          <p className={`text-sm font-medium ${getTextColor()}`}>
-            {warning.message}
-          </p>
-          
+          <p className={`text-sm font-medium ${getTextColor()}`}>{warning.message}</p>
+
           {warning.showUpgradePrompt && (
             <div className="mt-3">
               <div className="flex flex-col sm:flex-row gap-2">
@@ -78,7 +78,7 @@ const UsageWarning: React.FC<UsageWarningProps> = ({
                 >
                   View Upgrade Options
                 </Link>
-                
+
                 {warning.upgradeOptions && warning.upgradeOptions.length > 0 && (
                   <div className="text-xs text-gray-600 mt-1 sm:mt-0 sm:ml-2 flex items-center">
                     Available plans: {warning.upgradeOptions.join(', ')}
@@ -88,7 +88,7 @@ const UsageWarning: React.FC<UsageWarningProps> = ({
             </div>
           )}
         </div>
-        
+
         {showDismiss && onDismiss && (
           <div className="ml-auto pl-3">
             <div className="-mx-1.5 -my-1.5">
@@ -96,11 +96,11 @@ const UsageWarning: React.FC<UsageWarningProps> = ({
                 type="button"
                 onClick={onDismiss}
                 className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                  warning.severity === 'error' 
+                  warning.severity === 'error'
                     ? 'text-red-500 hover:bg-red-100 focus:ring-red-500'
                     : warning.severity === 'warning'
-                    ? 'text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-500'
-                    : 'text-blue-500 hover:bg-blue-100 focus:ring-blue-500'
+                      ? 'text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-500'
+                      : 'text-blue-500 hover:bg-blue-100 focus:ring-blue-500'
                 }`}
               >
                 <span className="sr-only">Dismiss</span>

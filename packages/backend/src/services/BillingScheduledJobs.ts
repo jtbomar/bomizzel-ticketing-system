@@ -23,7 +23,7 @@ export class BillingScheduledJobs {
       let notified = 0;
 
       logger.info('Processing failed payments', {
-        count: failedPayments.length
+        count: failedPayments.length,
       });
 
       for (const payment of failedPayments) {
@@ -35,7 +35,7 @@ export class BillingScheduledJobs {
             if (subscription && subscription.status !== 'suspended') {
               await CustomerSubscription.updateSubscriptionStatus(subscription.id, 'suspended');
               suspended++;
-              
+
               // Send suspension notification
               await this.sendPaymentFailureNotification(
                 subscription.user_id,
@@ -43,11 +43,11 @@ export class BillingScheduledJobs {
                 payment
               );
               notified++;
-              
+
               logger.info('Suspended subscription due to failed payments', {
                 subscriptionId: subscription.id,
                 userId: subscription.user_id,
-                attemptCount: payment.attemptCount
+                attemptCount: payment.attemptCount,
               });
             }
             continue;
@@ -56,12 +56,12 @@ export class BillingScheduledJobs {
           // Retry payment for invoices with less than 4 attempts
           if (payment.stripeInvoiceId) {
             const retryResult = await BillingService.retryFailedPayment(payment.stripeInvoiceId);
-            
+
             if (retryResult.success) {
               retried++;
               logger.info('Successfully retried failed payment', {
                 invoiceId: payment.stripeInvoiceId,
-                amount: payment.amountDue
+                amount: payment.amountDue,
               });
             } else {
               // Send failure notification after 2nd attempt
@@ -76,18 +76,18 @@ export class BillingScheduledJobs {
                   notified++;
                 }
               }
-              
+
               logger.warn('Failed to retry payment', {
                 invoiceId: payment.stripeInvoiceId,
                 error: retryResult.error,
-                attemptCount: payment.attemptCount
+                attemptCount: payment.attemptCount,
               });
             }
           }
         } catch (error) {
           logger.error('Error processing failed payment', {
             paymentId: payment.id,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -96,18 +96,18 @@ export class BillingScheduledJobs {
         processed: failedPayments.length,
         retried,
         suspended,
-        notified
+        notified,
       });
 
       return {
         processed: failedPayments.length,
         retried,
         suspended,
-        notified
+        notified,
       };
     } catch (error) {
       logger.error('Error in processFailedPayments job', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -135,7 +135,7 @@ export class BillingScheduledJobs {
         .whereIn('status', ['active', 'trial', 'past_due']);
 
       logger.info('Syncing billing records from Stripe', {
-        subscriptionCount: subscriptions.length
+        subscriptionCount: subscriptions.length,
       });
 
       for (const subscription of subscriptions) {
@@ -147,14 +147,14 @@ export class BillingScheduledJobs {
             subscription: subscription.stripe_subscription_id,
             limit: 10,
             created: {
-              gte: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000) // Last 30 days
-            }
+              gte: Math.floor((Date.now() - 30 * 24 * 60 * 60 * 1000) / 1000), // Last 30 days
+            },
           });
 
           for (const invoice of invoices.data) {
             try {
               const existingRecord = await BillingRecord.findByStripeInvoiceId(invoice.id);
-              
+
               if (existingRecord) {
                 // Update existing record
                 await BillingService.updateBillingRecordFromStripeInvoice(invoice);
@@ -164,14 +164,14 @@ export class BillingScheduledJobs {
                 await BillingService.createBillingRecordFromStripeInvoice(invoice);
                 created++;
               }
-              
+
               synced++;
             } catch (error) {
               errors++;
               logger.error('Error syncing individual invoice', {
                 invoiceId: invoice.id,
                 subscriptionId: subscription.id,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
               });
             }
           }
@@ -180,7 +180,7 @@ export class BillingScheduledJobs {
           logger.error('Error syncing subscription billing records', {
             subscriptionId: subscription.id,
             stripeSubscriptionId: subscription.stripe_subscription_id,
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? error.message : 'Unknown error',
           });
         }
       }
@@ -189,13 +189,13 @@ export class BillingScheduledJobs {
         synced,
         created,
         updated,
-        errors
+        errors,
       });
 
       return { synced, created, updated, errors };
     } catch (error) {
       logger.error('Error in syncBillingRecordsFromStripe job', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -205,7 +205,10 @@ export class BillingScheduledJobs {
    * Generate monthly billing reports
    * Should be run on the 1st of each month
    */
-  static async generateMonthlyBillingReport(year?: number, month?: number): Promise<{
+  static async generateMonthlyBillingReport(
+    year?: number,
+    month?: number
+  ): Promise<{
     reportGenerated: boolean;
     reportData: any;
   }> {
@@ -222,12 +225,12 @@ export class BillingScheduledJobs {
         year: reportYearForPrevMonth,
         month: reportMonth,
         startDate,
-        endDate
+        endDate,
       });
 
       // Get revenue statistics for the month
       const revenueStats = await BillingService.getRevenueStats(startDate, endDate);
-      
+
       // Get failed payments for the month
       const failedPayments = await BillingRecord.query
         .whereBetween('billing_date', [startDate, endDate])
@@ -239,9 +242,18 @@ export class BillingScheduledJobs {
         .whereBetween('created_at', [startDate, endDate])
         .select(
           CustomerSubscription.db.raw('COUNT(*) as new_subscriptions'),
-          CustomerSubscription.db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as active_subscriptions', ['active']),
-          CustomerSubscription.db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as trial_subscriptions', ['trial']),
-          CustomerSubscription.db.raw('COUNT(CASE WHEN status = ? THEN 1 END) as cancelled_subscriptions', ['cancelled'])
+          CustomerSubscription.db.raw(
+            'COUNT(CASE WHEN status = ? THEN 1 END) as active_subscriptions',
+            ['active']
+          ),
+          CustomerSubscription.db.raw(
+            'COUNT(CASE WHEN status = ? THEN 1 END) as trial_subscriptions',
+            ['trial']
+          ),
+          CustomerSubscription.db.raw(
+            'COUNT(CASE WHEN status = ? THEN 1 END) as cancelled_subscriptions',
+            ['cancelled']
+          )
         )
         .first();
 
@@ -250,20 +262,20 @@ export class BillingScheduledJobs {
           year: reportYearForPrevMonth,
           month: reportMonth,
           startDate,
-          endDate
+          endDate,
         },
         revenue: revenueStats,
         subscriptions: {
           new: parseInt(subscriptionMetrics?.new_subscriptions) || 0,
           active: parseInt(subscriptionMetrics?.active_subscriptions) || 0,
           trial: parseInt(subscriptionMetrics?.trial_subscriptions) || 0,
-          cancelled: parseInt(subscriptionMetrics?.cancelled_subscriptions) || 0
+          cancelled: parseInt(subscriptionMetrics?.cancelled_subscriptions) || 0,
         },
         failedPayments: {
           count: failedPayments.length,
-          totalAmount: failedPayments.reduce((sum, payment) => sum + payment.amount_due, 0)
+          totalAmount: failedPayments.reduce((sum, payment) => sum + payment.amount_due, 0),
         },
-        generatedAt: new Date()
+        generatedAt: new Date(),
       };
 
       // TODO: Store report in database or send via email
@@ -272,13 +284,13 @@ export class BillingScheduledJobs {
 
       return {
         reportGenerated: true,
-        reportData
+        reportData,
       };
     } catch (error) {
       logger.error('Error generating monthly billing report', {
         year,
         month,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -296,7 +308,7 @@ export class BillingScheduledJobs {
       cutoffDate.setFullYear(cutoffDate.getFullYear() - 2);
 
       logger.info('Cleaning up old billing records', {
-        cutoffDate
+        cutoffDate,
       });
 
       const deletedCount = await BillingRecord.query
@@ -305,13 +317,13 @@ export class BillingScheduledJobs {
         .del();
 
       logger.info('Completed cleanup of old billing records', {
-        deleted: deletedCount
+        deleted: deletedCount,
       });
 
       return { deleted: deletedCount };
     } catch (error) {
       logger.error('Error cleaning up old billing records', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -328,18 +340,18 @@ export class BillingScheduledJobs {
     try {
       // TODO: Implement email notification using EmailService
       // This would send appropriate emails based on notification type
-      
+
       logger.info('Payment failure notification sent', {
         userId,
         notificationType,
         billingRecordId: billingRecord.id,
-        amount: billingRecord.amountDue
+        amount: billingRecord.amountDue,
       });
     } catch (error) {
       logger.error('Error sending payment failure notification', {
         userId,
         notificationType,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -359,13 +371,17 @@ export class BillingScheduledJobs {
       const [failedPayments, syncResults, cleanup] = await Promise.allSettled([
         this.processFailedPayments(),
         this.syncBillingRecordsFromStripe(),
-        this.cleanupOldBillingRecords()
+        this.cleanupOldBillingRecords(),
       ]);
 
       const results = {
-        failedPayments: failedPayments.status === 'fulfilled' ? failedPayments.value : { error: failedPayments.reason },
-        syncResults: syncResults.status === 'fulfilled' ? syncResults.value : { error: syncResults.reason },
-        cleanup: cleanup.status === 'fulfilled' ? cleanup.value : { error: cleanup.reason }
+        failedPayments:
+          failedPayments.status === 'fulfilled'
+            ? failedPayments.value
+            : { error: failedPayments.reason },
+        syncResults:
+          syncResults.status === 'fulfilled' ? syncResults.value : { error: syncResults.reason },
+        cleanup: cleanup.status === 'fulfilled' ? cleanup.value : { error: cleanup.reason },
       };
 
       logger.info('Completed all scheduled billing jobs', results);
@@ -373,7 +389,7 @@ export class BillingScheduledJobs {
       return results;
     } catch (error) {
       logger.error('Error running scheduled billing jobs', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }

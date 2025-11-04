@@ -19,7 +19,9 @@ export interface UpdateEmailTemplateRequest {
 }
 
 export class EmailTemplateService {
-  static async createTemplate(templateData: CreateEmailTemplateRequest): Promise<EmailTemplateModel> {
+  static async createTemplate(
+    templateData: CreateEmailTemplateRequest
+  ): Promise<EmailTemplateModel> {
     // Extract variables from content if not provided
     const extractedVariables = [
       ...EmailTemplate.extractVariablesFromContent(templateData.subject),
@@ -56,12 +58,12 @@ export class EmailTemplateService {
       orderBy: 'name',
       orderDirection: 'asc',
     });
-    return templates.map(template => EmailTemplate.toModel(template));
+    return templates.map((template) => EmailTemplate.toModel(template));
   }
 
   static async getActiveTemplates(): Promise<EmailTemplateModel[]> {
     const templates = await EmailTemplate.findActiveTemplates();
-    return templates.map(template => EmailTemplate.toModel(template));
+    return templates.map((template) => EmailTemplate.toModel(template));
   }
 
   static async updateTemplate(
@@ -70,7 +72,7 @@ export class EmailTemplateService {
   ): Promise<EmailTemplateModel | null> {
     // Extract variables from updated content if content is being updated
     let variables = updates.variables;
-    
+
     if (!variables && (updates.subject || updates.htmlBody || updates.textBody)) {
       const currentTemplate = await EmailTemplate.findById(templateId);
       if (currentTemplate) {
@@ -92,7 +94,7 @@ export class EmailTemplateService {
     if (variables) {
       updateData.variables = variables;
     }
-    
+
     const template = await EmailTemplate.updateTemplate(templateId, updateData);
 
     return template ? EmailTemplate.toModel(template) : null;
@@ -140,12 +142,12 @@ export class EmailTemplateService {
     variables: string[];
   }> {
     const errors: string[] = [];
-    
+
     // Basic validation
     if (!templateData.subject.trim()) {
       errors.push('Subject is required');
     }
-    
+
     if (!templateData.htmlBody.trim() && !templateData.textBody.trim()) {
       errors.push('Either HTML body or text body is required');
     }
@@ -160,8 +162,8 @@ export class EmailTemplateService {
     const uniqueVariables = [...new Set(variables)];
 
     // Check for malformed variables
-    const malformedVariables = uniqueVariables.filter(variable => 
-      !variable.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+    const malformedVariables = uniqueVariables.filter(
+      (variable) => !variable.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
     );
 
     if (malformedVariables.length > 0) {
@@ -206,28 +208,10 @@ export class EmailTemplateService {
         'ticket.createdAt',
         'ticket.updatedAt',
       ],
-      customer: [
-        'customer.firstName',
-        'customer.lastName',
-        'customer.email',
-        'customer.fullName',
-      ],
-      company: [
-        'company.name',
-        'company.domain',
-      ],
-      assignee: [
-        'assignee.firstName',
-        'assignee.lastName',
-        'assignee.email',
-        'assignee.fullName',
-      ],
-      system: [
-        'system.baseUrl',
-        'system.supportEmail',
-        'system.currentDate',
-        'system.currentTime',
-      ],
+      customer: ['customer.firstName', 'customer.lastName', 'customer.email', 'customer.fullName'],
+      company: ['company.name', 'company.domain'],
+      assignee: ['assignee.firstName', 'assignee.lastName', 'assignee.email', 'assignee.fullName'],
+      system: ['system.baseUrl', 'system.supportEmail', 'system.currentDate', 'system.currentTime'],
     };
   }
 }

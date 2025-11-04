@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiService as api } from '../../services/api';
 import TeamStatusConfig from './TeamStatusConfig';
-import {
-  PlusIcon,
-  UsersIcon,
-  CogIcon,
-} from '@heroicons/react/24/outline';
+import { PlusIcon, UsersIcon, CogIcon } from '@heroicons/react/24/outline';
 
 interface Team {
   id: string;
@@ -62,28 +58,28 @@ const TeamManagement: React.FC = () => {
       console.error('Fetch teams error:', err);
       // Fallback to mock data if API fails
       setTeams([
-        { 
-          id: '1', 
-          name: 'Technical Support', 
+        {
+          id: '1',
+          name: 'Technical Support',
           description: 'Handles technical issues and bug reports',
           isActive: true,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         },
-        { 
-          id: '2', 
-          name: 'Customer Success', 
+        {
+          id: '2',
+          name: 'Customer Success',
           description: 'Manages customer onboarding and account issues',
           isActive: true,
-          createdAt: new Date().toISOString()
-        }
+          createdAt: new Date().toISOString(),
+        },
       ]);
       if (!selectedTeam) {
         setSelectedTeam({
-          id: '1', 
-          name: 'Technical Support', 
+          id: '1',
+          name: 'Technical Support',
           description: 'Handles technical issues and bug reports',
           isActive: true,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         });
       }
     } finally {
@@ -108,12 +104,12 @@ const TeamManagement: React.FC = () => {
       console.log('Creating team:', newTeam);
       const response = await api.createTeam(newTeam);
       console.log('Team created successfully:', response);
-      
+
       setNewTeam({ name: '', description: '' });
       setShowCreateModal(false);
       setError(null); // Clear any previous errors
       fetchTeams();
-      
+
       // Show success message
       alert(`Team "${newTeam.name}" created successfully!`);
     } catch (err) {
@@ -127,10 +123,10 @@ const TeamManagement: React.FC = () => {
       console.log('Updating team:', teamId, updates);
       const response = await api.updateTeam(teamId, updates);
       console.log('Team updated successfully:', response);
-      
+
       setError(null); // Clear any previous errors
       fetchTeams();
-      
+
       // Show success message
       alert(`Team updated successfully!`);
     } catch (err) {
@@ -204,9 +200,7 @@ const TeamManagement: React.FC = () => {
                     </div>
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        team.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                        team.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}
                     >
                       {team.isActive ? 'Active' : 'Inactive'}
@@ -240,7 +234,9 @@ const TeamManagement: React.FC = () => {
                       Statuses
                     </button>
                     <button
-                      onClick={() => handleUpdateTeam(selectedTeam.id, { isActive: !selectedTeam.isActive })}
+                      onClick={() =>
+                        handleUpdateTeam(selectedTeam.id, { isActive: !selectedTeam.isActive })
+                      }
                       className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white transition-all duration-200 ${
                         selectedTeam.isActive
                           ? 'bg-red-500/20 border-red-400/50 hover:bg-red-500/30'
@@ -292,9 +288,7 @@ const TeamManagement: React.FC = () => {
                   ))}
 
                   {teamMembers.length === 0 && (
-                    <div className="text-center py-8 text-white/60">
-                      No team members found
-                    </div>
+                    <div className="text-center py-8 text-white/60">No team members found</div>
                   )}
                 </div>
               </div>
@@ -318,26 +312,22 @@ const TeamManagement: React.FC = () => {
             </div>
             <form onSubmit={handleCreateTeam} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Team Name
-                </label>
+                <label className="block text-sm font-medium text-white mb-1">Team Name</label>
                 <input
                   type="text"
                   required
                   value={newTeam.name}
-                  onChange={(e) => setNewTeam(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setNewTeam((prev) => ({ ...prev, name: e.target.value }))}
                   className="block w-full rounded-md bg-white/10 border border-white/20 text-white placeholder-white/60 shadow-sm focus:border-blue-400 focus:ring-blue-400 sm:text-sm px-3 py-2"
                   placeholder="Enter team name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-white mb-1">
-                  Description
-                </label>
+                <label className="block text-sm font-medium text-white mb-1">Description</label>
                 <textarea
                   rows={3}
                   value={newTeam.description}
-                  onChange={(e) => setNewTeam(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => setNewTeam((prev) => ({ ...prev, description: e.target.value }))}
                   className="block w-full rounded-md bg-white/10 border border-white/20 text-white placeholder-white/60 shadow-sm focus:border-blue-400 focus:ring-blue-400 sm:text-sm px-3 py-2"
                   placeholder="Enter team description (optional)"
                 />
@@ -364,10 +354,7 @@ const TeamManagement: React.FC = () => {
 
       {/* Status Configuration Modal */}
       {showStatusConfig && selectedTeam && (
-        <TeamStatusConfig
-          team={selectedTeam}
-          onClose={() => setShowStatusConfig(false)}
-        />
+        <TeamStatusConfig team={selectedTeam} onClose={() => setShowStatusConfig(false)} />
       )}
     </div>
   );

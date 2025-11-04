@@ -139,11 +139,7 @@ export const useUsageWarnings = () => {
   }, []);
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([
-      fetchWarnings(),
-      fetchDashboardWarnings(),
-      fetchUsageStats()
-    ]);
+    await Promise.all([fetchWarnings(), fetchDashboardWarnings(), fetchUsageStats()]);
   }, [fetchWarnings, fetchDashboardWarnings, fetchUsageStats]);
 
   // Auto-fetch on mount
@@ -162,6 +158,6 @@ export const useUsageWarnings = () => {
     fetchUsageStats,
     checkTicketCreation,
     checkCanCreateTicket,
-    refreshAll
+    refreshAll,
   };
 };

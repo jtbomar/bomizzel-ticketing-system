@@ -6,35 +6,40 @@ import KanbanBoard from '../../components/KanbanBoard';
 // Mock react-beautiful-dnd
 vi.mock('react-beautiful-dnd', () => ({
   DragDropContext: ({ children, onDragEnd }: any) => (
-    <div data-testid="drag-drop-context" onClick={() => onDragEnd({ 
-      source: { droppableId: 'open', index: 0 },
-      destination: { droppableId: 'in_progress', index: 0 },
-      draggableId: '1'
-    })}>
+    <div
+      data-testid="drag-drop-context"
+      onClick={() =>
+        onDragEnd({
+          source: { droppableId: 'open', index: 0 },
+          destination: { droppableId: 'in_progress', index: 0 },
+          draggableId: '1',
+        })
+      }
+    >
       {children}
     </div>
   ),
   Droppable: ({ children, droppableId }: any) => (
     <div data-testid={`droppable-${droppableId}`}>
-      {children({ 
-        provided: { 
-          droppableProps: {}, 
+      {children({
+        provided: {
+          droppableProps: {},
           innerRef: vi.fn(),
-          placeholder: null 
-        }, 
-        snapshot: { isDraggingOver: false } 
+          placeholder: null,
+        },
+        snapshot: { isDraggingOver: false },
       })}
     </div>
   ),
   Draggable: ({ children, draggableId, index }: any) => (
     <div data-testid={`draggable-${draggableId}`}>
-      {children({ 
-        provided: { 
-          draggableProps: {}, 
+      {children({
+        provided: {
+          draggableProps: {},
           dragHandleProps: {},
-          innerRef: vi.fn() 
-        }, 
-        snapshot: { isDragging: false } 
+          innerRef: vi.fn(),
+        },
+        snapshot: { isDragging: false },
       })}
     </div>
   ),
@@ -93,11 +98,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     },
   });
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };
 
 describe('KanbanBoard Component', () => {
@@ -176,11 +177,11 @@ describe('KanbanBoard Component', () => {
     );
 
     // Check for assignment indicators
-    const assignedTickets = mockTickets.filter(t => t.assignedToId);
+    const assignedTickets = mockTickets.filter((t) => t.assignedToId);
     expect(assignedTickets).toHaveLength(2);
-    
+
     // Should show unassigned indicator for unassigned tickets
-    const unassignedTickets = mockTickets.filter(t => !t.assignedToId);
+    const unassignedTickets = mockTickets.filter((t) => !t.assignedToId);
     expect(unassignedTickets).toHaveLength(1);
   });
 
@@ -241,8 +242,8 @@ describe('KanbanBoard Component', () => {
 
     render(
       <TestWrapper>
-        <KanbanBoard 
-          tickets={mockTickets} 
+        <KanbanBoard
+          tickets={mockTickets}
           onTicketUpdate={mockOnTicketUpdate}
           onTicketClick={mockOnTicketClick}
         />
@@ -258,11 +259,7 @@ describe('KanbanBoard Component', () => {
   it('should show loading state', () => {
     render(
       <TestWrapper>
-        <KanbanBoard 
-          tickets={[]} 
-          onTicketUpdate={mockOnTicketUpdate}
-          loading={true}
-        />
+        <KanbanBoard tickets={[]} onTicketUpdate={mockOnTicketUpdate} loading={true} />
       </TestWrapper>
     );
 
@@ -272,8 +269,8 @@ describe('KanbanBoard Component', () => {
   it('should show error state', () => {
     render(
       <TestWrapper>
-        <KanbanBoard 
-          tickets={[]} 
+        <KanbanBoard
+          tickets={[]}
           onTicketUpdate={mockOnTicketUpdate}
           error="Failed to load tickets"
         />
@@ -286,11 +283,7 @@ describe('KanbanBoard Component', () => {
   it('should filter tickets by search query', () => {
     render(
       <TestWrapper>
-        <KanbanBoard 
-          tickets={mockTickets} 
-          onTicketUpdate={mockOnTicketUpdate}
-          searchQuery="Bug"
-        />
+        <KanbanBoard tickets={mockTickets} onTicketUpdate={mockOnTicketUpdate} searchQuery="Bug" />
       </TestWrapper>
     );
 
@@ -305,8 +298,8 @@ describe('KanbanBoard Component', () => {
 
     render(
       <TestWrapper>
-        <KanbanBoard 
-          tickets={mockTickets} 
+        <KanbanBoard
+          tickets={mockTickets}
           onTicketUpdate={mockOnTicketUpdate}
           statusColumns={customStatuses}
         />

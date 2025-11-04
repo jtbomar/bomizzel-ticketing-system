@@ -8,17 +8,14 @@ interface TicketDetailModalProps {
   onUpdate?: (updatedTicket: Ticket) => void;
 }
 
-const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
-  ticket,
-  onClose,
-}) => {
+const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }) => {
   const [notes, setNotes] = useState<TicketNote[]>([]);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
-  
+
   // Tab and editing state
   const [activeTab, setActiveTab] = useState<'details' | 'notes'>('details');
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +34,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         apiService.getTicketNotes(ticket.id, { includeInternal: true }),
         apiService.getTicketAttachments(ticket.id),
       ]);
-      
+
       setNotes(notesResponse.data || notesResponse);
       setAttachments(attachmentsResponse.data || attachmentsResponse);
     } catch (err) {
@@ -57,8 +54,8 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         content: newNote,
         isInternal,
       });
-      
-      setNotes(prev => [note, ...prev]);
+
+      setNotes((prev) => [note, ...prev]);
       setNewNote('');
       setIsInternal(false);
     } catch (err) {
@@ -75,11 +72,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         title: editedTitle,
         description: editedDescription,
       });
-      
+
       // Update the ticket object
       ticket.title = editedTitle;
       ticket.description = editedDescription;
-      
+
       setIsEditing(false);
     } catch (err) {
       console.error('Error updating ticket:', err);
@@ -126,27 +123,40 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
           <div className="flex-1">
             <div className="flex items-center space-x-3 mb-2">
               <h2 className="text-xl font-semibold text-gray-900">{ticket.title}</h2>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(ticket.priority)}`}>
+              <span
+                className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(ticket.priority)}`}
+              >
                 {getPriorityLabel(ticket.priority)}
               </span>
-              <span className={`
+              <span
+                className={`
                 px-2 py-1 rounded-full text-xs font-medium
-                ${ticket.status === 'open' ? 'bg-blue-100 text-blue-800' : 
-                  ticket.status === 'resolved' ? 'bg-green-100 text-green-800' :
-                  ticket.status === 'closed' ? 'bg-gray-100 text-gray-800' :
-                  'bg-purple-100 text-purple-800'}
-              `}>
+                ${
+                  ticket.status === 'open'
+                    ? 'bg-blue-100 text-blue-800'
+                    : ticket.status === 'resolved'
+                      ? 'bg-green-100 text-green-800'
+                      : ticket.status === 'closed'
+                        ? 'bg-gray-100 text-gray-800'
+                        : 'bg-purple-100 text-purple-800'
+                }
+              `}
+              >
                 {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
               </span>
             </div>
             <div className="text-sm text-gray-500 space-y-1">
-              <p>Ticket #{ticket.id.slice(-8)} • Created {formatDate(ticket.createdAt)}</p>
               <p>
-                Submitted by: {ticket.submitter?.firstName} {ticket.submitter?.lastName} 
+                Ticket #{ticket.id.slice(-8)} • Created {formatDate(ticket.createdAt)}
+              </p>
+              <p>
+                Submitted by: {ticket.submitter?.firstName} {ticket.submitter?.lastName}
                 {ticket.company && ` (${ticket.company.name})`}
               </p>
               {ticket.assignedTo && (
-                <p>Assigned to: {ticket.assignedTo.firstName} {ticket.assignedTo.lastName}</p>
+                <p>
+                  Assigned to: {ticket.assignedTo.firstName} {ticket.assignedTo.lastName}
+                </p>
               )}
             </div>
           </div>
@@ -159,12 +169,14 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 Edit
               </button>
             )}
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
@@ -275,15 +287,29 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Attachments</h3>
                 <div className="space-y-2">
                   {attachments.map((attachment) => (
-                    <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
                       <div className="flex items-center">
-                        <svg className="w-5 h-5 text-gray-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                        <svg
+                          className="w-5 h-5 text-gray-400 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z"
+                            clipRule="evenodd"
+                          />
                         </svg>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{attachment.originalName}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {attachment.originalName}
+                          </p>
                           <p className="text-xs text-gray-500">
-                            {(attachment.fileSize / 1024).toFixed(1)} KB • {formatDate(attachment.createdAt)}
+                            {(attachment.fileSize / 1024).toFixed(1)} KB •{' '}
+                            {formatDate(attachment.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -325,7 +351,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                       onChange={(e) => setIsInternal(e.target.checked)}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Internal note (not visible to customer)</span>
+                    <span className="ml-2 text-sm text-gray-700">
+                      Internal note (not visible to customer)
+                    </span>
                   </label>
                   <button
                     type="submit"
@@ -352,7 +380,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
               ) : (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
                   {notes.map((note) => (
-                    <div key={note.id} className={`p-4 rounded-lg ${note.isInternal ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-blue-50 border-l-4 border-blue-400'}`}>
+                    <div
+                      key={note.id}
+                      className={`p-4 rounded-lg ${note.isInternal ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-blue-50 border-l-4 border-blue-400'}`}
+                    >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <span className="text-sm font-medium text-gray-900">

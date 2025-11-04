@@ -37,7 +37,7 @@ export const STRIPE_WEBHOOK_EVENTS = {
   CUSTOMER_DELETED: 'customer.deleted',
 } as const;
 
-export type StripeWebhookEvent = typeof STRIPE_WEBHOOK_EVENTS[keyof typeof STRIPE_WEBHOOK_EVENTS];
+export type StripeWebhookEvent = (typeof STRIPE_WEBHOOK_EVENTS)[keyof typeof STRIPE_WEBHOOK_EVENTS];
 
 logger.info('Stripe configuration initialized', {
   hasWebhookSecret: !!stripeWebhookSecret,

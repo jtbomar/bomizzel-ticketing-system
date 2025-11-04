@@ -32,20 +32,20 @@ export interface LayoutField {
   updatedAt: Date;
 }
 
-export type FieldType = 
-  | 'text' 
-  | 'textarea' 
-  | 'rich_text' 
-  | 'number' 
-  | 'currency' 
-  | 'date' 
-  | 'datetime' 
-  | 'picklist' 
-  | 'multi_picklist' 
-  | 'checkbox' 
-  | 'radio' 
-  | 'email' 
-  | 'phone' 
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'rich_text'
+  | 'number'
+  | 'currency'
+  | 'date'
+  | 'datetime'
+  | 'picklist'
+  | 'multi_picklist'
+  | 'checkbox'
+  | 'radio'
+  | 'email'
+  | 'phone'
   | 'url';
 
 export interface LayoutConfig {
@@ -181,9 +181,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
         toolbar: ['bold', 'italic', 'underline', 'link', 'bulletList', 'numberedList'],
         maxLength: 5000,
         allowImages: false,
-        allowLinks: true
-      }
-    }
+        allowLinks: true,
+      },
+    },
   },
   {
     type: 'picklist',
@@ -195,9 +195,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
       options: [
         { value: 'option1', label: 'Option 1', isDefault: true },
         { value: 'option2', label: 'Option 2' },
-        { value: 'option3', label: 'Option 3' }
-      ]
-    }
+        { value: 'option3', label: 'Option 3' },
+      ],
+    },
   },
   {
     type: 'number',
@@ -210,9 +210,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
         min: 0,
         max: 999999,
         step: 1,
-        precision: 0
-      }
-    }
+        precision: 0,
+      },
+    },
   },
   {
     type: 'currency',
@@ -226,9 +226,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
         symbol: '$',
         precision: 2,
         thousandsSeparator: ',',
-        decimalSeparator: '.'
-      }
-    }
+        decimalSeparator: '.',
+      },
+    },
   },
   {
     type: 'date',
@@ -237,8 +237,8 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
     description: 'Date picker',
     category: 'basic',
     defaultConfig: {
-      dateFormat: 'MM/DD/YYYY'
-    }
+      dateFormat: 'MM/DD/YYYY',
+    },
   },
   {
     type: 'datetime',
@@ -247,8 +247,8 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
     description: 'Date and time picker',
     category: 'basic',
     defaultConfig: {
-      dateFormat: 'MM/DD/YYYY HH:mm'
-    }
+      dateFormat: 'MM/DD/YYYY HH:mm',
+    },
   },
   {
     type: 'picklist',
@@ -260,9 +260,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
       options: [
         { value: 'option1', label: 'Option 1', isDefault: true },
         { value: 'option2', label: 'Option 2' },
-        { value: 'option3', label: 'Option 3' }
-      ]
-    }
+        { value: 'option3', label: 'Option 3' },
+      ],
+    },
   },
   {
     type: 'multi_picklist',
@@ -274,9 +274,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
       options: [
         { value: 'option1', label: 'Option 1' },
         { value: 'option2', label: 'Option 2' },
-        { value: 'option3', label: 'Option 3' }
-      ]
-    }
+        { value: 'option3', label: 'Option 3' },
+      ],
+    },
   },
   {
     type: 'checkbox',
@@ -285,8 +285,8 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
     description: 'True/false checkbox',
     category: 'basic',
     defaultConfig: {
-      defaultValue: false
-    }
+      defaultValue: false,
+    },
   },
   {
     type: 'radio',
@@ -298,9 +298,9 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
       options: [
         { value: 'option1', label: 'Option 1', isDefault: true },
         { value: 'option2', label: 'Option 2' },
-        { value: 'option3', label: 'Option 3' }
-      ]
-    }
+        { value: 'option3', label: 'Option 3' },
+      ],
+    },
   },
   {
     type: 'email',
@@ -309,11 +309,11 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
     description: 'Email address input',
     category: 'specialized',
     defaultConfig: {
-      placeholder: 'user@example.com'
+      placeholder: 'user@example.com',
     },
     defaultValidation: {
-      pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'
-    }
+      pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$',
+    },
   },
   {
     type: 'phone',
@@ -322,8 +322,8 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
     description: 'Phone number input',
     category: 'specialized',
     defaultConfig: {
-      placeholder: '(555) 123-4567'
-    }
+      placeholder: '(555) 123-4567',
+    },
   },
   {
     type: 'url',
@@ -332,10 +332,10 @@ export const FIELD_TEMPLATES: FieldTemplate[] = [
     description: 'Website URL input',
     category: 'specialized',
     defaultConfig: {
-      placeholder: 'https://example.com'
+      placeholder: 'https://example.com',
     },
     defaultValidation: {
-      pattern: '^https?:\\/\\/.+'
-    }
-  }
+      pattern: '^https?:\\/\\/.+',
+    },
+  },
 ];

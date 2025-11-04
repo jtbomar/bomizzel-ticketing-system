@@ -2,21 +2,20 @@ import { Company } from '@/models/Company';
 import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { 
-  Company as CompanyModel, 
-  User as UserModel,
-  PaginatedResponse 
-} from '@/types/models';
+import { Company as CompanyModel, User as UserModel, PaginatedResponse } from '@/types/models';
 
 export class CompanyService {
   /**
    * Create a new company
    */
-  static async createCompany(companyData: {
-    name: string;
-    domain?: string;
-    description?: string;
-  }, createdById: string): Promise<CompanyModel> {
+  static async createCompany(
+    companyData: {
+      name: string;
+      domain?: string;
+      description?: string;
+    },
+    createdById: string
+  ): Promise<CompanyModel> {
     try {
       // Check if company name already exists
       const existingCompany = await Company.findByName(companyData.name);
@@ -28,7 +27,11 @@ export class CompanyService {
       if (companyData.domain) {
         const existingDomain = await Company.findByDomain(companyData.domain);
         if (existingDomain) {
-          throw new AppError('Company with this domain already exists', 409, 'COMPANY_DOMAIN_EXISTS');
+          throw new AppError(
+            'Company with this domain already exists',
+            409,
+            'COMPANY_DOMAIN_EXISTS'
+          );
         }
       }
 
@@ -49,12 +52,14 @@ export class CompanyService {
   /**
    * Get all companies with pagination and filtering
    */
-  static async getCompanies(options: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    isActive?: boolean;
-  } = {}): Promise<PaginatedResponse<CompanyModel>> {
+  static async getCompanies(
+    options: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      isActive?: boolean;
+    } = {}
+  ): Promise<PaginatedResponse<CompanyModel>> {
     try {
       const { page = 1, limit = 25, search, isActive } = options;
       const offset = (page - 1) * limit;
@@ -67,22 +72,21 @@ export class CompanyService {
 
       // Get total count
       let countQuery = Company.query;
-      
+
       if (isActive !== undefined) {
         countQuery = countQuery.where('is_active', isActive);
       }
-      
+
       if (search) {
-        countQuery = countQuery.where(function() {
-          this.where('name', 'ilike', `%${search}%`)
-              .orWhere('domain', 'ilike', `%${search}%`);
+        countQuery = countQuery.where(function () {
+          this.where('name', 'ilike', `%${search}%`).orWhere('domain', 'ilike', `%${search}%`);
         });
       }
 
       const total = await countQuery.count('* as count').first();
       const totalCount = parseInt(total?.count || '0', 10);
 
-      const companyModels = companies.map(company => Company.toModel(company));
+      const companyModels = companies.map((company) => Company.toModel(company));
 
       return {
         data: companyModels,
@@ -122,12 +126,16 @@ export class CompanyService {
   /**
    * Update company information
    */
-  static async updateCompany(companyId: string, updateData: {
-    name?: string;
-    domain?: string;
-    description?: string;
-    isActive?: boolean;
-  }, updatedById: string): Promise<CompanyModel> {
+  static async updateCompany(
+    companyId: string,
+    updateData: {
+      name?: string;
+      domain?: string;
+      description?: string;
+      isActive?: boolean;
+    },
+    updatedById: string
+  ): Promise<CompanyModel> {
     try {
       const company = await Company.findById(companyId);
       if (!company) {
@@ -146,25 +154,29 @@ export class CompanyService {
       if (updateData.domain && updateData.domain !== company.domain) {
         const existingDomain = await Company.findByDomain(updateData.domain);
         if (existingDomain) {
-          throw new AppError('Company with this domain already exists', 409, 'COMPANY_DOMAIN_EXISTS');
+          throw new AppError(
+            'Company with this domain already exists',
+            409,
+            'COMPANY_DOMAIN_EXISTS'
+          );
         }
       }
 
       // Prepare update data
       const updateFields: any = {};
-      
+
       if (updateData.name !== undefined) {
         updateFields.name = updateData.name;
       }
-      
+
       if (updateData.domain !== undefined) {
         updateFields.domain = updateData.domain;
       }
-      
+
       if (updateData.description !== undefined) {
         updateFields.description = updateData.description;
       }
-      
+
       if (updateData.isActive !== undefined) {
         updateFields.is_active = updateData.isActive;
       }
@@ -215,7 +227,9 @@ export class CompanyService {
   /**
    * Get company users with their roles
    */
-  static async getCompanyUsers(companyId: string): Promise<(UserModel & { companyRole: string; associationDate: Date })[]> {
+  static async getCompanyUsers(
+    companyId: string
+  ): Promise<(UserModel & { companyRole: string; associationDate: Date })[]> {
     try {
       const company = await Company.findById(companyId);
       if (!company) {
@@ -223,8 +237,8 @@ export class CompanyService {
       }
 
       const users = await Company.getCompanyUsers(companyId);
-      
-      return users.map(user => ({
+
+      return users.map((user) => ({
         ...User.toModel(user),
         companyRole: user.company_role,
         associationDate: user.association_created_at,
@@ -241,7 +255,12 @@ export class CompanyService {
   /**
    * Add user to company
    */
-  static async addUserToCompany(companyId: string, userId: string, role: string = 'member', addedById: string): Promise<void> {
+  static async addUserToCompany(
+    companyId: string,
+    userId: string,
+    role: string = 'member',
+    addedById: string
+  ): Promise<void> {
     try {
       const company = await Company.findById(companyId);
       if (!company) {
@@ -260,7 +279,11 @@ export class CompanyService {
       // Check if user is already associated with the company
       const isAlreadyAssociated = await Company.isUserInCompany(userId, companyId);
       if (isAlreadyAssociated) {
-        throw new AppError('User is already associated with this company', 409, 'USER_ALREADY_IN_COMPANY');
+        throw new AppError(
+          'User is already associated with this company',
+          409,
+          'USER_ALREADY_IN_COMPANY'
+        );
       }
 
       await Company.addUserToCompany(userId, companyId, role);
@@ -278,7 +301,11 @@ export class CompanyService {
   /**
    * Remove user from company
    */
-  static async removeUserFromCompany(companyId: string, userId: string, removedById: string): Promise<void> {
+  static async removeUserFromCompany(
+    companyId: string,
+    userId: string,
+    removedById: string
+  ): Promise<void> {
     try {
       const company = await Company.findById(companyId);
       if (!company) {
@@ -304,14 +331,23 @@ export class CompanyService {
         throw error;
       }
       logger.error('Remove user from company error:', error);
-      throw new AppError('Failed to remove user from company', 500, 'REMOVE_USER_FROM_COMPANY_FAILED');
+      throw new AppError(
+        'Failed to remove user from company',
+        500,
+        'REMOVE_USER_FROM_COMPANY_FAILED'
+      );
     }
   }
 
   /**
    * Update user's role in company
    */
-  static async updateUserCompanyRole(companyId: string, userId: string, role: string, updatedById: string): Promise<void> {
+  static async updateUserCompanyRole(
+    companyId: string,
+    userId: string,
+    role: string,
+    updatedById: string
+  ): Promise<void> {
     try {
       const company = await Company.findById(companyId);
       if (!company) {
@@ -331,42 +367,46 @@ export class CompanyService {
 
       await Company.updateUserCompanyRole(userId, companyId, role);
 
-      logger.info(`User ${userId} role in company ${companyId} updated to ${role} by ${updatedById}`);
+      logger.info(
+        `User ${userId} role in company ${companyId} updated to ${role} by ${updatedById}`
+      );
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
       logger.error('Update user company role error:', error);
-      throw new AppError('Failed to update user company role', 500, 'UPDATE_USER_COMPANY_ROLE_FAILED');
+      throw new AppError(
+        'Failed to update user company role',
+        500,
+        'UPDATE_USER_COMPANY_ROLE_FAILED'
+      );
     }
   }
 
   /**
    * Search companies by name or domain
    */
-  static async searchCompanies(query: string, options: {
-    limit?: number;
-    excludeCompanyIds?: string[];
-  } = {}): Promise<CompanyModel[]> {
+  static async searchCompanies(
+    query: string,
+    options: {
+      limit?: number;
+      excludeCompanyIds?: string[];
+    } = {}
+  ): Promise<CompanyModel[]> {
     try {
       const { limit = 10, excludeCompanyIds = [] } = options;
 
-      let searchQuery = Company.query
-        .where('is_active', true)
-        .where(function() {
-          this.where('name', 'ilike', `%${query}%`)
-              .orWhere('domain', 'ilike', `%${query}%`);
-        });
+      let searchQuery = Company.query.where('is_active', true).where(function () {
+        this.where('name', 'ilike', `%${query}%`).orWhere('domain', 'ilike', `%${query}%`);
+      });
 
       if (excludeCompanyIds.length > 0) {
         searchQuery = searchQuery.whereNotIn('id', excludeCompanyIds);
       }
 
-      const companies = await searchQuery
-        .limit(limit)
-        .orderBy('name', 'asc');
+      const companies = await searchQuery.limit(limit).orderBy('name', 'asc');
 
-      return companies.map(company => Company.toModel(company));
+      return companies.map((company) => Company.toModel(company));
     } catch (error) {
       logger.error('Search companies error:', error);
       throw new AppError('Failed to search companies', 500, 'SEARCH_COMPANIES_FAILED');

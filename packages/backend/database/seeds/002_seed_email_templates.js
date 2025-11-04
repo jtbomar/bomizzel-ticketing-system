@@ -1,8 +1,8 @@
 /**
  * @param { import("knex").Knex } knex
- * @returns { Promise<void> } 
+ * @returns { Promise<void> }
  */
-exports.seed = async function(knex) {
+exports.seed = async function (knex) {
   // Deletes ALL existing entries
   await knex('email_templates').del();
 
@@ -81,10 +81,16 @@ View your ticket at: {{system.baseUrl}}/tickets/{{ticket.id}}
 This is an automated message from Bomizzel Support System
       `,
       variables: JSON.stringify([
-        'ticket.id', 'ticket.title', 'ticket.status', 'ticket.priority', 'ticket.createdAt',
-        'customer.firstName', 'company.name', 'system.baseUrl'
+        'ticket.id',
+        'ticket.title',
+        'ticket.status',
+        'ticket.priority',
+        'ticket.createdAt',
+        'customer.firstName',
+        'company.name',
+        'system.baseUrl',
       ]),
-      is_active: true
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -159,10 +165,15 @@ View your ticket at: {{system.baseUrl}}/tickets/{{ticket.id}}
 This is an automated message from Bomizzel Support System
       `,
       variables: JSON.stringify([
-        'ticket.id', 'ticket.title', 'ticket.status', 'ticket.updatedAt',
-        'customer.firstName', 'assignee.fullName', 'system.baseUrl'
+        'ticket.id',
+        'ticket.title',
+        'ticket.status',
+        'ticket.updatedAt',
+        'customer.firstName',
+        'assignee.fullName',
+        'system.baseUrl',
       ]),
-      is_active: true
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -235,10 +246,14 @@ View your ticket at: {{system.baseUrl}}/tickets/{{ticket.id}}
 This is an automated message from Bomizzel Support System
       `,
       variables: JSON.stringify([
-        'ticket.id', 'ticket.title', 'ticket.status', 'ticket.updatedAt',
-        'customer.firstName', 'system.baseUrl'
+        'ticket.id',
+        'ticket.title',
+        'ticket.status',
+        'ticket.updatedAt',
+        'customer.firstName',
+        'system.baseUrl',
       ]),
-      is_active: true
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -285,10 +300,8 @@ Ticket ID: {{ticket.id}} | Company: {{company.name}}
 This email was sent from the Bomizzel Support System
 Please do not reply directly to this email. Use the support portal to respond.
       `,
-      variables: JSON.stringify([
-        'ticket.id', 'ticket.title', 'company.name', 'emailContent'
-      ]),
-      is_active: true
+      variables: JSON.stringify(['ticket.id', 'ticket.title', 'company.name', 'emailContent']),
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -373,10 +386,8 @@ Get started: {{system.baseUrl}}/dashboard
 
 Questions? Contact our support team anytime!
       `,
-      variables: JSON.stringify([
-        'planName', 'daysRemaining', 'trialEnd', 'system.baseUrl'
-      ]),
-      is_active: true
+      variables: JSON.stringify(['planName', 'daysRemaining', 'trialEnd', 'system.baseUrl']),
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -463,9 +474,13 @@ If you don't upgrade before your trial ends, your account will be downgraded to 
 Need help choosing a plan? Contact our sales team!
       `,
       variables: JSON.stringify([
-        'planName', 'daysRemaining', 'trialEnd', 'upgradeUrl', 'system.baseUrl'
+        'planName',
+        'daysRemaining',
+        'trialEnd',
+        'upgradeUrl',
+        'system.baseUrl',
       ]),
-      is_active: true
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -539,10 +554,8 @@ Thank you for choosing our platform! We're excited to support your business grow
 
 Questions about your subscription? We're here to help!
       `,
-      variables: JSON.stringify([
-        'planName', 'dashboardUrl'
-      ]),
-      is_active: true
+      variables: JSON.stringify(['planName', 'dashboardUrl']),
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -620,10 +633,8 @@ If you have any feedback about your trial experience, we'd love to hear from you
 
 Thank you for trying our platform!
       `,
-      variables: JSON.stringify([
-        'reason', 'pricingUrl'
-      ]),
-      is_active: true
+      variables: JSON.stringify(['reason', 'pricingUrl']),
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
@@ -705,15 +716,13 @@ We're committed to helping you get the most out of our platform!
 
 Make the most of your extended trial!
       `,
-      variables: JSON.stringify([
-        'additionalDays', 'newTrialEnd', 'dashboardUrl'
-      ]),
-      is_active: true
+      variables: JSON.stringify(['additionalDays', 'newTrialEnd', 'dashboardUrl']),
+      is_active: true,
     },
     {
       id: knex.raw('gen_random_uuid()'),
       name: 'trial_expired',
-      subject: 'Your Trial Has Ended - What\'s Next?',
+      subject: "Your Trial Has Ended - What's Next?",
       html_body: `
 <!DOCTYPE html>
 <html>
@@ -803,10 +812,8 @@ We hope you enjoyed your trial experience and we'd love to have you as a custome
 
 Questions? Our team is here to help you choose the right plan!
       `,
-      variables: JSON.stringify([
-        'action', 'pricingUrl', 'dashboardUrl'
-      ]),
-      is_active: true
-    }
+      variables: JSON.stringify(['action', 'pricingUrl', 'dashboardUrl']),
+      is_active: true,
+    },
   ]);
 };

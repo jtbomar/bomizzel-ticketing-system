@@ -226,9 +226,9 @@ describe('UsageTrackingService', () => {
         role: 'customer',
       });
 
-      await expect(
-        UsageTrackingService.checkLimitStatus(userWithoutSub.id)
-      ).rejects.toThrow('No active subscription found');
+      await expect(UsageTrackingService.checkLimitStatus(userWithoutSub.id)).rejects.toThrow(
+        'No active subscription found'
+      );
     });
   });
 
@@ -363,7 +363,7 @@ describe('UsageTrackingService', () => {
       const usersApproaching = await UsageTrackingService.getUsersApproachingLimits(50);
 
       expect(Array.isArray(usersApproaching)).toBe(true);
-      
+
       if (usersApproaching.length > 0) {
         const user = usersApproaching[0];
         expect(user).toHaveProperty('userId');
@@ -411,7 +411,7 @@ describe('UsageTrackingService', () => {
 
       expect(Array.isArray(history)).toBe(true);
       expect(history.length).toBeGreaterThan(0);
-      
+
       if (history.length > 0) {
         const record = history[0];
         expect(record).toHaveProperty('ticketId');
@@ -427,7 +427,7 @@ describe('UsageTrackingService', () => {
       const activity = await UsageTrackingService.getRecentActivity(userId, 10);
 
       expect(Array.isArray(activity)).toBe(true);
-      
+
       if (activity.length > 0) {
         const record = activity[0];
         expect(record).toHaveProperty('ticketId');
@@ -488,9 +488,7 @@ describe('UsageTrackingService', () => {
 
   describe('updateUsageSummary', () => {
     it('should update usage summary', async () => {
-      await expect(
-        UsageTrackingService.updateUsageSummary(subscriptionId)
-      ).resolves.not.toThrow();
+      await expect(UsageTrackingService.updateUsageSummary(subscriptionId)).resolves.not.toThrow();
     });
   });
 

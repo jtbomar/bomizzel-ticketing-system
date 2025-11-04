@@ -41,9 +41,7 @@ describe('Authentication Security Tests', () => {
 
   describe('JWT Token Security', () => {
     it('should reject requests without authentication token', async () => {
-      await request(app)
-        .get('/api/tickets')
-        .expect(401);
+      await request(app).get('/api/tickets').expect(401);
     });
 
     it('should reject requests with invalid token format', async () => {
@@ -66,10 +64,7 @@ describe('Authentication Security Tests', () => {
     });
 
     it('should reject tokens with invalid signature', async () => {
-      const invalidToken = jwt.sign(
-        { userId },
-        'wrong-secret'
-      );
+      const invalidToken = jwt.sign({ userId }, 'wrong-secret');
 
       await request(app)
         .get('/api/tickets')
@@ -90,8 +85,8 @@ describe('Authentication Security Tests', () => {
     });
 
     it('should reject tokens for non-existent users', async () => {
-      const tokenForNonExistentUser = JWTUtils.generateAccessToken({ 
-        userId: 'non-existent-user-id' 
+      const tokenForNonExistentUser = JWTUtils.generateAccessToken({
+        userId: 'non-existent-user-id',
       });
 
       await request(app)
@@ -253,18 +248,16 @@ describe('Authentication Security Tests', () => {
   describe('Rate Limiting Security', () => {
     it('should rate limit login attempts', async () => {
       const loginAttempts = Array.from({ length: 10 }, () =>
-        request(app)
-          .post('/api/auth/login')
-          .send({
-            email: 'nonexistent@test.com',
-            password: 'wrongpassword',
-          })
+        request(app).post('/api/auth/login').send({
+          email: 'nonexistent@test.com',
+          password: 'wrongpassword',
+        })
       );
 
       const responses = await Promise.all(loginAttempts);
-      
+
       // Some requests should be rate limited
-      const rateLimitedResponses = responses.filter(r => r.status === 429);
+      const rateLimitedResponses = responses.filter((r) => r.status === 429);
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     }, 10000);
 
@@ -282,9 +275,9 @@ describe('Authentication Security Tests', () => {
       );
 
       const responses = await Promise.all(ticketCreationAttempts);
-      
+
       // Some requests should be rate limited
-      const rateLimitedResponses = responses.filter(r => r.status === 429);
+      const rateLimitedResponses = responses.filter((r) => r.status === 429);
       expect(rateLimitedResponses.length).toBeGreaterThan(0);
     }, 10000);
   });
@@ -292,12 +285,10 @@ describe('Authentication Security Tests', () => {
   describe('Session Security', () => {
     it('should invalidate tokens on logout', async () => {
       // Login to get tokens
-      const loginResponse = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'security@test.com',
-          password: 'password123',
-        });
+      const loginResponse = await request(app).post('/api/auth/login').send({
+        email: 'security@test.com',
+        password: 'password123',
+      });
 
       const { token, refreshToken } = loginResponse.body;
 
@@ -323,12 +314,10 @@ describe('Authentication Security Tests', () => {
 
     it('should prevent refresh token reuse', async () => {
       // Login to get tokens
-      const loginResponse = await request(app)
-        .post('/api/auth/login')
-        .send({
-          email: 'security@test.com',
-          password: 'password123',
-        });
+      const loginResponse = await request(app).post('/api/auth/login').send({
+        email: 'security@test.com',
+        password: 'password123',
+      });
 
       const { refreshToken } = loginResponse.body;
 
@@ -339,10 +328,7 @@ describe('Authentication Security Tests', () => {
         .expect(200);
 
       // Try to use the same refresh token again
-      await request(app)
-        .post('/api/auth/refresh')
-        .send({ refreshToken })
-        .expect(401);
+      await request(app).post('/api/auth/refresh').send({ refreshToken }).expect(401);
 
       // New refresh token should work
       await request(app)
@@ -365,7 +351,7 @@ describe('Authentication Security Tests', () => {
           companyId: companyId,
           teamId: teamId,
         });
-      
+
       ticketId = response.body.data.id;
     });
 

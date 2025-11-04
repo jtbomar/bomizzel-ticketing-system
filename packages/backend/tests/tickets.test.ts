@@ -101,10 +101,7 @@ describe('Ticket Management', () => {
         teamId: teamId,
       };
 
-      await request(app)
-        .post('/api/tickets')
-        .send(ticketData)
-        .expect(401);
+      await request(app).post('/api/tickets').send(ticketData).expect(401);
     });
 
     it('should reject ticket creation for company user is not associated with', async () => {
@@ -143,7 +140,7 @@ describe('Ticket Management', () => {
           companyId: companyId,
           teamId: teamId,
         });
-      
+
       ticketId = response.body.data.id;
     });
 
@@ -172,9 +169,7 @@ describe('Ticket Management', () => {
     });
 
     it('should reject access to tickets without authentication', async () => {
-      await request(app)
-        .get('/api/tickets')
-        .expect(401);
+      await request(app).get('/api/tickets').expect(401);
     });
   });
 
@@ -192,7 +187,7 @@ describe('Ticket Management', () => {
           companyId: companyId,
           teamId: teamId,
         });
-      
+
       ticketId = response.body.data.id;
     });
 

@@ -16,8 +16,13 @@ const mockApi = vi.mocked(api);
 // Mock drag and drop
 vi.mock('react-beautiful-dnd', () => ({
   DragDropContext: ({ children }: any) => children,
-  Droppable: ({ children }: any) => children({ provided: { droppableProps: {}, innerRef: vi.fn() }, snapshot: {} }),
-  Draggable: ({ children }: any) => children({ provided: { draggableProps: {}, dragHandleProps: {}, innerRef: vi.fn() }, snapshot: {} }),
+  Droppable: ({ children }: any) =>
+    children({ provided: { droppableProps: {}, innerRef: vi.fn() }, snapshot: {} }),
+  Draggable: ({ children }: any) =>
+    children({
+      provided: { draggableProps: {}, dragHandleProps: {}, innerRef: vi.fn() },
+      snapshot: {},
+    }),
 }));
 
 const mockEmployee = {
@@ -112,9 +117,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
@@ -124,7 +127,7 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
 describe('Employee Workflow E2E Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockApi.getCurrentUser.mockResolvedValue({ data: mockEmployee });
     mockApi.getTickets.mockResolvedValue({
       data: mockTickets,
@@ -216,7 +219,7 @@ describe('Employee Workflow E2E Tests', () => {
       // In a real test, we would simulate the drag and drop
       // For now, we'll test the update function directly
       fireEvent.click(screen.getByText('Bug Report'));
-      
+
       // This would trigger priority update in real scenario
       await waitFor(() => {
         expect(onTicketUpdate).toHaveBeenCalled();
@@ -279,7 +282,7 @@ describe('Employee Workflow E2E Tests', () => {
     });
 
     it('should show assigned tickets in personal queue', async () => {
-      const assignedTickets = mockTickets.filter(t => t.assignedToId === '1');
+      const assignedTickets = mockTickets.filter((t) => t.assignedToId === '1');
       mockApi.getTickets.mockResolvedValue({
         data: assignedTickets,
         pagination: { total: 1, page: 1, limit: 10 },
@@ -549,7 +552,7 @@ describe('Employee Workflow E2E Tests', () => {
 
       // Simulate real-time metrics update
       const metricsUpdateCallback = mockSocket.on.mock.calls.find(
-        call => call[0] === 'queue:metrics'
+        (call) => call[0] === 'queue:metrics'
       )?.[1];
 
       if (metricsUpdateCallback) {

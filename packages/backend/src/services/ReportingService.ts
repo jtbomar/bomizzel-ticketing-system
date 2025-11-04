@@ -50,7 +50,11 @@ export class ReportingService {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
       if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
-        throw new AppError('Only employees and administrators can view reports', 403, 'INSUFFICIENT_PERMISSIONS');
+        throw new AppError(
+          'Only employees and administrators can view reports',
+          403,
+          'INSUFFICIENT_PERMISSIONS'
+        );
       }
 
       let query = Ticket.query;
@@ -59,19 +63,19 @@ export class ReportingService {
       if (filters.startDate) {
         query = query.where('created_at', '>=', filters.startDate);
       }
-      
+
       if (filters.endDate) {
         query = query.where('created_at', '<=', filters.endDate);
       }
-      
+
       if (filters.teamId) {
         query = query.where('team_id', filters.teamId);
       }
-      
+
       if (filters.status) {
         query = query.where('status', filters.status);
       }
-      
+
       if (filters.assignedToId) {
         query = query.where('assigned_to_id', filters.assignedToId);
       }
@@ -81,26 +85,33 @@ export class ReportingService {
       const totalCount = parseInt(totalTickets?.count || '0', 10);
 
       // Get open/closed tickets
-      const openTickets = await query.clone().where('status', '!=', 'closed').count('* as count').first();
+      const openTickets = await query
+        .clone()
+        .where('status', '!=', 'closed')
+        .count('* as count')
+        .first();
       const openCount = parseInt(openTickets?.count || '0', 10);
       const closedCount = totalCount - openCount;
 
       // Get tickets by status
-      const ticketsByStatus = await query.clone()
+      const ticketsByStatus = await query
+        .clone()
         .select('status')
         .count('* as count')
         .groupBy('status')
         .orderBy('count', 'desc');
 
       // Get tickets by priority
-      const ticketsByPriority = await query.clone()
+      const ticketsByPriority = await query
+        .clone()
         .select('priority')
         .count('* as count')
         .groupBy('priority')
         .orderBy('priority', 'asc');
 
       // Get tickets by team
-      const ticketsByTeam = await query.clone()
+      const ticketsByTeam = await query
+        .clone()
         .join('teams', 'tickets.team_id', 'teams.id')
         .select('teams.id as teamId', 'teams.name as teamName')
         .count('tickets.id as count')
@@ -108,7 +119,8 @@ export class ReportingService {
         .orderBy('count', 'desc');
 
       // Get tickets by assignee
-      const ticketsByAssignee = await query.clone()
+      const ticketsByAssignee = await query
+        .clone()
         .join('users', 'tickets.assigned_to_id', 'users.id')
         .select('users.id as userId')
         .select(Ticket.db.raw("CONCAT(users.first_name, ' ', users.last_name) as userName"))
@@ -117,16 +129,17 @@ export class ReportingService {
         .orderBy('count', 'desc');
 
       // Calculate average resolution time (for closed tickets)
-      const resolutionTimes = await query.clone()
-        .join('ticket_statuses', function() {
-          this.on('tickets.status', '=', 'ticket_statuses.name')
-            .andOn('tickets.team_id', '=', 'ticket_statuses.team_id');
+      const resolutionTimes = await query
+        .clone()
+        .join('ticket_statuses', function () {
+          this.on('tickets.status', '=', 'ticket_statuses.name').andOn(
+            'tickets.team_id',
+            '=',
+            'ticket_statuses.team_id'
+          );
         })
         .where('ticket_statuses.is_closed', true)
-        .select(
-          'tickets.created_at',
-          'tickets.updated_at'
-        );
+        .select('tickets.created_at', 'tickets.updated_at');
 
       let averageResolutionTime = 0;
       if (resolutionTimes.length > 0) {
@@ -143,20 +156,20 @@ export class ReportingService {
         openTickets: openCount,
         closedTickets: closedCount,
         averageResolutionTime: Math.round(averageResolutionTime * 100) / 100,
-        ticketsByStatus: ticketsByStatus.map(s => ({
+        ticketsByStatus: ticketsByStatus.map((s) => ({
           status: s.status,
           count: parseInt(s.count, 10),
         })),
-        ticketsByPriority: ticketsByPriority.map(p => ({
+        ticketsByPriority: ticketsByPriority.map((p) => ({
           priority: p.priority?.toString() || 'unset',
           count: parseInt(p.count, 10),
         })),
-        ticketsByTeam: ticketsByTeam.map(t => ({
+        ticketsByTeam: ticketsByTeam.map((t) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           count: parseInt(t.count, 10),
         })),
-        ticketsByAssignee: ticketsByAssignee.map(a => ({
+        ticketsByAssignee: ticketsByAssignee.map((a) => ({
           userId: a.userId,
           userName: a.userName,
           count: parseInt(a.count, 10),
@@ -211,11 +224,11 @@ export class ReportingService {
       return {
         totalUsers: totalCount,
         activeUsers: activeCount,
-        usersByRole: usersByRole.map(r => ({
+        usersByRole: usersByRole.map((r) => ({
           role: r.role,
           count: parseInt(r.count, 10),
         })),
-        recentRegistrations: recentRegistrations.map(r => ({
+        recentRegistrations: recentRegistrations.map((r) => ({
           date: r.date,
           count: parseInt(r.count, 10),
         })),
@@ -237,7 +250,11 @@ export class ReportingService {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
       if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
-        throw new AppError('Only employees and administrators can view team reports', 403, 'INSUFFICIENT_PERMISSIONS');
+        throw new AppError(
+          'Only employees and administrators can view team reports',
+          403,
+          'INSUFFICIENT_PERMISSIONS'
+        );
       }
 
       // Get total teams
@@ -267,12 +284,12 @@ export class ReportingService {
       return {
         totalTeams: totalCount,
         activeTeams: activeCount,
-        teamMembershipStats: teamMembershipStats.map(t => ({
+        teamMembershipStats: teamMembershipStats.map((t) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           memberCount: parseInt(t.memberCount, 10),
         })),
-        customFieldUsage: customFieldUsage.map(t => ({
+        customFieldUsage: customFieldUsage.map((t) => ({
           teamId: t.teamId,
           teamName: t.teamName,
           fieldCount: parseInt(t.fieldCount, 10),
@@ -357,15 +374,15 @@ export class ReportingService {
     if (filters.startDate) {
       query = query.where('tickets.created_at', '>=', filters.startDate);
     }
-    
+
     if (filters.endDate) {
       query = query.where('tickets.created_at', '<=', filters.endDate);
     }
-    
+
     if (filters.teamId) {
       query = query.where('tickets.team_id', filters.teamId);
     }
-    
+
     if (filters.status) {
       query = query.where('tickets.status', filters.status);
     }
@@ -374,13 +391,22 @@ export class ReportingService {
 
     // Generate CSV
     const headers = [
-      'ID', 'Title', 'Description', 'Status', 'Priority', 'Team', 'Company',
-      'Submitter', 'Assignee', 'Created At', 'Updated At'
+      'ID',
+      'Title',
+      'Description',
+      'Status',
+      'Priority',
+      'Team',
+      'Company',
+      'Submitter',
+      'Assignee',
+      'Created At',
+      'Updated At',
     ];
 
     let csv = headers.join(',') + '\n';
 
-    tickets.forEach(ticket => {
+    tickets.forEach((ticket) => {
       const row = [
         ticket.id,
         `"${ticket.title?.replace(/"/g, '""') || ''}"`,
@@ -405,16 +431,32 @@ export class ReportingService {
    */
   private static async exportUsersToCSV(): Promise<string> {
     const users = await User.query
-      .select('id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'email_verified', 'created_at')
+      .select(
+        'id',
+        'email',
+        'first_name',
+        'last_name',
+        'role',
+        'is_active',
+        'email_verified',
+        'created_at'
+      )
       .orderBy('created_at', 'desc');
 
     const headers = [
-      'ID', 'Email', 'First Name', 'Last Name', 'Role', 'Active', 'Email Verified', 'Created At'
+      'ID',
+      'Email',
+      'First Name',
+      'Last Name',
+      'Role',
+      'Active',
+      'Email Verified',
+      'Created At',
     ];
 
     let csv = headers.join(',') + '\n';
 
-    users.forEach(user => {
+    users.forEach((user) => {
       const row = [
         user.id,
         user.email,
@@ -442,13 +484,11 @@ export class ReportingService {
       .groupBy('teams.id', 'teams.name', 'teams.description', 'teams.is_active', 'teams.created_at')
       .orderBy('teams.created_at', 'desc');
 
-    const headers = [
-      'ID', 'Name', 'Description', 'Active', 'Member Count', 'Created At'
-    ];
+    const headers = ['ID', 'Name', 'Description', 'Active', 'Member Count', 'Created At'];
 
     let csv = headers.join(',') + '\n';
 
-    teams.forEach(team => {
+    teams.forEach((team) => {
       const row = [
         team.id,
         `"${team.name?.replace(/"/g, '""') || ''}"`,

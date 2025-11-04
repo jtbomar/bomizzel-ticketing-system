@@ -20,19 +20,13 @@ const JWT_REFRESH_EXPIRES_IN = process.env['JWT_REFRESH_EXPIRES_IN'] || '7d';
 
 export class JWTUtils {
   static generateAccessToken(payload: Omit<JWTPayload, 'type'>): string {
-    return jwt.sign(
-      { ...payload, type: 'access' },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN }
-    );
+    return jwt.sign({ ...payload, type: 'access' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   }
 
   static generateRefreshToken(payload: Omit<JWTPayload, 'type'>): string {
-    return jwt.sign(
-      { ...payload, type: 'refresh' },
-      JWT_REFRESH_SECRET,
-      { expiresIn: JWT_REFRESH_EXPIRES_IN }
-    );
+    return jwt.sign({ ...payload, type: 'refresh' }, JWT_REFRESH_SECRET, {
+      expiresIn: JWT_REFRESH_EXPIRES_IN,
+    });
   }
 
   static generateTokenPair(payload: Omit<JWTPayload, 'type'>): TokenPair {
@@ -84,12 +78,12 @@ export class JWTUtils {
 
   static extractTokenFromHeader(authHeader: string | undefined): string | null {
     if (!authHeader) return null;
-    
+
     const parts = authHeader.split(' ');
     if (parts.length !== 2 || parts[0] !== 'Bearer') {
       return null;
     }
-    
+
     return parts[1];
   }
 

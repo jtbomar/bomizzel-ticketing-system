@@ -11,10 +11,7 @@ export class SubscriptionPlan extends BaseModel {
   }
 
   static async findActivePlans(): Promise<SubscriptionPlanTable[]> {
-    return this.query
-      .where('is_active', true)
-      .orderBy('sort_order', 'asc')
-      .orderBy('price', 'asc');
+    return this.query.where('is_active', true).orderBy('sort_order', 'asc').orderBy('price', 'asc');
   }
 
   static async createPlan(planData: {
@@ -48,10 +45,7 @@ export class SubscriptionPlan extends BaseModel {
   }
 
   static async getFreeTier(): Promise<SubscriptionPlanTable | null> {
-    const result = await this.query
-      .where('slug', 'free-tier')
-      .where('is_active', true)
-      .first();
+    const result = await this.query.where('slug', 'free-tier').where('is_active', true).first();
     return result || null;
   }
 
@@ -74,25 +68,33 @@ export class SubscriptionPlan extends BaseModel {
     const plan = await this.findById(planId);
     if (!plan) return false;
 
-    return plan.active_ticket_limit === -1 && 
-           plan.completed_ticket_limit === -1 && 
-           plan.total_ticket_limit === -1;
+    return (
+      plan.active_ticket_limit === -1 &&
+      plan.completed_ticket_limit === -1 &&
+      plan.total_ticket_limit === -1
+    );
   }
 
-  static async getPlansByPriceRange(minPrice: number, maxPrice: number): Promise<SubscriptionPlanTable[]> {
+  static async getPlansByPriceRange(
+    minPrice: number,
+    maxPrice: number
+  ): Promise<SubscriptionPlanTable[]> {
     return this.query
       .where('is_active', true)
       .whereBetween('price', [minPrice, maxPrice])
       .orderBy('price', 'asc');
   }
 
-  static async updatePlanLimits(planId: string, limits: {
-    activeTicketLimit?: number;
-    completedTicketLimit?: number;
-    totalTicketLimit?: number;
-  }): Promise<SubscriptionPlanTable | null> {
+  static async updatePlanLimits(
+    planId: string,
+    limits: {
+      activeTicketLimit?: number;
+      completedTicketLimit?: number;
+      totalTicketLimit?: number;
+    }
+  ): Promise<SubscriptionPlanTable | null> {
     const updateData: any = {};
-    
+
     if (limits.activeTicketLimit !== undefined) {
       updateData.active_ticket_limit = limits.activeTicketLimit;
     }

@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   ArrowPathIcon,
   ClockIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { Ticket } from '../types';
 
@@ -32,27 +32,28 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
 
   // Get unique statuses from tickets
   const availableStatuses = useMemo(() => {
-    const statuses = new Set(tickets.map(ticket => ticket.status));
+    const statuses = new Set(tickets.map((ticket) => ticket.status));
     return Array.from(statuses).sort();
   }, [tickets]);
 
   // Filter and sort tickets
   const filteredTickets = useMemo(() => {
-    let filtered = tickets.filter(ticket => {
-      const matchesSearch = searchTerm === '' || 
+    let filtered = tickets.filter((ticket) => {
+      const matchesSearch =
+        searchTerm === '' ||
         ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ticket.id.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     });
 
     // Sort tickets
     filtered.sort((a, b) => {
       let comparison = 0;
-      
+
       switch (sortBy) {
         case 'created':
           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -64,7 +65,7 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
           comparison = a.priority - b.priority;
           break;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -105,7 +106,7 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
     const date = new Date(dateInput);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInHours < 24 * 7) {
@@ -170,7 +171,7 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
               className="input w-full"
             >
               <option value="all">All Statuses</option>
-              {availableStatuses.map(status => (
+              {availableStatuses.map((status) => (
                 <option key={status} value={status}>
                   {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
                 </option>
@@ -226,10 +227,9 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
               <div className="bg-gray-50 rounded-lg p-8">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No tickets found</h3>
                 <p className="text-gray-600 mb-4">
-                  {searchTerm || statusFilter !== 'all' 
+                  {searchTerm || statusFilter !== 'all'
                     ? 'Try adjusting your search or filters'
-                    : 'You haven\'t created any tickets yet'
-                  }
+                    : "You haven't created any tickets yet"}
                 </p>
                 {!searchTerm && statusFilter === 'all' && (
                   <Link to="/customer/create" className="btn-primary">
@@ -248,44 +248,54 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-3 mb-2">
-                      <h3 className="text-lg font-medium text-gray-900 truncate">
-                        {ticket.title}
-                      </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
+                      <h3 className="text-lg font-medium text-gray-900 truncate">{ticket.title}</h3>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}
+                      >
                         {getStatusIcon(ticket.status)}
                         <span className="ml-1">{ticket.status.replace('_', ' ')}</span>
                       </span>
                     </div>
-                    
-                    <p className="text-gray-600 text-sm mb-3 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+
+                    <p
+                      className="text-gray-600 text-sm mb-3 overflow-hidden"
+                      style={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
                       {ticket.description}
                     </p>
-                    
+
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
                       <span>ID: {ticket.id.slice(-8)}</span>
                       <span>Created: {formatDate(ticket.createdAt)}</span>
                       <span>Updated: {formatDate(ticket.updatedAt)}</span>
                       {ticket.assignedTo && (
-                        <span>Assigned to: {ticket.assignedTo.firstName} {ticket.assignedTo.lastName}</span>
+                        <span>
+                          Assigned to: {ticket.assignedTo.firstName} {ticket.assignedTo.lastName}
+                        </span>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col items-end space-y-2 ml-4">
                     <div className="text-right">
                       <div className="text-xs text-gray-500">Priority</div>
                       <div className="text-sm font-medium text-gray-900">{ticket.priority}</div>
                     </div>
-                    
-                    {(ticket.notes && ticket.notes.length > 0) && (
+
+                    {ticket.notes && ticket.notes.length > 0 && (
                       <div className="text-xs text-gray-500">
                         {ticket.notes.length} note{ticket.notes.length !== 1 ? 's' : ''}
                       </div>
                     )}
-                    
-                    {(ticket.attachments && ticket.attachments.length > 0) && (
+
+                    {ticket.attachments && ticket.attachments.length > 0 && (
                       <div className="text-xs text-gray-500">
-                        {ticket.attachments.length} attachment{ticket.attachments.length !== 1 ? 's' : ''}
+                        {ticket.attachments.length} attachment
+                        {ticket.attachments.length !== 1 ? 's' : ''}
                       </div>
                     )}
                   </div>

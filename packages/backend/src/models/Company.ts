@@ -27,17 +27,22 @@ export class Company extends BaseModel {
     });
   }
 
-  static async findActiveCompanies(options: {
-    limit?: number;
-    offset?: number;
-    search?: string;
-  } = {}): Promise<CompanyTable[]> {
+  static async findActiveCompanies(
+    options: {
+      limit?: number;
+      offset?: number;
+      search?: string;
+    } = {}
+  ): Promise<CompanyTable[]> {
     let query = this.query.where('is_active', true);
 
     if (options.search) {
-      query = query.where(function() {
-        this.where('name', 'ilike', `%${options.search}%`)
-            .orWhere('domain', 'ilike', `%${options.search}%`);
+      query = query.where(function () {
+        this.where('name', 'ilike', `%${options.search}%`).orWhere(
+          'domain',
+          'ilike',
+          `%${options.search}%`
+        );
       });
     }
 
@@ -52,7 +57,11 @@ export class Company extends BaseModel {
     return query.orderBy('name', 'asc');
   }
 
-  static async addUserToCompany(userId: string, companyId: string, role: string = 'member'): Promise<void> {
+  static async addUserToCompany(
+    userId: string,
+    companyId: string,
+    role: string = 'member'
+  ): Promise<void> {
     await this.db('user_company_associations').insert({
       user_id: userId,
       company_id: companyId,
@@ -81,11 +90,7 @@ export class Company extends BaseModel {
       .join('user_company_associations as uca', 'u.id', 'uca.user_id')
       .where('uca.company_id', companyId)
       .where('u.is_active', true)
-      .select(
-        'u.*',
-        'uca.role as company_role',
-        'uca.created_at as association_created_at'
-      )
+      .select('u.*', 'uca.role as company_role', 'uca.created_at as association_created_at')
       .orderBy('u.first_name', 'asc');
   }
 
@@ -94,11 +99,15 @@ export class Company extends BaseModel {
       .where('user_id', userId)
       .where('company_id', companyId)
       .first();
-    
+
     return !!association;
   }
 
-  static async updateUserCompanyRole(userId: string, companyId: string, role: string): Promise<void> {
+  static async updateUserCompanyRole(
+    userId: string,
+    companyId: string,
+    role: string
+  ): Promise<void> {
     await this.db('user_company_associations')
       .where('user_id', userId)
       .where('company_id', companyId)

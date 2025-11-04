@@ -66,20 +66,22 @@ function sanitizeString(str: string): string {
     return str;
   }
 
-  return str
-    // Remove null bytes
-    .replace(/\0/g, '')
-    // Remove or escape HTML tags
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Remove script tags completely
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Remove javascript: protocol
-    .replace(/javascript:/gi, '')
-    // Remove on* event handlers
-    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
-    // Trim whitespace
-    .trim();
+  return (
+    str
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Remove or escape HTML tags
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      // Remove script tags completely
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      // Remove javascript: protocol
+      .replace(/javascript:/gi, '')
+      // Remove on* event handlers
+      .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
+      // Trim whitespace
+      .trim()
+  );
 }
 
 /**
@@ -87,10 +89,10 @@ function sanitizeString(str: string): string {
  */
 export const validateContentType = (req: Request, res: Response, next: NextFunction): void => {
   const method = req.method.toLowerCase();
-  
+
   if (['post', 'put', 'patch'].includes(method)) {
     const contentType = req.get('Content-Type');
-    
+
     if (!contentType) {
       return res.status(400).json({
         error: {
@@ -109,9 +111,7 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
       'application/x-www-form-urlencoded',
     ];
 
-    const isValidType = allowedTypes.some(type => 
-      contentType.toLowerCase().startsWith(type)
-    );
+    const isValidType = allowedTypes.some((type) => contentType.toLowerCase().startsWith(type));
 
     if (!isValidType) {
       return res.status(415).json({
@@ -134,7 +134,7 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
 export const limitRequestSize = (maxSize: number = 10 * 1024 * 1024) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const contentLength = req.get('Content-Length');
-    
+
     if (contentLength && parseInt(contentLength, 10) > maxSize) {
       return res.status(413).json({
         error: {

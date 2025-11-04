@@ -29,16 +29,12 @@ export class StripeWebhookService {
       }
 
       // Verify webhook signature
-      const event = stripe.webhooks.constructEvent(
-        payload,
-        signature,
-        STRIPE_CONFIG.webhookSecret
-      );
+      const event = stripe.webhooks.constructEvent(payload, signature, STRIPE_CONFIG.webhookSecret);
 
       logger.info('Processing Stripe webhook', {
         eventType: event.type,
         eventId: event.id,
-        livemode: event.livemode
+        livemode: event.livemode,
       });
 
       // Process the event based on type
@@ -109,7 +105,7 @@ export class StripeWebhookService {
         default:
           logger.info('Unhandled webhook event type', {
             eventType: event.type,
-            eventId: event.id
+            eventId: event.id,
           });
           message = `Unhandled event type: ${event.type}`;
       }
@@ -118,28 +114,27 @@ export class StripeWebhookService {
         eventType: event.type,
         eventId: event.id,
         processed,
-        message
+        message,
       });
 
       return {
         processed,
         eventType: event.type,
         eventId: event.id,
-        message
+        message,
       };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Error processing webhook', {
         error: errorMessage,
-        signature: signature.substring(0, 20) + '...'
+        signature: signature.substring(0, 20) + '...',
       });
 
       return {
         processed: false,
         eventType: 'unknown',
         eventId: 'unknown',
-        error: errorMessage
+        error: errorMessage,
       };
     }
   }
@@ -151,16 +146,16 @@ export class StripeWebhookService {
     try {
       // Sync the subscription with our database
       await StripeService.syncSubscriptionFromStripe(subscription.id);
-      
+
       logger.info('Handled subscription created', {
         subscriptionId: subscription.id,
         customerId: subscription.customer,
-        status: subscription.status
+        status: subscription.status,
       });
     } catch (error) {
       logger.error('Error handling subscription created', {
         subscriptionId: subscription.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -173,16 +168,16 @@ export class StripeWebhookService {
     try {
       // Sync the subscription with our database
       await StripeService.syncSubscriptionFromStripe(subscription.id);
-      
+
       logger.info('Handled subscription updated', {
         subscriptionId: subscription.id,
         customerId: subscription.customer,
-        status: subscription.status
+        status: subscription.status,
       });
     } catch (error) {
       logger.error('Error handling subscription updated', {
         subscriptionId: subscription.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -193,24 +188,26 @@ export class StripeWebhookService {
    */
   private static async handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
     try {
-      const localSubscription = await CustomerSubscription.findByStripeSubscriptionId(subscription.id);
-      
+      const localSubscription = await CustomerSubscription.findByStripeSubscriptionId(
+        subscription.id
+      );
+
       if (localSubscription) {
         await CustomerSubscription.updateSubscriptionStatus(localSubscription.id, 'cancelled');
-        
+
         logger.info('Handled subscription deleted', {
           subscriptionId: subscription.id,
-          localSubscriptionId: localSubscription.id
+          localSubscriptionId: localSubscription.id,
         });
       } else {
         logger.warn('Local subscription not found for deleted Stripe subscription', {
-          subscriptionId: subscription.id
+          subscriptionId: subscription.id,
         });
       }
     } catch (error) {
       logger.error('Error handling subscription deleted', {
         subscriptionId: subscription.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -223,35 +220,36 @@ export class StripeWebhookService {
     try {
       // Process billing record
       await BillingService.processInvoicePaymentSucceeded(invoice);
-      
+
       if (invoice.subscription) {
-        const subscriptionId = typeof invoice.subscription === 'string' ? 
-          invoice.subscription : invoice.subscription.id;
-        
+        const subscriptionId =
+          typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id;
+
         // Sync subscription status
         await StripeService.syncSubscriptionFromStripe(subscriptionId);
-        
+
         // Find local subscription
-        const localSubscription = await CustomerSubscription.findByStripeSubscriptionId(subscriptionId);
-        
+        const localSubscription =
+          await CustomerSubscription.findByStripeSubscriptionId(subscriptionId);
+
         if (localSubscription) {
           // Update subscription to active if payment succeeded
           if (localSubscription.status === 'past_due') {
             await CustomerSubscription.updateSubscriptionStatus(localSubscription.id, 'active');
           }
-          
+
           logger.info('Handled invoice payment succeeded', {
             invoiceId: invoice.id,
             subscriptionId,
             amount: invoice.amount_paid,
-            currency: invoice.currency
+            currency: invoice.currency,
           });
         }
       }
     } catch (error) {
       logger.error('Error handling invoice payment succeeded', {
         invoiceId: invoice.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -264,34 +262,35 @@ export class StripeWebhookService {
     try {
       // Process billing record
       await BillingService.processInvoicePaymentFailed(invoice);
-      
+
       if (invoice.subscription) {
-        const subscriptionId = typeof invoice.subscription === 'string' ? 
-          invoice.subscription : invoice.subscription.id;
-        
+        const subscriptionId =
+          typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id;
+
         // Find local subscription
-        const localSubscription = await CustomerSubscription.findByStripeSubscriptionId(subscriptionId);
-        
+        const localSubscription =
+          await CustomerSubscription.findByStripeSubscriptionId(subscriptionId);
+
         if (localSubscription) {
           // Update subscription to past_due
           await CustomerSubscription.updateSubscriptionStatus(localSubscription.id, 'past_due');
-          
+
           // TODO: Send notification to customer about failed payment
           // This could trigger an email notification or in-app notification
-          
+
           logger.info('Handled invoice payment failed', {
             invoiceId: invoice.id,
             subscriptionId,
             amount: invoice.amount_due,
             currency: invoice.currency,
-            attemptCount: invoice.attempt_count
+            attemptCount: invoice.attempt_count,
           });
         }
       }
     } catch (error) {
       logger.error('Error handling invoice payment failed', {
         invoiceId: invoice.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -300,32 +299,36 @@ export class StripeWebhookService {
   /**
    * Handle payment method attached event
    */
-  private static async handlePaymentMethodAttached(paymentMethod: Stripe.PaymentMethod): Promise<void> {
+  private static async handlePaymentMethodAttached(
+    paymentMethod: Stripe.PaymentMethod
+  ): Promise<void> {
     try {
       if (paymentMethod.customer) {
-        const customerId = typeof paymentMethod.customer === 'string' ? 
-          paymentMethod.customer : paymentMethod.customer.id;
-        
+        const customerId =
+          typeof paymentMethod.customer === 'string'
+            ? paymentMethod.customer
+            : paymentMethod.customer.id;
+
         // Find subscriptions for this customer
         const subscriptions = await CustomerSubscription.findByStripeCustomerId(customerId);
-        
+
         // Update the default payment method for active subscriptions
         for (const subscription of subscriptions) {
           if (subscription.status === 'active' || subscription.status === 'trial') {
             await CustomerSubscription.updatePaymentMethod(subscription.id, paymentMethod.id);
           }
         }
-        
+
         logger.info('Handled payment method attached', {
           paymentMethodId: paymentMethod.id,
           customerId,
-          subscriptionsUpdated: subscriptions.length
+          subscriptionsUpdated: subscriptions.length,
         });
       }
     } catch (error) {
       logger.error('Error handling payment method attached', {
         paymentMethodId: paymentMethod.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -334,25 +337,29 @@ export class StripeWebhookService {
   /**
    * Handle payment method detached event
    */
-  private static async handlePaymentMethodDetached(paymentMethod: Stripe.PaymentMethod): Promise<void> {
+  private static async handlePaymentMethodDetached(
+    paymentMethod: Stripe.PaymentMethod
+  ): Promise<void> {
     try {
       // Find subscriptions using this payment method
-      const subscriptions = await CustomerSubscription.query
-        .where('payment_method_id', paymentMethod.id);
-      
+      const subscriptions = await CustomerSubscription.query.where(
+        'payment_method_id',
+        paymentMethod.id
+      );
+
       // Clear the payment method from subscriptions
       for (const subscription of subscriptions) {
         await CustomerSubscription.updatePaymentMethod(subscription.id, '');
       }
-      
+
       logger.info('Handled payment method detached', {
         paymentMethodId: paymentMethod.id,
-        subscriptionsUpdated: subscriptions.length
+        subscriptionsUpdated: subscriptions.length,
       });
     } catch (error) {
       logger.error('Error handling payment method detached', {
         paymentMethodId: paymentMethod.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -368,12 +375,12 @@ export class StripeWebhookService {
       logger.info('Handled customer created', {
         customerId: customer.id,
         email: customer.email,
-        created: customer.created
+        created: customer.created,
       });
     } catch (error) {
       logger.error('Error handling customer created', {
         customerId: customer.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -386,16 +393,16 @@ export class StripeWebhookService {
     try {
       // Find subscriptions for this customer and potentially update user info
       const subscriptions = await CustomerSubscription.findByStripeCustomerId(customer.id);
-      
+
       logger.info('Handled customer updated', {
         customerId: customer.id,
         email: customer.email,
-        subscriptionsFound: subscriptions.length
+        subscriptionsFound: subscriptions.length,
       });
     } catch (error) {
       logger.error('Error handling customer updated', {
         customerId: customer.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -408,21 +415,21 @@ export class StripeWebhookService {
     try {
       // Find and cancel subscriptions for this customer
       const subscriptions = await CustomerSubscription.findByStripeCustomerId(customer.id);
-      
+
       for (const subscription of subscriptions) {
         if (subscription.status !== 'cancelled') {
           await CustomerSubscription.updateSubscriptionStatus(subscription.id, 'cancelled');
         }
       }
-      
+
       logger.info('Handled customer deleted', {
         customerId: customer.id,
-        subscriptionsCancelled: subscriptions.length
+        subscriptionsCancelled: subscriptions.length,
       });
     } catch (error) {
       logger.error('Error handling customer deleted', {
         customerId: customer.id,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       throw error;
     }
@@ -441,7 +448,7 @@ export class StripeWebhookService {
       return true;
     } catch (error) {
       logger.warn('Invalid webhook signature', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return false;
     }
@@ -459,7 +466,7 @@ export class StripeWebhookService {
       return stripe.webhooks.constructEvent(payload, signature, STRIPE_CONFIG.webhookSecret);
     } catch (error) {
       logger.warn('Failed to construct webhook event', {
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
       return null;
     }
