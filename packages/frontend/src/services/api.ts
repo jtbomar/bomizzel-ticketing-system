@@ -2,6 +2,10 @@ import axios, { AxiosInstance } from 'axios';
 
 const API_BASE_URL = `http://${window.location.hostname}:3001/api`;
 
+console.log('[ApiService] API_BASE_URL:', API_BASE_URL);
+console.log('[ApiService] VITE_API_URL:', (import.meta as any).env?.VITE_API_URL);
+console.log('[ApiService] window.location.hostname:', window.location.hostname);
+
 class ApiService {
   private client: AxiosInstance;
 
@@ -42,8 +46,21 @@ class ApiService {
 
   // Auth endpoints
   async login(email: string, password: string): Promise<any> {
-    const response = await this.client.post('/auth/login', { email, password });
-    return response.data;
+    try {
+      console.log('[ApiService] Attempting login with baseURL:', this.client.defaults.baseURL);
+      const response = await this.client.post('/auth/login', { email, password });
+      console.log('[ApiService] Login successful:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('[ApiService] Login error:', error);
+      console.error('[ApiService] Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      throw error;
+    }
   }
 
   async register(userData: {
@@ -667,6 +684,317 @@ class ApiService {
 
   async runAutomatedArchival(): Promise<any> {
     const response = await this.client.post('/tickets/archive/run-automation');
+    return response.data;
+  }
+
+  // Holiday List endpoints
+  async getHolidayLists(): Promise<any> {
+    const response = await this.client.get('/holiday-lists');
+    return response.data;
+  }
+
+  async getHolidayList(id: number): Promise<any> {
+    const response = await this.client.get(`/holiday-lists/${id}`);
+    return response.data;
+  }
+
+  async createHolidayList(data: {
+    holidayList: {
+      name: string;
+      description?: string;
+      region?: string;
+      is_active: boolean;
+      is_default: boolean;
+    };
+    holidays: Array<{
+      name: string;
+      date: string;
+      is_recurring: boolean;
+      recurrence_pattern?: string;
+      description?: string;
+    }>;
+  }): Promise<any> {
+    const response = await this.client.post('/holiday-lists', data);
+    return response.data;
+  }
+
+  async updateHolidayList(id: number, data: {
+    holidayList: {
+      name: string;
+      description?: string;
+      region?: string;
+      is_active: boolean;
+      is_default: boolean;
+    };
+    holidays: Array<{
+      name: string;
+      date: string;
+      is_recurring: boolean;
+      recurrence_pattern?: string;
+      description?: string;
+    }>;
+  }): Promise<any> {
+    const response = await this.client.put(`/holiday-lists/${id}`, data);
+    return response.data;
+  }
+
+  async deleteHolidayList(id: number): Promise<any> {
+    const response = await this.client.delete(`/holiday-lists/${id}`);
+    return response.data;
+  }
+
+  async getDefaultHolidayList(): Promise<any> {
+    const response = await this.client.get('/holiday-lists/default/current');
+    return response.data;
+  }
+
+  async checkHoliday(date: string): Promise<any> {
+    const response = await this.client.get(`/holiday-lists/check/${date}`);
+    return response.data;
+  }
+
+  // Business Hours endpoints
+  async getBusinessHours(): Promise<any> {
+    const response = await this.client.get('/business-hours');
+    return response.data;
+  }
+
+  async createBusinessHours(data: any): Promise<any> {
+    const response = await this.client.post('/business-hours', data);
+    return response.data;
+  }
+
+  async updateBusinessHours(id: number, data: any): Promise<any> {
+    const response = await this.client.put(`/business-hours/${id}`, data);
+    return response.data;
+  }
+
+  async deleteBusinessHours(id: number): Promise<any> {
+    const response = await this.client.delete(`/business-hours/${id}`);
+    return response.data;
+  }
+
+  async getDefaultBusinessHours(): Promise<any> {
+    const response = await this.client.get('/business-hours/default/current');
+    return response.data;
+  }
+
+  // Company Profile endpoints
+  async getCompanyProfile(): Promise<any> {
+    const response = await this.client.get('/company-registration/profile');
+    return response.data;
+  }
+
+  async updateCompanyProfile(data: {
+    name: string;
+    logo?: string;
+    website?: string;
+    primaryContact?: string;
+    primaryEmail?: string;
+    primaryPhone?: string;
+    address?: any;
+    phoneNumbers?: any;
+  }): Promise<any> {
+    const response = await this.client.put('/company-registration/profile', data);
+    return response.data;
+  }
+
+  // Branding endpoints
+  async getBranding(): Promise<any> {
+    const response = await this.client.get('/company-registration/branding');
+    return response.data;
+  }
+
+  async updateBranding(data: {
+    logo?: string;
+    favicon?: string;
+    linkbackUrl?: string;
+    companyName?: string;
+    tagline?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+  }): Promise<any> {
+    const response = await this.client.put('/company-registration/branding', data);
+    return response.data;
+  }
+
+  // Department endpoints
+  async getDepartments(): Promise<any> {
+    const response = await this.client.get('/departments');
+    return response.data;
+  }
+
+  async getDepartment(id: number): Promise<any> {
+    const response = await this.client.get(`/departments/${id}`);
+    return response.data;
+  }
+
+  async createDepartment(data: {
+    name: string;
+    description?: string;
+    logo?: string;
+    color?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+  }): Promise<any> {
+    const response = await this.client.post('/departments', data);
+    return response.data;
+  }
+
+  async updateDepartment(id: number, data: {
+    name?: string;
+    description?: string;
+    logo?: string;
+    color?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+  }): Promise<any> {
+    const response = await this.client.put(`/departments/${id}`, data);
+    return response.data;
+  }
+
+  async deleteDepartment(id: number): Promise<any> {
+    const response = await this.client.delete(`/departments/${id}`);
+    return response.data;
+  }
+
+  async addAgentToDepartment(departmentId: number, userId: string, role: 'member' | 'lead' | 'manager' = 'member'): Promise<any> {
+    const response = await this.client.post(`/departments/${departmentId}/agents`, { user_id: userId, role });
+    return response.data;
+  }
+
+  async removeAgentFromDepartment(departmentId: number, userId: string): Promise<any> {
+    const response = await this.client.delete(`/departments/${departmentId}/agents/${userId}`);
+    return response.data;
+  }
+
+  async getUserDepartments(): Promise<any> {
+    const response = await this.client.get('/departments/user/my-departments');
+    return response.data;
+  }
+
+  async getDepartmentTemplates(departmentId: number): Promise<any> {
+    const response = await this.client.get(`/departments/${departmentId}/templates`);
+    return response.data;
+  }
+
+  async createDepartmentTemplate(departmentId: number, data: {
+    name: string;
+    description?: string;
+    template_fields: any;
+    default_values?: any;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    category?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+  }): Promise<any> {
+    const response = await this.client.post(`/departments/${departmentId}/templates`, data);
+    return response.data;
+  }
+
+  async updateDepartmentTemplate(templateId: number, data: {
+    name?: string;
+    description?: string;
+    template_fields?: any;
+    default_values?: any;
+    priority?: 'low' | 'medium' | 'high' | 'urgent';
+    category?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+  }): Promise<any> {
+    const response = await this.client.put(`/departments/templates/${templateId}`, data);
+    return response.data;
+  }
+
+  async deleteDepartmentTemplate(templateId: number): Promise<any> {
+    const response = await this.client.delete(`/departments/templates/${templateId}`);
+    return response.data;
+  }
+
+  // Customer Happiness endpoints
+  async getCustomerHappinessSettings(): Promise<any> {
+    const response = await this.client.get('/customer-happiness');
+    return response.data;
+  }
+
+  async getCustomerHappinessSetting(id: number): Promise<any> {
+    const response = await this.client.get(`/customer-happiness/${id}`);
+    return response.data;
+  }
+
+  async createCustomerHappinessSetting(data: {
+    name: string;
+    description?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+    survey_config: any;
+    trigger_conditions: any;
+    email_template: any;
+    delay_hours?: number;
+    reminder_hours?: number;
+    max_reminders?: number;
+    thank_you_message?: string;
+    follow_up_message?: string;
+    low_rating_threshold?: number;
+  }): Promise<any> {
+    const response = await this.client.post('/customer-happiness', data);
+    return response.data;
+  }
+
+  async updateCustomerHappinessSetting(id: number, data: {
+    name?: string;
+    description?: string;
+    is_active?: boolean;
+    is_default?: boolean;
+    survey_config?: any;
+    trigger_conditions?: any;
+    email_template?: any;
+    delay_hours?: number;
+    reminder_hours?: number;
+    max_reminders?: number;
+    thank_you_message?: string;
+    follow_up_message?: string;
+    low_rating_threshold?: number;
+  }): Promise<any> {
+    const response = await this.client.put(`/customer-happiness/${id}`, data);
+    return response.data;
+  }
+
+  async deleteCustomerHappinessSetting(id: number): Promise<any> {
+    const response = await this.client.delete(`/customer-happiness/${id}`);
+    return response.data;
+  }
+
+  async getCustomerHappinessAnalytics(startDate: string, endDate: string, happinessSettingId?: number): Promise<any> {
+    const params: any = { start_date: startDate, end_date: endDate };
+    if (happinessSettingId) params.happiness_setting_id = happinessSettingId;
+    
+    const response = await this.client.get('/customer-happiness/analytics/overview', { params });
+    return response.data;
+  }
+
+  async getRecentCustomerFeedback(limit?: number, happinessSettingId?: number): Promise<any> {
+    const params: any = {};
+    if (limit) params.limit = limit;
+    if (happinessSettingId) params.happiness_setting_id = happinessSettingId;
+    
+    const response = await this.client.get('/customer-happiness/feedback/recent', { params });
+    return response.data;
+  }
+
+  // Public survey endpoints (no auth required)
+  async getSurveyByToken(token: string): Promise<any> {
+    const response = await this.client.get(`/customer-happiness/survey/${token}`);
+    return response.data;
+  }
+
+  async submitSurveyResponse(token: string, data: {
+    overall_rating: number;
+    question_responses?: Record<string, any>;
+    comments?: string;
+  }): Promise<any> {
+    const response = await this.client.post(`/customer-happiness/survey/${token}/submit`, data);
     return response.data;
   }
 

@@ -2,26 +2,30 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
-// Restart trigger
+// Restart trigger 2
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Basic middleware
 app.use(
   cors({
     origin: [
       'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://192.168.0.133:3000',
       'http://192.168.0.117:3000',
       /^http:\/\/192\.168\.0\.\d+:3000$/,
     ],
     credentials: true,
   })
 );
-app.use(express.json());
+// Increase payload limit for image uploads
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Import and mount API routes
 try {
@@ -33,49 +37,296 @@ try {
   
   // Try to register critical routes individually
   try {
+    const authRoutes = require('./routes/auth').default;
     const adminProvisioningRoutes = require('./routes/adminProvisioning').default;
     const enhancedRegistrationRoutes = require('./routes/enhancedRegistration').default;
-    app.use('/api/admin/provisioning', adminProvisioningRoutes);
+    const businessHoursRoutes = require('./routes/businessHours').default;
+    const holidayListRoutes = require('./routes/holidayLists').default;
+    const departmentRoutes = require('./routes/departments').default;
+    const customerHappinessRoutes = require('./routes/customerHappiness').default;
+    const companyRoutes = require('./routes/companies').default;
+    
+    app.use('/api/auth', authRoutes);
     app.use('/api/auth', enhancedRegistrationRoutes);
-    console.log('✅ Admin provisioning and enhanced registration routes registered');
+    app.use('/api/admin/provisioning', adminProvisioningRoutes);
+    app.use('/api/business-hours', businessHoursRoutes);
+    app.use('/api/holiday-lists', holidayListRoutes);
+    app.use('/api/departments', departmentRoutes);
+    app.use('/api/customer-happiness', customerHappinessRoutes);
+    app.use('/api/companies', companyRoutes);
+    console.log('✅ Auth, companies, admin provisioning, enhanced registration, business hours, holiday lists, departments, and customer happiness routes registered');
   } catch (err) {
     console.error('❌ Failed to register provisioning routes:', err);
   }
+  
+  // Manually register auth verify endpoint as fallback
+  app.get('/api/auth/verify', async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { authenticate } = await import('./middleware/auth');
+      const { User } = await import('./models/User');
+      
+      // Extract token
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.status(401).json({ error: 'No token provided' });
+        return;
+      }
+      
+      const token = authHeader.substring(7);
+      const { JWTUtils } = await import('./utils/jwt');
+      const payload = JWTUtils.verifyAccessToken(token);
+      
+      if (!payload) {
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+      
+      const user = await User.findById(payload.userId);
+      if (!user) {
+        res.status(404).json({ error: 'User not found' });
+        return;
+      }
+      
+      res.json({
+        valid: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
+        },
+      });
+    } catch (error) {
+      console.error('Auth verify error:', error);
+      res.status(401).json({ error: 'Authentication failed' });
+    }
+  });
+  console.log('✅ Manual auth verify endpoint registered');
 }
 
-// Simple company profile endpoints for testing
-app.get('/api/company-registration/profile', (req: Request, res: Response) => {
-  console.log('GET /api/company-registration/profile called');
-  console.log('Authorization header:', req.headers.authorization);
-
-  res.json({
-    success: true,
-    data: {
-      id: '1',
-      name: 'Test Company',
-      domain: 'test.com',
-      description: 'Test company description',
-      timezone: 'UTC',
-      dateFormat: 'MM/DD/YYYY',
-      timeFormat: '12',
-      currency: 'USD',
-      language: 'en',
-      allowPublicRegistration: false,
-      requireEmailVerification: true,
-    },
-  });
+// Company profile endpoints with database persistence
+app.get('/api/company-registration/profile', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('./config/database');
+    
+    // Get the first company profile (for now, we'll use a single profile)
+    const profile = await db('company_profiles').first();
+    
+    if (profile) {
+      res.json({
+        success: true,
+        data: {
+          id: profile.id,
+          name: profile.company_id, // We'll use company name from companies table later
+          logo: profile.logo,
+          website: profile.website,
+          primaryContact: profile.primary_contact,
+          primaryEmail: profile.primary_email,
+          primaryPhone: profile.primary_phone,
+          address: profile.address,
+          phoneNumbers: profile.phone_numbers,
+        },
+      });
+    } else {
+      // Return default data if no profile exists
+      res.json({
+        success: true,
+        data: {
+          id: null,
+          name: 'Bomizzel Services Inc.',
+          logo: '',
+          website: 'https://bomizzel.com',
+          primaryContact: 'Jeff Bomar',
+          primaryEmail: 'jeffrey.t.bomar@gmail.com',
+          primaryPhone: '(555) 123-4567',
+          address: {
+            street: '123 Business Street',
+            city: 'San Francisco',
+            state: 'CA',
+            zipCode: '94102',
+            country: 'United States',
+          },
+          phoneNumbers: {
+            main: '(555) 123-4567',
+            fax: '(555) 123-4568',
+            support: '(555) 123-4569',
+          },
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching company profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch company profile',
+    });
+  }
 });
 
-app.put('/api/company-registration/profile', (req: Request, res: Response) => {
-  console.log('Company profile update:', req.body);
-  res.json({
-    success: true,
-    message: 'Company profile updated successfully',
-    data: {
-      ...req.body,
-      id: '1',
-    },
-  });
+app.put('/api/company-registration/profile', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('./config/database');
+    const {
+      name,
+      logo,
+      website,
+      primaryContact,
+      primaryEmail,
+      primaryPhone,
+      address,
+      phoneNumbers,
+    } = req.body;
+
+    // Check if profile exists
+    const existingProfile = await db('company_profiles').first();
+
+    if (existingProfile) {
+      // Update existing profile
+      await db('company_profiles')
+        .where({ id: existingProfile.id })
+        .update({
+          logo,
+          website,
+          primary_contact: primaryContact,
+          primary_email: primaryEmail,
+          primary_phone: primaryPhone,
+          address: JSON.stringify(address),
+          phone_numbers: JSON.stringify(phoneNumbers),
+          updated_at: db.fn.now(),
+        });
+    } else {
+      // Create new profile
+      await db('company_profiles').insert({
+        logo,
+        website,
+        primary_contact: primaryContact,
+        primary_email: primaryEmail,
+        primary_phone: primaryPhone,
+        address: JSON.stringify(address),
+        phone_numbers: JSON.stringify(phoneNumbers),
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Company profile updated successfully',
+      data: req.body,
+    });
+  } catch (error) {
+    console.error('Error updating company profile:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update company profile',
+    });
+  }
+});
+
+// Branding endpoints
+app.get('/api/company-registration/branding', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('./config/database');
+    
+    // Get the first branding profile
+    const branding = await db('company_profiles').first();
+    
+    if (branding) {
+      res.json({
+        success: true,
+        data: {
+          logo: branding.logo,
+          favicon: branding.favicon,
+          linkbackUrl: branding.linkback_url,
+          companyName: branding.company_name,
+          tagline: branding.tagline,
+          primaryColor: branding.primary_color,
+          secondaryColor: branding.secondary_color,
+          accentColor: branding.accent_color,
+        },
+      });
+    } else {
+      // Return default branding data
+      res.json({
+        success: true,
+        data: {
+          logo: '',
+          favicon: '',
+          linkbackUrl: 'https://bomizzel.com',
+          companyName: 'Bomizzel Services Inc.',
+          tagline: 'Professional Ticketing Solutions',
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF',
+          accentColor: '#10B981',
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching branding data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch branding data',
+    });
+  }
+});
+
+app.put('/api/company-registration/branding', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('./config/database');
+    const {
+      logo,
+      favicon,
+      linkbackUrl,
+      companyName,
+      tagline,
+      primaryColor,
+      secondaryColor,
+      accentColor,
+    } = req.body;
+
+    // Check if profile exists
+    const existingProfile = await db('company_profiles').first();
+
+    if (existingProfile) {
+      // Update existing profile
+      await db('company_profiles')
+        .where({ id: existingProfile.id })
+        .update({
+          logo,
+          favicon,
+          linkback_url: linkbackUrl,
+          company_name: companyName,
+          tagline,
+          primary_color: primaryColor,
+          secondary_color: secondaryColor,
+          accent_color: accentColor,
+          updated_at: db.fn.now(),
+        });
+    } else {
+      // Create new profile
+      await db('company_profiles').insert({
+        logo,
+        favicon,
+        linkback_url: linkbackUrl,
+        company_name: companyName,
+        tagline,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        accent_color: accentColor,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Branding updated successfully',
+      data: req.body,
+    });
+  } catch (error) {
+    console.error('Error updating branding data:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update branding data',
+    });
+  }
 });
 
 // Health check endpoint
@@ -1121,10 +1372,11 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_ARCHIVAL_SCHEDUL
 }
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Bomizzel backend server running on port ${PORT}`);
   console.log(`📊 Health check available at http://localhost:${PORT}/health`);
   console.log(`🔗 API health check at http://localhost:${PORT}/api/health`);
+  console.log(`🌐 Network access available at http://0.0.0.0:${PORT}`);
   console.log(`👤 Test admin login: admin@bomizzel.com / password123`);
   console.log(`🔧 User management endpoints available at /api/admin/users`);
 });
