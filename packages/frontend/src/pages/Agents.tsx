@@ -107,7 +107,27 @@ const Agents: React.FC = () => {
     }
 
     try {
-      await apiService.createUser(newUser);
+      // Only send non-empty fields
+      const userData: any = {
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        password: newUser.password,
+        role: newUser.role,
+        mustChangePassword: newUser.mustChangePassword,
+      };
+
+      // Add optional fields only if they have values
+      if (newUser.phone) userData.phone = newUser.phone;
+      if (newUser.mobilePhone) userData.mobilePhone = newUser.mobilePhone;
+      if (newUser.extension) userData.extension = newUser.extension;
+      if (newUser.about) userData.about = newUser.about;
+      if (newUser.organizationalRoleId) userData.organizationalRoleId = newUser.organizationalRoleId;
+      if (newUser.userProfileId) userData.userProfileId = newUser.userProfileId;
+      if (newUser.departmentIds && newUser.departmentIds.length > 0) userData.departmentIds = newUser.departmentIds;
+
+      console.log('Creating user with data:', userData);
+      await apiService.createUser(userData);
       setNewUser({
         firstName: '',
         lastName: '',
