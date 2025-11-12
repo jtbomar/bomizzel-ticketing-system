@@ -259,8 +259,13 @@ const Agents: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {agents.map((agent) => (
                   <tr key={agent.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {agent.firstName} {agent.lastName}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => alert('Edit functionality coming soon! For now, use the Edit button to modify agent details.')}
+                        className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
+                      >
+                        {agent.firstName} {agent.lastName}
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {agent.email}
@@ -284,6 +289,16 @@ const Agents: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex space-x-2">
+                        <button
+                          onClick={() => alert('Edit functionality coming soon! For now, you can deactivate and create a new agent with updated information.')}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center"
+                          title="Edit agent"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
                         <button
                           onClick={() => toggleStatus(agent.id, agent.isActive)}
                           className={`px-3 py-1 rounded text-xs font-medium ${
