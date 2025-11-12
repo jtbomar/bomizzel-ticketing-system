@@ -90,8 +90,13 @@ const Agents: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching users...');
       const response = await apiService.getUsers();
-      setUsers(response.users || []);
+      console.log('Users API response:', response);
+      // Handle both formats: direct array or wrapped in object
+      const usersList = Array.isArray(response) ? response : (response.users || response.data || []);
+      console.log('Users list:', usersList);
+      setUsers(usersList);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       alert(`Failed to load users: ${error.response?.data?.message || error.message}`);
