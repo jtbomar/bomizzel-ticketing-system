@@ -38,6 +38,7 @@ try {
   // Try to register critical routes individually
   try {
     const authRoutes = require('./routes/auth').default;
+    const adminRoutes = require('./routes/admin').default;
     const adminProvisioningRoutes = require('./routes/adminProvisioning').default;
     const enhancedRegistrationRoutes = require('./routes/enhancedRegistration').default;
     const businessHoursRoutes = require('./routes/businessHours').default;
@@ -45,16 +46,21 @@ try {
     const departmentRoutes = require('./routes/departments').default;
     const customerHappinessRoutes = require('./routes/customerHappiness').default;
     const companyRoutes = require('./routes/companies').default;
+    const organizationalRolesRoutes = require('./routes/organizationalRoles').default;
+    const userProfilesRoutes = require('./routes/userProfiles').default;
     
     app.use('/api/auth', authRoutes);
     app.use('/api/auth', enhancedRegistrationRoutes);
+    app.use('/api/admin', adminRoutes);
     app.use('/api/admin/provisioning', adminProvisioningRoutes);
     app.use('/api/business-hours', businessHoursRoutes);
     app.use('/api/holiday-lists', holidayListRoutes);
     app.use('/api/departments', departmentRoutes);
     app.use('/api/customer-happiness', customerHappinessRoutes);
     app.use('/api/companies', companyRoutes);
-    console.log('✅ Auth, companies, admin provisioning, enhanced registration, business hours, holiday lists, departments, and customer happiness routes registered');
+    app.use('/api/organizational-roles', organizationalRolesRoutes);
+    app.use('/api/user-profiles', userProfilesRoutes);
+    console.log('✅ Auth, admin, companies, admin provisioning, enhanced registration, business hours, holiday lists, departments, customer happiness, organizational roles, and user profiles routes registered');
   } catch (err) {
     console.error('❌ Failed to register provisioning routes:', err);
   }
