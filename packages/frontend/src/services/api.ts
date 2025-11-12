@@ -548,6 +548,17 @@ class ApiService {
     return response.data;
   }
 
+  // User deletion endpoints
+  async checkUserTickets(userId: string): Promise<any> {
+    const response = await this.client.get(`/admin/users/${userId}/assigned-tickets`);
+    return response.data;
+  }
+
+  async permanentlyDeleteUser(userId: string): Promise<any> {
+    const response = await this.client.delete(`/admin/users/${userId}/permanent`);
+    return response.data;
+  }
+
   async canCreateTicket(): Promise<any> {
     const response = await this.client.get('/usage-alerts/can-create-ticket');
     return response.data;

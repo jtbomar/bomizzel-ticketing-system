@@ -205,14 +205,51 @@ const Agents: React.FC = () => {
   };
 
   const deleteUser = async (userId: string) => {
+    // Check for assigned tickets first
+    try {
+      const ticketCheck = await apiService.checkUserTickets(userId);
+      
+      if (ticketCheck.hasTickets) {
+        alert(`This agent has ${ticketCheck.ticketCount} assigned tickets. Please reassign them before deactivating.\n\n(Full reassignment feature coming soon - for now, reassign tickets manually in the Tickets section)`);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking tickets:', error);
+      // Continue with deactivation even if check fails
+    }
+
     if (!confirm('Are you sure you want to deactivate this agent?')) return;
 
     try {
       await apiService.updateUser(userId, { isActive: false });
       fetchUsers();
+      alert('Agent deactivated successfully');
     } catch (error: any) {
       console.error('Error deactivating user:', error);
       alert('Failed to deactivate agent');
+    }
+  };
+
+  const permanentlyDeleteUser = async (userId: string, userName: string) => {
+    const confirmation = prompt(
+      `⚠️ WARNING: This will PERMANENTLY delete ${userName}.\n\n` +
+      `This action CANNOT be undone!\n\n` +
+      `Type "DELETE" to confirm:`
+    );
+
+    if (confirmation !== 'DELETE') {
+      alert('Deletion cancelled');
+      return;
+    }
+
+    try {
+      await apiService.permanentlyDeleteUser(userId);
+      fetchUsers();
+      alert('Agent permanently deleted');
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      const errorMsg = error.response?.data?.error?.message || 'Failed to delete agent';
+      alert(`Failed to delete agent: ${errorMsg}`);
     }
   };
 
@@ -342,12 +379,22 @@ const Agents: React.FC = () => {
                         >
                           {agent.isActive ? 'Deactivate' : 'Activate'}
                         </button>
-                        <button
-                          onClick={() => deleteUser(agent.id)}
-                          className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
+                        {agent.isActive ? (
+                          <button
+                            onClick={() => deleteUser(agent.id)}
+                            className="px-3 py-1 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700"
+                          >
+                            Deactivate
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => permanentlyDeleteUser(agent.id, `${agent.firstName} ${agent.lastName}`)}
+                            className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
+                            title="Permanently delete this user"
+                          >
+                            Delete Forever
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

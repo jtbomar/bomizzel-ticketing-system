@@ -338,4 +338,103 @@ router.get('/stats/roles', authenticate, requireAdmin, async (req: Request, res:
   }
 });
 
+/**
+ * GET /admin/users/:userId/assigned-tickets
+ * Check how many tickets are assigned to a user (admin only)
+ */
+router.get('/users/:userId/assigned-tickets', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { db } = require('@/config/database');
+    
+    // Count tickets assigned to this user
+    const result = await db('tickets')
+      .where('assigned_to', userId)
+      .count('* as count')
+      .first();
+    
+    const count = parseInt(result?.count || '0');
+    
+    res.json({ 
+      userId,
+      ticketCount: count,
+      hasTickets: count > 0
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: {
+        code: 'CHECK_TICKETS_FAILED',
+        message: 'Failed to check assigned tickets',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+});
+
+/**
+ * DELETE /admin/users/:userId/permanent
+ * Permanently delete a user (admin only)
+ */
+router.delete('/users/:userId/permanent', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { userId } = req.params;
+    const { db } = require('@/config/database');
+    
+    // Check if user exists and is inactive
+    const user = await db('users').where('id', userId).first();
+    
+    if (!user) {
+      res.status(404).json({
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'User not found',
+        },
+      });
+      return;
+    }
+    
+    if (user.is_active) {
+      res.status(400).json({
+        error: {
+          code: 'USER_STILL_ACTIVE',
+          message: 'User must be deactivated before permanent deletion',
+        },
+      });
+      return;
+    }
+    
+    // Check for assigned tickets
+    const ticketCount = await db('tickets')
+      .where('assigned_to', userId)
+      .count('* as count')
+      .first();
+    
+    if (parseInt(ticketCount?.count || '0') > 0) {
+      res.status(400).json({
+        error: {
+          code: 'HAS_ASSIGNED_TICKETS',
+          message: 'Cannot delete user with assigned tickets. Please reassign tickets first.',
+        },
+      });
+      return;
+    }
+    
+    // Permanently delete the user
+    await db('users').where('id', userId).del();
+    
+    res.json({ 
+      message: 'User permanently deleted',
+      userId 
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: {
+        code: 'DELETE_USER_FAILED',
+        message: 'Failed to delete user',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+});
+
 export default router;
