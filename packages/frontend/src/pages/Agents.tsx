@@ -44,8 +44,14 @@ const Agents: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
+      console.log('Fetching departments...');
       const response = await apiService.getDepartments();
-      setDepartments(response.departments || []);
+      console.log('Departments API response:', response);
+      // The API returns the array directly, not wrapped in an object
+      const depts = Array.isArray(response) ? response : (response.departments || []);
+      console.log('Departments array:', depts);
+      setDepartments(depts);
+      console.log('Departments state set to:', depts.length, 'items');
     } catch (error) {
       console.error('Error fetching departments:', error);
     }
@@ -434,7 +440,9 @@ const Agents: React.FC = () => {
 
               {/* Departments */}
               <div className="border-b pb-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Departments</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Departments {departments.length > 0 && `(${departments.length})`}
+                </h4>
                 <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3">
                   {departments.map((dept) => (
                     <label key={dept.id} className="flex items-center py-1">
