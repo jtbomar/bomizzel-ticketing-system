@@ -224,7 +224,8 @@ const Agents: React.FC = () => {
     );
   }
 
-  const agents = users.filter(u => u.role === 'employee' || u.role === 'team_lead');
+  // Show all users except customers, and optionally show inactive users
+  const agents = users.filter(u => u.role !== 'customer');
 
   return (
     <div className="max-w-7xl mx-auto p-6">
