@@ -202,11 +202,23 @@ router.post(
         enum: ['customer', 'employee', 'team_lead', 'admin'],
       },
       teamId: { type: 'string', required: false, format: 'uuid' },
+      phone: { type: 'string', required: false },
+      mobilePhone: { type: 'string', required: false },
+      extension: { type: 'string', required: false },
+      about: { type: 'string', required: false },
+      organizationalRoleId: { type: 'number', required: false },
+      userProfileId: { type: 'number', required: false },
+      departmentIds: { type: 'array', required: false },
+      mustChangePassword: { type: 'boolean', required: false },
     },
   }),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { firstName, lastName, email, password, role, teamId } = req.body;
+      const { 
+        firstName, lastName, email, password, role, teamId,
+        phone, mobilePhone, extension, about,
+        organizationalRoleId, userProfileId, departmentIds, mustChangePassword
+      } = req.body;
       const createdById = req.user?.id;
 
       if (!createdById) {
@@ -227,6 +239,14 @@ router.post(
         role,
         teamId,
         createdById,
+        phone,
+        mobilePhone,
+        extension,
+        about,
+        organizationalRoleId,
+        userProfileId,
+        departmentIds,
+        mustChangePassword,
       });
 
       res.status(201).json({ user });

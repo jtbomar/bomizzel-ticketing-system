@@ -292,6 +292,14 @@ export class UserRoleService {
     role: 'customer' | 'employee' | 'team_lead' | 'admin';
     teamId?: string;
     createdById: string;
+    phone?: string;
+    mobilePhone?: string;
+    extension?: string;
+    about?: string;
+    organizationalRoleId?: number;
+    userProfileId?: number;
+    departmentIds?: number[];
+    mustChangePassword?: boolean;
   }): Promise<UserModel> {
     try {
       // Check if creator is admin
@@ -317,6 +325,30 @@ export class UserRoleService {
 
       if (!newUser) {
         throw new AppError('Failed to create user', 500, 'CREATE_FAILED');
+      }
+
+      // Update additional fields if provided
+      const updateFields: any = {};
+      if (userData.phone) updateFields.phone = userData.phone;
+      if (userData.mobilePhone) updateFields.mobile_phone = userData.mobilePhone;
+      if (userData.extension) updateFields.extension = userData.extension;
+      if (userData.about) updateFields.about = userData.about;
+      if (userData.organizationalRoleId) updateFields.organizational_role_id = userData.organizationalRoleId;
+      if (userData.userProfileId) updateFields.user_profile_id = userData.userProfileId;
+      if (userData.mustChangePassword !== undefined) updateFields.must_change_password = userData.mustChangePassword;
+
+      if (Object.keys(updateFields).length > 0) {
+        await db('users').where({ id: newUser.id }).update(updateFields);
+      }
+
+      // Add to departments if specified
+      if (userData.departmentIds && userData.departmentIds.length > 0) {
+        const departmentInserts = userData.departmentIds.map((deptId, index) => ({
+          user_id: newUser.id,
+          department_id: deptId,
+          is_primary: index === 0, // First department is primary
+        }));
+        await db('user_departments').insert(departmentInserts);
       }
 
       // Add to team if specified
