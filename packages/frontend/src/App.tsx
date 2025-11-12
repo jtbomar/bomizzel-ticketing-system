@@ -29,6 +29,7 @@ import BusinessHours from './pages/BusinessHours';
 import HolidayList from './pages/HolidayList';
 import Departments from './pages/Departments';
 import CustomerHappiness from './pages/CustomerHappiness';
+import Agents from './pages/Agents';
 
 function App() {
   return (
@@ -171,6 +172,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <CustomerHappiness />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/agents" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Agents />
                 </ProtectedRoute>
               } 
             />

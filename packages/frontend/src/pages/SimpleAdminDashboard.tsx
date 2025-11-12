@@ -32,7 +32,9 @@ const SimpleAdminDashboard: React.FC = () => {
   });
 
   useEffect(() => {
+    console.log('SimpleAdminDashboard mounted, activeTab:', activeTab);
     if (activeTab === 'users') {
+      console.log('Fetching users because activeTab is users');
       fetchUsers();
     }
   }, [activeTab]);
@@ -51,11 +53,15 @@ const SimpleAdminDashboard: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching users from API...');
       const response = await apiService.getUsers();
+      console.log('API response:', response);
       setUsers(response.users || []);
-    } catch (error) {
+      console.log('Users set:', response.users?.length || 0);
+    } catch (error: any) {
       console.error('Error fetching users:', error);
-      alert('Failed to load users. Please try again.');
+      console.error('Error details:', error.response?.data);
+      alert(`Failed to load users: ${error.response?.data?.message || error.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
@@ -64,14 +70,17 @@ const SimpleAdminDashboard: React.FC = () => {
   const addUser = async () => {
     if (newUser.firstName && newUser.lastName && newUser.email && newUser.password) {
       try {
+        console.log('Creating user:', newUser.email, 'with role:', newUser.role);
         await apiService.createUser(newUser);
+        console.log('User created successfully');
         setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee', isActive: true });
         setShowAddUserModal(false);
         fetchUsers(); // Refresh the list
         alert('User created successfully!');
       } catch (error: any) {
         console.error('Error creating user:', error);
-        alert(error.response?.data?.message || 'Failed to create user. Please try again.');
+        console.error('Error details:', error.response?.data);
+        alert(error.response?.data?.error?.message || error.response?.data?.message || 'Failed to create user. Please try again.');
       }
     } else {
       alert('Please fill in all required fields including password.');
@@ -80,11 +89,14 @@ const SimpleAdminDashboard: React.FC = () => {
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
+      console.log('Toggling user status:', userId, 'from', currentStatus, 'to', !currentStatus);
       await apiService.updateUser(userId, { isActive: !currentStatus });
+      console.log('User status updated successfully');
       fetchUsers(); // Refresh the list
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating user status:', error);
-      alert('Failed to update user status. Please try again.');
+      console.error('Error details:', error.response?.data);
+      alert(`Failed to update user status: ${error.response?.data?.message || error.message || 'Please try again.'}`);
     }
   };
 
