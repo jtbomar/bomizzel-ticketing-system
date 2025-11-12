@@ -59,7 +59,8 @@ const Agents: React.FC = () => {
 
   const fetchOrganizationalRoles = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/organizational-roles', {
+      const apiBaseUrl = `http://${window.location.hostname}:3001/api`;
+      const response = await fetch(`${apiBaseUrl}/organizational-roles`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -73,7 +74,8 @@ const Agents: React.FC = () => {
 
   const fetchUserProfiles = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/user-profiles', {
+      const apiBaseUrl = `http://${window.location.hostname}:3001/api`;
+      const response = await fetch(`${apiBaseUrl}/user-profiles`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
