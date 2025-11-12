@@ -54,10 +54,12 @@ const CompanyProfileSettings: React.FC = () => {
   const loadCompanyProfile = async () => {
     try {
       const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      
       console.log('Loading company profile...');
       console.log('Token:', token ? 'Present' : 'Missing');
 
-      const url = `http://localhost:3001/api/company-registration/profile`;
+      const url = `${apiUrl}/api/company-registration/profile`;
       console.log('Fetching:', url);
 
       const response = await fetch(url, {
@@ -73,14 +75,18 @@ const CompanyProfileSettings: React.FC = () => {
         const data = await response.json();
         console.log('Response data:', data);
         setProfile(data.data);
+        setError('');
+      } else if (response.status === 404) {
+        // No company found - this is okay, show a message
+        setError('No company profile found. Please contact your administrator to set up your company.');
       } else {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        setError(`Failed to load company profile: ${response.status}`);
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Error response:', errorData);
+        setError(errorData.message || `Failed to load company profile (${response.status})`);
       }
     } catch (err) {
       console.error('Network error:', err);
-      setError(`Network error loading profile: ${err}`);
+      setError(`Unable to connect to server. Please check your connection.`);
     } finally {
       setLoading(false);
     }
@@ -135,8 +141,92 @@ const CompanyProfileSettings: React.FC = () => {
 
   if (!profile) {
     return (
-      <div className="text-center py-8">
-        <div className="text-red-500">Failed to load company profile</div>
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <div className="text-center">
+            {error ? (
+              <>
+                <svg
+                  className="mx-auto h-12 w-12 text-yellow-500 mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Company Profile Not Available
+                </h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <button
+                  onClick={loadCompanyProfile}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Retry
+                </button>
+              </>
+            ) : (
+              <>
+                <svg
+                  className="mx-auto h-12 w-12 text-red-500 mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Failed to Load Company Profile
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Unable to load your company profile. Please try again.
+                </p>
+                <button
+                  onClick={loadCompanyProfile}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  Retry
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     );
   }

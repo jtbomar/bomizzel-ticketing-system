@@ -2,6 +2,14 @@
 
 A comprehensive ticketing system with customer portal and employee dashboard, built with modern web technologies.
 
+## 🔒 Security Notice
+
+**This application is now secured with authentication and authorization!** All admin routes, employee dashboards, and BSI admin areas require proper authentication.
+
+📖 **Start here:** [START_HERE_SECURITY.md](START_HERE_SECURITY.md)
+
+For deployment: [PRE_DEPLOYMENT_SECURITY_CHECKLIST.md](PRE_DEPLOYMENT_SECURITY_CHECKLIST.md)
+
 ## Features
 
 - **Customer Portal**: Web interface for customers to sign up, submit tickets, and track their requests
@@ -108,6 +116,43 @@ npm run db:migrate        # Run migrations
 npm run db:seed          # Seed database
 npm run docker:up        # Start databases
 npm run docker:down      # Stop databases
+
+# Database query and fix scripts
+./scripts/db-common-queries.sh users          # View all users
+./scripts/db-common-queries.sh provisioned    # View provisioned customers
+./scripts/db-fix.sh enable-user [email]       # Enable a user
+./scripts/db-backup.sh                        # Backup database
+```
+
+### Database Management
+
+The project includes helpful scripts for database operations:
+
+```bash
+# View data
+./scripts/db-common-queries.sh tables         # List all tables
+./scripts/db-common-queries.sh users          # View all users
+./scripts/db-common-queries.sh companies      # View all companies
+./scripts/db-common-queries.sh provisioned    # View provisioned customers
+./scripts/db-common-queries.sh count          # Show record counts
+
+# Run custom queries
+./scripts/db-query.sh "SELECT * FROM users LIMIT 5;"
+
+# Interactive shell
+./scripts/db-shell.sh
+
+# Fix common issues
+./scripts/db-fix.sh enable-user user@example.com
+./scripts/db-fix.sh make-admin user@example.com
+./scripts/db-fix.sh activate-subscription [sub-id]
+
+# Backup and restore
+./scripts/db-backup.sh                        # Create backup
+./scripts/db-restore.sh backups/backup.sql.gz # Restore from backup
+```
+
+For detailed database management instructions, see [DATABASE_GUIDE.md](DATABASE_GUIDE.md).
 ```
 
 ## Project Structure

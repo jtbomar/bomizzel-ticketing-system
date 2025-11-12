@@ -82,6 +82,87 @@ const ProvisionedCustomersList: React.FC = () => {
     }
   };
 
+  const handleDisableCustomer = async (subscriptionId: string) => {
+    const reason = prompt('Reason for disabling this customer?');
+    if (!reason) return;
+
+    if (!confirm('Are you sure you want to disable this customer? All their users will be blocked from accessing the system.')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      await axios.post(
+        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}/disable`,
+        { reason },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchCustomers(); // Refresh list
+      alert('Customer disabled successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to disable customer');
+    }
+  };
+
+  const handleEnableCustomer = async (subscriptionId: string) => {
+    const reason = prompt('Reason for enabling this customer?');
+    if (!reason) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      await axios.post(
+        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}/enable`,
+        { reason },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      fetchCustomers(); // Refresh list
+      alert('Customer enabled successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to enable customer');
+    }
+  };
+
+  const handleDeleteCustomer = async (subscriptionId: string) => {
+    const reason = prompt('Reason for deleting this customer?');
+    if (!reason) return;
+
+    if (!confirm('⚠️ WARNING: This will PERMANENTLY delete the customer, all their users, and all their data. This cannot be undone. Are you absolutely sure?')) {
+      return;
+    }
+
+    if (!confirm('Final confirmation: Type DELETE to confirm')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      await axios.delete(
+        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          data: { reason }
+        }
+      );
+      fetchCustomers(); // Refresh list
+      alert('Customer deleted successfully!');
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to delete customer');
+    }
+  };
+
   const openUpdateModal = (customer: Customer) => {
     setSelectedCustomer(customer.subscriptionId);
     setUpdateLimits({
@@ -199,8 +280,10 @@ const ProvisionedCustomersList: React.FC = () => {
                       className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
                         customer.status === 'active'
                           ? 'bg-green-100 text-green-800'
-                          : customer.status === 'trialing'
+                          : customer.status === 'trial'
                           ? 'bg-blue-100 text-blue-800'
+                          : customer.status === 'suspended'
+                          ? 'bg-red-100 text-red-800'
                           : 'bg-gray-100 text-gray-800'
                       }`}
                     >
@@ -220,12 +303,33 @@ const ProvisionedCustomersList: React.FC = () => {
                       to {new Date(customer.currentPeriod.end).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium">
+                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium space-x-2">
                     <button
                       onClick={() => openUpdateModal(customer)}
                       className="text-blue-600 hover:text-blue-900"
                     >
-                      Update Limits
+                      Update
+                    </button>
+                    {customer.status === 'suspended' ? (
+                      <button
+                        onClick={() => handleEnableCustomer(customer.subscriptionId)}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Enable
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleDisableCustomer(customer.subscriptionId)}
+                        className="text-yellow-600 hover:text-yellow-900"
+                      >
+                        Disable
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteCustomer(customer.subscriptionId)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>

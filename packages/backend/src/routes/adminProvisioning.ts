@@ -255,3 +255,115 @@ router.get(
 );
 
 export default router;
+
+
+/**
+ * POST /api/admin/provisioning/subscriptions/:subscriptionId/disable
+ * Disable a customer (blocks all users)
+ */
+router.post(
+  '/subscriptions/:subscriptionId/disable',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { subscriptionId } = req.params;
+      const { reason } = req.body;
+      const disabledBy = req.user!.id;
+
+      logger.info('Admin disabling customer', { subscriptionId, disabledBy, reason });
+
+      const result = await AdminProvisioningService.disableCustomer(
+        subscriptionId,
+        disabledBy,
+        reason
+      );
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: result
+      });
+
+    } catch (error) {
+      logger.error('Failed to disable customer', { error });
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to disable customer',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/provisioning/subscriptions/:subscriptionId/enable
+ * Enable a customer (allows users to access system)
+ */
+router.post(
+  '/subscriptions/:subscriptionId/enable',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { subscriptionId } = req.params;
+      const { reason } = req.body;
+      const enabledBy = req.user!.id;
+
+      logger.info('Admin enabling customer', { subscriptionId, enabledBy, reason });
+
+      const result = await AdminProvisioningService.enableCustomer(
+        subscriptionId,
+        enabledBy,
+        reason
+      );
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: result
+      });
+
+    } catch (error) {
+      logger.error('Failed to enable customer', { error });
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to enable customer',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+);
+
+/**
+ * DELETE /api/admin/provisioning/subscriptions/:subscriptionId
+ * Delete a customer (permanently removes all data)
+ */
+router.delete(
+  '/subscriptions/:subscriptionId',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { subscriptionId } = req.params;
+      const { reason } = req.body;
+      const deletedBy = req.user!.id;
+
+      logger.info('Admin deleting customer', { subscriptionId, deletedBy, reason });
+
+      const result = await AdminProvisioningService.deleteCustomer(
+        subscriptionId,
+        deletedBy,
+        reason
+      );
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: result
+      });
+
+    } catch (error) {
+      logger.error('Failed to delete customer', { error });
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to delete customer',
+        error: process.env.NODE_ENV === 'development' ? error : undefined
+      });
+    }
+  }
+);

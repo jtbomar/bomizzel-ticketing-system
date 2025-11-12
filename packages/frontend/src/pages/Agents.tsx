@@ -16,17 +16,68 @@ const Agents: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [organizationalRoles, setOrganizationalRoles] = useState<any[]>([]);
+  const [userProfiles, setUserProfiles] = useState<any[]>([]);
   const [newUser, setNewUser] = useState({
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
+    password: 'Welcome123!', // Default starting password
     role: 'employee',
+    phone: '',
+    mobilePhone: '',
+    extension: '',
+    about: '',
+    departmentIds: [] as number[],
+    organizationalRoleId: null as number | null,
+    userProfileId: null as number | null,
+    mustChangePassword: true, // Force password change on first login
   });
 
   useEffect(() => {
     fetchUsers();
+    fetchDepartments();
+    fetchOrganizationalRoles();
+    fetchUserProfiles();
   }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await apiService.getDepartments();
+      setDepartments(response.departments || []);
+    } catch (error) {
+      console.error('Error fetching departments:', error);
+    }
+  };
+
+  const fetchOrganizationalRoles = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/organizational-roles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      setOrganizationalRoles(data.roles || []);
+    } catch (error) {
+      console.error('Error fetching organizational roles:', error);
+    }
+  };
+
+  const fetchUserProfiles = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/user-profiles', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      setUserProfiles(data.profiles || []);
+    } catch (error) {
+      console.error('Error fetching user profiles:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -49,7 +100,21 @@ const Agents: React.FC = () => {
 
     try {
       await apiService.createUser(newUser);
-      setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee' });
+      setNewUser({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: 'Welcome123!',
+        role: 'employee',
+        phone: '',
+        mobilePhone: '',
+        extension: '',
+        about: '',
+        departmentIds: [],
+        organizationalRoleId: null,
+        userProfileId: null,
+        mustChangePassword: true,
+      });
       setShowAddModal(false);
       fetchUsers();
       alert('Agent created successfully!');
@@ -215,62 +280,196 @@ const Agents: React.FC = () => {
 
       {/* Add Agent Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Agent</h3>
             
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+              {/* Basic Information */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Basic Information</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">First Name *</label>
+                    <input
+                      type="text"
+                      value={newUser.firstName}
+                      onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Last Name *</label>
+                    <input
+                      type="text"
+                      value={newUser.lastName}
+                      onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700">Email *</label>
                   <input
-                    type="text"
-                    value={newUser.firstName}
-                    onChange={(e) => setNewUser({ ...newUser, firstName: e.target.value })}
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                  <input
-                    type="text"
-                    value={newUser.lastName}
-                    onChange={(e) => setNewUser({ ...newUser, lastName: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  />
+              </div>
+
+              {/* Contact Information */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Contact Information</h4>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    <input
+                      type="tel"
+                      value={newUser.phone}
+                      onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="(555) 123-4567"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Mobile Phone</label>
+                    <input
+                      type="tel"
+                      value={newUser.mobilePhone}
+                      onChange={(e) => setNewUser({ ...newUser, mobilePhone: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="(555) 987-6543"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Extension</label>
+                    <input
+                      type="text"
+                      value={newUser.extension}
+                      onChange={(e) => setNewUser({ ...newUser, extension: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder="1234"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                />
+              {/* Password Settings */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Password Settings</h4>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Starting Password *</label>
+                  <input
+                    type="text"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Default: Welcome123!</p>
+                </div>
+                <div className="mt-3">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={newUser.mustChangePassword}
+                      onChange={(e) => setNewUser({ ...newUser, mustChangePassword: e.target.checked })}
+                      className="rounded border-gray-300 text-blue-600"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Require password change on first login</span>
+                  </label>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Password</label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                />
+              {/* Organizational Structure */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Organizational Structure</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">System Role *</label>
+                    <select
+                      value={newUser.role}
+                      onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    >
+                      <option value="employee">Agent</option>
+                      <option value="team_lead">Team Lead</option>
+                      <option value="admin">Administrator</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">System access level</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Organizational Role</label>
+                    <select
+                      value={newUser.organizationalRoleId || ''}
+                      onChange={(e) => setNewUser({ ...newUser, organizationalRoleId: e.target.value ? parseInt(e.target.value) : null })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                    >
+                      <option value="">Select role...</option>
+                      {organizationalRoles.map((role) => (
+                        <option key={role.id} value={role.id}>{role.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Company hierarchy position</p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700">User Profile</label>
+                  <select
+                    value={newUser.userProfileId || ''}
+                    onChange={(e) => setNewUser({ ...newUser, userProfileId: e.target.value ? parseInt(e.target.value) : null })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  >
+                    <option value="">Select profile...</option>
+                    {userProfiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>{profile.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">Functional role and permissions</p>
+                </div>
               </div>
 
+              {/* Departments */}
+              <div className="border-b pb-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Departments</h4>
+                <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3">
+                  {departments.map((dept) => (
+                    <label key={dept.id} className="flex items-center py-1">
+                      <input
+                        type="checkbox"
+                        checked={newUser.departmentIds.includes(dept.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewUser({ ...newUser, departmentIds: [...newUser.departmentIds, dept.id] });
+                          } else {
+                            setNewUser({ ...newUser, departmentIds: newUser.departmentIds.filter(id => id !== dept.id) });
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{dept.name}</span>
+                    </label>
+                  ))}
+                  {departments.length === 0 && (
+                    <p className="text-sm text-gray-500">No departments available</p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Select one or more departments</p>
+              </div>
+
+              {/* About */}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Role</label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                <label className="block text-sm font-medium text-gray-700">About</label>
+                <textarea
+                  value={newUser.about}
+                  onChange={(e) => setNewUser({ ...newUser, about: e.target.value })}
+                  rows={3}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                >
-                  <option value="employee">Agent</option>
-                  <option value="team_lead">Team Lead</option>
-                </select>
+                  placeholder="Brief description or bio..."
+                />
               </div>
             </div>
 
@@ -278,7 +477,21 @@ const Agents: React.FC = () => {
               <button
                 onClick={() => {
                   setShowAddModal(false);
-                  setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee' });
+                  setNewUser({
+                    firstName: '',
+                    lastName: '',
+                    email: '',
+                    password: 'Welcome123!',
+                    role: 'employee',
+                    phone: '',
+                    mobilePhone: '',
+                    extension: '',
+                    about: '',
+                    departmentIds: [],
+                    organizationalRoleId: null,
+                    userProfileId: null,
+                    mustChangePassword: true,
+                  });
                 }}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
               >

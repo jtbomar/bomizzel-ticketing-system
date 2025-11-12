@@ -434,4 +434,145 @@ export class AdminProvisioningService {
       // Don't throw - provisioning should succeed even if email fails
     }
   }
+
+  /**
+   * Disable a customer (blocks all users from using the system)
+   */
+  static async disableCustomer(subscriptionId: string, disabledBy: string, reason?: string) {
+    try {
+      const subscription = await CustomerSubscription.findById(subscriptionId);
+      if (!subscription) {
+        throw new AppError('Subscription not found', 404);
+      }
+
+      // Update subscription to suspended status
+      await CustomerSubscription.update(subscriptionId, {
+        status: 'suspended',
+        updated_at: new Date()
+      });
+
+      // Deactivate the company
+      if (subscription.company_id) {
+        await Company.update(subscription.company_id, {
+          is_active: false,
+          updated_at: new Date()
+        });
+      }
+
+      // Deactivate all users in the company
+      if (subscription.company_id) {
+        await User.db('users as u')
+          .join('user_company_associations as uca', 'u.id', 'uca.user_id')
+          .where('uca.company_id', subscription.company_id)
+          .update({ is_active: false, updated_at: new Date() });
+      }
+
+      logger.info('Customer disabled', {
+        subscriptionId,
+        companyId: subscription.company_id,
+        disabledBy,
+        reason
+      });
+
+      return {
+        success: true,
+        message: 'Customer disabled successfully. All users have been blocked from accessing the system.',
+        subscriptionId
+      };
+
+    } catch (error) {
+      logger.error('Failed to disable customer', { error, subscriptionId });
+      throw error;
+    }
+  }
+
+  /**
+   * Enable a customer (allows users to use the system again)
+   */
+  static async enableCustomer(subscriptionId: string, enabledBy: string, reason?: string) {
+    try {
+      const subscription = await CustomerSubscription.findById(subscriptionId);
+      if (!subscription) {
+        throw new AppError('Subscription not found', 404);
+      }
+
+      // Update subscription to active status
+      await CustomerSubscription.update(subscriptionId, {
+        status: 'active',
+        updated_at: new Date()
+      });
+
+      // Reactivate the company
+      if (subscription.company_id) {
+        await Company.update(subscription.company_id, {
+          is_active: true,
+          updated_at: new Date()
+        });
+      }
+
+      // Reactivate all users in the company
+      if (subscription.company_id) {
+        await User.db('users as u')
+          .join('user_company_associations as uca', 'u.id', 'uca.user_id')
+          .where('uca.company_id', subscription.company_id)
+          .update({ is_active: true, updated_at: new Date() });
+      }
+
+      logger.info('Customer enabled', {
+        subscriptionId,
+        companyId: subscription.company_id,
+        enabledBy,
+        reason
+      });
+
+      return {
+        success: true,
+        message: 'Customer enabled successfully. All users can now access the system.',
+        subscriptionId
+      };
+
+    } catch (error) {
+      logger.error('Failed to enable customer', { error, subscriptionId });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a customer (permanently removes company, users, and all data)
+   */
+  static async deleteCustomer(subscriptionId: string, deletedBy: string, reason?: string) {
+    try {
+      const subscription = await CustomerSubscription.findById(subscriptionId);
+      if (!subscription) {
+        throw new AppError('Subscription not found', 404);
+      }
+
+      const companyId = subscription.company_id;
+
+      // Delete subscription
+      await CustomerSubscription.delete(subscriptionId);
+
+      // Delete company (cascade will handle user associations and tickets)
+      if (companyId) {
+        await Company.delete(companyId);
+      }
+
+      logger.info('Customer deleted', {
+        subscriptionId,
+        companyId,
+        deletedBy,
+        reason
+      });
+
+      return {
+        success: true,
+        message: 'Customer deleted successfully. All data has been permanently removed.',
+        subscriptionId
+      };
+
+    } catch (error) {
+      logger.error('Failed to delete customer', { error, subscriptionId });
+      throw error;
+    }
+  }
 }

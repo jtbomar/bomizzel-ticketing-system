@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BSI Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .info { color: #3b82f6; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        pre {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔒 BSI Login Test Tool</h1>
+    
+    <div class="test-box">
+        <h2>Test Configuration</h2>
+        <p><strong>API URL:</strong> <span id="apiUrl">Loading...</span></p>
+        <p><strong>Email:</strong> jeffrey.t.bomar@gmail.com</p>
+        <p><strong>Password:</strong> BomizzelAdmin2024!</p>
+    </div>
+
+    <div class="test-box">
+        <h2>Quick Actions</h2>
+        <button onclick="clearStorage()">Clear Storage</button>
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="checkAuth()">Check Auth Status</button>
+        <button onclick="goToDashboard()">Go to Dashboard</button>
+    </div>
+
+    <div class="test-box">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://192.168.0.133:3001';
+        const EMAIL = 'jeffrey.t.bomar@gmail.com';
+        const PASSWORD = 'BomizzelAdmin2024!';
+
+        // Display API URL
+        document.getElementById('apiUrl').textContent = API_URL;
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const p = document.createElement('p');
+            p.className = type;
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(p);
+            console.log(message);
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('✅ Storage cleared', 'success');
+        }
+
+        async function testLogin() {
+            log('🔄 Testing login...', 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: EMAIL, password: PASSWORD })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                log('✅ Login successful!', 'success');
+                log(`Token: ${data.token.substring(0, 50)}...`, 'info');
+                log(`User: ${data.user.firstName} ${data.user.lastName} (${data.user.role})`, 'info');
+
+                // Store credentials
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                log('✅ Credentials stored in localStorage', 'success');
+
+                // Check BSI admin status
+                const isBSIAdmin = data.user.role === 'admin' && 
+                    (data.user.email === 'jeffrey.t.bomar@gmail.com' || 
+                     data.user.email.includes('@bomizzel.com'));
+                
+                if (isBSIAdmin) {
+                    log('✅ BSI Admin status: VERIFIED', 'success');
+                } else {
+                    log('❌ BSI Admin status: DENIED', 'error');
+                }
+
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error');
+                console.error('Login error:', error);
+            }
+        }
+
+        async function checkAuth() {
+            log('🔄 Checking authentication...', 'info');
+            
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+
+            if (!token) {
+                log('❌ No token found in localStorage', 'error');
+                return;
+            }
+
+            if (!userStr) {
+                log('❌ No user found in localStorage', 'error');
+                return;
+            }
+
+            log('✅ Token found', 'success');
+            
+            const user = JSON.parse(userStr);
+            log(`✅ User: ${user.firstName} ${user.lastName} (${user.email})`, 'success');
+            log(`✅ Role: ${user.role}`, 'success');
+
+            // Test verify endpoint
+            try {
+                const response = await fetch(`${API_URL}/api/auth/verify`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                if (data.valid) {
+                    log('✅ Token is valid', 'success');
+                } else {
+                    log('❌ Token is invalid', 'error');
+                }
+            } catch (error) {
+                log(`❌ Verify failed: ${error.message}`, 'error');
+            }
+        }
+
+        function goToDashboard() {
+            log('🔄 Navigating to BSI dashboard...', 'info');
+            window.location.href = '/bsi/dashboard';
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', () => {
+            log('🚀 BSI Login Test Tool loaded', 'info');
+            log(`API URL: ${API_URL}`, 'info');
+            
+            const token = localStorage.getItem('token');
+            if (token) {
+                log('ℹ️ Existing token found', 'info');
+            } else {
+                log('ℹ️ No existing token', 'info');
+            }
+        });
+    </script>
+</body>
+</html>

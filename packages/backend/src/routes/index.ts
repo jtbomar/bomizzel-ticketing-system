@@ -24,6 +24,12 @@ import ticketArchivalRoutes from './ticketArchival';
 import companyRegistrationRoutes from './companyRegistration';
 import enhancedRegistrationRoutes from './enhancedRegistration';
 import adminProvisioningRoutes from './adminProvisioning';
+import dataExportRoutes from './dataExport';
+import queryBuilderRoutes from './queryBuilder';
+import customerQueryBuilderRoutes from './customerQueryBuilder';
+import businessHoursRoutes from './businessHours';
+import organizationalRolesRoutes from './organizationalRoles';
+import userProfilesRoutes from './userProfiles';
 
 const router = Router();
 
@@ -52,6 +58,12 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/subscription-analytics', subscriptionAnalyticsRoutes);
 router.use('/usage-alerts', usageAlertRoutes);
 router.use('/billing', billingRoutes);
+router.use('/data-export', dataExportRoutes);
+router.use('/query-builder', queryBuilderRoutes);
+router.use('/customer-query-builder', customerQueryBuilderRoutes);
+router.use('/business-hours', businessHoursRoutes);
+router.use('/organizational-roles', organizationalRolesRoutes);
+router.use('/user-profiles', userProfilesRoutes);
 router.use('/', emailRoutes);
 
 // API info endpoint
@@ -83,6 +95,9 @@ router.get('/', (req, res) => {
       subscriptionAnalytics: '/api/subscription-analytics',
       usageAlerts: '/api/usage-alerts',
       billing: '/api/billing',
+      dataExport: '/api/data-export',
+      dataImport: '/api/data-export/import',
+      businessHours: '/api/business-hours',
       email: '/api/email',
       emailTemplates: '/api/email/templates',
       health: '/health',
