@@ -1,65 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { apiService } from '../services/api';
 import CompanyProfileSettings from '../components/CompanyProfileSettings';
 import AdminStatusConfig from '../components/AdminStatusConfig';
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+}
 
 const SimpleAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('users');
-  const [users, setUsers] = useState([
-    {
-      id: '1',
-      firstName: 'Admin',
-      lastName: 'User',
-      email: 'admin@bomizzel.com',
-      role: 'admin',
-      isActive: true,
-    },
-    {
-      id: '2',
-      firstName: 'John',
-      lastName: 'Doe',
-      email: 'john@bomizzel.com',
-      role: 'employee',
-      isActive: true,
-    },
-    {
-      id: '3',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      email: 'jane@bomizzel.com',
-      role: 'customer',
-      isActive: true,
-    },
-    {
-      id: '4',
-      firstName: 'Mike',
-      lastName: 'Johnson',
-      email: 'mike@bomizzel.com',
-      role: 'employee',
-      isActive: false,
-    },
-    {
-      id: '5',
-      firstName: 'Sarah',
-      lastName: 'Wilson',
-      email: 'sarah@customer.com',
-      role: 'customer',
-      isActive: true,
-    },
-  ]);
-
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({
     firstName: '',
     lastName: '',
     email: '',
+    password: '',
     role: 'employee',
     isActive: true,
   });
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab]);
 
   const tabs = [
     { id: 'users', name: 'User Management' },
@@ -67,59 +43,99 @@ const SimpleAdminDashboard: React.FC = () => {
     { id: 'teams', name: 'Team Management' },
     { id: 'layouts', name: 'Ticket Layouts' },
     { id: 'profile', name: 'Company Profile' },
+    { id: 'data', name: 'Data Management' },
+    { id: 'reports', name: 'Reports & Analytics' },
     { id: 'settings', name: 'System Settings' },
   ];
 
-  const addUser = () => {
-    if (newUser.firstName && newUser.lastName && newUser.email) {
-      const user = {
-        id: (users.length + 1).toString(),
-        ...newUser,
-      };
-      setUsers([...users, user]);
-      setNewUser({ firstName: '', lastName: '', email: '', role: 'employee', isActive: true });
-      setShowAddUserModal(false);
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getUsers();
+      setUsers(response.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      alert('Failed to load users. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(
-      users.map((user) => (user.id === userId ? { ...user, isActive: !user.isActive } : user))
-    );
-  };
-
-  const deleteUser = (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter((user) => user.id !== userId));
+  const addUser = async () => {
+    if (newUser.firstName && newUser.lastName && newUser.email && newUser.password) {
+      try {
+        await apiService.createUser(newUser);
+        setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee', isActive: true });
+        setShowAddUserModal(false);
+        fetchUsers(); // Refresh the list
+        alert('User created successfully!');
+      } catch (error: any) {
+        console.error('Error creating user:', error);
+        alert(error.response?.data?.message || 'Failed to create user. Please try again.');
+      }
+    } else {
+      alert('Please fill in all required fields including password.');
     }
   };
 
-  const renderUserManagement = () => (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2
-            className={`text-lg font-medium transition-colors ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            User Management
-          </h2>
-          <p
-            className={`text-sm transition-colors ${
-              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-            }`}
-          >
-            Manage system users and their permissions
-          </p>
+  const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    try {
+      await apiService.updateUser(userId, { isActive: !currentStatus });
+      fetchUsers(); // Refresh the list
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Failed to update user status. Please try again.');
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    if (confirm('Are you sure you want to deactivate this user?')) {
+      try {
+        await apiService.updateUser(userId, { isActive: false });
+        fetchUsers(); // Refresh the list
+        alert('User deactivated successfully!');
+      } catch (error) {
+        console.error('Error deactivating user:', error);
+        alert('Failed to deactivate user. Please try again.');
+      }
+    }
+  };
+
+  const renderUserManagement = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-        <button
-          onClick={() => setShowAddUserModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Add User
-        </button>
-      </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2
+              className={`text-lg font-medium transition-colors ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}
+            >
+              User Management
+            </h2>
+            <p
+              className={`text-sm transition-colors ${
+                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+              }`}
+            >
+              Manage system users and their permissions
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddUserModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Add User
+          </button>
+        </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -298,7 +314,7 @@ const SimpleAdminDashboard: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
-                      onClick={() => toggleUserStatus(user.id)}
+                      onClick={() => toggleUserStatus(user.id, user.isActive)}
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
                         user.isActive
                           ? 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -311,7 +327,7 @@ const SimpleAdminDashboard: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => toggleUserStatus(user.id)}
+                        onClick={() => toggleUserStatus(user.id, user.isActive)}
                         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                           user.isActive
                             ? 'bg-yellow-600 text-white hover:bg-yellow-700'
@@ -337,7 +353,8 @@ const SimpleAdminDashboard: React.FC = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const renderCompanyManagement = () => (
     <div className="space-y-6">
@@ -563,6 +580,148 @@ const SimpleAdminDashboard: React.FC = () => {
     </div>
   );
 
+  const renderDataManagement = () => (
+    <div className="space-y-6">
+      <div className="text-center py-12">
+        <svg
+          className="mx-auto h-16 w-16 text-blue-500 mb-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+          />
+        </svg>
+        <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          Data Management
+        </h3>
+        <p className={`mb-6 ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
+          Export and import your company data for backup and migration purposes
+        </p>
+        <Link
+          to="/data-management"
+          className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <svg
+            className="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
+          </svg>
+          Go to Data Management
+        </Link>
+        <div className={`mt-8 max-w-2xl mx-auto text-left ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}>
+          <h4 className="font-semibold mb-3">What you can do:</h4>
+          <ul className="space-y-2">
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>Export Data:</strong> Create backups of users, tickets, attachments, and custom fields</span>
+            </li>
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>Import Data:</strong> Restore from previous backups or migrate from other systems</span>
+            </li>
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>View History:</strong> Track all export and import activities</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderReportsAnalytics = () => (
+    <div className="space-y-6">
+      <div className="text-center py-12">
+        <svg
+          className="mx-auto h-16 w-16 text-purple-500 mb-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+          />
+        </svg>
+        <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          Reports & Analytics
+        </h3>
+        <p className={`mb-6 ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
+          Run custom reports and analyze your ticket data
+        </p>
+        <Link
+          to="/reports"
+          className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          <svg
+            className="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          Go to Reports
+        </Link>
+        <div className={`mt-8 max-w-2xl mx-auto text-left ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}>
+          <h4 className="font-semibold mb-3">Available Reports:</h4>
+          <ul className="space-y-2">
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>Ticket Reports:</strong> Analyze tickets by status, priority, category</span>
+            </li>
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>User Activity:</strong> View user lists and activity</span>
+            </li>
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>Custom Queries:</strong> Write your own SQL queries</span>
+            </li>
+            <li className="flex items-start">
+              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span><strong>Export to CSV:</strong> Download reports for analysis</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'users':
@@ -575,6 +734,10 @@ const SimpleAdminDashboard: React.FC = () => {
         return renderTicketLayouts();
       case 'profile':
         return renderCompanyProfile();
+      case 'data':
+        return renderDataManagement();
+      case 'reports':
+        return renderReportsAnalytics();
       case 'settings':
         return renderSystemSettings();
       default:
@@ -645,6 +808,16 @@ const SimpleAdminDashboard: React.FC = () => {
                 )}
               </button>
 
+              <Link
+                to="/admin"
+                className={`px-4 py-2 rounded-md transition-colors border ${
+                  theme === 'dark'
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600'
+                }`}
+              >
+                ⚙️ Settings
+              </Link>
               <Link
                 to="/employee"
                 className={`px-4 py-2 rounded-md transition-colors border ${
@@ -757,6 +930,17 @@ const SimpleAdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700">Password</label>
+                  <input
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter password"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700">Role</label>
                   <select
                     value={newUser.role}
@@ -785,7 +969,10 @@ const SimpleAdminDashboard: React.FC = () => {
 
               <div className="mt-6 flex justify-end space-x-3">
                 <button
-                  onClick={() => setShowAddUserModal(false)}
+                  onClick={() => {
+                    setShowAddUserModal(false);
+                    setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee', isActive: true });
+                  }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
                 >
                   Cancel
