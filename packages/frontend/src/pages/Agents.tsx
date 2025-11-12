@@ -128,7 +128,12 @@ const Agents: React.FC = () => {
       alert('Agent created successfully!');
     } catch (error: any) {
       console.error('Error creating user:', error);
-      alert(error.response?.data?.error?.message || 'Failed to create agent');
+      console.error('Error response:', error.response);
+      const errorMessage = error.response?.data?.error?.message 
+        || error.response?.data?.message 
+        || error.message 
+        || 'Failed to create agent';
+      alert(`Failed to create agent: ${errorMessage}`);
     }
   };
 
