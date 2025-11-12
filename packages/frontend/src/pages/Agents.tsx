@@ -16,6 +16,8 @@ const Agents: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [departments, setDepartments] = useState<any[]>([]);
   const [organizationalRoles, setOrganizationalRoles] = useState<any[]>([]);
   const [userProfiles, setUserProfiles] = useState<any[]>([]);
@@ -162,6 +164,36 @@ const Agents: React.FC = () => {
     }
   };
 
+  const openEditModal = async (agent: User) => {
+    setEditingUser(agent);
+    setShowEditModal(true);
+    // TODO: Fetch full agent details including departments, roles, etc.
+  };
+
+  const updateUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      // Build update data
+      const updateData: any = {
+        firstName: editingUser.firstName,
+        lastName: editingUser.lastName,
+        email: editingUser.email,
+        role: editingUser.role,
+      };
+
+      console.log('Updating user:', editingUser.id, updateData);
+      await apiService.updateUser(editingUser.id, updateData);
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchUsers();
+      alert('Agent updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      alert(`Failed to update agent: ${error.response?.data?.error?.message || error.message}`);
+    }
+  };
+
   const toggleStatus = async (userId: string, currentStatus: boolean) => {
     try {
       await apiService.updateUser(userId, { isActive: !currentStatus });
@@ -261,7 +293,7 @@ const Agents: React.FC = () => {
                   <tr key={agent.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
-                        onClick={() => alert('Edit functionality coming soon! For now, use the Edit button to modify agent details.')}
+                        onClick={() => openEditModal(agent)}
                         className="text-blue-600 hover:text-blue-800 font-medium hover:underline"
                       >
                         {agent.firstName} {agent.lastName}
@@ -290,7 +322,7 @@ const Agents: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => alert('Edit functionality coming soon! For now, you can deactivate and create a new agent with updated information.')}
+                          onClick={() => openEditModal(agent)}
                           className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center"
                           title="Edit agent"
                         >
@@ -557,6 +589,85 @@ const Agents: React.FC = () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Add Agent
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Agent Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Agent</h3>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">First Name</label>
+                  <input
+                    type="text"
+                    value={editingUser.firstName}
+                    onChange={(e) => setEditingUser({ ...editingUser, firstName: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                  <input
+                    type="text"
+                    value={editingUser.lastName}
+                    onChange={(e) => setEditingUser({ ...editingUser, lastName: e.target.value })}
+                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Role</label>
+                <select
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="employee">Agent</option>
+                  <option value="team_lead">Team Lead</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> Full edit functionality with all fields (departments, roles, contact info) will be available soon. For now, you can edit basic information.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingUser(null);
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateUser}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Save Changes
               </button>
             </div>
           </div>
