@@ -404,7 +404,28 @@ const AgentCustomerDetail: React.FC = () => {
                     <div
                       key={ticket.id}
                       className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer border border-gray-200 dark:border-gray-700"
-                      onClick={() => navigate(`/agent/tickets/${ticket.id}`)}
+                      onClick={() => {
+                        // Store ticket data temporarily
+                        sessionStorage.setItem('openTicket', JSON.stringify({
+                          id: ticket.id,
+                          title: ticket.title,
+                          status: ticket.status,
+                          priority: ticket.priority || 'medium',
+                          customer: `${customer.firstName} ${customer.lastName}`,
+                          assigned: ticket.assignedTo ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}` : 'Unassigned',
+                          created: formatDate(ticket.createdAt),
+                          description: ticket.description || 'No description provided',
+                          order: 1,
+                          customerInfo: {
+                            name: `${customer.firstName} ${customer.lastName}`,
+                            email: customer.email,
+                            phone: '',
+                            company: customer.companies?.[0]?.company?.name || '',
+                            website: customer.companies?.[0]?.company?.domain || '',
+                          }
+                        }));
+                        navigate('/agent');
+                      }}
                     >
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">

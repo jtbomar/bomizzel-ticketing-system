@@ -5,6 +5,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import AgentProfile from '../components/AgentProfile';
 import DepartmentSelector from '../components/DepartmentSelector';
 import AgentGlobalSearch from '../components/AgentGlobalSearch';
+import KanbanTemplates, { Template } from '../components/KanbanTemplates';
+import { apiService } from '../services/api';
 
 interface Ticket {
   id: number;
@@ -17,6 +19,25 @@ interface Ticket {
   description?: string;
   order: number;
   notes?: TicketNote[];
+  attachments?: TicketAttachment[];
+  customerInfo?: {
+    name: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    companyId?: string;
+    website?: string;
+  };
+}
+
+interface TicketAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  uploadedBy: string;
+  uploadedAt: string;
 }
 
 interface TicketNote {
@@ -179,6 +200,13 @@ const AgentDashboard: React.FC = () => {
         created: '2024-01-15',
         description: 'Cannot access account',
         order: 1,
+        customerInfo: {
+          name: 'John Doe',
+          email: 'john.doe@acmecorp.com',
+          phone: '(555) 123-4567',
+          company: 'Acme Corporation',
+          website: 'www.acmecorp.com',
+        },
       },
       {
         id: 2,
@@ -190,6 +218,13 @@ const AgentDashboard: React.FC = () => {
         created: '2024-01-10',
         description: 'Need dark mode',
         order: 1,
+        customerInfo: {
+          name: 'Jane Smith',
+          email: 'jane.smith@techstart.io',
+          phone: '(555) 234-5678',
+          company: 'TechStart Inc.',
+          website: 'www.techstart.io',
+        },
       },
       {
         id: 3,
@@ -201,6 +236,13 @@ const AgentDashboard: React.FC = () => {
         created: '2024-01-05',
         description: 'Button not working',
         order: 1,
+        customerInfo: {
+          name: 'Bob Wilson',
+          email: 'bob.wilson@globaltech.com',
+          phone: '(555) 345-6789',
+          company: 'Global Tech Solutions',
+          website: 'www.globaltech.com',
+        },
       },
       {
         id: 4,
@@ -212,6 +254,13 @@ const AgentDashboard: React.FC = () => {
         created: '2024-01-12',
         description: 'Need help with setup',
         order: 2,
+        customerInfo: {
+          name: 'Sarah Davis',
+          email: 'sarah.davis@innovate.co',
+          phone: '(555) 456-7890',
+          company: 'Innovate Co.',
+          website: 'www.innovate.co',
+        },
       },
       {
         id: 5,
@@ -223,6 +272,13 @@ const AgentDashboard: React.FC = () => {
         created: '2024-01-08',
         description: 'Payment not processing',
         order: 1,
+        customerInfo: {
+          name: 'Mike Brown',
+          email: 'mike.brown@enterprise.net',
+          phone: '(555) 567-8901',
+          company: 'Enterprise Networks',
+          website: 'www.enterprise.net',
+        },
       },
     ];
   };
@@ -276,41 +332,144 @@ const AgentDashboard: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   // Modal state
-  const [activeModalTab, setActiveModalTab] = useState<'details' | 'notes'>('details');
+  const [activeModalTab, setActiveModalTab] = useState<'details' | 'notes' | 'attachments'>(
+    'details'
+  );
   const [newNoteContent, setNewNoteContent] = useState('');
   const [newNoteIsInternal, setNewNoteIsInternal] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editedNoteContent, setEditedNoteContent] = useState('');
+  const [isEditingContactInfo, setIsEditingContactInfo] = useState(false);
+  const [editedContactInfo, setEditedContactInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    company: '',
+    companyId: '',
+    website: '',
+  });
+  const [companySearchResults, setCompanySearchResults] = useState<any[]>([]);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [showCreateCompanyPrompt, setShowCreateCompanyPrompt] = useState(false);
+  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [isAgentQueueCollapsed, setIsAgentQueueCollapsed] = useState(false);
 
   // Views state
-  const [activeViewFilter, setActiveViewFilter] = useState('my-queue');
+  const [activeViewFilter, setActiveViewFilter] = useState('all-tickets');
+  const [showCreateView, setShowCreateView] = useState(false);
+  const [customViews, setCustomViews] = useState<any[]>([]);
+
+  // Load custom views from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('agent-custom-views');
+    if (saved) {
+      try {
+        setCustomViews(JSON.parse(saved));
+      } catch (error) {
+        console.error('Failed to load custom views:', error);
+      }
+    }
+  }, []);
+
+  // Save custom views to localStorage
+  useEffect(() => {
+    localStorage.setItem('agent-custom-views', JSON.stringify(customViews));
+  }, [customViews]);
 
   // Default views for filtering
   const defaultViews = [
+    {
+      id: 'all-tickets',
+      name: 'All Tickets',
+      icon: '📋',
+      filter: (ticket: Ticket) => true, // Show all tickets
+      isDefault: true,
+    },
     {
       id: 'my-queue',
       name: 'My Queue',
       icon: '👤',
       filter: (ticket: Ticket) => ticket.assigned === 'You',
+      isDefault: true,
     },
     {
       id: 'unassigned',
       name: 'Unassigned',
       icon: '📥',
       filter: (ticket: Ticket) => ticket.assigned === 'Unassigned',
+      isDefault: true,
     },
     {
       id: 'all-open',
       name: 'All Open',
       icon: '🔓',
       filter: (ticket: Ticket) => ticket.status === 'open',
+      isDefault: true,
+    },
+    {
+      id: 'closed-today',
+      name: 'Closed Today',
+      icon: '✅',
+      filter: (ticket: Ticket) => {
+        // Check if ticket is closed/resolved
+        const isClosedStatus = ticket.status === 'closed' || ticket.status === 'resolved';
+        if (!isClosedStatus) return false;
+        
+        // Check if created today (as a proxy for closed date since we don't have closedAt)
+        // In a real system, you'd check ticket.closedAt or ticket.updatedAt
+        const today = new Date();
+        const ticketDate = new Date(ticket.created);
+        return (
+          ticketDate.getDate() === today.getDate() &&
+          ticketDate.getMonth() === today.getMonth() &&
+          ticketDate.getFullYear() === today.getFullYear()
+        );
+      },
+      isDefault: true,
     },
   ];
 
   // Get filtered tickets
   const getFilteredTickets = () => {
-    const view = defaultViews.find((v) => v.id === activeViewFilter);
-    return view ? tickets.filter(view.filter) : tickets;
+    // Check default views first
+    const defaultView = defaultViews.find((v) => v.id === activeViewFilter);
+    if (defaultView) {
+      return tickets.filter(defaultView.filter);
+    }
+    
+    // Check if it's an agent queue view
+    if (activeViewFilter.startsWith('agent-')) {
+      const agentName = activeViewFilter.replace('agent-', '');
+      return tickets.filter((ticket) => ticket.assigned === agentName);
+    }
+    
+    // Check custom views
+    const customView = customViews.find((v) => v.id === activeViewFilter);
+    if (customView) {
+      return tickets.filter((ticket) => {
+        let matches = true;
+        if (customView.filters.status && customView.filters.status !== 'all') {
+          matches = matches && ticket.status === customView.filters.status;
+        }
+        if (customView.filters.priority && customView.filters.priority !== 'all') {
+          matches = matches && ticket.priority === customView.filters.priority;
+        }
+        if (customView.filters.assigned && customView.filters.assigned !== 'all') {
+          matches = matches && ticket.assigned === customView.filters.assigned;
+        }
+        return matches;
+      });
+    }
+    
+    return tickets;
   };
 
   const filteredTickets = getFilteredTickets();
@@ -329,13 +488,51 @@ const AgentDashboard: React.FC = () => {
 
   // Save to localStorage whenever tickets change
   useEffect(() => {
-    localStorage.setItem('agent-tickets', JSON.stringify(tickets));
+    if (tickets.length > 0) {
+      localStorage.setItem('agent-tickets', JSON.stringify(tickets));
+      console.log('Saved tickets to localStorage:', tickets.length);
+    }
   }, [tickets]);
 
-  // Save migrated tickets on first load
+  // Open ticket modal if ticket data is in sessionStorage
   useEffect(() => {
-    localStorage.setItem('agent-tickets', JSON.stringify(initialTickets));
+    const openTicketData = sessionStorage.getItem('openTicket');
+    if (openTicketData) {
+      try {
+        const ticket = JSON.parse(openTicketData);
+        setSelectedTicket(ticket);
+        // Clear the sessionStorage after opening
+        sessionStorage.removeItem('openTicket');
+      } catch (error) {
+        console.error('Failed to parse ticket data:', error);
+        sessionStorage.removeItem('openTicket');
+      }
+    }
   }, []);
+
+  // Load agents from API
+  useEffect(() => {
+    const loadAgents = async () => {
+      try {
+        const response = await apiService.getAgents({ status: 'active' });
+        const agentsList = response.data || [];
+        setAgents(Array.isArray(agentsList) ? agentsList : []);
+      } catch (error) {
+        console.error('Failed to load agents:', error);
+        // Fallback: extract unique agents from tickets
+        const uniqueAgents = Array.from(new Set(tickets.map(t => t.assigned)))
+          .filter(name => name !== 'Unassigned')
+          .map((name, index) => ({
+            id: `fallback-${index}`,
+            firstName: name.split(' ')[0] || name,
+            lastName: name.split(' ')[1] || '',
+            email: `${name.toLowerCase().replace(' ', '.')}@example.com`,
+          }));
+        setAgents(uniqueAgents);
+      }
+    };
+    loadAgents();
+  }, [tickets]);
 
   // Load board settings from localStorage
   useEffect(() => {
@@ -354,6 +551,38 @@ const AgentDashboard: React.FC = () => {
   const handleBoardSettingsChange = (newSettings: any) => {
     setBoardSettings(newSettings);
     localStorage.setItem('agent-board-settings', JSON.stringify(newSettings));
+  };
+
+  // Handle template selection
+  const handleSelectTemplate = (template: Template) => {
+    // Convert template columns to status options
+    const newStatuses = template.columns.map((col, index) => ({
+      id: `${index + 1}`,
+      label: col.name,
+      value: col.name.toLowerCase().replace(/\s+/g, '_'),
+      color: col.color,
+      order: index + 1,
+      isActive: true,
+      isDefault: index === 0,
+    }));
+
+    // Save to localStorage
+    localStorage.setItem('admin-statuses', JSON.stringify(newStatuses));
+
+    // Migrate existing tickets to the first status of the new template
+    const firstStatus = newStatuses[0];
+    const migratedTickets = tickets.map((ticket) => ({
+      ...ticket,
+      status: firstStatus.value,
+      order: ticket.order,
+    }));
+    
+    setTickets(migratedTickets);
+    localStorage.setItem('agent-tickets', JSON.stringify(migratedTickets));
+
+    // Close modal and reload page to apply new statuses
+    setShowTemplates(false);
+    window.location.reload();
   };
 
   // Add note to ticket
@@ -387,6 +616,184 @@ const AgentDashboard: React.FC = () => {
     }
 
     setNewNoteContent('');
+  };
+
+  // Edit note
+  const editNoteInTicket = (ticketId: number, noteId: string, newContent: string) => {
+    if (!newContent.trim()) return;
+
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId
+          ? {
+              ...ticket,
+              notes: (ticket.notes || []).map((note) =>
+                note.id === noteId ? { ...note, content: newContent.trim() } : note
+              ),
+            }
+          : ticket
+      )
+    );
+
+    // Update selected ticket if it's the same one
+    if (selectedTicket && selectedTicket.id === ticketId) {
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: (prev.notes || []).map((note) =>
+                note.id === noteId ? { ...note, content: newContent.trim() } : note
+              ),
+            }
+          : null
+      );
+    }
+
+    setEditingNoteId(null);
+    setEditedNoteContent('');
+  };
+
+  // Delete note
+  const deleteNoteFromTicket = (ticketId: number, noteId: string) => {
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId
+          ? {
+              ...ticket,
+              notes: (ticket.notes || []).filter((note) => note.id !== noteId),
+            }
+          : ticket
+      )
+    );
+
+    // Update selected ticket if it's the same one
+    if (selectedTicket && selectedTicket.id === ticketId) {
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              notes: (prev.notes || []).filter((note) => note.id !== noteId),
+            }
+          : null
+      );
+    }
+  };
+
+  // Add attachment to ticket
+  const addAttachmentToTicket = (ticketId: number, file: File) => {
+    const newAttachment: TicketAttachment = {
+      id: Date.now().toString(),
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: URL.createObjectURL(file),
+      uploadedBy: user?.firstName || 'You',
+      uploadedAt: new Date().toLocaleString(),
+    };
+
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId
+          ? { ...ticket, attachments: [...(ticket.attachments || []), newAttachment] }
+          : ticket
+      )
+    );
+
+    // Update selected ticket if it's the same one
+    if (selectedTicket && selectedTicket.id === ticketId) {
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              attachments: [...(prev.attachments || []), newAttachment],
+            }
+          : null
+      );
+    }
+  };
+
+  // Delete attachment
+  const deleteAttachmentFromTicket = (ticketId: number, attachmentId: string) => {
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId
+          ? {
+              ...ticket,
+              attachments: (ticket.attachments || []).filter((att) => att.id !== attachmentId),
+            }
+          : ticket
+      )
+    );
+
+    // Update selected ticket if it's the same one
+    if (selectedTicket && selectedTicket.id === ticketId) {
+      setSelectedTicket((prev) =>
+        prev
+          ? {
+              ...prev,
+              attachments: (prev.attachments || []).filter((att) => att.id !== attachmentId),
+            }
+          : null
+      );
+    }
+  };
+
+  // Format file size
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  // Update contact info
+  const updateContactInfo = (ticketId: number, newContactInfo: any) => {
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId ? { ...ticket, customerInfo: newContactInfo } : ticket
+      )
+    );
+  };
+
+  // Search for companies
+  const searchCompanies = async (query: string) => {
+    if (!query.trim()) {
+      setCompanySearchResults([]);
+      setShowCompanyDropdown(false);
+      setShowCreateCompanyPrompt(false);
+      return;
+    }
+
+    try {
+      const response = await apiService.getCompanies({ search: query, limit: 10 });
+      const companies = response.companies || response.data || [];
+      setCompanySearchResults(companies);
+      setShowCompanyDropdown(companies.length > 0);
+      
+      // Show create prompt if no exact match found
+      const exactMatch = companies.some(
+        (c: any) => c.name.toLowerCase() === query.toLowerCase()
+      );
+      setShowCreateCompanyPrompt(!exactMatch && query.length > 2);
+    } catch (error) {
+      console.error('Failed to search companies:', error);
+      setCompanySearchResults([]);
+      setShowCompanyDropdown(false);
+      setShowCreateCompanyPrompt(query.length > 2);
+    }
+  };
+
+  // Handle company field change with debounce
+  const handleCompanyChange = (value: string) => {
+    setEditedContactInfo({ ...editedContactInfo, company: value });
+    
+    // Debounce the search
+    const timeoutId = setTimeout(() => {
+      searchCompanies(value);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
   };
 
   const getStatusTickets = (status: string) =>
@@ -494,6 +901,26 @@ const AgentDashboard: React.FC = () => {
   const changePriority = (ticketId: number, newPriority: string) => {
     setTickets((prev) =>
       prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, priority: newPriority } : ticket))
+    );
+  };
+
+  const changeAssignment = (ticketId: number, newAssigned: string) => {
+    setTickets((prev) =>
+      prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, assigned: newAssigned } : ticket))
+    );
+  };
+
+  const updateTicketTitle = (ticketId: number, newTitle: string) => {
+    setTickets((prev) =>
+      prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, title: newTitle } : ticket))
+    );
+  };
+
+  const updateTicketDescription = (ticketId: number, newDescription: string) => {
+    setTickets((prev) =>
+      prev.map((ticket) =>
+        ticket.id === ticketId ? { ...ticket, description: newDescription } : ticket
+      )
     );
   };
 
@@ -994,10 +1421,16 @@ const AgentDashboard: React.FC = () => {
                       Assigned To
                     </label>
                     <select className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors">
-                      <option value="You">You</option>
-                      <option value="Alice Johnson">Alice Johnson</option>
-                      <option value="Bob Smith">Bob Smith</option>
                       <option value="Unassigned">Unassigned</option>
+                      {agents.map((agent) => {
+                        const agentName = `${agent.firstName} ${agent.lastName}`;
+                        const isCurrentUser = user?.id === agent.id;
+                        return (
+                          <option key={agent.id} value={agentName}>
+                            {agentName}{isCurrentUser ? ' (You)' : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>
@@ -1158,9 +1591,59 @@ const AgentDashboard: React.FC = () => {
                       selectedTicket.priority}
                   </span>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white truncate">
-                  {selectedTicket.title}
-                </h2>
+                {isEditingTitle ? (
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={editedTitle}
+                      onChange={(e) => setEditedTitle(e.target.value)}
+                      className="flex-1 px-3 py-2 text-lg font-semibold border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => {
+                        updateTicketTitle(selectedTicket.id, editedTitle);
+                        setSelectedTicket({ ...selectedTicket, title: editedTitle });
+                        setIsEditingTitle(false);
+                      }}
+                      className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsEditingTitle(false);
+                        setEditedTitle(selectedTicket.title);
+                      }}
+                      className="px-3 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 group">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                      {selectedTicket.title}
+                    </h2>
+                    <button
+                      onClick={() => {
+                        setEditedTitle(selectedTicket.title);
+                        setIsEditingTitle(true);
+                      }}
+                      className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="Edit title"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   {selectedTicket.customer} • {selectedTicket.assigned} • {selectedTicket.created}
                 </p>
@@ -1213,29 +1696,101 @@ const AgentDashboard: React.FC = () => {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveModalTab('attachments')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeModalTab === 'attachments'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300'
+                }`}
+              >
+                Attachments
+                {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    {selectedTicket.attachments.length}
+                  </span>
+                )}
+              </button>
             </nav>
           </div>
 
           {/* Content */}
-          <div className="px-8 py-6 overflow-y-auto max-h-[60vh]">
-            {activeModalTab === 'details' && (
-              <div className="space-y-8">
-                {/* Description */}
-                {selectedTicket.description && (
+          <div className="flex overflow-hidden max-h-[60vh]">
+            {/* Main Content Area */}
+            <div className="flex-1 px-8 py-6 overflow-y-auto">
+              {activeModalTab === 'details' && (
+                <div className="space-y-8">
+                  {/* Description */}
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                      Description
-                    </h3>
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {selectedTicket.description}
-                      </p>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                        Description
+                      </h3>
+                      {!isEditingDescription && (
+                        <button
+                          onClick={() => {
+                            setEditedDescription(selectedTicket.description || '');
+                            setIsEditingDescription(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          title="Edit description"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
+                          </svg>
+                        </button>
+                      )}
                     </div>
+                    {isEditingDescription ? (
+                      <div className="space-y-3">
+                        <textarea
+                          value={editedDescription}
+                          onChange={(e) => setEditedDescription(e.target.value)}
+                          rows={6}
+                          className="w-full px-4 py-3 border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white resize-none"
+                          autoFocus
+                        />
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            onClick={() => {
+                              setIsEditingDescription(false);
+                              setEditedDescription(selectedTicket.description || '');
+                            }}
+                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => {
+                              updateTicketDescription(selectedTicket.id, editedDescription);
+                              setSelectedTicket({
+                                ...selectedTicket,
+                                description: editedDescription,
+                              });
+                              setIsEditingDescription(false);
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="prose prose-sm max-w-none">
+                        <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                          {selectedTicket.description || 'No description provided'}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
 
-                {/* Status & Priority */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* Status, Priority & Assignment */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
                       Status
@@ -1273,6 +1828,31 @@ const AgentDashboard: React.FC = () => {
                           {priority.label}
                         </option>
                       ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Assigned To
+                    </label>
+                    <select
+                      value={selectedTicket.assigned}
+                      onChange={(e) => {
+                        changeAssignment(selectedTicket.id, e.target.value);
+                        setSelectedTicket({ ...selectedTicket, assigned: e.target.value });
+                      }}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    >
+                      <option value="Unassigned">Unassigned</option>
+                      {agents.map((agent) => {
+                        const agentName = `${agent.firstName} ${agent.lastName}`;
+                        const isCurrentUser = user?.id === agent.id;
+                        return (
+                          <option key={agent.id} value={agentName}>
+                            {agentName}{isCurrentUser ? ' (You)' : ''}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>
@@ -1322,7 +1902,7 @@ const AgentDashboard: React.FC = () => {
                     selectedTicket.notes.map((note) => (
                       <div
                         key={note.id}
-                        className={`relative rounded-xl p-6 border transition-colors ${
+                        className={`relative rounded-xl p-6 border transition-colors group ${
                           note.isInternal
                             ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30'
                             : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
@@ -1333,6 +1913,47 @@ const AgentDashboard: React.FC = () => {
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
                               Internal
                             </span>
+                          </div>
+                        )}
+
+                        {/* Edit/Delete buttons */}
+                        {editingNoteId !== note.id && (
+                          <div className="absolute top-4 right-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setEditingNoteId(note.id);
+                                setEditedNoteContent(note.content);
+                              }}
+                              className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                              title="Edit note"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm('Delete this note?')) {
+                                  deleteNoteFromTicket(selectedTicket.id, note.id);
+                                }
+                              }}
+                              className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                              title="Delete note"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
                           </div>
                         )}
 
@@ -1352,11 +1973,42 @@ const AgentDashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="prose prose-sm max-w-none">
-                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                            {note.content}
-                          </p>
-                        </div>
+                        {editingNoteId === note.id ? (
+                          <div className="space-y-3">
+                            <textarea
+                              value={editedNoteContent}
+                              onChange={(e) => setEditedNoteContent(e.target.value)}
+                              rows={4}
+                              className="w-full px-4 py-3 border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white resize-none"
+                              autoFocus
+                            />
+                            <div className="flex justify-end space-x-2">
+                              <button
+                                onClick={() => {
+                                  setEditingNoteId(null);
+                                  setEditedNoteContent('');
+                                }}
+                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  editNoteInTicket(selectedTicket.id, note.id, editedNoteContent);
+                                }}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="prose prose-sm max-w-none">
+                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                              {note.content}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ))
                   ) : (
@@ -1387,6 +2039,717 @@ const AgentDashboard: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {activeModalTab === 'attachments' && (
+              <div className="space-y-6">
+                {/* Upload Area */}
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files) {
+                        Array.from(files).forEach((file) => {
+                          addAttachmentToTicket(selectedTicket.id, file);
+                        });
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <svg
+                      className="w-12 h-12 text-gray-400 mb-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                      />
+                    </svg>
+                    <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                      Click to upload or drag and drop
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Any file type supported (Max 10MB per file)
+                    </p>
+                  </label>
+                </div>
+
+                {/* Attachments List */}
+                <div className="space-y-3">
+                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
+                    selectedTicket.attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow group"
+                      >
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          {/* File Icon */}
+                          <div className="flex-shrink-0">
+                            {attachment.type.startsWith('image/') ? (
+                              <svg
+                                className="w-10 h-10 text-blue-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
+                            ) : attachment.type.includes('pdf') ? (
+                              <svg
+                                className="w-10 h-10 text-red-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                />
+                              </svg>
+                            ) : (
+                              <svg
+                                className="w-10 h-10 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* File Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {attachment.name}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatFileSize(attachment.size)} • Uploaded by{' '}
+                              {attachment.uploadedBy} • {attachment.uploadedAt}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center space-x-2 ml-4">
+                          <a
+                            href={attachment.url}
+                            download={attachment.name}
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                            title="Download"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                              />
+                            </svg>
+                          </a>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete ${attachment.name}?`)) {
+                                deleteAttachmentFromTicket(selectedTicket.id, attachment.id);
+                              }
+                            }}
+                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete"
+                          >
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        No attachments yet
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Upload files to attach them to this ticket
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            </div>
+
+            {/* Sidebar - Customer Info */}
+            <div className="w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-y-auto">
+              <div className="p-6 space-y-6">
+                {/* Contact Info Section */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Contact Info
+                    </h3>
+                    {!isEditingContactInfo && (
+                      <button
+                        onClick={() => {
+                          setEditedContactInfo({
+                            name: selectedTicket.customerInfo?.name || selectedTicket.customer || '',
+                            email: selectedTicket.customerInfo?.email || '',
+                            phone: selectedTicket.customerInfo?.phone || '',
+                            company: selectedTicket.customerInfo?.company || '',
+                            companyId: selectedTicket.customerInfo?.companyId || '',
+                            website: selectedTicket.customerInfo?.website || '',
+                          });
+                          setIsEditingContactInfo(true);
+                        }}
+                        className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        title={selectedTicket.customerInfo ? "Edit contact info" : "Add contact info"}
+                      >
+                        {selectedTicket.customerInfo ? (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {selectedTicket.customerInfo ? (
+                    isEditingContactInfo ? (
+                      <div className="space-y-3">
+                        {/* Edit Form */}
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                            Name
+                          </label>
+                          <input
+                            type="text"
+                            value={editedContactInfo.name}
+                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, name: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                          />
+                        </div>
+                        <div className="relative">
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                            Company
+                          </label>
+                          <input
+                            type="text"
+                            value={editedContactInfo.company}
+                            onChange={(e) => handleCompanyChange(e.target.value)}
+                            onFocus={() => {
+                              if (editedContactInfo.company) {
+                                searchCompanies(editedContactInfo.company);
+                              }
+                            }}
+                            onBlur={() => {
+                              // Delay to allow clicking on dropdown
+                              setTimeout(() => {
+                                setShowCompanyDropdown(false);
+                              }, 200);
+                            }}
+                            placeholder="Start typing company name..."
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                          />
+                          
+                          {/* Dropdown with search results */}
+                          {showCompanyDropdown && companySearchResults.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                              {companySearchResults.map((company) => (
+                                <button
+                                  key={company.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setEditedContactInfo({
+                                      ...editedContactInfo,
+                                      company: company.name,
+                                      companyId: company.id,
+                                      website: company.domain || editedContactInfo.website,
+                                    });
+                                    setShowCompanyDropdown(false);
+                                    setShowCreateCompanyPrompt(false);
+                                  }}
+                                  className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                                >
+                                  <div className="font-medium text-gray-900 dark:text-white">
+                                    {company.name}
+                                  </div>
+                                  {company.domain && (
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                      {company.domain}
+                                    </div>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Create company prompt */}
+                          {showCreateCompanyPrompt && !showCompanyDropdown && (
+                            <div className="absolute z-10 w-full mt-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg shadow-lg p-3">
+                              <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                                Company "{editedContactInfo.company}" does not exist.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsCreatingCompany(true);
+                                  setShowCreateCompanyPrompt(false);
+                                }}
+                                className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                              >
+                                Create New Company
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={editedContactInfo.email}
+                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, email: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={editedContactInfo.phone}
+                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                            Website
+                          </label>
+                          <input
+                            type="text"
+                            value={editedContactInfo.website}
+                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, website: e.target.value })}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                          />
+                        </div>
+                        <div className="flex space-x-2 pt-2">
+                          <button
+                            onClick={() => {
+                              setIsEditingContactInfo(false);
+                            }}
+                            className="flex-1 px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => {
+                              updateContactInfo(selectedTicket.id, editedContactInfo);
+                              setSelectedTicket({
+                                ...selectedTicket,
+                                customerInfo: editedContactInfo,
+                              });
+                              setIsEditingContactInfo(false);
+                            }}
+                            className="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Customer Name */}
+                        <div>
+                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                            Name
+                          </div>
+                          <div className="text-sm text-gray-900 dark:text-white font-medium">
+                            {selectedTicket.customerInfo.name}
+                          </div>
+                        </div>
+
+                        {/* Company */}
+                        {selectedTicket.customerInfo.company && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              Company
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (selectedTicket.customerInfo?.companyId) {
+                                  // If we have the ID, navigate directly
+                                  navigate(`/agent/accounts/${selectedTicket.customerInfo.companyId}`);
+                                } else {
+                                  // Otherwise, search for the company by name
+                                  try {
+                                    const response = await apiService.getCompanies({ 
+                                      search: selectedTicket.customerInfo?.company,
+                                      limit: 1 
+                                    });
+                                    const companies = response.companies || response.data || [];
+                                    if (companies.length > 0) {
+                                      navigate(`/agent/accounts/${companies[0].id}`);
+                                    } else {
+                                      alert('Company not found in the system.');
+                                    }
+                                  } catch (error) {
+                                    console.error('Failed to find company:', error);
+                                    alert('Failed to find company. Please try again.');
+                                  }
+                                }
+                              }}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline text-left"
+                            >
+                              {selectedTicket.customerInfo.company}
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Email */}
+                        {selectedTicket.customerInfo.email && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              Email
+                            </div>
+                            <a
+                              href={`mailto:${selectedTicket.customerInfo.email}`}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {selectedTicket.customerInfo.email}
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Phone */}
+                        {selectedTicket.customerInfo.phone && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              Phone
+                            </div>
+                            <a
+                              href={`tel:${selectedTicket.customerInfo.phone}`}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {selectedTicket.customerInfo.phone}
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Website */}
+                        {selectedTicket.customerInfo.website && (
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              Website
+                            </div>
+                            <a
+                              href={`https://${selectedTicket.customerInfo.website}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {selectedTicket.customerInfo.website}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ) : isEditingContactInfo ? (
+                    <div className="space-y-3">
+                      {/* Edit Form for new contact info */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editedContactInfo.name}
+                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, name: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <div className="relative">
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                          Company
+                        </label>
+                        <input
+                          type="text"
+                          value={editedContactInfo.company}
+                          onChange={(e) => handleCompanyChange(e.target.value)}
+                          onFocus={() => {
+                            if (editedContactInfo.company) {
+                              searchCompanies(editedContactInfo.company);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Delay to allow clicking on dropdown
+                            setTimeout(() => {
+                              setShowCompanyDropdown(false);
+                            }, 200);
+                          }}
+                          placeholder="Start typing company name..."
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                        />
+                        
+                        {/* Dropdown with search results */}
+                        {showCompanyDropdown && companySearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {companySearchResults.map((company) => (
+                              <button
+                                key={company.id}
+                                type="button"
+                                onClick={() => {
+                                  setEditedContactInfo({
+                                    ...editedContactInfo,
+                                    company: company.name,
+                                    website: company.domain || editedContactInfo.website,
+                                  });
+                                  setShowCompanyDropdown(false);
+                                  setShowCreateCompanyPrompt(false);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                              >
+                                <div className="font-medium text-gray-900 dark:text-white">
+                                  {company.name}
+                                </div>
+                                {company.domain && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {company.domain}
+                                  </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Create company prompt */}
+                        {showCreateCompanyPrompt && !showCompanyDropdown && (
+                          <div className="absolute z-10 w-full mt-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg shadow-lg p-3">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                              Company "{editedContactInfo.company}" does not exist.
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCreatingCompany(true);
+                                setShowCreateCompanyPrompt(false);
+                              }}
+                              className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                            >
+                              Create New Company
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={editedContactInfo.email}
+                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, email: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                          Phone
+                        </label>
+                        <input
+                          type="tel"
+                          value={editedContactInfo.phone}
+                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                          Website
+                        </label>
+                        <input
+                          type="text"
+                          value={editedContactInfo.website}
+                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, website: e.target.value })}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                        />
+                      </div>
+                      <div className="flex space-x-2 pt-2">
+                        <button
+                          onClick={() => {
+                            setIsEditingContactInfo(false);
+                          }}
+                          className="flex-1 px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            updateContactInfo(selectedTicket.id, editedContactInfo);
+                            setSelectedTicket({
+                              ...selectedTicket,
+                              customerInfo: editedContactInfo,
+                            });
+                            setIsEditingContactInfo(false);
+                          }}
+                          className="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      No customer information available
+                    </div>
+                  )}
+                </div>
+
+                {/* Key Information Section */}
+                <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Key Information
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    {/* Ticket ID */}
+                    <div>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        Ticket ID
+                      </div>
+                      <div className="text-sm text-gray-900 dark:text-white font-mono">
+                        #{selectedTicket.id}
+                      </div>
+                    </div>
+
+                    {/* Created Date */}
+                    <div>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        Created
+                      </div>
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {selectedTicket.created}
+                      </div>
+                    </div>
+
+                    {/* Assigned To */}
+                    <div>
+                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        Assigned To
+                      </div>
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {selectedTicket.assigned}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Quick Actions
+                  </h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => navigate(`/agent/customers/${selectedTicket.id}`)}
+                      className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      View Customer Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (selectedTicket.customerInfo?.email) {
+                          window.location.href = `mailto:${selectedTicket.customerInfo.email}`;
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      Send Email
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Footer */}
@@ -1409,65 +2772,54 @@ const AgentDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors">
+      {/* Top Navigation Bar */}
+      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6 space-y-4">
-            {/* Top Row: Title and Actions */}
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Agent Dashboard</h1>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Welcome back, {user?.firstName}! Drag tickets to reorder or move between columns
-                </p>
-              </div>
-              <div className="flex items-center space-x-3">
-              {/* Department Selector */}
-              <div className="min-w-[200px]">
-                <DepartmentSelector
-                  selectedDepartmentId={selectedDepartmentId}
-                  onDepartmentChange={setSelectedDepartmentId}
-                  showAllOption={true}
-                />
-              </div>
+          <div className="flex justify-between h-16">
+            {/* Left: Logo and Menu */}
+            <div className="flex items-center space-x-6">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Bomizzel</h1>
               
-              {/* Visual Report Builder Button */}
-              <button
-                onClick={() => window.location.href = '/visual-reports'}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
-                </svg>
-                <span>Reports</span>
-              </button>
+              {/* Menu Items */}
+              <div className="hidden md:flex space-x-1">
+                <button
+                  onClick={() => navigate('/agent')}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  <span>Dashboard</span>
+                </button>
+                
+                <button
+                  onClick={() => navigate('/agent/customers')}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Customers</span>
+                </button>
+                
+                <button
+                  onClick={() => navigate('/agent/accounts')}
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <span>Accounts</span>
+                </button>
+              </div>
+            </div>
 
-              {/* Accounts Button */}
-              <button
-                onClick={() => navigate('/agent/accounts')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-                <span>Accounts</span>
-              </button>
-
-              {/* Customers Button */}
-              <button
-                onClick={() => navigate('/agent/customers')}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center space-x-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span>Customers</span>
-              </button>
+            {/* Right: Search, Create, Profile */}
+            <div className="flex items-center space-x-3">
+              {/* Global Search */}
+              <div className="hidden lg:block">
+                <AgentGlobalSearch />
+              </div>
 
               {/* Create New Dropdown */}
               <div className="relative">
@@ -1555,6 +2907,80 @@ const AgentDashboard: React.FC = () => {
                 )}
               </div>
 
+              {/* Profile */}
+              <button
+                onClick={() => setShowProfile(true)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                  </span>
+                </div>
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user?.firstName}
+                  </p>
+                </div>
+              </button>
+
+              {/* Admin/Settings */}
+              <button
+                onClick={() => navigate('/admin')}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Admin Settings"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+
+              {/* Logout */}
+              <button
+                onClick={logout}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Logout"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Sub-header with filters and view toggle */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">My Tickets</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Drag tickets to reorder or move between columns</p>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              {/* Templates Button */}
+              <button
+                onClick={() => setShowTemplates(true)}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                </svg>
+                <span>Templates</span>
+              </button>
+
+              {/* Department Selector */}
+              <div className="min-w-[200px]">
+                <DepartmentSelector
+                  selectedDepartmentId={selectedDepartmentId}
+                  onDepartmentChange={setSelectedDepartmentId}
+                  showAllOption={true}
+                />
+              </div>
+
               {/* View Toggle */}
               <div className="flex rounded-md shadow-sm">
                 <button
@@ -1605,53 +3031,6 @@ const AgentDashboard: React.FC = () => {
                   </svg>
                 )}
               </button>
-
-              {/* Admin Setup */}
-              <a
-                href="/admin"
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                title="Admin Setup"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
-              </a>
-
-              {/* Profile Avatar */}
-              <button
-                onClick={() => setShowProfile(true)}
-                className="flex items-center space-x-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                title="Profile"
-              >
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                  {user?.firstName?.charAt(0)}
-                  {user?.lastName?.charAt(0)}
-                </div>
-              </button>
-
-              <button
-                onClick={logout}
-                className="px-3 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-md hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm"
-              >
-                Logout
-              </button>
-            </div>
-            </div>
-
-            {/* Second Row: Global Search */}
-            <div className="flex items-center space-x-4">
-              <AgentGlobalSearch />
             </div>
           </div>
         </div>
@@ -1662,44 +3041,244 @@ const AgentDashboard: React.FC = () => {
         {/* Sidebar */}
         <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen">
           <div className="p-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Views</h2>
-            <div className="space-y-2">
-              {/* Debug Info */}
-              <div className="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-100 dark:bg-gray-700 rounded">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Views</h2>
+              <div className="flex items-center space-x-1">
+                <button
+                  onClick={() => setShowCreateView(true)}
+                  className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                  title="Create new view"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            {/* Debug/Reset Section */}
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="text-xs text-yellow-800 dark:text-yellow-200 space-y-2">
+                <div className="font-medium">Debug Info:</div>
                 <div>Total tickets: {tickets.length}</div>
-                <div>Filtered tickets: {filteredTickets.length}</div>
-                <div>Active statuses: {statuses.map((s) => s.value).join(', ')}</div>
-                <div>Ticket statuses: {[...new Set(tickets.map((t) => t.status))].join(', ')}</div>
+                <div>Filtered: {filteredTickets.length}</div>
+                <div className="text-xs break-all">
+                  Statuses: {statuses.map((s) => s.value).join(', ')}
+                </div>
+                <div className="text-xs break-all">
+                  Ticket statuses: {[...new Set(tickets.map((t) => t.status))].join(', ')}
+                </div>
+                <button
+                  onClick={() => {
+                    if (confirm('Reset to default tickets? This will clear all current tickets.')) {
+                      localStorage.removeItem('agent-tickets');
+                      window.location.reload();
+                    }
+                  }}
+                  className="mt-2 w-full px-3 py-1.5 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700"
+                >
+                  Reset to Default Tickets
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Default Views */}
+              <div>
+                <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  Default Views
+                </h3>
+                <div className="space-y-1">
+                  {defaultViews.map((view) => {
+                    const count = tickets.filter(view.filter).length;
+                    return (
+                      <button
+                        key={view.id}
+                        onClick={() => setActiveViewFilter(view.id)}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
+                          activeViewFilter === view.id
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <span className="mr-2">{view.icon}</span>
+                          <span>{view.name}</span>
+                        </div>
+                        <span
+                          className={`px-2 py-0.5 text-xs rounded-full ${
+                            activeViewFilter === view.id
+                              ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                              : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {defaultViews.map((view) => {
-                const count = tickets.filter(view.filter).length;
-                return (
-                  <button
-                    key={view.id}
-                    onClick={() => setActiveViewFilter(view.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
-                      activeViewFilter === view.id
-                        ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              {/* Agent Queue */}
+              <div>
+                <button
+                  onClick={() => setIsAgentQueueCollapsed(!isAgentQueueCollapsed)}
+                  className="w-full flex items-center justify-between mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-2 py-1 transition-colors"
+                >
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Agent Queue
+                  </h3>
+                  <svg
+                    className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${
+                      isAgentQueueCollapsed ? '-rotate-90' : ''
                     }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <div className="flex items-center">
-                      <span className="mr-2">{view.icon}</span>
-                      <span>{view.name}</span>
-                    </div>
-                    <span
-                      className={`px-2 py-0.5 text-xs rounded-full ${
-                        activeViewFilter === view.id
-                          ? 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
-                          : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {!isAgentQueueCollapsed && (
+                  <div className="space-y-1 max-h-64 overflow-y-auto">
+                    {agents.length > 0 ? (
+                      agents
+                        .sort((a, b) => {
+                          const aName = `${a.firstName} ${a.lastName}`;
+                          const bName = `${b.firstName} ${b.lastName}`;
+                          return aName.localeCompare(bName);
+                        })
+                        .map((agent) => {
+                          const agentName = `${agent.firstName} ${agent.lastName}`;
+                          const agentTickets = tickets.filter(t => 
+                            t.assigned === agentName || 
+                            t.assigned === agent.firstName ||
+                            (user?.id === agent.id && t.assigned === 'You')
+                          );
+                          const isActive = activeViewFilter === `agent-${agentName}`;
+                          const isCurrentUser = user?.id === agent.id;
+                          
+                          return (
+                            <button
+                              key={agent.id}
+                              onClick={() => {
+                                setActiveViewFilter(`agent-${agentName}`);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
+                                isActive
+                                  ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-900 dark:text-indigo-100'
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                              }`}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                                  isCurrentUser
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-green-500 text-white'
+                                }`}>
+                                  {agent.firstName.charAt(0).toUpperCase()}
+                                </div>
+                                <span className="truncate">
+                                  {agentName}
+                                  {isCurrentUser && ' (You)'}
+                                </span>
+                              </div>
+                              <span
+                                className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                                  isActive
+                                    ? 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200'
+                                    : agentTickets.length > 0
+                                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                                      : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                                }`}
+                              >
+                                {agentTickets.length}
+                              </span>
+                            </button>
+                          );
+                        })
+                    ) : (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                        No agents found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Views */}
+              {customViews.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                    Custom Views
+                  </h3>
+                  <div className="space-y-1">
+                    {customViews.map((view) => {
+                      // Calculate count for this specific view
+                      const viewTickets = tickets.filter((ticket) => {
+                        let matches = true;
+                        if (view.filters.status && view.filters.status !== 'all') {
+                          matches = matches && ticket.status === view.filters.status;
+                        }
+                        if (view.filters.priority && view.filters.priority !== 'all') {
+                          matches = matches && ticket.priority === view.filters.priority;
+                        }
+                        if (view.filters.assigned && view.filters.assigned !== 'all') {
+                          matches = matches && ticket.assigned === view.filters.assigned;
+                        }
+                        return matches;
+                      });
+                      const count = viewTickets.length;
+                      return (
+                        <div key={view.id} className="group relative">
+                          <button
+                            onClick={() => setActiveViewFilter(view.id)}
+                            className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
+                              activeViewFilter === view.id
+                                ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center">
+                              <span className="mr-2">{view.icon}</span>
+                              <span>{view.name}</span>
+                            </div>
+                            <span
+                              className={`px-2 py-0.5 text-xs rounded-full ${
+                                activeViewFilter === view.id
+                                  ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
+                                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                              }`}
+                            >
+                              {count}
+                            </span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete view "${view.name}"?`)) {
+                                setCustomViews(customViews.filter((v) => v.id !== view.id));
+                                if (activeViewFilter === view.id) {
+                                  setActiveViewFilter('all-tickets');
+                                }
+                              }
+                            }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete view"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1769,6 +3348,260 @@ const AgentDashboard: React.FC = () => {
 
       {/* Ticket Modal */}
       {renderTicketModal()}
+
+      {/* Templates Modal */}
+      {showTemplates && (
+        <KanbanTemplates
+          onClose={() => setShowTemplates(false)}
+          onSelectTemplate={handleSelectTemplate}
+        />
+      )}
+
+      {/* Create View Modal */}
+      {showCreateView && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Create Custom View
+              </h3>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const newView = {
+                  id: `custom-${Date.now()}`,
+                  name: formData.get('name') as string,
+                  icon: '⭐',
+                  filters: {
+                    status: formData.get('status') as string,
+                    priority: formData.get('priority') as string,
+                    assigned: formData.get('assigned') as string,
+                  },
+                };
+                setCustomViews([...customViews, newView]);
+                setActiveViewFilter(newView.id);
+                setShowCreateView(false);
+              }}
+              className="p-6 space-y-6"
+            >
+              {/* View Name */}
+              <div>
+                <label className="block text-sm font-medium text-red-600 dark:text-red-400 mb-2">
+                  View Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="Enter view name"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              {/* Filter Criteria */}
+              <div>
+                <label className="block text-sm font-medium text-red-600 dark:text-red-400 mb-2">
+                  Filter Criteria *
+                </label>
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="flex items-center justify-center pt-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400 w-6">1</span>
+                  </div>
+                  <div className="flex-1">
+                    <select
+                      name="field"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                    >
+                      <option value="">-- Click to select --</option>
+                      <optgroup label="TICKETS">
+                        <option value="subject">Subject</option>
+                        <option value="description">Description</option>
+                        <option value="contact_name">Contact Name</option>
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                      </optgroup>
+                      <optgroup label="PROPERTIES">
+                        <option value="status">Status</option>
+                        <option value="priority">Priority</option>
+                        <option value="product">Product</option>
+                        <option value="ticket_owner">Ticket Owner</option>
+                        <option value="assigned_to">Assigned To</option>
+                        <option value="created_by">Created By</option>
+                        <option value="modified_by">Modified By</option>
+                        <option value="created_time">Created Time</option>
+                        <option value="modified_time">Modified Time</option>
+                        <option value="due_date">Due Date</option>
+                        <option value="category">Category</option>
+                        <option value="tags">Tags</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div className="w-32">
+                    <select
+                      name="operator"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                    >
+                      <option value="is">is</option>
+                      <option value="isnt">isn't</option>
+                      <option value="starts_with">starts with</option>
+                      <option value="ends_with">ends with</option>
+                      <option value="contains">contains</option>
+                      <option value="doesnt_contain">doesn't contain</option>
+                      <option value="is_empty">is empty</option>
+                      <option value="is_not_empty">is not empty</option>
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      name="value"
+                      placeholder="Enter comma separated values"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center pt-2">
+                    <button
+                      type="button"
+                      className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-300 dark:border-blue-600"
+                      title="Add filter"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Visible To */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Visible To
+                </label>
+                <select
+                  name="visibility"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="only_me">Only Me</option>
+                  <option value="team">My Team</option>
+                  <option value="everyone">Everyone</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateView(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Create View
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Company Modal */}
+      {isCreatingCompany && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Create New Company
+              </h3>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const companyName = formData.get('name') as string;
+                const companyDomain = formData.get('domain') as string;
+
+                try {
+                  // Create company via API
+                  const response = await apiService.createCompany({
+                    name: companyName,
+                    domain: companyDomain,
+                  });
+
+                  const newCompany = response.company || response;
+
+                  // Update the contact info with the new company
+                  setEditedContactInfo({
+                    ...editedContactInfo,
+                    company: companyName,
+                    companyId: newCompany.id,
+                    website: companyDomain || editedContactInfo.website,
+                  });
+
+                  setIsCreatingCompany(false);
+                  alert('Company created successfully!');
+                } catch (error) {
+                  console.error('Failed to create company:', error);
+                  alert('Failed to create company. Please try again.');
+                }
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Company Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  defaultValue={editedContactInfo.company}
+                  placeholder="e.g., Acme Corporation"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                  Domain
+                </label>
+                <input
+                  type="text"
+                  name="domain"
+                  placeholder="e.g., acmecorp.com"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreatingCompany(false);
+                    setShowCreateCompanyPrompt(true);
+                  }}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                >
+                  Create Company
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -14,7 +14,7 @@ interface Account {
   domain?: string;
   primaryEmail?: string;
   primaryContact?: string;
-  userCount?: number;
+  contactCount?: number;
   ticketCount?: number;
   createdAt: string;
 }
@@ -49,6 +49,9 @@ const AgentAccountsList: React.FC = () => {
       setLoading(true);
       const response = await apiService.getCompanies({ limit: 100 });
       const accountsList = response.companies || response.data || [];
+      
+      // TODO: Backend should return contactCount and ticketCount
+      // For now, these will show as 0 until backend is updated
       setAccounts(accountsList);
       setFilteredAccounts(accountsList);
     } catch (error) {
@@ -126,9 +129,9 @@ const AgentAccountsList: React.FC = () => {
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-            <div className="text-sm text-gray-600 dark:text-gray-400">Total Users</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Contacts</div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {accounts.reduce((sum, acc) => sum + (acc.userCount || 0), 0)}
+              {accounts.reduce((sum, acc) => sum + (acc.contactCount || 0), 0)}
             </div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
@@ -169,10 +172,7 @@ const AgentAccountsList: React.FC = () => {
                     Company
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Users
+                    Contacts
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tickets
@@ -209,17 +209,7 @@ const AgentAccountsList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white">
-                        {account.primaryContact || '-'}
-                      </div>
-                      {account.primaryEmail && (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {account.primaryEmail}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {account.userCount || 0}
+                        {account.contactCount || 0}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
