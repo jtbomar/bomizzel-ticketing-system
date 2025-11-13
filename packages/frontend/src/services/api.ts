@@ -111,6 +111,35 @@ class ApiService {
     return response.data;
   }
 
+  // User search endpoints
+  async searchUsers(query: string, params?: { limit?: number; role?: string }): Promise<any> {
+    const response = await this.client.get('/users/search', {
+      params: { q: query, ...params },
+    });
+    return response.data;
+  }
+
+  async listUsers(params?: { role?: string; limit?: number }): Promise<any> {
+    // Fallback to admin endpoint if /users/list doesn't exist
+    try {
+      const response = await this.client.get('/users/list', { params });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        // Fallback to admin endpoint with proper pagination
+        const response = await this.client.get('/admin/users', {
+          params: {
+            ...params,
+            page: 1,
+            limit: params?.limit || 1000,
+          },
+        });
+        return response.data;
+      }
+      throw error;
+    }
+  }
+
   // Ticket endpoints
   async getTickets(params?: {
     companyId?: string;
@@ -223,6 +252,51 @@ class ApiService {
     return response.data;
   }
 
+  async searchCompanies(query: string, params?: { limit?: number }): Promise<any> {
+    const response = await this.client.get('/companies', {
+      params: { search: query, ...params },
+    });
+    return response.data;
+  }
+
+  async createCompany(companyData: {
+    name: string;
+    domain?: string;
+    primaryContact?: string;
+    primaryEmail?: string;
+    primaryPhone?: string;
+  }): Promise<any> {
+    const response = await this.client.post('/companies', companyData);
+    return response.data;
+  }
+
+  async updateCompany(
+    companyId: string,
+    companyData: {
+      name?: string;
+      domain?: string;
+      primaryContact?: string;
+      primaryEmail?: string;
+      primaryPhone?: string;
+    }
+  ): Promise<any> {
+    const response = await this.client.put(`/companies/${companyId}`, companyData);
+    return response.data;
+  }
+
+  async addUserToCompany(userId: string, companyId: string, role: string): Promise<any> {
+    const response = await this.client.post(`/companies/${companyId}/users`, {
+      userId,
+      role,
+    });
+    return response.data;
+  }
+
+  async sendCustomerInvitation(userId: string): Promise<any> {
+    const response = await this.client.post(`/users/${userId}/send-invitation`);
+    return response.data;
+  }
+
   // Team endpoints
   async getTeams(params?: { search?: string; page?: number; limit?: number }): Promise<any> {
     const response = await this.client.get('/teams', { params });
@@ -320,7 +394,12 @@ class ApiService {
 
   // Ticket assignment and status endpoints
   async assignTicket(ticketId: string, assignedToId: string): Promise<any> {
-    const response = await this.client.put(`/tickets/${ticketId}/assign`, { assignedToId });
+    const response = await this.client.post(`/tickets/${ticketId}/assign`, { assignedToId });
+    return response.data;
+  }
+
+  async unassignTicket(ticketId: string): Promise<any> {
+    const response = await this.client.post(`/tickets/${ticketId}/unassign`);
     return response.data;
   }
 
@@ -331,6 +410,12 @@ class ApiService {
 
   async updateTicketPriority(ticketId: string, priority: number): Promise<any> {
     const response = await this.client.put(`/tickets/${ticketId}/priority`, { priority });
+    return response.data;
+  }
+
+  // Agent management endpoints
+  async getAgents(params?: { status?: string; teamId?: string }): Promise<any> {
+    const response = await this.client.get('/agents', { params });
     return response.data;
   }
 

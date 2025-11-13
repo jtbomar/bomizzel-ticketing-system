@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, TicketNote, FileAttachment } from '../types';
+import { Ticket, TicketNote, FileAttachment, User } from '../types';
 import { apiService } from '../services/api';
+import AgentAssignmentDropdown from './AgentAssignmentDropdown';
 
 interface TicketDetailModalProps {
   ticket: Ticket;
@@ -22,6 +23,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
   const [editedTitle, setEditedTitle] = useState(ticket.title);
   const [editedDescription, setEditedDescription] = useState(ticket.description);
   const [saving, setSaving] = useState(false);
+  const [currentAssignee, setCurrentAssignee] = useState<User | null>(ticket.assignedTo || null);
 
   useEffect(() => {
     loadTicketDetails();
@@ -153,11 +155,14 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
                 Submitted by: {ticket.submitter?.firstName} {ticket.submitter?.lastName}
                 {ticket.company && ` (${ticket.company.name})`}
               </p>
-              {ticket.assignedTo && (
-                <p>
-                  Assigned to: {ticket.assignedTo.firstName} {ticket.assignedTo.lastName}
-                </p>
-              )}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Assigned to:</span>
+                <AgentAssignmentDropdown
+                  ticketId={ticket.id}
+                  currentAssignee={currentAssignee}
+                  onAssignmentChange={(assignee) => setCurrentAssignee(assignee)}
+                />
+              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">

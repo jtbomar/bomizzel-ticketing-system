@@ -64,14 +64,25 @@ export class UserRoleService {
       const total = await countQuery.count('* as count').first();
       const totalCount = parseInt(total?.count || '0', 10);
 
-      // Get team counts for each user
+      // Get team counts and company associations for each user
       const userModels = await Promise.all(
         users.map(async (user: any) => {
           const teams = await Team.getUserTeams(user.id);
-          return {
+          const baseModel = {
             ...User.toModel(user),
             teamCount: teams.length,
           };
+          
+          // Add company associations for customers
+          if (user.role === 'customer') {
+            const companies = await User.getUserCompanies(user.id);
+            return {
+              ...baseModel,
+              companies,
+            };
+          }
+          
+          return baseModel;
         })
       );
 
@@ -181,6 +192,7 @@ export class UserRoleService {
     UserModel & {
       teams: { id: string; name: string; role: string; membershipDate: Date }[];
       permissions: string[];
+      companies?: any[];
     }
   > {
     try {
@@ -211,11 +223,22 @@ export class UserRoleService {
       // Calculate permissions based on role and team memberships
       const permissions = this.calculateUserPermissions(user.role, teamMemberships);
 
-      return {
+      const baseResult = {
         ...User.toModel(user),
         teams: teamMemberships,
         permissions,
       };
+
+      // Add company associations for customers
+      if (user.role === 'customer') {
+        const companies = await User.getUserCompanies(userId);
+        return {
+          ...baseResult,
+          companies,
+        };
+      }
+
+      return baseResult;
     } catch (error) {
       if (error instanceof AppError) {
         throw error;

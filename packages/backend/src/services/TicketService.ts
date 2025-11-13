@@ -28,13 +28,22 @@ export class TicketService {
     ticketData: CreateTicketRequest,
     submitterId: string
   ): Promise<TicketModel> {
-    // Validate company association
-    const userCompanies = await User.getUserCompanies(submitterId);
-    const hasCompanyAccess = userCompanies.some((uc) => uc.companyId === ticketData.companyId);
-
-    if (!hasCompanyAccess) {
-      throw new ForbiddenError('User does not have access to this company');
+    // Get submitter info
+    const submitterUser = await User.findById(submitterId);
+    if (!submitterUser) {
+      throw new NotFoundError('Submitter not found');
     }
+
+    // Validate company association (only for customers)
+    if (submitterUser.role === 'customer') {
+      const userCompanies = await User.getUserCompanies(submitterId);
+      const hasCompanyAccess = userCompanies.some((uc) => uc.companyId === ticketData.companyId);
+
+      if (!hasCompanyAccess) {
+        throw new ForbiddenError('User does not have access to this company');
+      }
+    }
+    // Admins, team leads, and employees can create tickets for any company
 
     // Validate team exists
     const team = await Team.findById(ticketData.teamId);

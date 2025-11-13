@@ -30,6 +30,7 @@ import customerQueryBuilderRoutes from './customerQueryBuilder';
 import businessHoursRoutes from './businessHours';
 import organizationalRolesRoutes from './organizationalRoles';
 import userProfilesRoutes from './userProfiles';
+import agentsRoutes from './agents';
 
 const router = Router();
 
@@ -39,6 +40,7 @@ router.use('/auth', enhancedRegistrationRoutes); // Enhanced registration endpoi
 router.use('/company-registration', companyRegistrationRoutes);
 router.use('/admin/provisioning', adminProvisioningRoutes); // Admin provisioning endpoints
 router.use('/users', userRoutes);
+router.use('/agents', agentsRoutes); // Agent management endpoints
 router.use('/companies', companyRoutes);
 router.use('/teams', teamRoutes);
 router.use('/teams', ticketStatusRoutes);
@@ -76,6 +78,7 @@ router.get('/', (req, res) => {
       enhancedRegistration: '/api/auth/register-enhanced',
       adminProvisioning: '/api/admin/provisioning',
       users: '/api/users',
+      agents: '/api/agents',
       companies: '/api/companies',
       teams: '/api/teams',
       teamStatuses: '/api/teams/:teamId/statuses',

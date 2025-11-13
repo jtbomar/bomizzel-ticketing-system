@@ -31,15 +31,23 @@ router.post(
       companyId: { type: 'string', required: true, format: 'uuid' },
       teamId: { type: 'string', required: true, format: 'uuid' },
       customFieldValues: { type: 'object', required: false },
+      submitterId: { type: 'string', required: false, format: 'uuid' },
     },
   }),
   ...enforceAndTrackTicketCreation,
   async (req, res, next) => {
     try {
       const ticketData: CreateTicketRequest = req.body;
-      const userId = req.user!.id;
+      const currentUserId = req.user!.id;
+      const currentUserRole = req.user!.role;
+      
+      // Allow agents to create tickets on behalf of customers
+      let submitterId = currentUserId;
+      if (req.body.submitterId && ['admin', 'team_lead', 'employee'].includes(currentUserRole)) {
+        submitterId = req.body.submitterId;
+      }
 
-      const ticket = await TicketService.createTicket(ticketData, userId);
+      const ticket = await TicketService.createTicket(ticketData, submitterId);
 
       res.status(201).json({
         success: true,
@@ -342,20 +350,21 @@ router.post(
   uploadSingle,
   handleMulterError,
   addUsageWarnings,
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const ticketId = req.params.id;
       const userId = req.user!.id;
       const { noteId } = req.body;
 
       if (!req.file) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           error: {
             code: 'NO_FILE',
             message: 'No file provided',
           },
         });
+        return;
       }
 
       const attachment = await FileService.uploadFile(req.file, ticketId, userId, noteId);

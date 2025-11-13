@@ -57,19 +57,20 @@ router.get(
       teamId: { type: 'string', required: true, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
 
       const team = await TeamService.getTeamById(teamId);
 
       if (!team) {
-        return res.status(404).json({
+        res.status(404).json({
           error: {
             code: 'TEAM_NOT_FOUND',
             message: 'Team not found',
           },
         });
+        return;
       }
 
       res.json({ team });
@@ -99,18 +100,19 @@ router.post(
       description: { type: 'string', required: false, maxLength: 500 },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { name, description } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       const team = await TeamService.createTeam({ name, description }, userId);
@@ -145,19 +147,20 @@ router.put(
       isActive: { type: 'boolean', required: false },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
       const { name, description, isActive } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       const team = await TeamService.updateTeam(teamId, { name, description, isActive }, userId);
@@ -187,7 +190,7 @@ router.get(
       teamId: { type: 'string', required: true, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
 
@@ -222,19 +225,20 @@ router.post(
       role: { type: 'string', required: false, enum: ['member', 'lead', 'admin'] },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId } = req.params;
       const { userId, role = 'member' } = req.body;
       const addedById = req.user?.id;
 
       if (!addedById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       await TeamService.addUserToTeam(teamId, userId, role, addedById);
@@ -265,18 +269,19 @@ router.delete(
       userId: { type: 'string', required: true, format: 'uuid' },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId, userId } = req.params;
       const removedById = req.user?.id;
 
       if (!removedById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       await TeamService.removeUserFromTeam(teamId, userId, removedById);
@@ -310,19 +315,20 @@ router.put(
       role: { type: 'string', required: true, enum: ['member', 'lead', 'admin'] },
     },
   }),
-  async (req: Request, res: Response) => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       const { teamId, userId } = req.params;
       const { role } = req.body;
       const updatedById = req.user?.id;
 
       if (!updatedById) {
-        return res.status(401).json({
+        res.status(401).json({
           error: {
             code: 'UNAUTHORIZED',
             message: 'User not authenticated',
           },
         });
+        return;
       }
 
       await TeamService.updateUserTeamRole(teamId, userId, role, updatedById);

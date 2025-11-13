@@ -1,0 +1,286 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  UserIcon,
+  MagnifyingGlassIcon,
+  PlusIcon,
+  ArrowLeftIcon,
+  BuildingOfficeIcon,
+  EnvelopeIcon,
+} from '@heroicons/react/24/outline';
+import { apiService } from '../services/api';
+
+interface Customer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  isActive: boolean;
+  emailVerified: boolean;
+  companies?: Array<{
+    companyId: string;
+    role: string;
+    company: {
+      id: string;
+      name: string;
+      domain?: string;
+    };
+  }>;
+  createdAt: string;
+}
+
+const AgentCustomersList: React.FC = () => {
+  const navigate = useNavigate();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = customers.filter(
+        (customer) =>
+          customer.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          customer.companies?.some((c) =>
+            c.company.name.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+      );
+      setFilteredCustomers(filtered);
+    } else {
+      setFilteredCustomers(customers);
+    }
+  }, [searchQuery, customers]);
+
+  const loadCustomers = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getUsers({ role: 'customer', limit: 100, page: 1 });
+      console.log('API Response:', response);
+      const customersList = response.data || [];
+      console.log('Customers from API:', customersList.length, customersList);
+      
+      // Check if customers have company associations
+      if (customersList.length > 0) {
+        console.log('First customer:', customersList[0]);
+        console.log('Has companies?', customersList[0].companies);
+      }
+      
+      setCustomers(customersList);
+      setFilteredCustomers(customersList);
+    } catch (error: any) {
+      console.error('Failed to load customers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => navigate('/agent')}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+              >
+                <ArrowLeftIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
+                  <UserIcon className="h-7 w-7" />
+                  <span>Customers</span>
+                </h1>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Manage customer users
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate('/agent/tickets/create?tab=customer')}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center space-x-2"
+            >
+              <PlusIcon className="h-5 w-5" />
+              <span>New Customer</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search customers by name, email, or company..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Total Customers</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+              {customers.length}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Active</div>
+            <div className="text-2xl font-bold text-green-600 mt-1">
+              {customers.filter((c) => c.isActive).length}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400">Verified</div>
+            <div className="text-2xl font-bold text-blue-600 mt-1">
+              {customers.filter((c) => c.emailVerified).length}
+            </div>
+          </div>
+        </div>
+
+        {/* Customers List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading customers...</p>
+          </div>
+        ) : filteredCustomers.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <UserIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">
+              {searchQuery ? 'No customers found matching your search' : 'No customers yet'}
+            </p>
+            {!searchQuery && (
+              <button
+                onClick={() => navigate('/agent/tickets/create?tab=customer')}
+                className="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+              >
+                Create First Customer
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-900">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Customer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Company
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Created
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredCustomers.map((customer) => (
+                  <tr
+                    key={customer.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => navigate(`/agent/customers/${customer.id}`)}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 dark:text-blue-300 font-medium">
+                            {customer.firstName.charAt(0)}
+                            {customer.lastName.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {customer.firstName} {customer.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                            <EnvelopeIcon className="h-3 w-3 mr-1" />
+                            {customer.email}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {customer.companies && customer.companies.length > 0 ? (
+                        <div className="flex items-center text-sm text-gray-900 dark:text-white">
+                          <BuildingOfficeIcon className="h-4 w-4 mr-2 text-gray-400" />
+                          {customer.companies[0].company.name}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">No company</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-col space-y-1">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            customer.isActive
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                          }`}
+                        >
+                          {customer.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        {customer.emailVerified && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {formatDate(customer.createdAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/agent/customers/${customer.id}`);
+                        }}
+                        className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default AgentCustomersList;

@@ -7,7 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PricingPage from './pages/PricingPage';
 import CustomerDashboard from './pages/CustomerDashboard';
-import SimpleEmployeeDashboard from './pages/SimpleEmployeeDashboard';
+import AgentDashboard from './pages/AgentDashboard';
 import SimpleAdminDashboard from './pages/SimpleAdminDashboard';
 import TicketLayoutManagement from './pages/TicketLayoutManagement';
 import CreateTicketPage from './pages/CreateTicketPage';
@@ -30,6 +30,11 @@ import HolidayList from './pages/HolidayList';
 import Departments from './pages/Departments';
 import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
+import AgentCreateTicketForm from './components/AgentCreateTicketForm';
+import AgentAccountsList from './pages/AgentAccountsList';
+import AgentCustomersList from './pages/AgentCustomersList';
+import AgentAccountDetail from './pages/AgentAccountDetail';
+import AgentCustomerDetail from './pages/AgentCustomerDetail';
 
 function App() {
   return (
@@ -57,7 +62,47 @@ function App() {
               path="/agent" 
               element={
                 <ProtectedRoute requiredRole="employee">
-                  <SimpleEmployeeDashboard />
+                  <AgentDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/agent/tickets/create" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <AgentCreateTicketForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/agent/accounts" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <AgentAccountsList />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/agent/customers" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <AgentCustomersList />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/agent/accounts/:accountId" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <AgentAccountDetail />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/agent/customers/:customerId" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <AgentCustomerDetail />
                 </ProtectedRoute>
               } 
             />

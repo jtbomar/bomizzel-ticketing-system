@@ -48,6 +48,18 @@ try {
     const companyRoutes = require('./routes/companies').default;
     const organizationalRolesRoutes = require('./routes/organizationalRoles').default;
     const userProfilesRoutes = require('./routes/userProfiles').default;
+    const agentsRoutes = require('./routes/agents').default;
+    const usersRoutes = require('./routes/users').default;
+    
+    // Try to load tickets, custom fields, and teams routes
+    let ticketsRoutes, customFieldsRoutes, teamsRoutes;
+    try {
+      ticketsRoutes = require('./routes/tickets').default;
+      customFieldsRoutes = require('./routes/customFields').default;
+      teamsRoutes = require('./routes/teams').default;
+    } catch (err) {
+      console.warn('⚠️ Could not load tickets/custom-fields/teams routes:', err);
+    }
     
     app.use('/api/auth', authRoutes);
     app.use('/api/auth', enhancedRegistrationRoutes);
@@ -60,7 +72,23 @@ try {
     app.use('/api/companies', companyRoutes);
     app.use('/api/organizational-roles', organizationalRolesRoutes);
     app.use('/api/user-profiles', userProfilesRoutes);
-    console.log('✅ Auth, admin, companies, admin provisioning, enhanced registration, business hours, holiday lists, departments, customer happiness, organizational roles, and user profiles routes registered');
+    app.use('/api/agents', agentsRoutes);
+    app.use('/api/users', usersRoutes);
+    
+    if (ticketsRoutes) {
+      app.use('/api/tickets', ticketsRoutes);
+      console.log('✅ Tickets routes registered');
+    }
+    if (customFieldsRoutes) {
+      app.use('/api/custom-fields', customFieldsRoutes);
+      console.log('✅ Custom fields routes registered');
+    }
+    if (teamsRoutes) {
+      app.use('/api/teams', teamsRoutes);
+      console.log('✅ Teams routes registered');
+    }
+    
+    console.log('✅ Auth, admin, companies, agents, users, admin provisioning, enhanced registration, business hours, holiday lists, departments, customer happiness, organizational roles, and user profiles routes registered');
   } catch (err) {
     console.error('❌ Failed to register provisioning routes:', err);
   }
@@ -1388,3 +1416,4 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 export { app };
+// Trigger restart

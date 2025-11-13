@@ -38,7 +38,7 @@ export const performanceMonitoring = (req: Request, res: Response, next: NextFun
     const endMemory = process.memoryUsage();
 
     const metrics: PerformanceMetrics = {
-      requestId: req.id || 'unknown',
+      requestId: (req as any).id || 'unknown',
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,

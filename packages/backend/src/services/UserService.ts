@@ -60,7 +60,23 @@ export class UserService {
       // Get paginated results
       const users = await searchQuery.limit(limit).offset(offset).orderBy('created_at', 'desc');
 
-      const userModels = users.map((user: any) => User.toModel(user));
+      // Enrich user models with company associations for customers
+      const userModels = await Promise.all(
+        users.map(async (user: any) => {
+          const baseModel = User.toModel(user);
+          
+          // Add company associations for customers
+          if (user.role === 'customer') {
+            const companies = await User.getUserCompanies(user.id);
+            return {
+              ...baseModel,
+              companies,
+            };
+          }
+          
+          return baseModel;
+        })
+      );
 
       return {
         data: userModels,
@@ -331,7 +347,24 @@ export class UserService {
 
       const users = await searchQuery.limit(limit).orderBy('first_name', 'asc');
 
-      return users.map((user: any) => User.toModel(user));
+      // Add company associations for customers
+      const userModels = await Promise.all(
+        users.map(async (user: any) => {
+          const baseModel = User.toModel(user);
+          
+          if (user.role === 'customer') {
+            const companies = await User.getUserCompanies(user.id);
+            return {
+              ...baseModel,
+              companies,
+            };
+          }
+          
+          return baseModel;
+        })
+      );
+
+      return userModels;
     } catch (error) {
       logger.error('Search users error:', error);
       throw new AppError('Failed to search users', 500, 'SEARCH_USERS_FAILED');
@@ -371,6 +404,50 @@ export class UserService {
     } catch (error) {
       logger.error('Get user stats error:', error);
       throw new AppError('Failed to get user statistics', 500, 'GET_USER_STATS_FAILED');
+    }
+  }
+
+  /**
+   * Get all customers with their company associations
+   */
+  static async getCustomersWithCompanies(): Promise<Array<UserModel & { companies: UserCompanyAssociation[] }>> {
+    try {
+      const customers = await User.findActiveUsers({ role: 'customer' });
+      
+      const customersWithCompanies = await Promise.all(
+        customers.map(async (customer) => {
+          const companies = await User.getUserCompanies(customer.id);
+          return {
+            ...User.toModel(customer),
+            companies,
+          };
+        })
+      );
+
+      return customersWithCompanies;
+    } catch (error) {
+      logger.error('Get customers with companies error:', error);
+      throw new AppError('Failed to get customers', 500, 'GET_CUSTOMERS_FAILED');
+    }
+  }
+
+  /**
+   * Get all companies (accounts)
+   */
+  static async getAllCompanies(isActive?: boolean): Promise<any[]> {
+    try {
+      let query = Company.query;
+      
+      if (isActive !== undefined) {
+        query = query.where('is_active', isActive);
+      }
+
+      const companies = await query.orderBy('name', 'asc');
+      
+      return companies.map((company: any) => Company.toModel(company));
+    } catch (error) {
+      logger.error('Get all companies error:', error);
+      throw new AppError('Failed to get companies', 500, 'GET_COMPANIES_FAILED');
     }
   }
 }

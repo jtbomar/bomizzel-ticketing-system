@@ -51,6 +51,26 @@ router.get('/stats', authenticate, authorize('admin'), async (req, res, next) =>
 });
 
 /**
+ * GET /users/list
+ * List users by role (for agents to view customers)
+ */
+router.get('/list', authenticate, async (req, res, next) => {
+  try {
+    const { role, limit } = req.query as any;
+
+    const users = await UserService.getUsers({
+      role,
+      limit: limit ? parseInt(limit, 10) : 100,
+      isActive: undefined,
+    });
+
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /users/search
  * Search users by name or email
  */
