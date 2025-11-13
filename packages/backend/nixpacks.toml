@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_18"]
+
+[phases.install]
+cmds = ["npm install --include=dev"]
+
+[phases.build]
+cmds = ["echo 'Skipping TypeScript build - using ts-node'"]
+
+[start]
+cmd = "npx ts-node src/index.ts"
