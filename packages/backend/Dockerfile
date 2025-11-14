@@ -11,8 +11,5 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Expose port
-EXPOSE 3001
-
 # Start with ts-node and tsconfig-paths
 CMD ["npx", "ts-node", "-r", "tsconfig-paths/register", "src/index.ts"]
