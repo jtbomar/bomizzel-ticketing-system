@@ -32,12 +32,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
       try {
         const user = JSON.parse(userStr);
-        const apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3001`;
+        const apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
 
         console.log('[ProtectedRoute] Verifying token for user:', user.email, 'role:', user.role);
 
         // Verify token is still valid
-        const response = await axios.get(`${apiUrl}/api/auth/verify`, {
+        const response = await axios.get(`${apiUrl}/auth/verify`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
