@@ -11,5 +11,5 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Start with ts-node and tsconfig-paths
-CMD ["npx", "ts-node", "-r", "tsconfig-paths/register", "src/index.ts"]
+# Start with migrations then server
+CMD ["sh", "-c", "npx knex migrate:latest --knexfile knexfile.js && npx knex seed:run --knexfile knexfile.js && npx ts-node -r tsconfig-paths/register src/index.ts"]
