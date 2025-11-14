@@ -14,5 +14,5 @@ COPY . .
 # Expose port
 EXPOSE 3001
 
-# Start with ts-node
-CMD ["npx", "ts-node", "src/index.ts"]
+# Start with ts-node and tsconfig-paths
+CMD ["npx", "ts-node", "-r", "tsconfig-paths/register", "src/index.ts"]
