@@ -6,14 +6,13 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 if (!stripeSecretKey) {
-  logger.error('STRIPE_SECRET_KEY environment variable is required');
-  throw new Error('STRIPE_SECRET_KEY environment variable is required');
+  logger.warn('STRIPE_SECRET_KEY not set - Stripe features will be disabled');
 }
 
-export const stripe = new Stripe(stripeSecretKey, {
+export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
   apiVersion: '2025-10-29.clover',
   typescript: true,
-});
+}) : null;
 
 export const STRIPE_CONFIG = {
   webhookSecret: stripeWebhookSecret,
