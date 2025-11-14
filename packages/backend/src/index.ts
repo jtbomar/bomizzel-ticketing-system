@@ -19,6 +19,10 @@ app.use(
       'http://192.168.0.133:3000',
       'http://192.168.0.117:3000',
       /^http:\/\/192\.168\.0\.\d+:3000$/,
+      'https://www.bomizzel.com',
+      'https://bomizzel.com',
+      'https://bomizzel-ticketing-system-frontend.vercel.app',
+      /^https:\/\/bomizzel-ticketing-system-.*\.vercel\.app$/,
     ],
     credentials: true,
   })
