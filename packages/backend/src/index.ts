@@ -25,6 +25,8 @@ app.use(
       /^https:\/\/bomizzel-ticketing-system-.*\.vercel\.app$/,
     ],
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Authorization'],
   })
 );
 // Increase payload limit for image uploads
