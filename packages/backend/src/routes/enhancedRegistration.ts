@@ -15,7 +15,7 @@ const enhancedRegistrationSchema = Joi.object({
     'string.max': 'First name must be less than 50 characters'
   }),
   lastName: Joi.string().trim().min(1).max(50).required().messages({
-    'string.empty': 'Last name is required',
+    'string.empty': 'Last name is required',npm run dev:frontend
     'string.min': 'Last name must be at least 1 character',
     'string.max': 'Last name must be less than 50 characters'
   }),
