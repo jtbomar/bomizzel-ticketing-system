@@ -369,6 +369,15 @@ app.put('/api/company-registration/branding', async (req: Request, res: Response
   }
 });
 
+// Setup endpoint for running migrations
+try {
+  const setupRoutes = require('./routes/setup').default;
+  app.use('/api/setup', setupRoutes);
+  console.log('🔧 Setup routes registered');
+} catch (error) {
+  console.warn('⚠️ Could not register setup routes:', error);
+}
+
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
