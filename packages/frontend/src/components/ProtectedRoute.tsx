@@ -32,36 +32,48 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
       try {
         const user = JSON.parse(userStr);
-        
-        console.log('[ProtectedRoute] User found:', user.email, 'role:', user.role);
-        
-        // TEMPORARY: Skip server verification, just trust the local token
-        // TODO: Fix database migrations on Railway then re-enable verification
-        setIsAuthenticated(true);
-        console.log('[ProtectedRoute] Token accepted (verification temporarily disabled)');
+        const apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
 
-        // Check BSI admin access
-        if (requireBSI) {
-          const isBSIAdmin = user.role === 'admin' && 
-            (user.email === 'jeffrey.t.bomar@gmail.com' || 
-             user.email?.includes('@bomizzel.com') || 
-             user.email?.includes('bomizzel'));
-          
-          console.log('[ProtectedRoute] BSI admin check:', isBSIAdmin);
-          setHasPermission(isBSIAdmin);
-          return;
-        }
+        console.log('[ProtectedRoute] Verifying token for user:', user.email, 'role:', user.role);
 
-        // Check role-based access
-        if (requiredRole) {
-          const hasRole = user.role === requiredRole || 
-                         (requiredRole === 'employee' && user.role === 'admin') ||
-                         (requiredRole === 'customer' && user.role === 'admin');
-          console.log('[ProtectedRoute] Role check - required:', requiredRole, 'user:', user.role, 'hasRole:', hasRole);
-          setHasPermission(hasRole);
+        // Verify token is still valid
+        const response = await axios.get(`${apiUrl}/auth/verify`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        console.log('[ProtectedRoute] Auth verify response:', response.data);
+
+        if (response.data.valid) {
+          setIsAuthenticated(true);
+          console.log('[ProtectedRoute] Token valid');
+
+          // Check BSI admin access
+          if (requireBSI) {
+            const isBSIAdmin = user.role === 'admin' && 
+              (user.email === 'jeffrey.t.bomar@gmail.com' || 
+               user.email?.includes('@bomizzel.com') || 
+               user.email?.includes('bomizzel'));
+            
+            console.log('[ProtectedRoute] BSI admin check:', isBSIAdmin);
+            setHasPermission(isBSIAdmin);
+            return;
+          }
+
+          // Check role-based access
+          if (requiredRole) {
+            const hasRole = user.role === requiredRole || 
+                           (requiredRole === 'employee' && user.role === 'admin') ||
+                           (requiredRole === 'customer' && user.role === 'admin');
+            console.log('[ProtectedRoute] Role check - required:', requiredRole, 'user:', user.role, 'hasRole:', hasRole);
+            setHasPermission(hasRole);
+          } else {
+            console.log('[ProtectedRoute] No role required, granting access');
+            setHasPermission(true);
+          }
         } else {
-          console.log('[ProtectedRoute] No role required, granting access');
-          setHasPermission(true);
+          console.log('[ProtectedRoute] Token invalid');
+          setIsAuthenticated(false);
+          setHasPermission(false);
         }
       } catch (error) {
         console.error('[ProtectedRoute] Auth verification failed:', error);
