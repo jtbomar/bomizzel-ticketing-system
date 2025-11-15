@@ -18,7 +18,7 @@ npx knex migrate:latest --knexfile knexfile.js\n\
 echo "Running database seeds..."\n\
 npx knex seed:run --knexfile knexfile.js\n\
 echo "Starting server..."\n\
-npx ts-node -r tsconfig-paths/register src/index.ts' > /app/start.sh && chmod +x /app/start.sh
+npx ts-node --transpile-only -r tsconfig-paths/register src/index.ts' > /app/start.sh && chmod +x /app/start.sh
 
 # Start with migrations then server
 CMD ["/app/start.sh"]
