@@ -6,7 +6,7 @@ import { authenticate } from '../middleware/auth';
 import { validate } from '../utils/validation';
 import Joi from 'joi';
 import { logger } from '../utils/logger';
-import { upload } from '../middleware/fileUpload';
+import { uploadSingle } from '../middleware/fileUpload';
 import path from 'path';
 import fs from 'fs';
 
@@ -118,7 +118,7 @@ router.get(
  */
 router.post(
   '/import',
-  upload.single('file'),
+  uploadSingle,
   async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user!.id;
