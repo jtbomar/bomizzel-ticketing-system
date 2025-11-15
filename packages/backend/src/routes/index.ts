@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './auth';
 import userRoutes from './users';
 import companyRoutes from './companies';
+import departmentRoutes from './departments';
 import teamRoutes from './teams';
 import customFieldRoutes from './customFields';
 import ticketRoutes from './tickets';
@@ -43,6 +44,7 @@ router.use('/admin/provisioning', adminProvisioningRoutes); // Admin provisionin
 router.use('/users', userRoutes);
 router.use('/agents', agentsRoutes); // Agent management endpoints
 router.use('/companies', companyRoutes);
+router.use('/departments', departmentRoutes);
 router.use('/teams', teamRoutes);
 router.use('/teams', ticketStatusRoutes);
 router.use('/custom-fields', customFieldRoutes);
