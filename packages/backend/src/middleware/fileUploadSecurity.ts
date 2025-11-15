@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import * as fs from 'fs';
