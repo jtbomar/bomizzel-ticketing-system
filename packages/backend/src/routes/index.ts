@@ -37,6 +37,7 @@ import userProfilesRoutes from './userProfiles';
 import agentsRoutes from './agents';
 import reseedRoutes from './reseed';
 import fixDatabaseRoutes from './fixDatabase';
+import seedMissingDataRoutes from './seedMissingData';
 
 const router = Router();
 
@@ -78,6 +79,7 @@ router.use('/organizational-roles', organizationalRolesRoutes);
 router.use('/user-profiles', userProfilesRoutes);
 router.use('/reseed', reseedRoutes);
 router.use('/fix', fixDatabaseRoutes);
+router.use('/seed', seedMissingDataRoutes);
 router.use('/', emailRoutes);
 
 // API info endpoint
