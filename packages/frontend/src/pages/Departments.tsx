@@ -87,14 +87,22 @@ const Departments: React.FC = () => {
     try {
       setLoading(true);
       const departmentsData = await apiService.getDepartments();
-      setDepartments(departmentsData);
+      
+      // Add default agents and templates arrays if missing
+      const dataWithDefaults = departmentsData.map((dept: Department) => ({
+        ...dept,
+        agents: dept.agents || [],
+        templates: dept.templates || []
+      }));
+      
+      setDepartments(dataWithDefaults);
       
       // Select the default one if available
-      const defaultDept = departmentsData.find((dept: Department) => dept.is_default);
+      const defaultDept = dataWithDefaults.find((dept: Department) => dept.is_default);
       if (defaultDept) {
         setSelectedDepartment(defaultDept);
-      } else if (departmentsData.length > 0) {
-        setSelectedDepartment(departmentsData[0]);
+      } else if (dataWithDefaults.length > 0) {
+        setSelectedDepartment(dataWithDefaults[0]);
       }
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -646,7 +654,7 @@ const Departments: React.FC = () => {
                     <div className="mb-8">
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="text-md font-medium text-gray-900">
-                          Agents ({selectedDepartment.agents.length})
+                          Agents ({selectedDepartment.agents?.length || 0})
                         </h4>
                         <button
                           onClick={() => setShowAddAgent(true)}
