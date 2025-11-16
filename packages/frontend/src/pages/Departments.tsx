@@ -57,6 +57,8 @@ const Departments: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [showAddAgent, setShowAddAgent] = useState(false);
+  const [companies, setCompanies] = useState<any[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('all');
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -93,10 +95,13 @@ const Departments: React.FC = () => {
         apiService.getCompanies({ limit: 100 })
       ]);
       
+      // Store companies for filter dropdown
+      const companiesList = companiesResponse.companies || companiesResponse.data || [];
+      setCompanies(companiesList);
+      
       // Create company lookup map
-      const companies = companiesResponse.companies || companiesResponse.data || [];
       const companyMap = new Map(
-        companies.map((c: any) => [c.id, c.name])
+        companiesList.map((c: any) => [c.id, c.name])
       );
       
       // Add default agents and templates arrays if missing, plus company name
@@ -384,9 +389,33 @@ const Departments: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Departments List */}
               <div className="lg:col-span-1">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Departments</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Departments</h3>
+                </div>
+                
+                {/* Company Filter */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Filter by Company
+                  </label>
+                  <select
+                    value={selectedCompanyId}
+                    onChange={(e) => setSelectedCompanyId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Companies ({departments.length} departments)</option>
+                    {companies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name} ({departments.filter((d: any) => d.company_id === company.id).length})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
                 <div className="space-y-2">
-                  {departments.map((dept) => (
+                  {departments
+                    .filter((dept: any) => selectedCompanyId === 'all' || dept.company_id === selectedCompanyId)
+                    .map((dept) => (
                     <div
                       key={dept.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-colors ${
