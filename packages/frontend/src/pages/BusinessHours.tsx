@@ -80,14 +80,28 @@ const BusinessHours: React.FC = () => {
     try {
       setLoading(true);
       const businessHoursData = await apiService.getBusinessHours();
-      setBusinessHoursList(businessHoursData);
+      
+      // Add default schedule if missing
+      const dataWithSchedule = businessHoursData.map((bh: BusinessHours) => ({
+        ...bh,
+        schedule: bh.schedule || DAYS_OF_WEEK.map((_, index) => ({
+          day_of_week: index,
+          is_working_day: index >= 1 && index <= 5,
+          start_time: index >= 1 && index <= 5 ? '09:00' : '',
+          end_time: index >= 1 && index <= 5 ? '17:00' : '',
+          break_start: '',
+          break_end: ''
+        }))
+      }));
+      
+      setBusinessHoursList(dataWithSchedule);
       
       // Select the default one if available
-      const defaultBH = businessHoursData.find((bh: BusinessHours) => bh.is_default);
+      const defaultBH = dataWithSchedule.find((bh: BusinessHours) => bh.is_default);
       if (defaultBH) {
         setSelectedBusinessHours(defaultBH);
-      } else if (businessHoursData.length > 0) {
-        setSelectedBusinessHours(businessHoursData[0]);
+      } else if (dataWithSchedule.length > 0) {
+        setSelectedBusinessHours(dataWithSchedule[0]);
       }
     } catch (error) {
       console.error('Error fetching business hours:', error);
@@ -577,7 +591,7 @@ const BusinessHours: React.FC = () => {
                       <div>
                         <h4 className="text-sm font-medium text-gray-700 mb-3">Weekly Schedule</h4>
                         <div className="space-y-2">
-                          {selectedBusinessHours.schedule.map((day, index) => (
+                          {selectedBusinessHours.schedule?.map((day, index) => (
                             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                               <span className="font-medium text-gray-700 w-20">
                                 {DAYS_OF_WEEK[index]}
