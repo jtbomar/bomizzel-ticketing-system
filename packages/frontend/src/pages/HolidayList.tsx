@@ -63,14 +63,21 @@ const HolidayListPage: React.FC = () => {
     try {
       setLoading(true);
       const holidayListsData = await apiService.getHolidayLists();
-      setHolidayLists(holidayListsData);
+      
+      // Add default holidays array if missing
+      const dataWithHolidays = holidayListsData.map((hl: HolidayList) => ({
+        ...hl,
+        holidays: hl.holidays || []
+      }));
+      
+      setHolidayLists(dataWithHolidays);
       
       // Select the default one if available
-      const defaultHL = holidayListsData.find((hl: HolidayList) => hl.is_default);
+      const defaultHL = dataWithHolidays.find((hl: HolidayList) => hl.is_default);
       if (defaultHL) {
         setSelectedHolidayList(defaultHL);
-      } else if (holidayListsData.length > 0) {
-        setSelectedHolidayList(holidayListsData[0]);
+      } else if (dataWithHolidays.length > 0) {
+        setSelectedHolidayList(dataWithHolidays[0]);
       }
     } catch (error) {
       console.error('Error fetching holiday lists:', error);
@@ -297,7 +304,7 @@ const HolidayListPage: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
-                            {hl.holidays.length} holiday{hl.holidays.length !== 1 ? 's' : ''}
+                            {hl.holidays?.length || 0} holiday{(hl.holidays?.length || 0) !== 1 ? 's' : ''}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
