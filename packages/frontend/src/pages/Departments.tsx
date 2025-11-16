@@ -86,13 +86,24 @@ const Departments: React.FC = () => {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const departmentsData = await apiService.getDepartments();
       
-      // Add default agents and templates arrays if missing
-      const dataWithDefaults = departmentsData.map((dept: Department) => ({
+      // Fetch both departments and companies
+      const [departmentsData, companiesResponse] = await Promise.all([
+        apiService.getDepartments(),
+        apiService.getAccounts()
+      ]);
+      
+      // Create company lookup map
+      const companyMap = new Map(
+        companiesResponse.data.map((c: any) => [c.id, c.name])
+      );
+      
+      // Add default agents and templates arrays if missing, plus company name
+      const dataWithDefaults = departmentsData.map((dept: any) => ({
         ...dept,
         agents: dept.agents || [],
-        templates: dept.templates || []
+        templates: dept.templates || [],
+        company_name: companyMap.get(dept.company_id) || 'Unknown Company'
       }));
       
       setDepartments(dataWithDefaults);
@@ -402,6 +413,7 @@ const Departments: React.FC = () => {
                           )}
                           <div>
                             <h4 className="font-medium text-gray-900">{dept.name}</h4>
+                            <p className="text-xs text-gray-500">{(dept as any).company_name}</p>
                             {dept.description && (
                               <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dept.description}</p>
                             )}
