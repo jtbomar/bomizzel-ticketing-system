@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Database</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .success {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Database Issues</h1>
+    
+    <p>This will fix the migration corruption issue by:</p>
+    <ol>
+        <li>Removing orphaned migration records</li>
+        <li>Dropping problematic check constraints</li>
+    </ol>
+
+    <div>
+        <button onclick="login()" style="background: #007bff; color: white;">
+            1. Login as Admin
+        </button>
+        <button onclick="checkDatabase()" style="background: #ffc107; color: black;">
+            2. Check Database Status
+        </button>
+        <button onclick="fixDatabase()" style="background: #28a745; color: white;">
+            3. Fix Database
+        </button>
+    </div>
+
+    <div id="status"></div>
+    <pre id="output"></pre>
+
+    <script>
+        const BACKEND_URL = 'https://backend-production-97e1.up.railway.app';
+        const statusDiv = document.getElementById('status');
+        const output = document.getElementById('output');
+        let token = '';
+
+        async function login() {
+            statusDiv.innerHTML = '<p>Logging in...</p>';
+            output.textContent = '';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@bomizzel.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.token) {
+                    token = data.token;
+                    statusDiv.innerHTML = '<div class="success"><h3>✅ Logged in successfully</h3></div>';
+                    output.textContent = `Token: ${token.substring(0, 30)}...`;
+                } else {
+                    statusDiv.innerHTML = '<div class="error"><h3>❌ Login failed</h3></div>';
+                    output.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error"><h3>❌ Error</h3></div>';
+                output.textContent = error.message;
+            }
+        }
+
+        async function checkDatabase() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            statusDiv.innerHTML = '<p>Checking database...</p>';
+            output.textContent = 'Please wait...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/fix/check-database`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const hasIssues = data.hasOrphanedMigrations;
+                    statusDiv.innerHTML = hasIssues 
+                        ? '<div class="error"><h3>⚠️ Issues Found</h3><p>Orphaned migrations detected. Click "Fix Database" to resolve.</p></div>'
+                        : '<div class="success"><h3>✅ Database looks good!</h3></div>';
+                    output.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    statusDiv.innerHTML = '<div class="error"><h3>❌ Check failed</h3></div>';
+                    output.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error"><h3>❌ Error</h3></div>';
+                output.textContent = error.message;
+            }
+        }
+
+        async function fixDatabase() {
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            if (!confirm('Fix the database? This will remove orphaned migrations and constraints.')) {
+                return;
+            }
+
+            statusDiv.innerHTML = '<p>🔧 Fixing database...</p>';
+            output.textContent = 'Please wait...';
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/fix/fix-migrations`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Database fixed successfully!</h3>
+                            <p>Now you can reseed the database using reseed-database.html</p>
+                        </div>
+                    `;
+                    output.textContent = JSON.stringify(data, null, 2);
+                } else {
+                    statusDiv.innerHTML = '<div class="error"><h3>❌ Fix failed</h3></div>';
+                    output.textContent = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="error"><h3>❌ Error</h3></div>';
+                output.textContent = error.message;
+            }
+        }
+    </script>
+</body>
+</html>
