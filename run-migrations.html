@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Run Database Migrations</title>
+</head>
+<body>
+    <h1>Database Setup</h1>
+    <button onclick="runMigrations()">Run Migrations & Seeds</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function runMigrations() {
+            const output = document.getElementById('output');
+            output.textContent = 'Running migrations...';
+            
+            try {
+                const response = await fetch('https://backend-production-97e1.up.railway.app/api/setup/migrate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                output.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.success) {
+                    alert('Database initialized successfully! Refresh your dashboard.');
+                }
+            } catch (error) {
+                output.textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

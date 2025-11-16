@@ -6,7 +6,7 @@ export interface UserTable {
   password_hash: string;
   first_name: string;
   last_name: string;
-  role: 'customer' | 'employee' | 'team_lead' | 'admin';
+  role: 'customer' | 'agent' | 'team_lead' | 'admin';
   is_active: boolean;
   email_verified: boolean;
   email_verification_token?: string;
@@ -57,7 +57,7 @@ export interface QueueTable {
   id: string;
   name: string;
   description?: string;
-  type: 'unassigned' | 'employee';
+  type: 'unassigned' | 'agent';
   assigned_to_id?: string;
   team_id: string;
   is_active: boolean;

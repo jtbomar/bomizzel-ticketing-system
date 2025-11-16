@@ -13,7 +13,7 @@ export class QueueService {
     queueData: {
       name: string;
       description?: string;
-      type: 'unassigned' | 'employee';
+      type: 'unassigned' | 'agent';
       assignedToId?: string;
       teamId: string;
     },
@@ -25,7 +25,7 @@ export class QueueService {
       throw new ForbiddenError('Customers cannot create queues');
     }
 
-    if (userRole === 'employee') {
+    if (userRole === 'agent') {
       // Check if user is a team lead for this team
       const userTeams = await User.getUserTeams(createdById);
       const teamMembership = userTeams.find((ut) => ut.teamId === queueData.teamId);
@@ -56,9 +56,9 @@ export class QueueService {
         throw new ValidationError('Assignee must be a member of the team');
       }
 
-      // If assigning to employee, type must be 'employee'
-      if (queueData.type !== 'employee') {
-        throw new ValidationError('Queue type must be "employee" when assigning to a user');
+      // If assigning to employee, type must be 'agent'
+      if (queueData.type !== 'agent') {
+        throw new ValidationError('Queue type must be "agent" when assigning to a user');
       }
     }
 
@@ -242,7 +242,7 @@ export class QueueService {
     userRole: string
   ): Promise<QueueMetrics[]> {
     // Validate team access
-    if (userRole === 'employee') {
+    if (userRole === 'agent') {
       const userTeams = await User.getUserTeams(userId);
       const hasTeamAccess = userTeams.some((ut) => ut.teamId === teamId);
 
@@ -342,7 +342,7 @@ export class QueueService {
     filters: {
       teamId?: string;
       assignedToId?: string;
-      type?: 'unassigned' | 'employee';
+      type?: 'unassigned' | 'agent';
       search?: string;
       sortBy?: 'name' | 'ticketCount' | 'createdAt';
       sortOrder?: 'asc' | 'desc';
@@ -352,7 +352,7 @@ export class QueueService {
 
     if (filters.teamId) {
       // Validate team access
-      if (userRole === 'employee') {
+      if (userRole === 'agent') {
         const userTeams = await User.getUserTeams(userId);
         const hasTeamAccess = userTeams.some((ut) => ut.teamId === filters.teamId);
 
@@ -364,7 +364,7 @@ export class QueueService {
       queues = await Queue.findByTeam(filters.teamId);
     } else if (filters.assignedToId) {
       // Validate assignee access
-      if (userRole === 'employee' && filters.assignedToId !== userId) {
+      if (userRole === 'agent' && filters.assignedToId !== userId) {
         throw new ForbiddenError("Access denied to other user's queues");
       }
 
@@ -450,7 +450,7 @@ export class QueueService {
       return; // Admins have full access
     }
 
-    if (userRole === 'employee') {
+    if (userRole === 'agent') {
       // Check if user has access to the team
       const userTeams = await User.getUserTeams(userId);
       const teamMembership = userTeams.find((ut) => ut.teamId === queue.team_id);

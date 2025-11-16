@@ -8,18 +8,18 @@ const router = Router();
 
 /**
  * GET /agents
- * Get all active agents (employees, team leads, admins)
+ * Get all active agents (agents, team leads, admins)
  */
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const { teamId, status } = req.query;
 
-    // Get all active users with employee-like roles
-    const employeeRoles = ['employee', 'team_lead', 'admin'];
+    // Get all active users with agent-like roles
+    const agentRoles = ['agent', 'team_lead', 'admin'];
     const allAgents: UserTable[] = [];
 
     // Fetch users for each role
-    for (const role of employeeRoles) {
+    for (const role of agentRoles) {
       const users = await User.findActiveUsers({ role });
       allAgents.push(...users);
     }

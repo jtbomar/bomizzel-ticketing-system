@@ -152,7 +152,7 @@ export class AdvancedSearchService {
       }
 
       dbQuery = dbQuery.whereIn('t.company_id', userCompanyIds);
-    } else if (userRole === 'employee') {
+    } else if (userRole === 'agent') {
       const userTeams = await User.getUserTeams(userId);
       const teamIds = userTeams.map((ut) => ut.teamId);
 

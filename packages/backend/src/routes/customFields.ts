@@ -80,7 +80,7 @@ const checkTeamAccess = async (req: Request, res: Response, next: Function): Pro
     }
 
     // Only employees, team leads, and admins can access team custom fields
-    if (!['employee', 'team_lead', 'admin'].includes(user.role)) {
+    if (!['agent', 'team_lead', 'admin'].includes(user.role)) {
       res.status(403).json({ error: 'Insufficient permissions' });
       return;
     }

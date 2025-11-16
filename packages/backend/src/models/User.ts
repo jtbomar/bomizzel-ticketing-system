@@ -32,7 +32,7 @@ export class User extends BaseModel {
     password: string;
     firstName: string;
     lastName: string;
-    role?: 'customer' | 'employee' | 'team_lead' | 'admin';
+    role?: 'customer' | 'agent' | 'team_lead' | 'admin';
   }): Promise<UserTable> {
     const hashedPassword = await bcrypt.hash(userData.password, 12);
 

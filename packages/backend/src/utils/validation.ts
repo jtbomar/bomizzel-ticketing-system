@@ -20,7 +20,7 @@ export const registerSchema = Joi.object({
     'string.max': 'Last name must be less than 50 characters',
     'any.required': 'Last name is required',
   }),
-  role: Joi.string().valid('customer', 'employee').optional().default('customer'),
+  role: Joi.string().valid('customer', 'agent').optional().default('customer'),
   selectedPlanId: Joi.string().uuid().optional().messages({
     'string.guid': 'Selected plan ID must be a valid UUID',
   }),
@@ -141,7 +141,7 @@ export const updateUserSchema = Joi.object({
     'string.min': 'Last name cannot be empty',
     'string.max': 'Last name must be less than 50 characters',
   }),
-  role: Joi.string().valid('customer', 'employee', 'team_lead', 'admin').optional(),
+  role: Joi.string().valid('customer', 'agent', 'team_lead', 'admin').optional(),
   isActive: Joi.boolean().optional(),
   preferences: Joi.object({
     theme: Joi.string().valid('light', 'dark').optional(),

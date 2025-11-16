@@ -265,7 +265,7 @@ export class TicketNoteService {
     }
 
     // Employees can see all notes
-    if (['employee', 'team_lead', 'admin'].includes(userRole)) {
+    if (['agent', 'team_lead', 'admin'].includes(userRole)) {
       return true;
     }
 

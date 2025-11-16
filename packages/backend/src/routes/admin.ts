@@ -21,7 +21,7 @@ router.get(
       role: {
         type: 'string',
         required: false,
-        enum: ['customer', 'employee', 'team_lead', 'admin'],
+        enum: ['customer', 'agent', 'team_lead', 'admin'],
       },
       search: { type: 'string', required: false },
       isActive: { type: 'boolean', required: false },
@@ -100,7 +100,7 @@ router.put(
       role: {
         type: 'string',
         required: true,
-        enum: ['customer', 'employee', 'team_lead', 'admin'],
+        enum: ['customer', 'agent', 'team_lead', 'admin'],
       },
     },
   }),
@@ -199,7 +199,7 @@ router.post(
       role: {
         type: 'string',
         required: true,
-        enum: ['customer', 'employee', 'team_lead', 'admin'],
+        enum: ['customer', 'agent', 'team_lead', 'admin'],
       },
       teamId: { type: 'string', required: false, format: 'uuid' },
       phone: { type: 'string', required: false },
@@ -281,7 +281,7 @@ router.put(
       role: {
         type: 'string',
         required: false,
-        enum: ['customer', 'employee', 'team_lead', 'admin'],
+        enum: ['customer', 'agent', 'team_lead', 'admin'],
       },
       isActive: { type: 'boolean', required: false },
       teamId: { type: 'string', required: false, format: 'uuid' },

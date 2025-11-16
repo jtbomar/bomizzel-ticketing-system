@@ -387,7 +387,7 @@ export class UserService {
           COUNT(*) as total_users,
           COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
           COUNT(CASE WHEN role = 'customer' THEN 1 END) as customer_count,
-          COUNT(CASE WHEN role IN ('employee', 'team_lead', 'admin') THEN 1 END) as employee_count,
+          COUNT(CASE WHEN role IN ('agent', 'team_lead', 'admin') THEN 1 END) as employee_count,
           COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as recent_registrations
         FROM users
       `);

@@ -11,8 +11,8 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const userRole = req.user!.role;
     
-    // For admin/employee/team_lead, get all departments across all companies
-    if (['admin', 'employee', 'team_lead'].includes(userRole)) {
+    // For admin/agent/team_lead, get all departments across all companies
+    if (['admin', 'agent', 'team_lead'].includes(userRole)) {
       const departments = await db('departments')
         .select('*')
         .orderBy('name');
@@ -44,8 +44,8 @@ router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;
     const userRole = req.user!.role;
     
-    // For admin/employee/team_lead, get department without company restriction
-    if (['admin', 'employee', 'team_lead'].includes(userRole)) {
+    // For admin/agent/team_lead, get department without company restriction
+    if (['admin', 'agent', 'team_lead'].includes(userRole)) {
       const department = await db('departments')
         .where('id', parseInt(id))
         .first();
