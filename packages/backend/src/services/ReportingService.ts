@@ -49,7 +49,7 @@ export class ReportingService {
     try {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
-      if (!user || (user.role !== 'admin' && user.role !== 'agent')) {
+      if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
         throw new AppError(
           'Only employees and administrators can view reports',
           403,
@@ -249,7 +249,7 @@ export class ReportingService {
     try {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
-      if (!user || (user.role !== 'admin' && user.role !== 'agent')) {
+      if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
         throw new AppError(
           'Only employees and administrators can view team reports',
           403,

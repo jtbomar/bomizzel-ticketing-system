@@ -8,7 +8,7 @@ export class Queue extends BaseModel {
   static async createQueue(queueData: {
     name: string;
     description?: string;
-    type: 'unassigned' | 'agent';
+    type: 'unassigned' | 'employee';
     assignedToId?: string;
     teamId: string;
   }): Promise<QueueTable> {
@@ -84,7 +84,7 @@ export class Queue extends BaseModel {
   static async assignToEmployee(queueId: string, employeeId: string): Promise<QueueTable | null> {
     return this.update(queueId, {
       assigned_to_id: employeeId,
-      type: 'agent',
+      type: 'employee',
     });
   }
 

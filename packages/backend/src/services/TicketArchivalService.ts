@@ -270,7 +270,7 @@ export class TicketArchivalService {
       }
 
       query = query.whereIn('company_id', companyIds);
-    } else if (userRole === 'agent') {
+    } else if (userRole === 'employee') {
       // Employees can see tickets from their teams
       const userTeams = await User.getUserTeams(userId);
       const teamIds = userTeams.map((ut) => ut.teamId);
@@ -307,7 +307,7 @@ export class TicketArchivalService {
       }
 
       query = query.whereIn('company_id', companyIds);
-    } else if (userRole === 'agent') {
+    } else if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
       const teamIds = userTeams.map((ut) => ut.teamId);
 
@@ -386,7 +386,7 @@ export class TicketArchivalService {
       }
 
       baseQuery = baseQuery.whereIn('company_id', companyIds);
-    } else if (userRole === 'agent') {
+    } else if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
       const teamIds = userTeams.map((ut) => ut.teamId);
 
@@ -441,7 +441,7 @@ export class TicketArchivalService {
       if (!hasAccess) {
         throw new ForbiddenError('Access denied to ticket');
       }
-    } else if (userRole === 'agent') {
+    } else if (userRole === 'employee') {
       // Employees can archive tickets from their teams or assigned to them
       if (ticket.assigned_to_id === userId) {
         return; // Can archive assigned tickets

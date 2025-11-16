@@ -43,7 +43,7 @@ router.post(
       
       // Allow agents to create tickets on behalf of customers
       let submitterId = currentUserId;
-      if (req.body.submitterId && ['admin', 'team_lead', 'agent'].includes(currentUserRole)) {
+      if (req.body.submitterId && ['admin', 'team_lead', 'employee'].includes(currentUserRole)) {
         submitterId = req.body.submitterId;
       }
 

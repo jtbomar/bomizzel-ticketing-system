@@ -57,7 +57,7 @@ const enhancedRegistrationSchema = Joi.object({
   }),
   
   // Role and Preferences
-  role: Joi.string().valid('customer', 'agent').default('customer'),
+  role: Joi.string().valid('customer', 'employee').default('customer'),
   department: Joi.string().max(50).optional().allow(''),
   jobTitle: Joi.string().max(50).optional().allow(''),
   

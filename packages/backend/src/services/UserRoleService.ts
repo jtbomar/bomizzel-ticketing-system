@@ -106,7 +106,7 @@ export class UserRoleService {
    */
   static async updateUserRole(
     userId: string,
-    newRole: 'customer' | 'agent' | 'team_lead' | 'admin',
+    newRole: 'customer' | 'employee' | 'team_lead' | 'admin',
     updatedById: string
   ): Promise<UserModel> {
     try {
@@ -266,7 +266,7 @@ export class UserRoleService {
     }
 
     // Employee permissions
-    if (role === 'agent' || role === 'admin') {
+    if (role === 'employee' || role === 'admin') {
       permissions.push(
         'view_tickets',
         'update_tickets',
@@ -312,7 +312,7 @@ export class UserRoleService {
     lastName: string;
     email: string;
     password: string;
-    role: 'customer' | 'agent' | 'team_lead' | 'admin';
+    role: 'customer' | 'employee' | 'team_lead' | 'admin';
     teamId?: string;
     createdById: string;
     phone?: string;
@@ -405,7 +405,7 @@ export class UserRoleService {
       firstName?: string;
       lastName?: string;
       email?: string;
-      role?: 'customer' | 'agent' | 'team_lead' | 'admin';
+      role?: 'customer' | 'employee' | 'team_lead' | 'admin';
       isActive?: boolean;
       teamId?: string;
     },

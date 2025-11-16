@@ -15,7 +15,7 @@ router.get('/', authenticate, async (req, res, next) => {
     const { teamId, status } = req.query;
 
     // Get all active users with agent-like roles
-    const agentRoles = ['agent', 'team_lead', 'admin'];
+    const agentRoles = ['employee', 'team_lead', 'admin'];
     const allAgents: UserTable[] = [];
 
     // Fetch users for each role

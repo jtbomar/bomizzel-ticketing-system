@@ -119,7 +119,7 @@ router.get(
         const userId = req.user!.id;
         const userRole = req.user!.role;
 
-        if (userRole === 'agent') {
+        if (userRole === 'employee') {
           // Get queues from user's teams and personal queues
           const { User } = await import('@/models/User');
           const userTeams = await User.getUserTeams(userId);
@@ -166,7 +166,7 @@ router.post(
     body: {
       name: { type: 'string', required: true, minLength: 1, maxLength: 255 },
       description: { type: 'string', required: false },
-      type: { type: 'string', required: true, enum: ['unassigned', 'agent'] },
+      type: { type: 'string', required: true, enum: ['unassigned', 'employee'] },
       assignedToId: { type: 'string', required: false, format: 'uuid' },
       teamId: { type: 'string', required: true, format: 'uuid' },
     },
@@ -415,7 +415,7 @@ router.get(
     query: {
       teamId: { type: 'string', required: false, format: 'uuid' },
       assignedToId: { type: 'string', required: false, format: 'uuid' },
-      type: { type: 'string', required: false, enum: ['unassigned', 'agent'] },
+      type: { type: 'string', required: false, enum: ['unassigned', 'employee'] },
       search: { type: 'string', required: false },
       sortBy: { type: 'string', required: false, enum: ['name', 'ticketCount', 'createdAt'] },
       sortOrder: { type: 'string', required: false, enum: ['asc', 'desc'] },
@@ -428,7 +428,7 @@ router.get(
       const filters = {
         teamId: req.query.teamId as string,
         assignedToId: req.query.assignedToId as string,
-        type: req.query.type as 'unassigned' | 'agent',
+        type: req.query.type as 'unassigned' | 'employee',
         search: req.query.search as string,
         sortBy: req.query.sortBy as 'name' | 'ticketCount' | 'createdAt',
         sortOrder: req.query.sortOrder as 'asc' | 'desc',

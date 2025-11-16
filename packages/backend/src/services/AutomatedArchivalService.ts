@@ -159,7 +159,7 @@ export class AutomatedArchivalService {
             ? (await User.getUserCompanies(user.id)).map((uc) => uc.companyId)
             : undefined,
         teamIds:
-          user.role === 'agent'
+          user.role === 'employee'
             ? (await User.getUserTeams(user.id)).map((ut) => ut.teamId)
             : undefined,
       });

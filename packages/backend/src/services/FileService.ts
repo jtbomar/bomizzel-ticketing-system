@@ -185,7 +185,7 @@ export class FileService {
 
     const canDelete =
       attachment.uploaded_by_id === userId ||
-      ['admin', 'agent', 'team_lead'].includes(user.role);
+      ['admin', 'employee', 'team_lead'].includes(user.role);
 
     if (!canDelete) {
       throw new ForbiddenError('You do not have permission to delete this file');
@@ -279,7 +279,7 @@ export class FileService {
     }
 
     // Employees and admins can access all tickets
-    if (['agent', 'team_lead', 'admin'].includes(user.role)) {
+    if (['employee', 'team_lead', 'admin'].includes(user.role)) {
       return;
     }
 

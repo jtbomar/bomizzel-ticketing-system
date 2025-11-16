@@ -36,4 +36,4 @@ export const requireAdmin = requireRole(['admin']);
 /**
  * Middleware to require employee role or higher
  */
-export const requireEmployee = requireRole(['agent', 'admin']);
+export const requireEmployee = requireRole(['employee', 'admin']);

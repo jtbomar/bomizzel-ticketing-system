@@ -26,7 +26,7 @@ exports.seed = async function (knex) {
     });
   }
 
-  // Create 4 agent users
+  // Create 4 employee agents
   const agents = [];
   const agentNames = [
     { first: 'Sarah', last: 'Johnson', email: 'sarah@bomizzel.com' },
@@ -43,7 +43,7 @@ exports.seed = async function (knex) {
       password_hash: passwordHash,
       first_name: agent.first,
       last_name: agent.last,
-      role: 'agent',
+      role: 'employee',
       is_active: true,
       email_verified: true,
       created_at: knex.fn.now(),
@@ -278,7 +278,7 @@ exports.seed = async function (knex) {
 
   console.log('✅ Created comprehensive test data:');
   console.log(`   - 1 Admin user`);
-  console.log(`   - 4 Agent users`);
+  console.log(`   - 4 Agent users (employees)`);
   console.log(`   - 5 Companies (accounts)`);
   console.log(`   - 20 Customers (4 per company)`);
   console.log(`   - 2 Teams with queues`);

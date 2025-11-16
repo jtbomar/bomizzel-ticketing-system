@@ -169,7 +169,7 @@ export class TicketService {
         }
         searchOptions.companyIds = [options.companyId];
       }
-    } else if (userRole === 'agent') {
+    } else if (userRole === 'employee') {
       // Employees can see tickets from their teams or assigned to them
       const userTeams = await User.getUserTeams(userId);
       const teamIds = userTeams.map((ut) => ut.teamId);
@@ -190,7 +190,7 @@ export class TicketService {
     // Apply other filters
     if (options.queueId) {
       // Validate queue access for employees
-      if (userRole === 'agent') {
+      if (userRole === 'employee') {
         const queue = await Queue.findById(options.queueId);
         if (queue && queue.assigned_to_id && queue.assigned_to_id !== userId) {
           const userTeams = await User.getUserTeams(userId);
@@ -664,7 +664,7 @@ export class TicketService {
     }
 
     // Check permissions for employee queues
-    if (userRole === 'agent' && queue.type === 'agent' && queue.assigned_to_id !== userId) {
+    if (userRole === 'employee' && queue.type === 'employee' && queue.assigned_to_id !== userId) {
       const userTeams = await User.getUserTeams(userId);
       const hasTeamAccess = userTeams.some((ut) => ut.teamId === queue.team_id);
       if (!hasTeamAccess) {
@@ -789,7 +789,7 @@ export class TicketService {
       if (!hasAccess) {
         throw new ForbiddenError('Access denied to ticket');
       }
-    } else if (userRole === 'agent') {
+    } else if (userRole === 'employee') {
       // Employees can access tickets from their teams or assigned to them
       if (ticket.assigned_to_id === userId) {
         return; // Can access assigned tickets

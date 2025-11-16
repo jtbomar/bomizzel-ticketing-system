@@ -20,7 +20,7 @@ export interface EnhancedRegistrationData {
   companyInviteCode?: string; // For joining with invite
   
   // Role and Preferences
-  role?: 'customer' | 'agent';
+  role?: 'customer' | 'employee';
   department?: string;
   jobTitle?: string;
   

@@ -5,7 +5,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'customer' | 'agent' | 'team_lead' | 'admin';
+  role: 'customer' | 'employee' | 'team_lead' | 'admin';
   isActive: boolean;
   emailVerified: boolean;
   preferences: UserPreferences;
@@ -71,7 +71,7 @@ export interface Queue {
   id: string;
   name: string;
   description?: string;
-  type: 'unassigned' | 'agent';
+  type: 'unassigned' | 'employee';
   assignedToId?: string;
   teamId: string;
   isActive: boolean;
@@ -237,7 +237,7 @@ export interface CreateUserRequest {
   password: string;
   firstName: string;
   lastName: string;
-  role?: 'customer' | 'agent';
+  role?: 'customer' | 'employee';
   selectedPlanId?: string;
   startTrial?: boolean;
 }
