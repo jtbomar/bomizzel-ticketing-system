@@ -9,7 +9,17 @@ const router = express.Router();
 // Get all departments for the user's company
 router.get('/', authenticate, async (req, res) => {
   try {
-    // Get user's company ID from user_company_associations
+    const userRole = req.user!.role;
+    
+    // For admin/employee/team_lead, get all departments across all companies
+    if (['admin', 'employee', 'team_lead'].includes(userRole)) {
+      const departments = await db('departments')
+        .select('*')
+        .orderBy('name');
+      return res.json(departments);
+    }
+    
+    // For customers, get departments for their associated company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
@@ -32,8 +42,21 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
+    const userRole = req.user!.role;
     
-    // Get user's company ID from user_company_associations
+    // For admin/employee/team_lead, get department without company restriction
+    if (['admin', 'employee', 'team_lead'].includes(userRole)) {
+      const department = await db('departments')
+        .where('id', parseInt(id))
+        .first();
+      
+      if (!department) {
+        return res.status(404).json({ error: 'Department not found' });
+      }
+      return res.json(department);
+    }
+    
+    // For customers, verify they have access to this department's company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
@@ -59,23 +82,17 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new department (admin only)
 router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
-    // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
-    
-    if (!userCompany) {
-      return res.status(400).json({ error: 'User not associated with any company' });
-    }
-    
-    const companyId = userCompany.company_id;
-    const { name, description, logo, color, is_active, is_default } = req.body;
+    const { name, description, logo, color, is_active, is_default, company_id } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Department name is required' });
     }
 
-    const department = await DepartmentService.createDepartment(companyId, {
+    if (!company_id) {
+      return res.status(400).json({ error: 'Company ID is required' });
+    }
+
+    const department = await DepartmentService.createDepartment(company_id, {
       name,
       description,
       logo,
