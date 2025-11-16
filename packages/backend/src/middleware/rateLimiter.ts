@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { redisClient } from '@/config/redis';
+import { redisClient, isRedisAvailable } from '@/config/redis';
 import { AppError } from './errorHandler';
 import { logger } from '@/utils/logger';
 
@@ -22,6 +22,11 @@ export const createRateLimiter = (options: RateLimitOptions) => {
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // If Redis is not available, skip rate limiting
+      if (!isRedisAvailable()) {
+        return next();
+      }
+
       const key = `rate_limit:${keyGenerator(req)}`;
       const window = Math.floor(Date.now() / windowMs);
       const redisKey = `${key}:${window}`;

@@ -1420,6 +1420,12 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_ARCHIVAL_SCHEDUL
   }
 }
 
+// Initialize Redis connection (optional)
+import { connectRedis } from './config/redis';
+connectRedis().catch((err) => {
+  console.warn('⚠️ Redis connection failed, continuing without caching:', err.message);
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Bomizzel backend server running on port ${PORT}`);
