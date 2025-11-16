@@ -1114,6 +1114,18 @@ class ApiService {
     const response = await this.client.delete(url, config);
     return response;
   }
+
+  // Organizational Roles
+  async getOrganizationalRoles(): Promise<any> {
+    const response = await this.client.get('/organizational-roles');
+    return response.data;
+  }
+
+  // User Profiles
+  async getUserProfiles(): Promise<any> {
+    const response = await this.client.get('/user-profiles');
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

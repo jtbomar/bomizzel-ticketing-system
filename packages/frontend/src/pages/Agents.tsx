@@ -61,13 +61,7 @@ const Agents: React.FC = () => {
 
   const fetchOrganizationalRoles = async () => {
     try {
-      const apiBaseUrl = `http://${window.location.hostname}:3001/api`;
-      const response = await fetch(`${apiBaseUrl}/organizational-roles`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const data = await response.json();
+      const data = await apiService.getOrganizationalRoles();
       setOrganizationalRoles(data.roles || []);
     } catch (error) {
       console.error('Error fetching organizational roles:', error);
@@ -76,13 +70,7 @@ const Agents: React.FC = () => {
 
   const fetchUserProfiles = async () => {
     try {
-      const apiBaseUrl = `http://${window.location.hostname}:3001/api`;
-      const response = await fetch(`${apiBaseUrl}/user-profiles`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const data = await response.json();
+      const data = await apiService.getUserProfiles();
       setUserProfiles(data.profiles || []);
     } catch (error) {
       console.error('Error fetching user profiles:', error);
