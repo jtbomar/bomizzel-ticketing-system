@@ -8,7 +8,17 @@ const router = express.Router();
 // Get all business hours for a company
 router.get('/', authenticate, async (req, res) => {
   try {
-    // Get user's company ID from user_company_associations
+    const userRole = req.user!.role;
+    
+    // For admin/employee/team_lead, get all business hours across all companies
+    if (['admin', 'employee', 'team_lead'].includes(userRole)) {
+      const allBusinessHours = await db('business_hours')
+        .select('*')
+        .orderBy('company_id');
+      return res.json(allBusinessHours);
+    }
+    
+    // For customers, get business hours for their associated company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
@@ -18,7 +28,6 @@ router.get('/', authenticate, async (req, res) => {
     }
     
     const companyId = userCompany.company_id;
-
     const businessHours = await BusinessHoursService.getBusinessHours(companyId);
     return res.json(businessHours);
   } catch (error) {
