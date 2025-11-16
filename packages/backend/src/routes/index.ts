@@ -35,6 +35,7 @@ import customerHappinessRoutes from './customerHappiness';
 import organizationalRolesRoutes from './organizationalRoles';
 import userProfilesRoutes from './userProfiles';
 import agentsRoutes from './agents';
+import reseedRoutes from './reseed';
 
 const router = Router();
 
@@ -74,6 +75,7 @@ router.use('/holiday-lists', holidayListsRoutes);
 router.use('/customer-happiness', customerHappinessRoutes);
 router.use('/organizational-roles', organizationalRolesRoutes);
 router.use('/user-profiles', userProfilesRoutes);
+router.use('/reseed', reseedRoutes);
 router.use('/', emailRoutes);
 
 // API info endpoint
