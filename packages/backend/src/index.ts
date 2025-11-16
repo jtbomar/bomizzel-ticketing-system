@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import { connectRedis } from './config/redis';
 // Restart trigger 2
 
 // Load environment variables
@@ -1421,7 +1422,6 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_ARCHIVAL_SCHEDUL
 }
 
 // Initialize Redis connection (optional)
-import { connectRedis } from './config/redis';
 connectRedis().catch((err) => {
   console.warn('⚠️ Redis connection failed, continuing without caching:', err.message);
 });
