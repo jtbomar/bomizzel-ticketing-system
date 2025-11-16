@@ -90,12 +90,13 @@ const Departments: React.FC = () => {
       // Fetch both departments and companies
       const [departmentsData, companiesResponse] = await Promise.all([
         apiService.getDepartments(),
-        apiService.getAccounts()
+        apiService.getCompanies({ limit: 100 })
       ]);
       
       // Create company lookup map
+      const companies = companiesResponse.companies || companiesResponse.data || [];
       const companyMap = new Map(
-        companiesResponse.data.map((c: any) => [c.id, c.name])
+        companies.map((c: any) => [c.id, c.name])
       );
       
       // Add default agents and templates arrays if missing, plus company name
