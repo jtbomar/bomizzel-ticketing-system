@@ -39,7 +39,6 @@ import agentsRoutes from './agents';
 import reseedRoutes from './reseed';
 import fixDatabaseRoutes from './fixDatabase';
 import seedMissingDataRoutes from './seedMissingData';
-import cleanupDepartmentsRoutes from './cleanupDepartments';
 
 const router = Router();
 
@@ -82,7 +81,6 @@ router.use('/user-profiles', userProfilesRoutes);
 router.use('/reseed', reseedRoutes);
 router.use('/fix', fixDatabaseRoutes);
 router.use('/seed', seedMissingDataRoutes);
-router.use('/cleanup', cleanupDepartmentsRoutes);
 
 // Simple cleanup endpoint
 router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) => {
