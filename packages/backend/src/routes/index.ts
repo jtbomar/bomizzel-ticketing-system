@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate, authorize } from '../middleware/auth';
 import authRoutes from './auth';
 import userRoutes from './users';
 import companyRoutes from './companies';
@@ -82,6 +83,42 @@ router.use('/reseed', reseedRoutes);
 router.use('/fix', fixDatabaseRoutes);
 router.use('/seed', seedMissingDataRoutes);
 router.use('/cleanup', cleanupDepartmentsRoutes);
+
+// Simple cleanup endpoint
+router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { db } = require('../config/database');
+    
+    // Get first company
+    const firstCompany = await db('companies').orderBy('created_at').first();
+    
+    // Rename it
+    await db('companies').where('id', firstCompany.id).update({
+      name: 'Bomizzel Test Organization',
+      domain: 'bomizzel-test.com',
+      description: 'Test organization'
+    });
+    
+    // Delete others
+    const deleted = await db('companies').whereNot('id', firstCompany.id).del();
+    
+    // Get counts
+    const companyCount = await db('companies').count('* as count').first();
+    const deptCount = await db('departments').count('* as count').first();
+    
+    res.json({
+      success: true,
+      deleted: deleted,
+      remaining: {
+        companies: companyCount?.count || 0,
+        departments: deptCount?.count || 0
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.use('/', emailRoutes);
 
 // API info endpoint
