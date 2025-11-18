@@ -332,6 +332,12 @@ const AgentDashboard: React.FC = () => {
   // Fetch real tickets from API on mount
   useEffect(() => {
     const fetchTickets = async () => {
+      // Only fetch if user is authenticated
+      if (!user) {
+        console.log('User not authenticated, skipping ticket fetch');
+        return;
+      }
+
       try {
         const response = await apiService.getTickets({ limit: 100 });
         const apiTickets = response.data || response.tickets || [];
@@ -366,7 +372,7 @@ const AgentDashboard: React.FC = () => {
     };
     
     fetchTickets();
-  }, []); // Run once on mount
+  }, [user]); // Re-fetch when user changes
   const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
