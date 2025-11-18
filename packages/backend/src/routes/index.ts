@@ -159,4 +159,40 @@ router.get('/', (req, res) => {
   });
 });
 
+/**
+ * POST /fix-departments
+ * Fix department associations - reassign all to Bomizzel organization
+ */
+router.post('/fix-departments', authenticate, async (req, res, next) => {
+  try {
+    // Only allow admin users
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can fix departments',
+      });
+    }
+
+    const { bomizzelOrgId } = req.body;
+    if (!bomizzelOrgId) {
+      return res.status(400).json({
+        success: false,
+        message: 'bomizzelOrgId is required',
+      });
+    }
+
+    const db = require('./config/database').default;
+    const updated = await db('departments')
+      .update({ company_id: bomizzelOrgId, updated_at: db.fn.now() });
+
+    return res.json({
+      success: true,
+      updated,
+      message: `Updated ${updated} departments to Bomizzel organization`,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 export default router;

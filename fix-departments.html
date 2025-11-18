@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Departments - Bomizzel</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 50px auto; padding: 20px; }
+        .box { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        button { padding: 12px 24px; margin: 10px 5px; font-size: 16px; cursor: pointer; border-radius: 4px; }
+        .success { background: #4CAF50; color: white; border: none; }
+        .danger { background: #f44336; color: white; border: none; }
+        .info { background: #2196F3; color: white; border: none; }
+        pre { background: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd; }
+        .log { margin-top: 20px; }
+        h3 { margin-top: 0; }
+        .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 4px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>🏢 Fix Departments Structure</h1>
+    
+    <div class="warning">
+        <strong>⚠️ Issue:</strong> Departments are showing "Acme Corporation" because they're incorrectly associated with customer accounts.
+        <br><strong>Fix:</strong> Departments should only belong to "Bomizzel Test Organization" (your company).
+    </div>
+
+    <div class="box">
+        <h3>Step 1: Check Current Departments</h3>
+        <button class="info" onclick="checkDepartments()">Check Departments</button>
+    </div>
+
+    <div class="box">
+        <h3>Step 2: Fix Department Associations</h3>
+        <p>This will reassign all departments to Bomizzel Test Organization.</p>
+        <button class="success" onclick="fixDepartments()">Fix Departments</button>
+    </div>
+
+    <div class="log">
+        <h3>Log:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://backend-production-97e1.up.railway.app';
+        let token = null;
+        let bomizzelOrgId = null;
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += message + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        async function getToken() {
+            if (token) return token;
+            
+            log('🔐 Logging in as admin...');
+            const res = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: 'admin@bomizzel.com',
+                    password: 'password123'
+                })
+            });
+            
+            const data = await res.json();
+            if (!data.token) {
+                throw new Error('Login failed');
+            }
+            token = data.token;
+            log('✅ Logged in\n');
+            return token;
+        }
+
+        async function getBomizzelOrg() {
+            if (bomizzelOrgId) return bomizzelOrgId;
+            
+            const t = await getToken();
+            const res = await fetch(`${API_URL}/api/companies`, {
+                headers: { 'Authorization': `Bearer ${t}` }
+            });
+            const data = await res.json();
+            const companies = data.data || [];
+            
+            const bomizzel = companies.find(c => 
+                c.name.toLowerCase().includes('bomizzel') || 
+                c.name.toLowerCase().includes('test organization')
+            );
+            
+            if (!bomizzel) {
+                throw new Error('Bomizzel Test Organization not found!');
+            }
+            
+            bomizzelOrgId = bomizzel.id;
+            log(`Found Bomizzel Org: ${bomizzel.name} (${bomizzelOrgId})\n`);
+            return bomizzelOrgId;
+        }
+
+        async function checkDepartments() {
+            try {
+                const t = await getToken();
+                await getBomizzelOrg();
+                
+                log('📊 Checking departments...\n');
+                
+                const res = await fetch(`${API_URL}/api/departments`, {
+                    headers: { 'Authorization': `Bearer ${t}` }
+                });
+                const data = await res.json();
+                const departments = data.data || data.departments || [];
+                
+                log(`Total departments: ${departments.length}\n`);
+                
+                for (const dept of departments) {
+                    const companyName = dept.company?.name || dept.companyName || 'Unknown';
+                    const isCorrect = dept.companyId === bomizzelOrgId || dept.company_id === bomizzelOrgId;
+                    const status = isCorrect ? '✅' : '❌';
+                    log(`${status} ${dept.name} → ${companyName}`);
+                }
+                
+                log('\n');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+        }
+
+        async function fixDepartments() {
+            if (!confirm('This will reassign ALL departments to Bomizzel Test Organization. Continue?')) {
+                return;
+            }
+            
+            try {
+                const t = await getToken();
+                const orgId = await getBomizzelOrg();
+                
+                log('🔧 Fixing department associations...\n');
+                
+                // Call backend endpoint to fix departments
+                const res = await fetch(`${API_URL}/api/fix-departments`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${t}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        bomizzelOrgId: orgId
+                    })
+                });
+                
+                if (!res.ok) {
+                    const text = await res.text();
+                    log('❌ Fix failed: ' + text);
+                    log('\n⚠️  The endpoint might not exist yet. Creating manual SQL fix...\n');
+                    log('Run this SQL in your Railway Postgres console:');
+                    log(`UPDATE departments SET company_id = '${orgId}';`);
+                    return;
+                }
+                
+                const data = await res.json();
+                log(`✅ Fixed ${data.updated} departments\n`);
+                log('✨ Done! Refresh bomizzel.com to see the fix.');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
