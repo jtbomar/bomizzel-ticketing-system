@@ -444,7 +444,30 @@ export class UserService {
 
       const companies = await query.orderBy('name', 'asc');
       
-      return companies.map((company: any) => Company.toModel(company));
+      // Enrich with ticket and contact counts
+      const enrichedCompanies = await Promise.all(
+        companies.map(async (company: any) => {
+          // Get ticket count
+          const ticketCount = await Company.db('tickets')
+            .where('company_id', company.id)
+            .count('* as count')
+            .first();
+          
+          // Get contact/customer count
+          const contactCount = await Company.db('user_company_associations')
+            .where('company_id', company.id)
+            .count('* as count')
+            .first();
+          
+          return {
+            ...Company.toModel(company),
+            ticketCount: parseInt(ticketCount?.count || '0', 10),
+            contactCount: parseInt(contactCount?.count || '0', 10),
+          };
+        })
+      );
+      
+      return enrichedCompanies;
     } catch (error) {
       logger.error('Get all companies error:', error);
       throw new AppError('Failed to get companies', 500, 'GET_COMPANIES_FAILED');
