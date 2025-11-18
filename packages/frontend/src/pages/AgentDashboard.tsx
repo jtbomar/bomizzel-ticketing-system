@@ -356,7 +356,7 @@ const AgentDashboard: React.FC = () => {
             assigned: isAssignedToCurrentUser ? 'You' : assignedName,
             created: new Date(t.createdAt).toLocaleDateString(),
             description: t.description || '',
-            order: index + 1,
+            order: 0, // Will be set below
             customerInfo: t.submitter ? {
               name: `${t.submitter.firstName} ${t.submitter.lastName}`,
               email: t.submitter.email,
@@ -364,6 +364,22 @@ const AgentDashboard: React.FC = () => {
               companyId: t.companyId,
             } : undefined,
           };
+        });
+        
+        // Assign proper order within each status column
+        const ticketsByStatus: { [key: string]: any[] } = {};
+        transformedTickets.forEach(ticket => {
+          if (!ticketsByStatus[ticket.status]) {
+            ticketsByStatus[ticket.status] = [];
+          }
+          ticketsByStatus[ticket.status].push(ticket);
+        });
+        
+        // Set order for each status group
+        Object.keys(ticketsByStatus).forEach(status => {
+          ticketsByStatus[status].forEach((ticket, index) => {
+            ticket.order = index + 1;
+          });
         });
         
         if (transformedTickets.length > 0) {
