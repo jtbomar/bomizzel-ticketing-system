@@ -460,13 +460,13 @@ router.post('/delete-all', authenticate, async (req, res, next) => {
     const db = require('../config/database').default;
     const deleted = await db('tickets').del();
 
-    res.json({
+    return res.json({
       success: true,
       deleted,
       message: `Deleted ${deleted} tickets`,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 });
 
