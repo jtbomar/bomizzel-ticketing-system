@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Tickets - Bomizzel</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .success { background: #4CAF50; color: white; border: none; }
+        .danger { background: #f44336; color: white; border: none; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .log { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Reset Tickets Database</h1>
+    <p>This will delete ALL tickets and reseed with 10 tickets per company (50 total).</p>
+    
+    <button class="danger" onclick="resetTickets()">Delete All Tickets & Reseed</button>
+    
+    <div class="log">
+        <h3>Log:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://backend-production-97e1.up.railway.app';
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += message + '\n';
+        }
+
+        async function resetTickets() {
+            try {
+                log('🔐 Logging in...');
+                const loginRes = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@bomizzel.com',
+                        password: 'password123'
+                    })
+                });
+                
+                const loginData = await loginRes.json();
+                if (!loginData.token) {
+                    log('❌ Login failed');
+                    return;
+                }
+                log('✅ Logged in');
+                
+                const token = loginData.token;
+                
+                // Step 1: Delete all tickets
+                log('\n🗑️  Deleting all tickets...');
+                const deleteRes = await fetch(`${API_URL}/api/tickets/delete-all`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!deleteRes.ok) {
+                    log('❌ Delete failed - endpoint may not exist');
+                    log('⚠️  Manual cleanup needed via database');
+                    return;
+                }
+                
+                const deleteData = await deleteRes.json();
+                log(`✅ Deleted ${deleteData.deleted || 0} tickets`);
+                
+                // Step 2: Reseed
+                log('\n🌱 Reseeding tickets...');
+                const seedRes = await fetch(`${API_URL}/api/seed-missing-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const seedData = await seedRes.json();
+                log('✅ Reseed complete');
+                log(JSON.stringify(seedData, null, 2));
+                
+                log('\n✨ Done! Refresh bomizzel.com to see clean data.');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

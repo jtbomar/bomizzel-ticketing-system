@@ -443,4 +443,31 @@ router.get(
   }
 );
 
+/**
+ * POST /tickets/delete-all
+ * Delete all tickets (admin only, for cleanup)
+ */
+router.post('/delete-all', authenticate, async (req, res, next) => {
+  try {
+    // Only allow admin users
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can delete all tickets',
+      });
+    }
+
+    const db = require('../config/database').default;
+    const deleted = await db('tickets').del();
+
+    res.json({
+      success: true,
+      deleted,
+      message: `Deleted ${deleted} tickets`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
