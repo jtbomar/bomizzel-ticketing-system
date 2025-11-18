@@ -328,6 +328,45 @@ const AgentDashboard: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
   const [dragOverTicket, setDragOverTicket] = useState<number | null>(null);
+
+  // Fetch real tickets from API on mount
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        const response = await apiService.getTickets({ limit: 100 });
+        const apiTickets = response.data || response.tickets || [];
+        
+        // Transform API tickets to dashboard format
+        const transformedTickets = apiTickets.map((t: any, index: number) => ({
+          id: parseInt(t.id) || index + 1,
+          title: t.title,
+          status: t.status,
+          priority: t.priority === 0 ? 'low' : t.priority === 1 ? 'medium' : 'high',
+          customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
+          assigned: t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned',
+          created: new Date(t.createdAt).toLocaleDateString(),
+          description: t.description || '',
+          order: index + 1,
+          customerInfo: t.submitter ? {
+            name: `${t.submitter.firstName} ${t.submitter.lastName}`,
+            email: t.submitter.email,
+            company: t.company?.name || '',
+            companyId: t.companyId,
+          } : undefined,
+        }));
+        
+        if (transformedTickets.length > 0) {
+          setTickets(migrateTickets(transformedTickets, statuses));
+          console.log('Loaded', transformedTickets.length, 'tickets from API');
+        }
+      } catch (error) {
+        console.error('Failed to fetch tickets:', error);
+        // Keep using localStorage tickets on error
+      }
+    };
+    
+    fetchTickets();
+  }, []); // Run once on mount
   const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
