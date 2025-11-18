@@ -461,8 +461,8 @@ export class UserService {
           
           return {
             ...Company.toModel(company),
-            ticketCount: parseInt(ticketCount?.count || '0', 10),
-            contactCount: parseInt(contactCount?.count || '0', 10),
+            ticketCount: parseInt(String(ticketCount?.count || 0), 10),
+            contactCount: parseInt(String(contactCount?.count || 0), 10),
           };
         })
       );
