@@ -343,23 +343,28 @@ const AgentDashboard: React.FC = () => {
         const apiTickets = response.data || response.tickets || [];
         
         // Transform API tickets to dashboard format
-        const transformedTickets = apiTickets.map((t: any, index: number) => ({
-          id: parseInt(t.id) || index + 1,
-          title: t.title,
-          status: t.status,
-          priority: t.priority === 0 ? 'low' : t.priority === 1 ? 'medium' : 'high',
-          customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
-          assigned: t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned',
-          created: new Date(t.createdAt).toLocaleDateString(),
-          description: t.description || '',
-          order: index + 1,
-          customerInfo: t.submitter ? {
-            name: `${t.submitter.firstName} ${t.submitter.lastName}`,
-            email: t.submitter.email,
-            company: t.company?.name || '',
-            companyId: t.companyId,
-          } : undefined,
-        }));
+        const transformedTickets = apiTickets.map((t: any, index: number) => {
+          const assignedName = t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned';
+          const isAssignedToCurrentUser = t.assignedTo?.id === user.id;
+          
+          return {
+            id: parseInt(t.id) || index + 1,
+            title: t.title,
+            status: t.status,
+            priority: t.priority === 0 ? 'low' : t.priority === 1 ? 'medium' : 'high',
+            customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
+            assigned: isAssignedToCurrentUser ? 'You' : assignedName,
+            created: new Date(t.createdAt).toLocaleDateString(),
+            description: t.description || '',
+            order: index + 1,
+            customerInfo: t.submitter ? {
+              name: `${t.submitter.firstName} ${t.submitter.lastName}`,
+              email: t.submitter.email,
+              company: t.company?.name || '',
+              companyId: t.companyId,
+            } : undefined,
+          };
+        });
         
         if (transformedTickets.length > 0) {
           setTickets(migrateTickets(transformedTickets, statuses));
