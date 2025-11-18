@@ -343,12 +343,18 @@ const AgentDashboard: React.FC = () => {
         const apiTickets = response.data || response.tickets || [];
         
         // Transform API tickets to dashboard format
+        // Use a hash of the UUID to create a numeric ID for the dashboard
         const transformedTickets = apiTickets.map((t: any, index: number) => {
           const assignedName = t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned';
           const isAssignedToCurrentUser = t.assignedTo?.id === user.id;
           
+          // Create a unique numeric ID from the UUID
+          const numericId = t.id ? Math.abs(t.id.split('').reduce((acc: number, char: string) => {
+            return acc + char.charCodeAt(0);
+          }, 0)) : index + 1;
+          
           return {
-            id: parseInt(t.id) || index + 1,
+            id: numericId,
             title: t.title,
             status: t.status,
             priority: t.priority === 0 ? 'low' : t.priority === 1 ? 'medium' : 'high',
