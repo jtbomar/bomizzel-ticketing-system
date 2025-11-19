@@ -181,7 +181,7 @@ router.post('/fix-departments', authenticate, async (req, res, next) => {
       });
     }
 
-    const db = require('../config/database').default;
+    const { db } = require('../config/database');
     const updated = await db('departments')
       .update({ company_id: bomizzelOrgId, updated_at: db.fn.now() });
 
