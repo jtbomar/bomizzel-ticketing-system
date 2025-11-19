@@ -965,6 +965,8 @@ const AgentDashboard: React.FC = () => {
   };
 
   const moveTicket = async (ticketId: number, newStatus: string) => {
+    console.log(`[moveTicket] Moving ticket ${ticketId} to status ${newStatus}`);
+    
     // Update local state optimistically
     setTickets((prev) => {
       const targetStatusTickets = prev.filter((t) => t.status === newStatus);
@@ -979,13 +981,29 @@ const AgentDashboard: React.FC = () => {
     // Persist to API
     try {
       const uuidTicketId = ticketIdMap.get(ticketId);
-      if (uuidTicketId) {
-        await apiService.updateTicket(uuidTicketId, { status: newStatus });
-        console.log(`Updated ticket ${ticketId} status to ${newStatus}`);
+      console.log(`[moveTicket] UUID for ticket ${ticketId}:`, uuidTicketId);
+      
+      if (!uuidTicketId) {
+        console.error(`[moveTicket] No UUID found for ticket ${ticketId}`);
+        console.log('[moveTicket] Available ticket IDs:', Array.from(ticketIdMap.keys()));
+        return;
       }
-    } catch (error) {
-      console.error('Failed to update ticket status:', error);
-      // Optionally revert the optimistic update here
+      
+      console.log(`[moveTicket] Calling API to update ticket ${uuidTicketId}`);
+      const response = await apiService.updateTicket(uuidTicketId, { status: newStatus });
+      console.log(`[moveTicket] API response:`, response);
+    } catch (error: any) {
+      console.error('[moveTicket] Failed to update ticket status:', error);
+      console.error('[moveTicket] Error details:', error.response?.data || error.message);
+      
+      // Revert the optimistic update
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === ticketId ? { ...ticket, status: ticket.status } : ticket
+        )
+      );
+      
+      alert(`Failed to move ticket: ${error.response?.data?.message || error.message}`);
     }
   };
 
