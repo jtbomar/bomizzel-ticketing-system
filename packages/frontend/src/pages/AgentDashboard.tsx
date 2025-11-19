@@ -325,6 +325,7 @@ const AgentDashboard: React.FC = () => {
 
   const initialTickets = migrateTickets(getInitialTickets(), statuses);
   const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const [ticketIdMap, setTicketIdMap] = useState<Map<number, string>>(new Map()); // Maps numeric ID to UUID
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
   const [dragOverTicket, setDragOverTicket] = useState<number | null>(null);
@@ -339,19 +340,23 @@ const AgentDashboard: React.FC = () => {
       }
 
       try {
+        // Clear localStorage to use fresh API data
+        localStorage.removeItem('agent-tickets');
+        
         const response = await apiService.getTickets({ limit: 100 });
         const apiTickets = response.data || response.tickets || [];
         
+        // Create ID mapping from numeric to UUID
+        const idMapping = new Map<number, string>();
+        
         // Transform API tickets to dashboard format
-        // Use a hash of the UUID to create a numeric ID for the dashboard
         const transformedTickets = apiTickets.map((t: any, index: number) => {
           const assignedName = t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned';
           const isAssignedToCurrentUser = t.assignedTo?.id === user.id;
           
           // Create a unique numeric ID from the UUID
-          const numericId = t.id ? Math.abs(t.id.split('').reduce((acc: number, char: string) => {
-            return acc + char.charCodeAt(0);
-          }, 0)) : index + 1;
+          const numericId = index + 1000; // Simple sequential IDs starting from 1000
+          idMapping.set(numericId, t.id); // Store UUID mapping
           
           return {
             id: numericId,
@@ -390,6 +395,7 @@ const AgentDashboard: React.FC = () => {
         
         if (transformedTickets.length > 0) {
           setTickets(migrateTickets(transformedTickets, statuses));
+          setTicketIdMap(idMapping);
           console.log('Loaded', transformedTickets.length, 'tickets from API');
         }
       } catch (error) {
@@ -958,7 +964,8 @@ const AgentDashboard: React.FC = () => {
     return colorMap[color] || 'text-gray-600 dark:text-gray-400';
   };
 
-  const moveTicket = (ticketId: number, newStatus: string) => {
+  const moveTicket = async (ticketId: number, newStatus: string) => {
+    // Update local state optimistically
     setTickets((prev) => {
       const targetStatusTickets = prev.filter((t) => t.status === newStatus);
       const maxOrder =
@@ -968,12 +975,38 @@ const AgentDashboard: React.FC = () => {
         ticket.id === ticketId ? { ...ticket, status: newStatus, order: maxOrder + 1 } : ticket
       );
     });
+
+    // Persist to API
+    try {
+      const uuidTicketId = ticketIdMap.get(ticketId);
+      if (uuidTicketId) {
+        await apiService.updateTicket(uuidTicketId, { status: newStatus });
+        console.log(`Updated ticket ${ticketId} status to ${newStatus}`);
+      }
+    } catch (error) {
+      console.error('Failed to update ticket status:', error);
+      // Optionally revert the optimistic update here
+    }
   };
 
-  const changePriority = (ticketId: number, newPriority: string) => {
+  const changePriority = async (ticketId: number, newPriority: string) => {
+    // Update local state optimistically
     setTickets((prev) =>
       prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, priority: newPriority } : ticket))
     );
+
+    // Persist to API
+    try {
+      const uuidTicketId = ticketIdMap.get(ticketId);
+      if (uuidTicketId) {
+        // Convert priority string to number for API
+        const priorityValue = newPriority === 'low' ? 0 : newPriority === 'medium' ? 1 : 2;
+        await apiService.updateTicket(uuidTicketId, { priority: priorityValue });
+        console.log(`Updated ticket ${ticketId} priority to ${newPriority}`);
+      }
+    } catch (error) {
+      console.error('Failed to update ticket priority:', error);
+    }
   };
 
   const changeAssignment = (ticketId: number, newAssigned: string) => {
