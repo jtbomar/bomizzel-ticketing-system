@@ -83,6 +83,32 @@ exports.seed = async function (knex) {
     { user_id: agents[3].id, team_id: techTeamId, role: 'member', created_at: knex.fn.now() },
   ]);
 
+  // Create default ticket statuses for both teams
+  const defaultStatuses = [
+    { name: 'open', label: 'Open', color: '#EF4444', order: 1, is_default: true, is_closed: false },
+    { name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, is_default: false, is_closed: false },
+    { name: 'waiting', label: 'Waiting', color: '#3B82F6', order: 3, is_default: false, is_closed: false },
+    { name: 'resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false, is_closed: true },
+  ];
+
+  for (const teamId of [supportTeamId, techTeamId]) {
+    for (const status of defaultStatuses) {
+      await knex('ticket_statuses').insert({
+        id: uuidv4(),
+        team_id: teamId,
+        name: status.name,
+        label: status.label,
+        color: status.color,
+        order: status.order,
+        is_default: status.is_default,
+        is_closed: status.is_closed,
+        is_active: true,
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now(),
+      });
+    }
+  }
+
   // Create queues for teams
   const supportQueueId = uuidv4();
   const techQueueId = uuidv4();

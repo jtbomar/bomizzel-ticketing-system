@@ -74,8 +74,10 @@ const AgentDashboard: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const [activeView, setActiveView] = useState<'kanban' | 'list'>('kanban');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null);
+  const [loadingStatuses, setLoadingStatuses] = useState(true);
 
-  // Load statuses and priorities from AdminStatusConfig
+  // Load statuses and priorities from AdminStatusConfig or API
   const getStatuses = (): StatusOption[] => {
     const saved = localStorage.getItem('admin-statuses');
     if (saved) {
@@ -404,6 +406,75 @@ const AgentDashboard: React.FC = () => {
     
     fetchTickets();
   }, [user]); // Re-fetch when user changes
+
+  // Fetch team statuses from API
+  useEffect(() => {
+    const fetchTeamStatuses = async () => {
+      if (!user || !teamId) {
+        setLoadingStatuses(false);
+        return;
+      }
+
+      try {
+        console.log('[AgentDashboard] Fetching statuses for team:', teamId);
+        const response = await apiService.getTeamStatuses(teamId);
+        const apiStatuses = response.statuses || [];
+        
+        if (apiStatuses.length > 0) {
+          // Transform API statuses to StatusOption format
+          const transformedStatuses = apiStatuses
+            .filter((s: any) => s.is_active)
+            .sort((a: any, b: any) => a.order - b.order)
+            .map((s: any) => ({
+              id: s.id,
+              label: s.label,
+              value: s.name,
+              color: s.color,
+              order: s.order,
+              isActive: s.is_active,
+              isDefault: s.is_default,
+            }));
+          
+          // Save to localStorage and update state
+          localStorage.setItem('admin-statuses', JSON.stringify(transformedStatuses));
+          console.log('[AgentDashboard] Loaded', transformedStatuses.length, 'statuses from API');
+        }
+      } catch (error) {
+        console.error('[AgentDashboard] Failed to fetch team statuses:', error);
+      } finally {
+        setLoadingStatuses(false);
+      }
+    };
+
+    fetchTeamStatuses();
+  }, [user, teamId]);
+
+  // Get user's team ID from their first ticket or team membership
+  useEffect(() => {
+    const getUserTeamId = async () => {
+      if (!user) return;
+
+      try {
+        // Try to get team from user's tickets
+        const response = await apiService.getTickets({ limit: 1 });
+        const tickets = response.data || response.tickets || [];
+        
+        if (tickets.length > 0 && tickets[0].teamId) {
+          setTeamId(tickets[0].teamId);
+          return;
+        }
+
+        // Fallback: get from user profile or teams endpoint
+        // For now, we'll use a default team if available
+        console.log('[AgentDashboard] No team found, using default statuses');
+      } catch (error) {
+        console.error('[AgentDashboard] Failed to get user team:', error);
+      }
+    };
+
+    getUserTeamId();
+  }, [user]);
+
   const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
