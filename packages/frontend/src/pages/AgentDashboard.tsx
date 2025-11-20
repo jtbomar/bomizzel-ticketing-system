@@ -107,8 +107,8 @@ const AgentDashboard: React.FC = () => {
       },
       {
         id: '3',
-        label: 'Review',
-        value: 'review',
+        label: 'Waiting',
+        value: 'waiting',
         color: 'blue',
         order: 3,
         isActive: true,
@@ -229,7 +229,7 @@ const AgentDashboard: React.FC = () => {
       {
         id: 3,
         title: 'Bug Report',
-        status: 'review',
+        status: 'waiting',
         priority: 'low',
         customer: 'Bob Wilson',
         assigned: 'You',
@@ -289,8 +289,6 @@ const AgentDashboard: React.FC = () => {
       Open: 'open',
       'In Progress': 'in_progress',
       Waiting: 'waiting',
-      Testing: 'testing',
-      Review: 'review',
       Resolved: 'resolved',
     };
 
