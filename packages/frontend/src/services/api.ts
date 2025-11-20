@@ -169,7 +169,9 @@ class ApiService {
   }
 
   async updateTicket(ticketId: string, updates: any): Promise<any> {
+    console.log('[API] updateTicket called:', { ticketId, updates });
     const response = await this.client.put(`/tickets/${ticketId}`, updates);
+    console.log('[API] updateTicket response:', response.data);
     return response.data;
   }
 
