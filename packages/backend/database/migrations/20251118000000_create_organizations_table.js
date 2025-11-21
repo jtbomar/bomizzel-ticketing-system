@@ -3,8 +3,11 @@
  * Separate from companies table which is for customer accounts
  */
 exports.up = async function(knex) {
-  // 1. Create organizations table
-  await knex.schema.createTable('organizations', (table) => {
+  // 1. Create organizations table (if it doesn't exist)
+  const hasOrganizations = await knex.schema.hasTable('organizations');
+  
+  if (!hasOrganizations) {
+    await knex.schema.createTable('organizations', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
     table.string('name').notNullable();
     table.string('domain');
@@ -15,15 +18,20 @@ exports.up = async function(knex) {
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     
-    table.index('name');
-    table.index('domain');
-  });
+      table.index('name');
+      table.index('domain');
+    });
+  }
 
-  // 2. Modify departments to reference organizations instead of companies
-  await knex.schema.alterTable('departments', (table) => {
-    table.uuid('organization_id');
-    table.foreign('organization_id').references('id').inTable('organizations').onDelete('CASCADE');
-  });
+  // 2. Modify departments to reference organizations instead of companies (if column doesn't exist)
+  const hasOrgColumn = await knex.schema.hasColumn('departments', 'organization_id');
+  
+  if (!hasOrgColumn) {
+    await knex.schema.alterTable('departments', (table) => {
+      table.uuid('organization_id');
+      table.foreign('organization_id').references('id').inTable('organizations').onDelete('CASCADE');
+    });
+  }
 
   // 3. Migrate Bomar Corp from companies to organizations
   const bomarCorp = await knex('companies').where('name', 'like', '%Bomar%').first();
