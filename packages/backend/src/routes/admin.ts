@@ -437,4 +437,87 @@ router.delete('/users/:userId/permanent', authenticate, requireAdmin, async (req
   }
 });
 
+/**
+ * POST /admin/seed-statuses
+ * One-time endpoint to seed default ticket statuses for all teams
+ */
+router.post('/seed-statuses', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { db } = require('@/config/database');
+    const { v4: uuidv4 } = require('uuid');
+    
+    console.log('🌱 Seeding default ticket statuses...');
+
+    const teams = await db('teams').select('id', 'name');
+
+    if (teams.length === 0) {
+      res.json({ success: true, message: 'No teams found', teamsProcessed: 0 });
+      return;
+    }
+
+    const defaultStatuses = [
+      { name: 'open', label: 'Open', color: '#EF4444', order: 1, is_default: true, is_closed: false },
+      { name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, is_default: false, is_closed: false },
+      { name: 'waiting', label: 'Waiting', color: '#3B82F6', order: 3, is_default: false, is_closed: false },
+      { name: 'resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false, is_closed: true },
+    ];
+
+    let teamsProcessed = 0;
+    let statusesCreated = 0;
+
+    for (const team of teams) {
+      const existingStatuses = await db('ticket_statuses')
+        .where('team_id', team.id)
+        .count('* as count')
+        .first();
+
+      const count = parseInt(existingStatuses?.count as string || '0');
+
+      if (count > 0) {
+        console.log(`Team ${team.name} already has ${count} statuses, skipping`);
+        continue;
+      }
+
+      for (const status of defaultStatuses) {
+        await db('ticket_statuses').insert({
+          id: uuidv4(),
+          team_id: team.id,
+          name: status.name,
+          label: status.label,
+          color: status.color,
+          order: status.order,
+          is_default: status.is_default,
+          is_closed: status.is_closed,
+          is_active: true,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now(),
+        });
+        statusesCreated++;
+      }
+
+      teamsProcessed++;
+      console.log(`✅ Created default statuses for team ${team.name}`);
+    }
+
+    console.log(`✅ Seeded ${statusesCreated} statuses for ${teamsProcessed} teams`);
+
+    res.json({
+      success: true,
+      message: 'Default ticket statuses seeded successfully',
+      teamsProcessed,
+      statusesCreated,
+      teams: teams.map((t: any) => t.name),
+    });
+  } catch (error) {
+    console.error('Failed to seed statuses:', error);
+    res.status(500).json({
+      error: {
+        code: 'SEED_STATUSES_FAILED',
+        message: 'Failed to seed statuses',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+});
+
 export default router;
