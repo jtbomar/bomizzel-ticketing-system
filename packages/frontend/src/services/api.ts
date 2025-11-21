@@ -448,13 +448,13 @@ class ApiService {
     return response.data;
   }
 
-  async updateTeamStatus(statusId: string, updates: any): Promise<any> {
-    const response = await this.client.put(`/statuses/${statusId}`, updates);
+  async updateTeamStatus(teamId: string, statusId: string, updates: any): Promise<any> {
+    const response = await this.client.put(`/teams/${teamId}/statuses/${statusId}`, updates);
     return response.data;
   }
 
-  async deleteTeamStatus(statusId: string): Promise<any> {
-    const response = await this.client.delete(`/statuses/${statusId}`);
+  async deleteTeamStatus(teamId: string, statusId: string): Promise<any> {
+    const response = await this.client.delete(`/teams/${teamId}/statuses/${statusId}`);
     return response.data;
   }
 

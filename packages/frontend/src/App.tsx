@@ -30,6 +30,7 @@ import HolidayList from './pages/HolidayList';
 import Departments from './pages/Departments';
 import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
+import TicketStatusManagement from './pages/TicketStatusManagement';
 import AgentCreateTicketForm from './components/AgentCreateTicketForm';
 import AgentAccountsList from './pages/AgentAccountsList';
 import AgentCustomersList from './pages/AgentCustomersList';
@@ -225,6 +226,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <Agents />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/ticket-statuses" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <TicketStatusManagement />
                 </ProtectedRoute>
               } 
             />

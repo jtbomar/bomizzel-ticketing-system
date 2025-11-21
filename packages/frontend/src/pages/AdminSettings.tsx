@@ -60,6 +60,7 @@ const AdminSettings: React.FC = () => {
     {
       title: 'CUSTOMIZATION',
       items: [
+        { name: 'Ticket Statuses', description: 'Manage Kanban board columns', path: '/admin/settings/ticket-statuses', icon: '🎯' },
         { name: 'Buttons', description: 'Custom action buttons', path: '/admin/settings/buttons', icon: '🔘' },
         { name: 'Modules And Tabs', description: 'Customize interface modules', path: '/admin/settings/modules-tabs', icon: '📑' },
         { name: 'Layouts and Fields', description: 'Custom ticket layouts', path: '/admin/layouts', icon: '🎯' },
