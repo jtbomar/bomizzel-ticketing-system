@@ -1059,6 +1059,7 @@ const AgentDashboard: React.FC = () => {
       }
       
       console.log(`[moveTicket] Calling API to update ticket ${uuidTicketId}`);
+      console.log(`[moveTicket] Request body:`, { status: newStatus });
       const response = await apiService.updateTicket(uuidTicketId, { status: newStatus });
       console.log(`[moveTicket] API response:`, response);
     } catch (error: any) {
