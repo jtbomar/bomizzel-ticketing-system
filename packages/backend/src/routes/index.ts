@@ -82,7 +82,7 @@ router.use('/user-profiles', userProfilesRoutes);
 router.use('/reseed', reseedRoutes);
 router.use('/fix', fixDatabaseRoutes);
 router.use('/seed', seedMissingDataRoutes);
-router.use('/admin', seedStatusesRoutes);
+router.use('/setup', seedStatusesRoutes); // Mount at /setup so endpoint is /api/setup/seed-statuses
 
 // Simple cleanup endpoint
 router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) => {

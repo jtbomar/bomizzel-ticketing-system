@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Seed Ticket Statuses</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .box { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        button { padding: 12px 24px; margin: 10px 5px; font-size: 16px; cursor: pointer; border-radius: 4px; }
+        .success { background: #4CAF50; color: white; border: none; }
+        .info { background: #2196F3; color: white; border: none; }
+        pre { background: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd; }
+        .log { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Seed Ticket Statuses</h1>
+    
+    <div class="box">
+        <h3>Step 1: Get Your Token</h3>
+        <p>1. Go to bomizzel.com and login as admin</p>
+        <p>2. Open DevTools (F12) → Console tab</p>
+        <p>3. Type: <code>localStorage.getItem('token')</code></p>
+        <p>4. Copy the token and paste it below</p>
+        <input type="text" id="tokenInput" placeholder="Paste token here" style="width: 100%; padding: 10px; font-family: monospace; margin-top: 10px;">
+        <button class="info" onclick="saveToken()" style="margin-top: 10px;">Save Token</button>
+    </div>
+
+    <div class="box">
+        <h3>Step 2: Seed Statuses</h3>
+        <button class="success" onclick="seedStatuses()">Seed Statuses</button>
+    </div>
+
+    <div class="log">
+        <h3>Log:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://backend-production-97e1.up.railway.app';
+        let token = null;
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += message + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function saveToken() {
+            const input = document.getElementById('tokenInput');
+            token = input.value.trim();
+            if (token) {
+                log('✅ Token saved\n');
+            } else {
+                log('❌ Please enter a token\n');
+            }
+        }
+
+        async function seedStatuses() {
+            if (!token) {
+                log('❌ Please enter your token first (Step 1)\n');
+                return;
+            }
+
+            try {
+                log('🔄 Seeding statuses...\n');
+                
+                const res = await fetch(`${API_URL}/api/admin/seed-statuses`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!res.ok) {
+                    const text = await res.text();
+                    log('❌ Failed: ' + res.status + ' ' + res.statusText + '\n');
+                    log('Response: ' + text + '\n');
+                    
+                    if (res.status === 404) {
+                        log('\n⚠️  The endpoint might not be deployed yet.\n');
+                        log('   Wait a minute and try again.\n');
+                    }
+                    return;
+                }
+                
+                const data = await res.json();
+                log('✅ Success!\n');
+                log(JSON.stringify(data, null, 2) + '\n');
+                log('\n🎉 Statuses have been seeded!\n');
+                log('   Refresh bomizzel.com to see the changes.\n');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message + '\n');
+            }
+        }
+    </script>
+</body>
+</html>
