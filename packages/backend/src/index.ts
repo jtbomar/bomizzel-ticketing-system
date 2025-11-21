@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { connectRedis } from './config/redis';
-// Restart trigger 2
+// Restart trigger 3 - Deploy to run status migration
 
 // Load environment variables
 dotenv.config();

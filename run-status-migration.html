@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Run Status Migration</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .box { background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        button { padding: 12px 24px; margin: 10px 5px; font-size: 16px; cursor: pointer; border-radius: 4px; }
+        .success { background: #4CAF50; color: white; border: none; }
+        .info { background: #2196F3; color: white; border: none; }
+        pre { background: #fff; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd; }
+        .log { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Run Status Migration on Railway</h1>
+    
+    <div class="box">
+        <h3>Step 1: Get Your Token</h3>
+        <p>Login to bomizzel.com, open DevTools → Application → Local Storage → copy your token</p>
+        <input type="text" id="tokenInput" placeholder="Paste token here" style="width: 100%; padding: 10px; font-family: monospace;">
+        <button class="info" onclick="saveToken()">Save Token</button>
+    </div>
+
+    <div class="box">
+        <h3>Step 2: Run Migration</h3>
+        <p>This will create default ticket statuses for all teams</p>
+        <button class="success" onclick="runMigration()">Run Migration</button>
+    </div>
+
+    <div class="log">
+        <h3>Log:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'https://backend-production-97e1.up.railway.app';
+        let token = null;
+        
+        function log(message) {
+            const logEl = document.getElementById('log');
+            logEl.textContent += message + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function saveToken() {
+            const input = document.getElementById('tokenInput');
+            token = input.value.trim();
+            if (token) {
+                log('✅ Token saved\n');
+            } else {
+                log('❌ Please enter a token\n');
+            }
+        }
+
+        async function runMigration() {
+            if (!token) {
+                log('❌ Please enter your token first\n');
+                return;
+            }
+
+            try {
+                log('🔄 Running migration...\n');
+                
+                const res = await fetch(`${API_URL}/api/admin/run-migration`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        migration: '20251120000000_seed_default_ticket_statuses'
+                    })
+                });
+                
+                if (!res.ok) {
+                    const text = await res.text();
+                    log('❌ Migration failed: ' + text + '\n');
+                    log('\n⚠️  Alternative: SSH into Railway and run:\n');
+                    log('   npm run migrate --workspace=backend\n');
+                    return;
+                }
+                
+                const data = await res.json();
+                log('✅ Migration completed successfully!\n');
+                log(JSON.stringify(data, null, 2) + '\n');
+                log('\n🎉 Default statuses have been created for all teams!\n');
+                log('   Refresh bomizzel.com to see the changes.\n');
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message + '\n');
+                log('\n⚠️  Run manually on Railway:\n');
+                log('   1. Go to Railway dashboard\n');
+                log('   2. Open your backend service\n');
+                log('   3. Click "Deploy" → "Run Command"\n');
+                log('   4. Enter: npm run migrate --workspace=backend\n');
+            }
+        }
+    </script>
+</body>
+</html>
