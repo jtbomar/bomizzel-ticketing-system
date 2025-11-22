@@ -155,7 +155,7 @@ router.get('/test-auth', authenticate, (req, res) => {
  * POST /api/company-registration/fix-association
  * Fix user-company association
  */
-router.post('/fix-association', authenticate, async (req, res) => {
+router.post('/fix-association', authenticate, async (req, res): Promise<void> => {
   try {
     const { db } = require('../config/database');
     
@@ -163,7 +163,8 @@ router.post('/fix-association', authenticate, async (req, res) => {
     const firstCompany = await db('companies').orderBy('created_at').first();
     
     if (!firstCompany) {
-      return res.status(404).json({ success: false, message: 'No companies found' });
+      res.status(404).json({ success: false, message: 'No companies found' });
+      return;
     }
     
     // Check if association exists
@@ -173,11 +174,12 @@ router.post('/fix-association', authenticate, async (req, res) => {
       .first();
     
     if (existing) {
-      return res.json({ 
+      res.json({ 
         success: true, 
         message: 'Association already exists',
         company: firstCompany.name 
       });
+      return;
     }
     
     // Create association
@@ -192,8 +194,10 @@ router.post('/fix-association', authenticate, async (req, res) => {
       message: 'User associated with company',
       company: firstCompany.name 
     });
+    return;
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+    return;
   }
 });
 
