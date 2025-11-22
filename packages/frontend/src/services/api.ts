@@ -1,10 +1,28 @@
 import axios, { AxiosInstance } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
+// Determine API base URL
+const getApiBaseUrl = () => {
+  // If explicitly set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // For local development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  
+  // For production, construct from current protocol and hostname
+  // Assumes backend is on same domain or you need to set VITE_API_URL
+  const protocol = window.location.protocol;
+  return `${protocol}//${window.location.hostname}/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 console.log('[ApiService] API_BASE_URL:', API_BASE_URL);
 console.log('[ApiService] VITE_API_URL:', import.meta.env.VITE_API_URL);
-console.log('[ApiService] window.location.hostname:', window.location.hostname);
+console.log('[ApiService] window.location:', window.location.href);
 
 class ApiService {
   private client: AxiosInstance;
