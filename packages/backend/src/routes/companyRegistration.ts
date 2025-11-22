@@ -140,11 +140,25 @@ router.get('/test', (req, res) => {
 });
 
 /**
+ * GET /api/company-registration/test-auth
+ * Test endpoint with authentication
+ */
+router.get('/test-auth', authenticate, (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Authenticated route working!',
+    user: req.user 
+  });
+});
+
+/**
  * GET /api/company-registration/profile
  * Get current user's company profile
  */
 router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
   try {
+    console.log('🔍 GET /company-registration/profile - ROUTE HIT');
+    console.log('🔍 User:', req.user);
     console.log('GET /company-registration/profile - User ID:', req.user!.id);
     
     // Get user's primary company (first one they're associated with)
@@ -182,6 +196,8 @@ router.put(
   validate(companyProfileUpdateSchema),
   async (req, res, next): Promise<void> => {
     try {
+      console.log('🔍 PUT /company-registration/profile - ROUTE HIT');
+      console.log('🔍 User:', req.user);
       console.log('PUT /company-registration/profile - Request body:', JSON.stringify(req.body, null, 2));
       
       // Get user's primary company
