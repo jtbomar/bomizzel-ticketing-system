@@ -132,6 +132,14 @@ router.post('/register', validate(companyRegistrationSchema), async (req, res, n
 });
 
 /**
+ * GET /api/company-registration/test
+ * Test endpoint to verify routes are working
+ */
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Company registration routes are working!' });
+});
+
+/**
  * GET /api/company-registration/profile
  * Get current user's company profile
  */
