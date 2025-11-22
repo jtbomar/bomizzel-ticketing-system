@@ -329,12 +329,19 @@ export class CompanyRegistrationService {
     updateData.updated_at = new Date();
 
     console.log('Database update data:', updateData);
+    console.log('Updating company with ID:', companyId);
+    
     const [updatedCompany] = await db('companies')
       .where('id', companyId)
       .update(updateData)
       .returning('*');
 
     console.log('Updated company from DB:', updatedCompany);
+    
+    // Verify the update by fetching again
+    const verifyCompany = await db('companies').where('id', companyId).first();
+    console.log('Verification query - company name:', verifyCompany?.name);
+    
     return this.formatCompanyProfile(updatedCompany);
   }
 
