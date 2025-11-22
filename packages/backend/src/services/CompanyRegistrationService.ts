@@ -354,7 +354,9 @@ export class CompanyRegistrationService {
    * Get company profile
    */
   static async getCompanyProfile(companyId: string): Promise<CompanyProfile> {
+    console.log('getCompanyProfile - Fetching company ID:', companyId);
     const company = await db('companies').where('id', companyId).first();
+    console.log('getCompanyProfile - Raw company from DB:', { id: company?.id, name: company?.name });
 
     if (!company) {
       throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');

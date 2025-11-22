@@ -10,7 +10,7 @@ const router = Router();
  * One-time endpoint to seed default ticket statuses for all teams
  * Admin only
  */
-router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res) => {
+router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res): Promise<void> => {
   try {
     console.log('🌱 Seeding default ticket statuses...');
 
@@ -18,11 +18,12 @@ router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res)
     const teams = await db('teams').select('id', 'name');
 
     if (teams.length === 0) {
-      return res.json({
+      res.json({
         success: true,
         message: 'No teams found',
         teamsProcessed: 0,
       });
+      return;
     }
 
     // Default statuses

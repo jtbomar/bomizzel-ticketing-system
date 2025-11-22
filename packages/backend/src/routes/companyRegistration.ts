@@ -135,8 +135,11 @@ router.post('/register', validate(companyRegistrationSchema), async (req, res, n
  */
 router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
   try {
+    console.log('GET /company-registration/profile - User ID:', req.user!.id);
+    
     // Get user's primary company (first one they're associated with)
     const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
+    console.log('User companies:', userCompanies.map(c => ({ id: c.id, name: c.name })));
 
     if (userCompanies.length === 0) {
       res.status(404).json({
@@ -147,12 +150,14 @@ router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
     }
 
     const companyProfile = await CompanyRegistrationService.getCompanyProfile(userCompanies[0].id);
+    console.log('Returning company profile with name:', companyProfile.name);
 
     res.json({
       success: true,
       data: companyProfile,
     });
   } catch (error) {
+    console.error('Error getting company profile:', error);
     next(error);
   }
 });
