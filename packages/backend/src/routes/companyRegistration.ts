@@ -167,6 +167,8 @@ router.put(
   validate(companyProfileUpdateSchema),
   async (req, res, next): Promise<void> => {
     try {
+      console.log('PUT /company-registration/profile - Request body:', JSON.stringify(req.body, null, 2));
+      
       // Get user's primary company
       const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
 
@@ -178,18 +180,21 @@ router.put(
         return;
       }
 
+      console.log('Updating company ID:', userCompanies[0].id);
       const updatedProfile = await CompanyRegistrationService.updateCompanyProfile(
         userCompanies[0].id,
         req.body,
         req.user!.id
       );
 
+      console.log('Updated profile:', JSON.stringify(updatedProfile, null, 2));
       res.json({
         success: true,
         message: 'Company profile updated successfully',
         data: updatedProfile,
       });
     } catch (error) {
+      console.error('Error updating company profile:', error);
       next(error);
     }
   }

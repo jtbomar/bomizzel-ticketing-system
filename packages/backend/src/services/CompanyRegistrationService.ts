@@ -266,6 +266,12 @@ export class CompanyRegistrationService {
     updates: Partial<CompanyProfile>,
     userId: string
   ): Promise<CompanyProfile> {
+    console.log('CompanyRegistrationService.updateCompanyProfile called with:', {
+      companyId,
+      updates,
+      userId
+    });
+    
     // Verify user has permission to update company
     const isOwnerOrAdmin = await this.verifyCompanyPermission(userId, companyId, [
       'owner',
@@ -322,11 +328,13 @@ export class CompanyRegistrationService {
 
     updateData.updated_at = new Date();
 
+    console.log('Database update data:', updateData);
     const [updatedCompany] = await db('companies')
       .where('id', companyId)
       .update(updateData)
       .returning('*');
 
+    console.log('Updated company from DB:', updatedCompany);
     return this.formatCompanyProfile(updatedCompany);
   }
 

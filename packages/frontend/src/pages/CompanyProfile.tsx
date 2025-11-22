@@ -284,7 +284,9 @@ const CompanyProfile: React.FC = () => {
         country: editData.address.country,
       };
 
+      console.log('Saving company profile with payload:', payload);
       const response = await apiService.updateCompanyProfile(payload);
+      console.log('Save response:', response);
 
       if (response.success) {
         setCompanyData(editData);
