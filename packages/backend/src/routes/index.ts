@@ -40,6 +40,7 @@ import reseedRoutes from './reseed';
 import fixDatabaseRoutes from './fixDatabase';
 import seedMissingDataRoutes from './seedMissingData';
 import seedStatusesRoutes from './seedStatuses';
+import organizationsRoutes from './organizations';
 
 const router = Router();
 
@@ -48,6 +49,10 @@ router.use('/auth', authRoutes);
 router.use('/auth', enhancedRegistrationRoutes); // Enhanced registration endpoints
 router.use('/company-registration', companyRegistrationRoutes);
 router.use('/admin/provisioning', adminProvisioningRoutes); // Admin provisioning endpoints
+
+// Organization selection routes (auth required, no org context)
+router.use('/orgs', organizationsRoutes);
+
 router.use('/users', userRoutes);
 router.use('/agents', agentsRoutes); // Agent management endpoints
 router.use('/companies', companyRoutes);
