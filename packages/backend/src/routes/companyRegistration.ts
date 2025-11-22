@@ -152,6 +152,52 @@ router.get('/test-auth', authenticate, (req, res) => {
 });
 
 /**
+ * POST /api/company-registration/fix-association
+ * Fix user-company association
+ */
+router.post('/fix-association', authenticate, async (req, res) => {
+  try {
+    const { db } = require('../config/database');
+    
+    // Get first company
+    const firstCompany = await db('companies').orderBy('created_at').first();
+    
+    if (!firstCompany) {
+      return res.status(404).json({ success: false, message: 'No companies found' });
+    }
+    
+    // Check if association exists
+    const existing = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .where('company_id', firstCompany.id)
+      .first();
+    
+    if (existing) {
+      return res.json({ 
+        success: true, 
+        message: 'Association already exists',
+        company: firstCompany.name 
+      });
+    }
+    
+    // Create association
+    await db('user_company_associations').insert({
+      user_id: req.user!.id,
+      company_id: firstCompany.id,
+      role: 'admin'
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'User associated with company',
+      company: firstCompany.name 
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * GET /api/company-registration/profile
  * Get current user's company profile
  */
