@@ -64,29 +64,31 @@ const companyRegistrationSchema = Joi.object({
 const companyProfileUpdateSchema = Joi.object({
   name: Joi.string().min(2).max(100).optional(),
   domain: Joi.string().domain().optional(),
-  description: Joi.string().max(500).optional(),
-  logoUrl: Joi.string().uri().optional(),
+  description: Joi.string().max(500).optional().allow(''),
+  logoUrl: Joi.string().uri().optional().allow(''),
   primaryColor: Joi.string()
     .pattern(/^#[0-9A-Fa-f]{6}$/)
-    .optional(),
+    .optional()
+    .allow(''),
   secondaryColor: Joi.string()
     .pattern(/^#[0-9A-Fa-f]{6}$/)
-    .optional(),
+    .optional()
+    .allow(''),
 
   // Contact info
-  primaryContactName: Joi.string().max(100).optional(),
-  primaryContactEmail: Joi.string().email().optional(),
-  primaryContactPhone: Joi.string().max(20).optional(),
-  mobilePhone: Joi.string().max(20).optional(),
-  websiteUrl: Joi.string().uri().optional(),
+  primaryContactName: Joi.string().max(100).optional().allow(''),
+  primaryContactEmail: Joi.string().email().optional().allow(''),
+  primaryContactPhone: Joi.string().max(20).optional().allow(''),
+  mobilePhone: Joi.string().max(20).optional().allow(''),
+  websiteUrl: Joi.string().uri().optional().allow(''),
 
   // Address
-  addressLine1: Joi.string().max(100).optional(),
-  addressLine2: Joi.string().max(100).optional(),
-  city: Joi.string().max(50).optional(),
-  stateProvince: Joi.string().max(50).optional(),
-  postalCode: Joi.string().max(20).optional(),
-  country: Joi.string().max(50).optional(),
+  addressLine1: Joi.string().max(100).optional().allow(''),
+  addressLine2: Joi.string().max(100).optional().allow(''),
+  city: Joi.string().max(50).optional().allow(''),
+  stateProvince: Joi.string().max(50).optional().allow(''),
+  postalCode: Joi.string().max(20).optional().allow(''),
+  country: Joi.string().max(50).optional().allow(''),
 
   // Settings
   timezone: Joi.string().optional(),
