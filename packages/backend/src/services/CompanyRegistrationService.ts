@@ -288,27 +288,27 @@ export class CompanyRegistrationService {
     const updateData: any = {};
 
     // Map profile fields to database columns
-    if (updates.name) updateData.name = updates.name;
-    if (updates.domain) updateData.domain = updates.domain;
-    if (updates.description) updateData.description = updates.description;
-    if (updates.logoUrl) updateData.logo_url = updates.logoUrl;
-    if (updates.primaryColor) updateData.primary_color = updates.primaryColor;
-    if (updates.secondaryColor) updateData.secondary_color = updates.secondaryColor;
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.domain !== undefined) updateData.domain = updates.domain;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.logoUrl !== undefined) updateData.logo_url = updates.logoUrl;
+    if (updates.primaryColor !== undefined) updateData.primary_color = updates.primaryColor;
+    if (updates.secondaryColor !== undefined) updateData.secondary_color = updates.secondaryColor;
 
     // Contact info
-    if (updates.primaryContactName) updateData.primary_contact_name = updates.primaryContactName;
-    if (updates.primaryContactEmail) updateData.primary_contact_email = updates.primaryContactEmail;
-    if (updates.primaryContactPhone) updateData.primary_contact_phone = updates.primaryContactPhone;
-    if (updates.mobilePhone) updateData.mobile_phone = updates.mobilePhone;
-    if (updates.websiteUrl) updateData.website_url = updates.websiteUrl;
+    if (updates.primaryContactName !== undefined) updateData.primary_contact_name = updates.primaryContactName;
+    if (updates.primaryContactEmail !== undefined) updateData.primary_contact_email = updates.primaryContactEmail;
+    if (updates.primaryContactPhone !== undefined) updateData.primary_contact_phone = updates.primaryContactPhone;
+    if (updates.mobilePhone !== undefined) updateData.mobile_phone = updates.mobilePhone;
+    if (updates.websiteUrl !== undefined) updateData.website_url = updates.websiteUrl;
 
     // Address
-    if (updates.addressLine1) updateData.address_line_1 = updates.addressLine1;
-    if (updates.addressLine2) updateData.address_line_2 = updates.addressLine2;
-    if (updates.city) updateData.city = updates.city;
-    if (updates.stateProvince) updateData.state_province = updates.stateProvince;
-    if (updates.postalCode) updateData.postal_code = updates.postalCode;
-    if (updates.country) updateData.country = updates.country;
+    if (updates.addressLine1 !== undefined) updateData.address_line_1 = updates.addressLine1;
+    if (updates.addressLine2 !== undefined) updateData.address_line_2 = updates.addressLine2;
+    if (updates.city !== undefined) updateData.city = updates.city;
+    if (updates.stateProvince !== undefined) updateData.state_province = updates.stateProvince;
+    if (updates.postalCode !== undefined) updateData.postal_code = updates.postalCode;
+    if (updates.country !== undefined) updateData.country = updates.country;
 
     // Settings
     if (updates.timezone) updateData.timezone = updates.timezone;
