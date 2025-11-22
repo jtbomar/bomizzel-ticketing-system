@@ -12,19 +12,46 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // Basic middleware
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://192.168.0.133:3000',
+  'http://192.168.0.117:3000',
+  /^http:\/\/192\.168\.0\.\d+:3000$/,
+  'https://www.bomizzel.com',
+  'https://bomizzel.com',
+  'https://bomizzel-ticketing-system-frontend.vercel.app',
+  /^https:\/\/bomizzel-ticketing-system-.*\.vercel\.app$/,
+];
+
+console.log('🔒 CORS allowed origins:', allowedOrigins);
+
 app.use(
   cors({
-    origin: [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://192.168.0.133:3000',
-      'http://192.168.0.117:3000',
-      /^http:\/\/192\.168\.0\.\d+:3000$/,
-      'https://www.bomizzel.com',
-      'https://bomizzel.com',
-      'https://bomizzel-ticketing-system-frontend.vercel.app',
-      /^https:\/\/bomizzel-ticketing-system-.*\.vercel\.app$/,
-    ],
+    origin: (origin, callback) => {
+      console.log('🌐 CORS request from origin:', origin);
+      
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // Check if origin is allowed
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        }
+        return allowed.test(origin);
+      });
+      
+      if (isAllowed) {
+        console.log('✅ CORS: Origin allowed:', origin);
+        callback(null, true);
+      } else {
+        console.log('❌ CORS: Origin blocked:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
     exposedHeaders: ['Authorization'],
