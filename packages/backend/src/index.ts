@@ -10,6 +10,8 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
+console.log('🔧 Environment PORT:', process.env.PORT);
+console.log('🔧 Using PORT:', PORT);
 
 // Basic middleware
 const allowedOrigins = [
