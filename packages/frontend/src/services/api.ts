@@ -884,14 +884,19 @@ class ApiService {
   }
 
   async updateCompanyProfile(data: {
-    name: string;
-    logo?: string;
-    website?: string;
-    primaryContact?: string;
-    primaryEmail?: string;
-    primaryPhone?: string;
-    address?: any;
-    phoneNumbers?: any;
+    name?: string;
+    logoUrl?: string;
+    websiteUrl?: string;
+    primaryContactName?: string;
+    primaryContactEmail?: string;
+    primaryContactPhone?: string;
+    mobilePhone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    stateProvince?: string;
+    postalCode?: string;
+    country?: string;
   }): Promise<any> {
     const response = await this.client.put('/company-registration/profile', data);
     return response.data;

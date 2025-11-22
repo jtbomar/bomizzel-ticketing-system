@@ -207,23 +207,23 @@ const CompanyProfile: React.FC = () => {
       if (response.success && response.data) {
         const data = response.data;
         const loadedData: CompanyData = {
-          logo: data.logo || '',
-          companyName: data.name || 'Bomizzel Services Inc.',
-          website: data.website || 'https://bomizzel.com',
-          primaryContact: data.primaryContact || 'Jeff Bomar',
-          primaryEmail: data.primaryEmail || 'jeffrey.t.bomar@gmail.com',
-          primaryPhone: data.primaryPhone || '(555) 123-4567',
+          logo: data.logoUrl || '',
+          companyName: data.name || 'Bomizzel',
+          website: data.websiteUrl || 'https://bomar.com',
+          primaryContact: data.primaryContactName || 'Jeffrey Bomar',
+          primaryEmail: data.primaryContactEmail || 'jeffrey.t.bomar@gmail.com',
+          primaryPhone: data.primaryContactPhone || '(801) 389-0168',
           address: {
-            street: data.address?.street || '123 Business Street',
-            city: data.address?.city || 'San Francisco',
-            state: data.address?.state || 'CA',
-            zipCode: data.address?.zipCode || '94102',
-            country: data.address?.country || 'United States',
+            street: data.addressLine1 || '277 E 1000 N',
+            city: data.city || 'North ogden',
+            state: data.stateProvince || 'UT',
+            zipCode: data.postalCode || '84414',
+            country: data.country || 'United States',
           },
           phoneNumbers: {
-            main: data.phoneNumbers?.main || '(555) 123-4567',
-            fax: data.phoneNumbers?.fax || '(555) 123-4568',
-            support: data.phoneNumbers?.support || '(555) 123-4569',
+            main: data.primaryContactPhone || '(801) 389-0168',
+            fax: data.mobilePhone || '',
+            support: data.primaryContactPhone || '(801) 389-0168',
           },
         };
         setCompanyData(loadedData);
@@ -271,13 +271,17 @@ const CompanyProfile: React.FC = () => {
 
       const payload = {
         name: editData.companyName,
-        logo: editData.logo,
-        website: editData.website,
-        primaryContact: editData.primaryContact,
-        primaryEmail: editData.primaryEmail,
-        primaryPhone: editData.primaryPhone,
-        address: editData.address,
-        phoneNumbers: editData.phoneNumbers,
+        logoUrl: editData.logo,
+        websiteUrl: editData.website,
+        primaryContactName: editData.primaryContact,
+        primaryContactEmail: editData.primaryEmail,
+        primaryContactPhone: editData.primaryPhone,
+        mobilePhone: editData.phoneNumbers.fax,
+        addressLine1: editData.address.street,
+        city: editData.address.city,
+        stateProvince: editData.address.state,
+        postalCode: editData.address.zipCode,
+        country: editData.address.country,
       };
 
       const response = await apiService.updateCompanyProfile(payload);
