@@ -38,7 +38,8 @@ exports.up = async function(knex) {
 
     if (firstAssociation) {
       await knex('user_company_associations')
-        .where('id', firstAssociation.id)
+        .where('user_id', firstAssociation.user_id)
+        .where('company_id', firstAssociation.company_id)
         .update({ is_default: true });
     }
   }
