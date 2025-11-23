@@ -895,6 +895,27 @@ class ApiService {
     return response.data;
   }
 
+  // Organization endpoints
+  async getUserOrganizations(): Promise<any> {
+    const response = await this.client.get('/orgs');
+    return response.data;
+  }
+
+  async getDefaultOrganization(): Promise<any> {
+    const response = await this.client.get('/orgs/default');
+    return response.data;
+  }
+
+  async setDefaultOrganization(orgId: string): Promise<any> {
+    const response = await this.client.post(`/orgs/${orgId}/set-default`);
+    return response.data;
+  }
+
+  async getOrganization(orgId: string): Promise<any> {
+    const response = await this.client.get(`/orgs/${orgId}`);
+    return response.data;
+  }
+
   // Company Profile endpoints
   async getCompanyProfile(): Promise<any> {
     const response = await this.client.get('/company-registration/profile');
