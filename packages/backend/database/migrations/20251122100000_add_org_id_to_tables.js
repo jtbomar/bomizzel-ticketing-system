@@ -55,14 +55,19 @@ exports.up = async function(knex) {
     console.log('✅ Added org_id to ticket_notes table');
   }
 
-  // Add org_id to files table
-  const hasFilesOrgId = await knex.schema.hasColumn('files', 'org_id');
-  if (!hasFilesOrgId) {
-    await knex.schema.alterTable('files', (table) => {
-      table.uuid('org_id').references('id').inTable('companies').onDelete('CASCADE');
-      table.index('org_id');
-    });
-    console.log('✅ Added org_id to files table');
+  // Add org_id to files table (if table exists)
+  const hasFilesTable = await knex.schema.hasTable('files');
+  if (hasFilesTable) {
+    const hasFilesOrgId = await knex.schema.hasColumn('files', 'org_id');
+    if (!hasFilesOrgId) {
+      await knex.schema.alterTable('files', (table) => {
+        table.uuid('org_id').references('id').inTable('companies').onDelete('CASCADE');
+        table.index('org_id');
+      });
+      console.log('✅ Added org_id to files table');
+    }
+  } else {
+    console.log('⚠️  Skipping files table - does not exist');
   }
 
   // Add org_id to departments table

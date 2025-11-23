@@ -56,15 +56,20 @@ exports.up = async function(knex) {
   `);
   console.log(`✅ Backfilled org_id for ticket_notes`);
 
-  // Backfill files.org_id from tickets (if ticket_id exists)
-  const filesUpdated = await knex.raw(`
-    UPDATE files
-    SET org_id = tickets.org_id
-    FROM tickets
-    WHERE files.ticket_id = tickets.id
-    AND files.org_id IS NULL
-  `);
-  console.log(`✅ Backfilled org_id for files`);
+  // Backfill files.org_id from tickets (if table exists)
+  const hasFilesTable = await knex.schema.hasTable('files');
+  if (hasFilesTable) {
+    await knex.raw(`
+      UPDATE files
+      SET org_id = tickets.org_id
+      FROM tickets
+      WHERE files.ticket_id = tickets.id
+      AND files.org_id IS NULL
+    `);
+    console.log(`✅ Backfilled org_id for files`);
+  } else {
+    console.log('⚠️  Skipping files backfill - table does not exist');
+  }
 
   // Set current_org_id for users based on their default or most recent org
   const usersUpdated = await knex.raw(`
