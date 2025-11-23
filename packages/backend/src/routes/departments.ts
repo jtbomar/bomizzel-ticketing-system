@@ -82,32 +82,64 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new department (admin only)
 router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { name, description, logo, color, is_active, is_default, company_id } = req.body;
+    const { name, description, display_name, logo, color, is_active, is_default, display_in_help_center, associate_agent } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Department name is required' });
     }
 
-    if (!company_id) {
-      return res.status(400).json({ error: 'Company ID is required' });
+    // Get user's company and org from associations
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
     }
 
-    const department = await DepartmentService.createDepartment(company_id, {
-      name,
-      description,
-      logo,
-      color,
-      is_active,
-      is_default,
-    });
+    // Get user's current org
+    const user = await db('users').where('id', req.user!.id).first();
+    const orgId = user.current_org_id;
+
+    if (!orgId) {
+      return res.status(400).json({ error: 'No organization selected' });
+    }
+
+    const companyId = userCompany.company_id;
+
+    // Create department with org_id
+    const [department] = await db('departments')
+      .insert({
+        company_id: companyId,
+        org_id: orgId,
+        name,
+        description,
+        display_name: display_name || name,
+        logo,
+        color: color || '#3B82F6',
+        is_active: is_active !== false,
+        is_default: is_default || false,
+        display_in_help_center: display_in_help_center !== false,
+      })
+      .returning('*');
+
+    // If associate_agent is provided, add them to the department
+    if (associate_agent) {
+      await db('department_agents').insert({
+        department_id: department.id,
+        user_id: associate_agent,
+        role: 'member',
+        is_active: true,
+      });
+    }
 
     return res.status(201).json(department);
   } catch (error: any) {
     console.error('Error creating department:', error);
-    if (error.code === 'DEPARTMENT_NAME_EXISTS') {
-      return res.status(409).json({ error: error.message });
+    if (error.code === '23505') { // Unique constraint violation
+      return res.status(409).json({ error: 'Department name already exists' });
     }
-    return res.status(500).json({ error: 'Failed to create department' });
+    return res.status(500).json({ error: 'Failed to create department', details: error.message });
   }
 });
 
