@@ -25,23 +25,26 @@ router.get('/', authenticate, async (req, res, next) => {
  * GET /api/orgs/default
  * Get user's default organization
  */
-router.get('/default', authenticate, async (req, res, next) => {
+router.get('/default', authenticate, async (req, res, next): Promise<void> => {
   try {
     const defaultOrg = await OrganizationService.getDefaultOrganization(req.user!.id);
 
     if (!defaultOrg) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: 'No organizations found for user',
       });
+      return;
     }
 
     res.json({
       success: true,
       data: defaultOrg,
     });
+    return;
   } catch (error) {
     next(error);
+    return;
   }
 });
 
@@ -66,15 +69,16 @@ router.post('/:orgId/set-default', authenticate, async (req, res, next) => {
  * GET /api/orgs/:orgId
  * Get organization details
  */
-router.get('/:orgId', authenticate, async (req, res, next) => {
+router.get('/:orgId', authenticate, async (req, res, next): Promise<void> => {
   try {
     // Verify user has access
     const hasAccess = await OrganizationService.hasAccess(req.user!.id, req.params.orgId);
     if (!hasAccess) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: 'Access denied to this organization',
       });
+      return;
     }
 
     const org = await OrganizationService.getOrganization(req.params.orgId);
@@ -83,8 +87,10 @@ router.get('/:orgId', authenticate, async (req, res, next) => {
       success: true,
       data: org,
     });
+    return;
   } catch (error) {
     next(error);
+    return;
   }
 });
 

@@ -205,6 +205,15 @@ export class CompanyRegistrationService {
         },
       };
 
+      // Create organization for the company
+      const [organization] = await trx('organizations')
+        .insert({
+          name: data.companyName,
+          slug: data.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          is_active: true,
+        })
+        .returning('*');
+
       // Associate admin user with company as owner
       await trx('user_company_associations').insert({
         user_id: adminUser.user.id,
@@ -212,19 +221,81 @@ export class CompanyRegistrationService {
         role: 'owner',
       });
 
-      // Create default team for the company
-      await trx('teams').insert({
-        name: 'Default Team',
-        description: 'Default team for new company',
-        company_id: createdCompany.id,
-        is_active: true,
+      // Associate admin user with organization
+      await trx('user_organization_associations').insert({
+        user_id: adminUser.user.id,
+        org_id: organization.id,
+        role: 'admin',
+        is_default: true,
       });
 
-      // Create default queue for the company
+      // Set current_org_id for the user
+      await trx('users').where('id', adminUser.user.id).update({
+        current_org_id: organization.id,
+      });
+
+      // Create default departments
+      const departments = [
+        { name: 'General', description: 'General inquiries and support' },
+        { name: 'Technical', description: 'Technical support and troubleshooting' },
+        { name: 'Sales', description: 'Sales inquiries and quotes' },
+      ];
+
+      for (const dept of departments) {
+        await trx('departments').insert({
+          name: dept.name,
+          description: dept.description,
+          company_id: createdCompany.id,
+          org_id: organization.id,
+          is_active: true,
+        });
+      }
+
+      // Create default team
+      const [team] = await trx('teams')
+        .insert({
+          name: 'Support Team',
+          description: 'Default support team',
+          company_id: createdCompany.id,
+          org_id: organization.id,
+          is_active: true,
+        })
+        .returning('*');
+
+      // Add admin to the team
+      await trx('team_members').insert({
+        team_id: team.id,
+        user_id: adminUser.user.id,
+        role: 'lead',
+      });
+
+      // Create default ticket statuses for the team
+      const statuses = [
+        { name: 'Open', color: '#3B82F6', sort_order: 1, is_default: true },
+        { name: 'In Progress', color: '#F59E0B', sort_order: 2, is_default: false },
+        { name: 'Waiting on Customer', color: '#8B5CF6', sort_order: 3, is_default: false },
+        { name: 'Resolved', color: '#10B981', sort_order: 4, is_default: false },
+        { name: 'Closed', color: '#6B7280', sort_order: 5, is_default: false },
+      ];
+
+      for (const status of statuses) {
+        await trx('ticket_statuses').insert({
+          team_id: team.id,
+          name: status.name,
+          color: status.color,
+          sort_order: status.sort_order,
+          is_default: status.is_default,
+          is_closed: status.name === 'Closed',
+        });
+      }
+
+      // Create default queue
       await trx('queues').insert({
-        name: 'General Support',
-        description: 'General support queue',
+        name: 'General Queue',
+        description: 'Default queue for incoming tickets',
         company_id: createdCompany.id,
+        org_id: organization.id,
+        team_id: team.id,
         is_active: true,
         sort_order: 1,
       });
