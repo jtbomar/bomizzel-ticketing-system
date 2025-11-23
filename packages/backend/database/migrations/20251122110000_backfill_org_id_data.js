@@ -14,37 +14,57 @@ exports.up = async function(knex) {
   const ticketsCount = await knex('tickets').whereNotNull('org_id').count('* as count').first();
   console.log(`✅ Backfilled org_id for ${ticketsCount?.count || 0} tickets`);
 
-  // Backfill queues.org_id from company_id
-  await knex.raw(`
-    UPDATE queues
-    SET org_id = company_id
-    WHERE org_id IS NULL AND company_id IS NOT NULL
-  `);
-  console.log(`✅ Backfilled org_id for queues`);
+  // Backfill queues.org_id from company_id (if column exists)
+  const hasQueuesCompanyId = await knex.schema.hasColumn('queues', 'company_id');
+  if (hasQueuesCompanyId) {
+    await knex.raw(`
+      UPDATE queues
+      SET org_id = company_id
+      WHERE org_id IS NULL AND company_id IS NOT NULL
+    `);
+    console.log(`✅ Backfilled org_id for queues`);
+  } else {
+    console.log(`⚠️  Skipping queues backfill - company_id column does not exist`);
+  }
 
-  // Backfill teams.org_id from company_id
-  await knex.raw(`
-    UPDATE teams
-    SET org_id = company_id
-    WHERE org_id IS NULL AND company_id IS NOT NULL
-  `);
-  console.log(`✅ Backfilled org_id for teams`);
+  // Backfill teams.org_id from company_id (if column exists)
+  const hasTeamsCompanyId = await knex.schema.hasColumn('teams', 'company_id');
+  if (hasTeamsCompanyId) {
+    await knex.raw(`
+      UPDATE teams
+      SET org_id = company_id
+      WHERE org_id IS NULL AND company_id IS NOT NULL
+    `);
+    console.log(`✅ Backfilled org_id for teams`);
+  } else {
+    console.log(`⚠️  Skipping teams backfill - company_id column does not exist`);
+  }
 
-  // Backfill custom_fields.org_id from company_id
-  await knex.raw(`
-    UPDATE custom_fields
-    SET org_id = company_id
-    WHERE org_id IS NULL AND company_id IS NOT NULL
-  `);
-  console.log(`✅ Backfilled org_id for custom_fields`);
+  // Backfill custom_fields.org_id from company_id (if column exists)
+  const hasCustomFieldsCompanyId = await knex.schema.hasColumn('custom_fields', 'company_id');
+  if (hasCustomFieldsCompanyId) {
+    await knex.raw(`
+      UPDATE custom_fields
+      SET org_id = company_id
+      WHERE org_id IS NULL AND company_id IS NOT NULL
+    `);
+    console.log(`✅ Backfilled org_id for custom_fields`);
+  } else {
+    console.log(`⚠️  Skipping custom_fields backfill - company_id column does not exist`);
+  }
 
-  // Backfill departments.org_id from company_id
-  await knex.raw(`
-    UPDATE departments
-    SET org_id = company_id
-    WHERE org_id IS NULL AND company_id IS NOT NULL
-  `);
-  console.log(`✅ Backfilled org_id for departments`);
+  // Backfill departments.org_id from company_id (if column exists)
+  const hasDepartmentsCompanyId = await knex.schema.hasColumn('departments', 'company_id');
+  if (hasDepartmentsCompanyId) {
+    await knex.raw(`
+      UPDATE departments
+      SET org_id = company_id
+      WHERE org_id IS NULL AND company_id IS NOT NULL
+    `);
+    console.log(`✅ Backfilled org_id for departments`);
+  } else {
+    console.log(`⚠️  Skipping departments backfill - company_id column does not exist`);
+  }
 
   // Backfill ticket_notes.org_id from tickets
   const ticketNotesUpdated = await knex.raw(`
