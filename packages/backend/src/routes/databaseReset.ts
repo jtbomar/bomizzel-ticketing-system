@@ -9,15 +9,16 @@ const router = Router();
  * DANGER: Drops all tables and recreates from migrations
  * Admin only, requires confirmation
  */
-router.post('/nuclear', authenticate, authorize('admin'), async (req, res) => {
+router.post('/nuclear', authenticate, authorize('admin'), async (req, res): Promise<void> => {
   try {
     const { confirmation } = req.body;
     
     if (confirmation !== 'DELETE_EVERYTHING') {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Confirmation required. Send { confirmation: "DELETE_EVERYTHING" }',
       });
+      return;
     }
 
     console.log('💣 NUCLEAR RESET initiated by:', req.user?.email);
@@ -44,12 +45,14 @@ router.post('/nuclear', authenticate, authorize('admin'), async (req, res) => {
       success: true,
       message: 'Database reset complete. All tables recreated from migrations.',
     });
+    return;
   } catch (error: any) {
     console.error('❌ Database reset failed:', error);
     res.status(500).json({
       success: false,
       error: error.message,
     });
+    return;
   }
 });
 
