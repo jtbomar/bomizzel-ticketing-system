@@ -6,39 +6,45 @@ exports.up = async function(knex) {
   console.log('🚀 Starting data backfill - Phase 1b: Populating org_id values');
 
   // Backfill tickets.org_id from company_id
-  const ticketsUpdated = await knex('tickets')
-    .whereNull('org_id')
-    .whereNotNull('company_id')
-    .update({ org_id: knex.raw('company_id') });
-  console.log(`✅ Backfilled org_id for ${ticketsUpdated} tickets`);
+  await knex.raw(`
+    UPDATE tickets
+    SET org_id = company_id
+    WHERE org_id IS NULL AND company_id IS NOT NULL
+  `);
+  const ticketsCount = await knex('tickets').whereNotNull('org_id').count('* as count').first();
+  console.log(`✅ Backfilled org_id for ${ticketsCount?.count || 0} tickets`);
 
   // Backfill queues.org_id from company_id
-  const queuesUpdated = await knex('queues')
-    .whereNull('org_id')
-    .whereNotNull('company_id')
-    .update({ org_id: knex.raw('company_id') });
-  console.log(`✅ Backfilled org_id for ${queuesUpdated} queues`);
+  await knex.raw(`
+    UPDATE queues
+    SET org_id = company_id
+    WHERE org_id IS NULL AND company_id IS NOT NULL
+  `);
+  console.log(`✅ Backfilled org_id for queues`);
 
   // Backfill teams.org_id from company_id
-  const teamsUpdated = await knex('teams')
-    .whereNull('org_id')
-    .whereNotNull('company_id')
-    .update({ org_id: knex.raw('company_id') });
-  console.log(`✅ Backfilled org_id for ${teamsUpdated} teams`);
+  await knex.raw(`
+    UPDATE teams
+    SET org_id = company_id
+    WHERE org_id IS NULL AND company_id IS NOT NULL
+  `);
+  console.log(`✅ Backfilled org_id for teams`);
 
   // Backfill custom_fields.org_id from company_id
-  const customFieldsUpdated = await knex('custom_fields')
-    .whereNull('org_id')
-    .whereNotNull('company_id')
-    .update({ org_id: knex.raw('company_id') });
-  console.log(`✅ Backfilled org_id for ${customFieldsUpdated} custom_fields`);
+  await knex.raw(`
+    UPDATE custom_fields
+    SET org_id = company_id
+    WHERE org_id IS NULL AND company_id IS NOT NULL
+  `);
+  console.log(`✅ Backfilled org_id for custom_fields`);
 
   // Backfill departments.org_id from company_id
-  const departmentsUpdated = await knex('departments')
-    .whereNull('org_id')
-    .whereNotNull('company_id')
-    .update({ org_id: knex.raw('company_id') });
-  console.log(`✅ Backfilled org_id for ${departmentsUpdated} departments`);
+  await knex.raw(`
+    UPDATE departments
+    SET org_id = company_id
+    WHERE org_id IS NULL AND company_id IS NOT NULL
+  `);
+  console.log(`✅ Backfilled org_id for departments`);
 
   // Backfill ticket_notes.org_id from tickets
   const ticketNotesUpdated = await knex.raw(`
