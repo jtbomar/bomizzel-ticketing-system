@@ -91,17 +91,15 @@ exports.up = async function(knex) {
     console.log('⚠️  Skipping files backfill - table does not exist');
   }
 
-  // Set current_org_id for users based on their default or most recent org
+  // Set current_org_id for users based on their first org association
+  // Note: is_default and last_accessed_at columns don't exist yet, so just use first association
   const usersUpdated = await knex.raw(`
     UPDATE users
     SET current_org_id = (
       SELECT company_id
       FROM user_company_associations
       WHERE user_company_associations.user_id = users.id
-      ORDER BY 
-        CASE WHEN is_default = true THEN 0 ELSE 1 END,
-        last_accessed_at DESC NULLS LAST,
-        created_at DESC
+      ORDER BY created_at ASC
       LIMIT 1
     )
     WHERE current_org_id IS NULL
