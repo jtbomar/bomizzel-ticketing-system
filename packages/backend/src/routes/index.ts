@@ -41,6 +41,7 @@ import fixDatabaseRoutes from './fixDatabase';
 import seedMissingDataRoutes from './seedMissingData';
 import seedStatusesRoutes from './seedStatuses';
 import organizationsRoutes from './organizations';
+import databaseResetRoutes from './databaseReset';
 
 const router = Router();
 
@@ -88,6 +89,7 @@ router.use('/reseed', reseedRoutes);
 router.use('/fix', fixDatabaseRoutes);
 router.use('/seed', seedMissingDataRoutes);
 router.use('/setup', seedStatusesRoutes); // Mount at /setup so endpoint is /api/setup/seed-statuses
+router.use('/database-reset', databaseResetRoutes); // DANGER: Database reset endpoints
 
 // Simple cleanup endpoint
 router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) => {
