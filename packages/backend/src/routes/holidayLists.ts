@@ -79,22 +79,46 @@ router.post('/', authenticate, async (req, res) => {
     
     const companyId = userCompany.company_id;
 
+    // Get user's current org
+    const user = await db('users').where('id', req.user!.id).first();
+    let orgId = user.current_org_id;
+
+    // If no org is set, try to get the first organization for this user
+    if (!orgId) {
+      const userOrg = await db('user_organization_associations')
+        .where('user_id', req.user!.id)
+        .first();
+      
+      if (userOrg) {
+        orgId = userOrg.org_id;
+      } else {
+        // Fallback: use company_id as org_id
+        orgId = companyId;
+      }
+    }
+
     const { holidayList, holidays } = req.body;
 
     if (!holidayList) {
       return res.status(400).json({ error: 'Holiday list data is required' });
     }
 
-    const holidayListData = {
+    const holidayListData: any = {
       ...holidayList,
-      company_id: companyId
+      company_id: companyId,
     };
+
+    // Only add org_id if the column exists
+    const hasOrgId = await db.schema.hasColumn('holiday_lists', 'org_id');
+    if (hasOrgId) {
+      holidayListData.org_id = orgId;
+    }
 
     const result = await HolidayListService.createHolidayList(holidayListData, holidays || []);
     return res.status(201).json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating holiday list:', error);
-    return res.status(500).json({ error: 'Failed to create holiday list' });
+    return res.status(500).json({ error: 'Failed to create holiday list', details: error.message });
   }
 });
 
