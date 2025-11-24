@@ -128,19 +128,30 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const companyId = userCompany.company_id;
 
     // Create department with org_id
+    const departmentData: any = {
+      company_id: companyId,
+      org_id: orgId,
+      name,
+      description,
+      logo,
+      color: color || '#3B82F6',
+      is_active: is_active !== false,
+      is_default: is_default || false,
+    };
+
+    // Only add new fields if they exist in the schema
+    const hasDisplayName = await db.schema.hasColumn('departments', 'display_name');
+    const hasDisplayInHelpCenter = await db.schema.hasColumn('departments', 'display_in_help_center');
+    
+    if (hasDisplayName) {
+      departmentData.display_name = display_name || name;
+    }
+    if (hasDisplayInHelpCenter) {
+      departmentData.display_in_help_center = display_in_help_center !== false;
+    }
+
     const [department] = await db('departments')
-      .insert({
-        company_id: companyId,
-        org_id: orgId,
-        name,
-        description,
-        display_name: display_name || name,
-        logo,
-        color: color || '#3B82F6',
-        is_active: is_active !== false,
-        is_default: is_default || false,
-        display_in_help_center: display_in_help_center !== false,
-      })
+      .insert(departmentData)
       .returning('*');
 
     console.log('Department created:', department.id);
