@@ -115,11 +115,16 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Schedule must contain days 0-6 (Sunday-Saturday)' });
     }
 
-    const businessHoursData = {
+    const businessHoursData: any = {
       ...businessHours,
       company_id: companyId,
-      org_id: orgId
     };
+
+    // Only add org_id if the column exists
+    const hasOrgId = await db.schema.hasColumn('business_hours', 'org_id');
+    if (hasOrgId) {
+      businessHoursData.org_id = orgId;
+    }
 
     const result = await BusinessHoursService.createBusinessHours(businessHoursData, schedule);
     return res.status(201).json(result);
