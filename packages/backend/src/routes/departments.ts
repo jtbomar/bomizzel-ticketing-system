@@ -84,6 +84,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { name, description, display_name, logo, color, is_active, is_default, display_in_help_center, associate_agent } = req.body;
 
+    console.log('Creating department:', { name, user: req.user?.email });
+
     if (!name) {
       return res.status(400).json({ error: 'Department name is required' });
     }
@@ -93,16 +95,34 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       .where('user_id', req.user!.id)
       .first();
     
+    console.log('User company:', userCompany);
+    
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
 
-    // Get user's current org
+    // Get user's current org - if not set, use the company_id as org_id
     const user = await db('users').where('id', req.user!.id).first();
-    const orgId = user.current_org_id;
+    let orgId = user.current_org_id;
 
+    console.log('User current_org_id:', orgId);
+
+    // If no org is set, try to get the first organization for this user
     if (!orgId) {
-      return res.status(400).json({ error: 'No organization selected' });
+      const userOrg = await db('user_organization_associations')
+        .where('user_id', req.user!.id)
+        .first();
+      
+      if (userOrg) {
+        orgId = userOrg.org_id;
+        // Update user's current_org_id
+        await db('users').where('id', req.user!.id).update({ current_org_id: orgId });
+        console.log('Set user org_id to:', orgId);
+      } else {
+        // Fallback: use company_id as org_id (for backwards compatibility)
+        orgId = userCompany.company_id;
+        console.log('Using company_id as org_id:', orgId);
+      }
     }
 
     const companyId = userCompany.company_id;
@@ -122,6 +142,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
         display_in_help_center: display_in_help_center !== false,
       })
       .returning('*');
+
+    console.log('Department created:', department.id);
 
     // If associate_agent is provided, add them to the department
     if (associate_agent) {
