@@ -7,7 +7,7 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc --noEmit false || tsc --skipLibCheck --noEmit false",
     "build:prod": "tsc --skipLibCheck --noEmit false",
-    "start": "node dist/index.js",
+    "start": "npm run migrate && node dist/index.js",
     "start:prod": "npm run build:prod && npm run migrate && node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
