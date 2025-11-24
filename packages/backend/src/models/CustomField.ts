@@ -15,8 +15,13 @@ export class CustomField extends BaseModel {
     validation?: Record<string, any>;
     order?: number;
   }): Promise<CustomFieldTable> {
+    // Get org_id from the team
+    const team = await this.db('teams').where('id', fieldData.teamId).first();
+    const orgId = team?.org_id;
+
     return this.create({
       team_id: fieldData.teamId,
+      org_id: orgId,
       name: fieldData.name,
       label: fieldData.label,
       type: fieldData.type,
