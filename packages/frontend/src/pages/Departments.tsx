@@ -131,12 +131,12 @@ const Departments: React.FC = () => {
 
   const fetchAvailableUsers = async () => {
     try {
-      // Get all users and filter to only agents (admin and agent roles)
+      // Get all users and filter to only agents (admin and employee roles)
       const response = await apiService.getUsers({ limit: 100 });
       const allUsers = response.data || [];
       // Filter to only show agents, not customers
       const agents = allUsers.filter((user: User) => 
-        ['admin', 'agent'].includes(user.role)
+        ['admin', 'employee'].includes(user.role)
       );
       setAvailableUsers(agents);
     } catch (error) {
