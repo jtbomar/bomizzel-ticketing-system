@@ -131,9 +131,14 @@ const Departments: React.FC = () => {
 
   const fetchAvailableUsers = async () => {
     try {
-      // Get all users (you might want to filter this based on role)
+      // Get all users and filter to only agents (admin and agent roles)
       const response = await apiService.getUsers({ limit: 100 });
-      setAvailableUsers(response.data || []);
+      const allUsers = response.data || [];
+      // Filter to only show agents, not customers
+      const agents = allUsers.filter((user: User) => 
+        ['admin', 'agent'].includes(user.role)
+      );
+      setAvailableUsers(agents);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
