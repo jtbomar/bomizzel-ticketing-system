@@ -104,6 +104,59 @@ router.get('/badges', authenticate, async (req, res) => {
   }
 });
 
+// Create badge (admin only)
+router.post('/badges', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, description, icon, level, required_points } = req.body;
+
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
+    }
+
+    const [badge] = await db('badges')
+      .insert({
+        company_id: userCompany.company_id,
+        name,
+        description,
+        icon,
+        level,
+        required_points,
+        is_active: true,
+      })
+      .returning('*');
+
+    return res.status(201).json(badge);
+  } catch (error: any) {
+    console.error('Error creating badge:', error);
+    return res.status(500).json({ error: 'Failed to create badge' });
+  }
+});
+
+// Update badge
+router.put('/badges/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const [badge] = await db('badges')
+      .where('id', id)
+      .update({
+        ...updates,
+        updated_at: db.fn.now(),
+      })
+      .returning('*');
+
+    return res.json(badge);
+  } catch (error: any) {
+    console.error('Error updating badge:', error);
+    return res.status(500).json({ error: 'Failed to update badge' });
+  }
+});
+
 // Get leaderboard
 router.get('/leaderboard', authenticate, async (req, res) => {
   try {
