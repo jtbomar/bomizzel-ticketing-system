@@ -100,6 +100,15 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new product
 router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
+    // Check if products table exists
+    const tableExists = await db.schema.hasTable('products');
+    if (!tableExists) {
+      return res.status(503).json({ 
+        error: 'Products feature not yet available', 
+        details: 'Database migration pending. Please try again in a few minutes.' 
+      });
+    }
+
     const { product_code, name, description, department_id } = req.body;
 
     if (!product_code || !name || !department_id) {
