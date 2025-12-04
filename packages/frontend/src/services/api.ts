@@ -1229,6 +1229,16 @@ class ApiService {
     return response.data;
   }
 
+  async createBadge(data: any): Promise<any> {
+    const response = await this.client.post('/gamification/badges', data);
+    return response.data;
+  }
+
+  async updateBadge(id: number, data: any): Promise<any> {
+    const response = await this.client.put(`/gamification/badges/${id}`, data);
+    return response.data;
+  }
+
   // User Profiles
   async getUserProfiles(): Promise<any> {
     const response = await this.client.get('/user-profiles');
