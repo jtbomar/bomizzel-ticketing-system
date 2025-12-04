@@ -7,6 +7,13 @@ const router = express.Router();
 // Get all products (optionally filtered by department)
 router.get('/', authenticate, async (req, res) => {
   try {
+    // Check if products table exists
+    const tableExists = await db.schema.hasTable('products');
+    if (!tableExists) {
+      console.log('Products table does not exist yet');
+      return res.json([]); // Return empty array if table doesn't exist
+    }
+
     const { department_id } = req.query;
     
     // Get user's company
@@ -45,7 +52,12 @@ router.get('/', authenticate, async (req, res) => {
     return res.json(enrichedProducts);
   } catch (error: any) {
     console.error('Error fetching products:', error);
-    return res.status(500).json({ error: 'Failed to fetch products', details: error.message });
+    console.error('Error stack:', error.stack);
+    return res.status(500).json({ 
+      error: 'Failed to fetch products', 
+      details: error.message,
+      code: error.code 
+    });
   }
 });
 
