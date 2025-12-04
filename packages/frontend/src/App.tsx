@@ -32,6 +32,7 @@ import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
 import OrganizationalRoles from './pages/OrganizationalRoles';
 import Products from './pages/Products';
+import Gamification from './pages/Gamification';
 import TicketStatusManagement from './pages/TicketStatusManagement';
 import AgentCreateTicketForm from './components/AgentCreateTicketForm';
 import AgentAccountsList from './pages/AgentAccountsList';
@@ -244,6 +245,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <Products />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/game-scope" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Gamification />
                 </ProtectedRoute>
               } 
             />

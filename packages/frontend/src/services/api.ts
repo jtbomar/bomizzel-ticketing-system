@@ -1203,6 +1203,22 @@ class ApiService {
     return response.data;
   }
 
+  // Gamification
+  async getTrophies(): Promise<any> {
+    const response = await this.client.get('/gamification/trophies');
+    return response.data;
+  }
+
+  async getBadges(): Promise<any> {
+    const response = await this.client.get('/gamification/badges');
+    return response.data;
+  }
+
+  async getLeaderboard(): Promise<any> {
+    const response = await this.client.get('/gamification/leaderboard');
+    return response.data;
+  }
+
   // User Profiles
   async getUserProfiles(): Promise<any> {
     const response = await this.client.get('/user-profiles');
