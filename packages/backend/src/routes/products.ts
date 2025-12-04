@@ -7,6 +7,8 @@ const router = express.Router();
 
 // Get all products (optionally filtered by department)
 router.get('/', authenticate, async (req, res) => {
+  console.log('Fetching products...');
+
   try {
     const { department_id } = req.query;
     const { companyId, orgId } = await getUserCompanyAndOrg(req.user!.id);
