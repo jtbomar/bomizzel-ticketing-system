@@ -4,6 +4,7 @@ import authRoutes from './auth';
 import userRoutes from './users';
 import companyRoutes from './companies';
 import departmentRoutes from './departments';
+import productRoutes from './products';
 import teamRoutes from './teams';
 import customFieldRoutes from './customFields';
 import ticketRoutes from './tickets';
@@ -58,6 +59,7 @@ router.use('/users', userRoutes);
 router.use('/agents', agentsRoutes); // Agent management endpoints
 router.use('/companies', companyRoutes);
 router.use('/departments', departmentRoutes);
+router.use('/products', productRoutes);
 router.use('/teams', teamRoutes);
 router.use('/teams', ticketStatusRoutes);
 router.use('/custom-fields', customFieldRoutes);

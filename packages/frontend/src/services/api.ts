@@ -1182,6 +1182,27 @@ class ApiService {
     return response.data;
   }
 
+  // Products
+  async getProducts(params?: { department_id?: string }): Promise<any> {
+    const response = await this.client.get('/products', { params });
+    return response.data;
+  }
+
+  async createProduct(data: { product_code: string; name: string; description?: string; department_id: string }): Promise<any> {
+    const response = await this.client.post('/products', data);
+    return response.data;
+  }
+
+  async updateProduct(id: number, data: { product_code?: string; name?: string; description?: string }): Promise<any> {
+    const response = await this.client.put(`/products/${id}`, data);
+    return response.data;
+  }
+
+  async deleteProduct(id: number): Promise<any> {
+    const response = await this.client.delete(`/products/${id}`);
+    return response.data;
+  }
+
   // User Profiles
   async getUserProfiles(): Promise<any> {
     const response = await this.client.get('/user-profiles');

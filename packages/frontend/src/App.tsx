@@ -31,6 +31,7 @@ import Departments from './pages/Departments';
 import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
 import OrganizationalRoles from './pages/OrganizationalRoles';
+import Products from './pages/Products';
 import TicketStatusManagement from './pages/TicketStatusManagement';
 import AgentCreateTicketForm from './components/AgentCreateTicketForm';
 import AgentAccountsList from './pages/AgentAccountsList';
@@ -235,6 +236,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <OrganizationalRoles />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/products" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Products />
                 </ProtectedRoute>
               } 
             />
