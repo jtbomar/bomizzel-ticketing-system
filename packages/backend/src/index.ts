@@ -3,10 +3,31 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import { connectRedis } from './config/redis';
-// Restart trigger 3 - Deploy to run status migration
+import { execSync } from 'child_process';
+import path from 'path';
 
-// Load environment variables
+// Load environment variables first
 dotenv.config();
+
+// Run migrations before starting server
+console.log('🔄 Running database migrations...');
+try {
+  const env = process.env.NODE_ENV || (process.env.DATABASE_URL ? 'production' : 'development');
+  console.log(`🎯 Environment: ${env}`);
+  
+  const migrateCommand = `npx knex migrate:latest --knexfile knexfile.js --env ${env}`;
+  console.log(`⚙️  Command: ${migrateCommand}`);
+  
+  execSync(migrateCommand, { 
+    stdio: 'inherit',
+    cwd: __dirname.includes('dist') ? path.resolve(__dirname, '..') : __dirname
+  });
+  
+  console.log('✅ Migrations completed');
+} catch (error: any) {
+  console.error('❌ Migration failed:', error.message);
+  // Don't exit - let the server start anyway
+}
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
