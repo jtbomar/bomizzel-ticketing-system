@@ -126,9 +126,18 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     
     const companyId = userCompany.company_id;
     
-    // Get org_id
+    // Get org_id - only use if it exists in organizations table
     const user = await db('users').where('id', req.user!.id).first();
-    let orgId = user?.current_org_id || companyId;
+    let orgId = user?.current_org_id;
+    
+    // Verify org_id exists in organizations table
+    if (orgId) {
+      const orgExists = await db('organizations').where('id', orgId).first();
+      if (!orgExists) {
+        console.log(`⚠️  org_id ${orgId} not found in organizations table, setting to null`);
+        orgId = null;
+      }
+    }
 
     // Check if product code already exists in this department
     const existing = await db('products')
@@ -149,9 +158,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       is_active: true,
     };
 
-    // Only add org_id if column exists
+    // Only add org_id if it's valid and column exists
     const hasOrgId = await db.schema.hasColumn('products', 'org_id');
-    if (hasOrgId) {
+    if (hasOrgId && orgId) {
       productData.org_id = orgId;
     }
 
