@@ -1219,6 +1219,16 @@ class ApiService {
     return response.data;
   }
 
+  async createTrophy(data: any): Promise<any> {
+    const response = await this.client.post('/gamification/trophies', data);
+    return response.data;
+  }
+
+  async updateTrophy(id: number, data: any): Promise<any> {
+    const response = await this.client.put(`/gamification/trophies/${id}`, data);
+    return response.data;
+  }
+
   // User Profiles
   async getUserProfiles(): Promise<any> {
     const response = await this.client.get('/user-profiles');
