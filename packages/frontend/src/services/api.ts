@@ -1167,6 +1167,21 @@ class ApiService {
     return response.data;
   }
 
+  async createOrganizationalRole(data: { name: string; description?: string; hierarchy_level: number }): Promise<any> {
+    const response = await this.client.post('/organizational-roles', data);
+    return response.data;
+  }
+
+  async updateOrganizationalRole(id: number, data: { name?: string; description?: string; hierarchy_level?: number }): Promise<any> {
+    const response = await this.client.put(`/organizational-roles/${id}`, data);
+    return response.data;
+  }
+
+  async deleteOrganizationalRole(id: number): Promise<any> {
+    const response = await this.client.delete(`/organizational-roles/${id}`);
+    return response.data;
+  }
+
   // User Profiles
   async getUserProfiles(): Promise<any> {
     const response = await this.client.get('/user-profiles');

@@ -30,6 +30,7 @@ import HolidayList from './pages/HolidayList';
 import Departments from './pages/Departments';
 import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
+import OrganizationalRoles from './pages/OrganizationalRoles';
 import TicketStatusManagement from './pages/TicketStatusManagement';
 import AgentCreateTicketForm from './components/AgentCreateTicketForm';
 import AgentAccountsList from './pages/AgentAccountsList';
@@ -226,6 +227,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <Agents />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/roles" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <OrganizationalRoles />
                 </ProtectedRoute>
               } 
             />
