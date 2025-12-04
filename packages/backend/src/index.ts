@@ -24,6 +24,17 @@ try {
   console.log(`📂 Working directory: ${workingDir}`);
   console.log(`📍 Current __dirname: ${__dirname}`);
   
+  // First, clean up old migration records
+  console.log('🧹 Cleaning up old migration records...');
+  try {
+    execSync('node scripts/cleanup-migrations.js', { 
+      stdio: 'inherit',
+      cwd: workingDir
+    });
+  } catch (cleanupError) {
+    console.log('⚠️  Cleanup script failed (may not be needed)');
+  }
+  
   const migrateCommand = `npx knex migrate:latest --knexfile knexfile.js --env ${env}`;
   console.log(`⚙️  Command: ${migrateCommand}`);
   

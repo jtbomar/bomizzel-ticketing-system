@@ -1,31 +1,45 @@
-/**
- * Cleanup script to remove old migration records
- * Run this manually: node scripts/cleanup-migrations.js
- */
-const knex = require('knex');
-const knexConfig = require('../knexfile');
+#!/usr/bin/env node
 
-async function cleanup() {
-  const db = knex(knexConfig.production);
+const { Client } = require('pg');
+require('dotenv').config();
+
+async function cleanupMigrations() {
+  console.log('🧹 Cleaning up old migration records...');
   
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+  });
+
   try {
-    console.log('🧹 Cleaning up old migration records...');
-    
-    const deleted = await db('knex_migrations')
-      .whereIn('name', [
+    await client.connect();
+    console.log('✅ Connected to database');
+
+    const result = await client.query(`
+      DELETE FROM knex_migrations 
+      WHERE name IN (
         '20251122100000_add_org_id_to_tables.js',
         '20251122110000_backfill_org_id_data.js',
         '20251122120000_enhance_user_company_associations.js'
-      ])
-      .del();
+      )
+      RETURNING name
+    `);
+
+    console.log(`✅ Deleted ${result.rowCount} old migration records`);
     
-    console.log(`✅ Removed ${deleted} old migration records`);
-    console.log('✅ Database is clean. You can now run migrations.');
+    if (result.rows.length > 0) {
+      console.log('Deleted migrations:');
+      result.rows.forEach(row => console.log(`  - ${row.name}`));
+    }
+
+    await client.end();
+    console.log('✅ Cleanup complete!');
+    process.exit(0);
   } catch (error) {
     console.error('❌ Error:', error.message);
-  } finally {
-    await db.destroy();
+    await client.end();
+    process.exit(1);
   }
 }
 
-cleanup();
+cleanupMigrations();
