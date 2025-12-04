@@ -1,17 +1,24 @@
 import express from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
-import { getUserCompanyAndOrg } from '../utils/orgContext';
 
 const router = express.Router();
 
 // Get all products (optionally filtered by department)
 router.get('/', authenticate, async (req, res) => {
-  console.log('Fetching products...');
-
   try {
     const { department_id } = req.query;
-    const { companyId, orgId } = await getUserCompanyAndOrg(req.user!.id);
+    
+    // Get user's company
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
+    }
+    
+    const companyId = userCompany.company_id;
 
     let query = db('products')
       .where('company_id', companyId)
@@ -46,7 +53,16 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    const { companyId } = await getUserCompanyAndOrg(req.user!.id);
+    
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
+    }
+    
+    const companyId = userCompany.company_id;
 
     const product = await db('products')
       .where('id', parseInt(id))
@@ -78,7 +94,20 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       return res.status(400).json({ error: 'Product code, name, and department are required' });
     }
 
-    const { companyId, orgId } = await getUserCompanyAndOrg(req.user!.id);
+    // Get user's company
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
+    }
+    
+    const companyId = userCompany.company_id;
+    
+    // Get org_id
+    const user = await db('users').where('id', req.user!.id).first();
+    let orgId = user?.current_org_id || companyId;
 
     // Check if product code already exists in this department
     const existing = await db('products')
@@ -122,7 +151,16 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { product_code, name, description, is_active } = req.body;
-    const { companyId } = await getUserCompanyAndOrg(req.user!.id);
+    
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
+    }
+    
+    const companyId = userCompany.company_id;
 
     const product = await db('products')
       .where('id', parseInt(id))
@@ -174,7 +212,16 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
 router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { companyId } = await getUserCompanyAndOrg(req.user!.id);
+    
+    const userCompany = await db('user_company_associations')
+      .where('user_id', req.user!.id)
+      .first();
+    
+    if (!userCompany) {
+      return res.status(400).json({ error: 'User not associated with any company' });
+    }
+    
+    const companyId = userCompany.company_id;
 
     const product = await db('products')
       .where('id', parseInt(id))
