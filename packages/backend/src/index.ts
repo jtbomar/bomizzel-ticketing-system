@@ -15,17 +15,27 @@ try {
   const env = process.env.NODE_ENV || (process.env.DATABASE_URL ? 'production' : 'development');
   console.log(`🎯 Environment: ${env}`);
   
+  // Determine the correct working directory
+  // In production (Railway), __dirname will be /app/dist, so we need to go up to /app
+  const workingDir = __dirname.includes('dist') 
+    ? path.resolve(__dirname, '..') 
+    : path.resolve(__dirname, '..');
+  
+  console.log(`📂 Working directory: ${workingDir}`);
+  console.log(`📍 Current __dirname: ${__dirname}`);
+  
   const migrateCommand = `npx knex migrate:latest --knexfile knexfile.js --env ${env}`;
   console.log(`⚙️  Command: ${migrateCommand}`);
   
   execSync(migrateCommand, { 
     stdio: 'inherit',
-    cwd: __dirname.includes('dist') ? path.resolve(__dirname, '..') : __dirname
+    cwd: workingDir
   });
   
   console.log('✅ Migrations completed');
 } catch (error: any) {
   console.error('❌ Migration failed:', error.message);
+  console.error('Error details:', error);
   // Don't exit - let the server start anyway
 }
 
