@@ -30,6 +30,7 @@ import HolidayList from './pages/HolidayList';
 import Departments from './pages/Departments';
 import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
+import Teams from './pages/Teams';
 import OrganizationalRoles from './pages/OrganizationalRoles';
 import Products from './pages/Products';
 import Gamification from './pages/Gamification';
@@ -229,6 +230,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <Agents />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/teams" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Teams />
                 </ProtectedRoute>
               } 
             />
