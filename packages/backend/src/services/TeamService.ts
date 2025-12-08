@@ -8,6 +8,7 @@ import {
   TeamMembership,
   PaginatedResponse,
 } from '@/types/models';
+import { TeamTable } from '@/types/database';
 
 export class TeamService {
   /**
@@ -59,11 +60,21 @@ export class TeamService {
       const { page = 1, limit = 25, search, isActive } = options;
       const offset = (page - 1) * limit;
 
-      const teams = await Team.findActiveTeams({
-        limit,
-        offset,
-        search,
-      });
+      // Build query for teams
+      let teamsQuery = Team.query;
+
+      if (isActive !== undefined) {
+        teamsQuery = teamsQuery.where('is_active', isActive);
+      }
+
+      if (search) {
+        teamsQuery = teamsQuery.where('name', 'ilike', `%${search}%`);
+      }
+
+      const teams = await teamsQuery
+        .limit(limit)
+        .offset(offset)
+        .orderBy('name', 'asc');
 
       // Get total count
       let countQuery = Team.query;
@@ -79,7 +90,7 @@ export class TeamService {
       const total = await countQuery.count('* as count').first();
       const totalCount = parseInt(total?.count || '0', 10);
 
-      const teamModels = teams.map((team) => Team.toModel(team));
+      const teamModels = teams.map((team: TeamTable) => Team.toModel(team));
 
       return {
         data: teamModels,

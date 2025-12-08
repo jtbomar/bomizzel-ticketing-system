@@ -6,8 +6,9 @@ interface Team {
   id: string;
   name: string;
   description?: string;
-  is_active: boolean;
-  created_at: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
   member_count?: number;
 }
 
@@ -98,8 +99,8 @@ const Teams: React.FC = () => {
 
   const toggleTeamStatus = async (team: Team) => {
     try {
-      console.log('[Teams] Toggling team status:', team.id, 'from', team.is_active, 'to', !team.is_active);
-      const response = await apiService.updateTeam(team.id, { isActive: !team.is_active });
+      console.log('[Teams] Toggling team status:', team.id, 'from', team.isActive, 'to', !team.isActive);
+      const response = await apiService.updateTeam(team.id, { isActive: !team.isActive });
       console.log('[Teams] Toggle response:', response);
       await fetchTeams();
     } catch (error: any) {
@@ -230,8 +231,8 @@ const Teams: React.FC = () => {
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                           <span>{team.member_count || 0} members</span>
                           <span>•</span>
-                          <span className={team.is_active ? 'text-green-600' : 'text-gray-400'}>
-                            {team.is_active ? 'Active' : 'Inactive'}
+                          <span className={team.isActive ? 'text-green-600' : 'text-gray-400'}>
+                            {team.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </div>
                       </div>
@@ -246,7 +247,7 @@ const Teams: React.FC = () => {
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={team.is_active}
+                          checked={team.isActive}
                           onChange={() => toggleTeamStatus(team)}
                           className="sr-only peer"
                         />
