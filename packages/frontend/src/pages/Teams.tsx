@@ -32,9 +32,17 @@ const Teams: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiService.getTeams();
-      setTeams(response.data || response);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
+      console.log('[Teams] API Response:', response);
+      
+      // Handle different response structures
+      const teamsData = response.data?.data || response.data || response;
+      console.log('[Teams] Teams data:', teamsData);
+      
+      setTeams(Array.isArray(teamsData) ? teamsData : []);
+    } catch (error: any) {
+      console.error('[Teams] Error fetching teams:', error);
+      console.error('[Teams] Error details:', error.response?.data);
+      alert(`Failed to load teams: ${error.response?.data?.error?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -65,16 +73,24 @@ const Teams: React.FC = () => {
 
     try {
       setSaving(true);
+      console.log('[Teams] Saving team:', formData, 'Editing:', editingTeam?.id);
+      
       if (editingTeam) {
-        await apiService.updateTeam(editingTeam.id, formData);
+        const response = await apiService.updateTeam(editingTeam.id, formData);
+        console.log('[Teams] Update response:', response);
       } else {
-        await apiService.createTeam(formData);
+        const response = await apiService.createTeam(formData);
+        console.log('[Teams] Create response:', response);
       }
+      
       await fetchTeams();
       setIsEditing(false);
       setEditingTeam(null);
     } catch (error: any) {
-      alert(`Failed to save team: ${error.response?.data?.error || error.message}`);
+      console.error('[Teams] Save error:', error);
+      console.error('[Teams] Error response:', error.response?.data);
+      const errorMsg = error.response?.data?.error?.message || error.response?.data?.error || error.message;
+      alert(`Failed to save team: ${errorMsg}`);
     } finally {
       setSaving(false);
     }
@@ -82,10 +98,15 @@ const Teams: React.FC = () => {
 
   const toggleTeamStatus = async (team: Team) => {
     try {
-      await apiService.updateTeam(team.id, { isActive: !team.is_active });
+      console.log('[Teams] Toggling team status:', team.id, 'from', team.is_active, 'to', !team.is_active);
+      const response = await apiService.updateTeam(team.id, { isActive: !team.is_active });
+      console.log('[Teams] Toggle response:', response);
       await fetchTeams();
     } catch (error: any) {
-      alert(`Failed to update team: ${error.response?.data?.error || error.message}`);
+      console.error('[Teams] Toggle error:', error);
+      console.error('[Teams] Error response:', error.response?.data);
+      const errorMsg = error.response?.data?.error?.message || error.response?.data?.error || error.message;
+      alert(`Failed to update team: ${errorMsg}`);
     }
   };
 
