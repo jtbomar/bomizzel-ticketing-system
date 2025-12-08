@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
+import IconPicker from '../components/IconPicker';
 
 const Gamification: React.FC = () => {
   const navigate = useNavigate();
@@ -273,12 +274,10 @@ const Gamification: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                    <input
-                      type="text"
+                    <IconPicker
                       value={trophyForm.icon}
-                      onChange={(e) => setTrophyForm({ ...trophyForm, icon: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      placeholder="🏆"
+                      onChange={(icon) => setTrophyForm({ ...trophyForm, icon })}
+                      type="trophy"
                     />
                   </div>
 
@@ -432,12 +431,10 @@ const Gamification: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Icon</label>
-                    <input
-                      type="text"
+                    <IconPicker
                       value={badgeForm.icon}
-                      onChange={(e) => setBadgeForm({ ...badgeForm, icon: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      placeholder="🎖️"
+                      onChange={(icon) => setBadgeForm({ ...badgeForm, icon })}
+                      type="badge"
                     />
                   </div>
 
