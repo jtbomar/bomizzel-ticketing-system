@@ -60,21 +60,25 @@ export class TeamService {
       const { page = 1, limit = 25, search, isActive } = options;
       const offset = (page - 1) * limit;
 
-      // Build query for teams
-      let teamsQuery = Team.query;
+      // Build query for teams with member counts
+      let teamsQuery = Team.query
+        .leftJoin('team_memberships', 'teams.id', 'team_memberships.team_id')
+        .select('teams.*')
+        .count('team_memberships.user_id as member_count')
+        .groupBy('teams.id');
 
       if (isActive !== undefined) {
-        teamsQuery = teamsQuery.where('is_active', isActive);
+        teamsQuery = teamsQuery.where('teams.is_active', isActive);
       }
 
       if (search) {
-        teamsQuery = teamsQuery.where('name', 'ilike', `%${search}%`);
+        teamsQuery = teamsQuery.where('teams.name', 'ilike', `%${search}%`);
       }
 
       const teams = await teamsQuery
         .limit(limit)
         .offset(offset)
-        .orderBy('name', 'asc');
+        .orderBy('teams.name', 'asc');
 
       // Get total count
       let countQuery = Team.query;
@@ -90,7 +94,10 @@ export class TeamService {
       const total = await countQuery.count('* as count').first();
       const totalCount = parseInt(total?.count || '0', 10);
 
-      const teamModels = teams.map((team: TeamTable) => Team.toModel(team));
+      const teamModels = teams.map((team: any) => ({
+        ...Team.toModel(team),
+        member_count: parseInt(team.member_count || '0', 10),
+      }));
 
       return {
         data: teamModels,
