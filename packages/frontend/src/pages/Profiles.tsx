@@ -1,11 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+interface ProfileField {
+  id: number;
+  name: string;
+  type: string;
+  required: boolean;
+  enabled: boolean;
+}
+
 const Profiles: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'fields' | 'layouts'>('fields');
-
-  const profileFields = [
+  const [profileFields, setProfileFields] = useState<ProfileField[]>([
     { id: 1, name: 'First Name', type: 'text', required: true, enabled: true },
     { id: 2, name: 'Last Name', type: 'text', required: true, enabled: true },
     { id: 3, name: 'Email', type: 'email', required: true, enabled: true },
@@ -16,7 +23,18 @@ const Profiles: React.FC = () => {
     { id: 8, name: 'Time Zone', type: 'select', required: false, enabled: true },
     { id: 9, name: 'Language', type: 'select', required: false, enabled: true },
     { id: 10, name: 'Profile Picture', type: 'file', required: false, enabled: true },
-  ];
+  ]);
+
+  const toggleFieldEnabled = (fieldId: number) => {
+    setProfileFields(fields =>
+      fields.map(field => {
+        if (field.id === fieldId && !field.required) {
+          return { ...field, enabled: !field.enabled };
+        }
+        return field;
+      })
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -68,11 +86,19 @@ const Profiles: React.FC = () => {
           <div className="p-6">
             {activeTab === 'fields' ? (
               <div>
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Profile Fields</h3>
-                  <p className="text-sm text-gray-600">
-                    Configure which fields are available and required in user profiles
-                  </p>
+                <div className="mb-6 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Profile Fields</h3>
+                    <p className="text-sm text-gray-600">
+                      Configure which fields are available and required in user profiles
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => alert('Profile field settings saved!')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Save Changes
+                  </button>
                 </div>
 
                 <div className="space-y-2">
@@ -98,15 +124,19 @@ const Profiles: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={field.enabled}
-                            onChange={() => {}}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
+                        {field.required ? (
+                          <span className="text-xs text-gray-500 italic">Always enabled</span>
+                        ) : (
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={field.enabled}
+                              onChange={() => toggleFieldEnabled(field.id)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        )}
                       </div>
                     </div>
                   ))}
