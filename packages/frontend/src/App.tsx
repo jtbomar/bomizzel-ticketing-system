@@ -32,6 +32,7 @@ import CustomerHappiness from './pages/CustomerHappiness';
 import Agents from './pages/Agents';
 import Teams from './pages/Teams';
 import OrganizationalRoles from './pages/OrganizationalRoles';
+import Profiles from './pages/Profiles';
 import Products from './pages/Products';
 import Gamification from './pages/Gamification';
 import TicketStatusManagement from './pages/TicketStatusManagement';
@@ -246,6 +247,14 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="admin">
                   <OrganizationalRoles />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/settings/profiles" 
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <Profiles />
                 </ProtectedRoute>
               } 
             />
