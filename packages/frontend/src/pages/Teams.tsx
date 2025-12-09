@@ -12,6 +12,15 @@ interface Team {
   member_count?: number;
 }
 
+interface TeamMember {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  teamRole: string;
+  membershipDate: string;
+}
+
 const Teams: React.FC = () => {
   const navigate = useNavigate();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -19,6 +28,13 @@ const Teams: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [saving, setSaving] = useState(false);
+  const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'member' | 'lead' | 'admin'>('member');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -108,6 +124,59 @@ const Teams: React.FC = () => {
       console.error('[Teams] Error response:', error.response?.data);
       const errorMsg = error.response?.data?.error?.message || error.response?.data?.error || error.message;
       alert(`Failed to update team: ${errorMsg}`);
+    }
+  };
+
+  const viewTeamMembers = async (team: Team) => {
+    setViewingTeam(team);
+    setLoadingMembers(true);
+    try {
+      const response = await apiService.getTeamMembers(team.id);
+      setTeamMembers(response.members || response.data || response);
+    } catch (error: any) {
+      console.error('[Teams] Error loading members:', error);
+      alert(`Failed to load team members: ${error.response?.data?.error?.message || error.message}`);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const loadAvailableUsers = async () => {
+    try {
+      const response = await apiService.listUsers({ role: 'employee' });
+      setAvailableUsers(response.data || response);
+    } catch (error: any) {
+      console.error('[Teams] Error loading users:', error);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!selectedUserId || !viewingTeam) return;
+
+    try {
+      setSaving(true);
+      await apiService.addTeamMember(viewingTeam.id, selectedUserId, selectedRole);
+      await viewTeamMembers(viewingTeam);
+      await fetchTeams();
+      setShowAddMember(false);
+      setSelectedUserId('');
+      setSelectedRole('member');
+    } catch (error: any) {
+      alert(`Failed to add member: ${error.response?.data?.error?.message || error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!viewingTeam || !confirm('Are you sure you want to remove this member?')) return;
+
+    try {
+      await apiService.removeTeamMember(viewingTeam.id, userId);
+      await viewTeamMembers(viewingTeam);
+      await fetchTeams();
+    } catch (error: any) {
+      alert(`Failed to remove member: ${error.response?.data?.error?.message || error.message}`);
     }
   };
 
@@ -237,10 +306,16 @@ const Teams: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => viewTeamMembers(team)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Manage Members
+                      </button>
                       <button
                         onClick={() => startEditing(team)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
+                        className="text-gray-600 hover:text-gray-800 text-sm"
                       >
                         Edit
                       </button>
@@ -260,6 +335,144 @@ const Teams: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Team Members Modal */}
+        {viewingTeam && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{viewingTeam.name} - Members</h3>
+                  <p className="text-sm text-gray-600 mt-1">{teamMembers.length} members</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setViewingTeam(null);
+                    setShowAddMember(false);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingMembers ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-gray-500">Loading members...</div>
+                  </div>
+                ) : (
+                  <>
+                    {!showAddMember && (
+                      <button
+                        onClick={() => {
+                          setShowAddMember(true);
+                          loadAvailableUsers();
+                        }}
+                        className="mb-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm"
+                      >
+                        + Add Member
+                      </button>
+                    )}
+
+                    {showAddMember && (
+                      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h4 className="font-medium text-gray-900 mb-3">Add Team Member</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Select User
+                            </label>
+                            <select
+                              value={selectedUserId}
+                              onChange={(e) => setSelectedUserId(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="">Choose a user...</option>
+                              {availableUsers.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                  {user.firstName} {user.lastName} ({user.email})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Role
+                            </label>
+                            <select
+                              value={selectedRole}
+                              onChange={(e) => setSelectedRole(e.target.value as any)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="member">Member</option>
+                              <option value="lead">Team Lead</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={handleAddMember}
+                            disabled={!selectedUserId || saving}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 text-sm"
+                          >
+                            {saving ? 'Adding...' : 'Add'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowAddMember(false);
+                              setSelectedUserId('');
+                            }}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {teamMembers.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-gray-400 text-5xl mb-3">👤</div>
+                        <p className="text-gray-600">No members in this team yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {teamMembers.map((member) => (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                          >
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {member.firstName} {member.lastName}
+                              </div>
+                              <div className="text-sm text-gray-600">{member.email}</div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                <span className="capitalize font-medium">{member.teamRole}</span>
+                                {' • '}
+                                Joined {new Date(member.membershipDate).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveMember(member.id)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

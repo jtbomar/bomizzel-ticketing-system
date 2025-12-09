@@ -346,6 +346,21 @@ class ApiService {
     return response.data;
   }
 
+  async addTeamMember(teamId: string, userId: string, role: string = 'member'): Promise<any> {
+    const response = await this.client.post(`/teams/${teamId}/members`, { userId, role });
+    return response.data;
+  }
+
+  async removeTeamMember(teamId: string, userId: string): Promise<any> {
+    const response = await this.client.delete(`/teams/${teamId}/members/${userId}`);
+    return response.data;
+  }
+
+  async updateTeamMemberRole(teamId: string, userId: string, role: string): Promise<any> {
+    const response = await this.client.put(`/teams/${teamId}/members/${userId}/role`, { role });
+    return response.data;
+  }
+
   // Custom fields endpoints
   async getTeamCustomFields(teamId: string): Promise<any> {
     const response = await this.client.get(`/custom-fields/teams/${teamId}`);
