@@ -338,6 +338,20 @@ const AgentDashboard: React.FC = () => {
     if (user) {
       const initialTickets = migrateTickets(getInitialTickets(), statuses);
       setTickets(initialTickets);
+      
+      // Load ticket ID mapping from localStorage
+      const idMapKey = `agent-ticket-ids-${user.id}`;
+      const savedIdMap = localStorage.getItem(idMapKey);
+      if (savedIdMap) {
+        try {
+          const idMapArray = JSON.parse(savedIdMap);
+          const idMapping = new Map<number, string>(idMapArray);
+          setTicketIdMap(idMapping);
+          console.log('Loaded ticket ID mapping from localStorage:', idMapping.size, 'entries');
+        } catch (error) {
+          console.error('Failed to load ticket ID mapping:', error);
+        }
+      }
     }
   }, [user]); // Only run when user becomes available
 
@@ -434,6 +448,11 @@ const AgentDashboard: React.FC = () => {
         if (transformedTickets.length > 0) {
           setTickets(migrateTickets(transformedTickets, statuses));
           setTicketIdMap(idMapping);
+          
+          // Save ID mapping to localStorage
+          const idMapKey = `agent-ticket-ids-${user.id}`;
+          localStorage.setItem(idMapKey, JSON.stringify(Array.from(idMapping.entries())));
+          
           console.log('Loaded', transformedTickets.length, 'tickets from API');
         }
       } catch (error) {
@@ -1540,7 +1559,7 @@ const AgentDashboard: React.FC = () => {
                               e.stopPropagation();
                               moveTicketInColumn(ticket.id, 'down');
                             }}
-                            disabled={index === getStatusTickets(status).length - 1}
+                            disabled={index === getStatusTickets(statusConfig.value).length - 1}
                             className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
                             title="Move down"
                           >
@@ -1573,7 +1592,7 @@ const AgentDashboard: React.FC = () => {
               </div>
             ))}
 
-            {getStatusTickets(status).length === 0 && (
+            {getStatusTickets(statusConfig.value).length === 0 && (
               <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                 Drop tickets here
               </div>
@@ -3298,8 +3317,10 @@ const AgentDashboard: React.FC = () => {
                   if (user) {
                     const userKey = `agent-tickets-${user.id}`;
                     const filterKey = `agent-filter-${user.id}`;
+                    const idMapKey = `agent-ticket-ids-${user.id}`;
                     localStorage.removeItem(userKey);
                     localStorage.removeItem(filterKey);
+                    localStorage.removeItem(idMapKey);
                     window.location.reload();
                   }
                 }}
