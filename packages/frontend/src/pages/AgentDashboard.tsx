@@ -76,7 +76,7 @@ const AgentDashboard: React.FC = () => {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
-  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(true); // Default to showing only user's tickets
+  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(false); // Default to showing all tickets so Shane can see them
 
   // Load statuses and priorities from AdminStatusConfig or API
   const getStatuses = (): StatusOption[] => {
@@ -654,37 +654,17 @@ const AgentDashboard: React.FC = () => {
 
   // Get filtered tickets
   const getFilteredTickets = () => {
-    // Check default views first
-    const defaultView = defaultViews.find((v) => v.id === activeViewFilter);
-    if (defaultView) {
-      return tickets.filter(defaultView.filter);
-    }
+    console.log('[AgentDashboard] Filtering tickets - total:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'user:', user?.email);
     
-    // Check if it's an agent queue view
-    if (activeViewFilter.startsWith('agent-')) {
-      const agentName = activeViewFilter.replace('agent-', '');
-      return tickets.filter((ticket) => ticket.assigned === agentName);
+    // Simple filter based on showOnlyMyTickets toggle
+    if (showOnlyMyTickets) {
+      const myTickets = tickets.filter((ticket) => ticket.assigned === 'You');
+      console.log('[AgentDashboard] My tickets filter - found:', myTickets.length, 'tickets assigned to "You"');
+      return myTickets;
+    } else {
+      console.log('[AgentDashboard] All tickets filter - showing all:', tickets.length, 'tickets');
+      return tickets;
     }
-    
-    // Check custom views
-    const customView = customViews.find((v) => v.id === activeViewFilter);
-    if (customView) {
-      return tickets.filter((ticket) => {
-        let matches = true;
-        if (customView.filters.status && customView.filters.status !== 'all') {
-          matches = matches && ticket.status === customView.filters.status;
-        }
-        if (customView.filters.priority && customView.filters.priority !== 'all') {
-          matches = matches && ticket.priority === customView.filters.priority;
-        }
-        if (customView.filters.assigned && customView.filters.assigned !== 'all') {
-          matches = matches && ticket.assigned === customView.filters.assigned;
-        }
-        return matches;
-      });
-    }
-    
-    return tickets;
   };
 
   const filteredTickets = getFilteredTickets();
