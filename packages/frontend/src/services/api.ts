@@ -1259,6 +1259,17 @@ class ApiService {
     const response = await this.client.get('/user-profiles');
     return response.data;
   }
+
+  // Profile Field Configuration
+  async getProfileFields(): Promise<any> {
+    const response = await this.client.get('/profile-fields');
+    return response.data;
+  }
+
+  async updateProfileFields(fields: any[]): Promise<any> {
+    const response = await this.client.put('/profile-fields', { fields });
+    return response.data;
+  }
 }
 
 export const apiService = new ApiService();

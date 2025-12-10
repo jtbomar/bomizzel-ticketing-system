@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiService } from '../services/api';
 
 interface ProfileField {
   id: number;
@@ -7,23 +8,53 @@ interface ProfileField {
   type: string;
   required: boolean;
   enabled: boolean;
+  field_name: string;
+  display_order: number;
 }
 
 const Profiles: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'fields' | 'layouts'>('fields');
-  const [profileFields, setProfileFields] = useState<ProfileField[]>([
-    { id: 1, name: 'First Name', type: 'text', required: true, enabled: true },
-    { id: 2, name: 'Last Name', type: 'text', required: true, enabled: true },
-    { id: 3, name: 'Email', type: 'email', required: true, enabled: true },
-    { id: 4, name: 'Phone', type: 'tel', required: false, enabled: true },
-    { id: 5, name: 'Department', type: 'select', required: false, enabled: true },
-    { id: 6, name: 'Job Title', type: 'text', required: false, enabled: true },
-    { id: 7, name: 'Location', type: 'text', required: false, enabled: false },
-    { id: 8, name: 'Time Zone', type: 'select', required: false, enabled: true },
-    { id: 9, name: 'Language', type: 'select', required: false, enabled: true },
-    { id: 10, name: 'Profile Picture', type: 'file', required: false, enabled: true },
-  ]);
+  const [profileFields, setProfileFields] = useState<ProfileField[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchProfileFields();
+  }, []);
+
+  const fetchProfileFields = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getProfileFields();
+      const fields = response.fields || [];
+      
+      // Convert backend format to frontend format
+      const formattedFields = fields.map((field: any, index: number) => ({
+        id: index + 1,
+        name: formatFieldName(field.field_name),
+        type: field.field_type,
+        required: field.is_required,
+        enabled: field.is_enabled,
+        field_name: field.field_name,
+        display_order: field.display_order,
+      }));
+
+      setProfileFields(formattedFields);
+    } catch (error: any) {
+      console.error('Error fetching profile fields:', error);
+      alert(`Failed to load profile fields: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatFieldName = (fieldName: string) => {
+    return fieldName
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   const toggleFieldEnabled = (fieldId: number) => {
     setProfileFields(fields =>
@@ -34,6 +65,28 @@ const Profiles: React.FC = () => {
         return field;
       })
     );
+  };
+
+  const saveProfileFields = async () => {
+    try {
+      setSaving(true);
+      
+      // Convert back to backend format
+      const fieldsToSave = profileFields.map(field => ({
+        field_name: field.field_name,
+        is_enabled: field.enabled,
+        is_required: field.required,
+        display_order: field.display_order,
+      }));
+
+      await apiService.updateProfileFields(fieldsToSave);
+      alert('Profile field settings saved successfully!');
+    } catch (error: any) {
+      console.error('Error saving profile fields:', error);
+      alert(`Failed to save profile fields: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -84,7 +137,11 @@ const Profiles: React.FC = () => {
           </div>
 
           <div className="p-6">
-            {activeTab === 'fields' ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-gray-500">Loading profile fields...</div>
+              </div>
+            ) : activeTab === 'fields' ? (
               <div>
                 <div className="mb-6 flex items-center justify-between">
                   <div>
@@ -94,10 +151,11 @@ const Profiles: React.FC = () => {
                     </p>
                   </div>
                   <button
-                    onClick={() => alert('Profile field settings saved!')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    onClick={saveProfileFields}
+                    disabled={saving}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
-                    Save Changes
+                    {saving ? 'Saving...' : 'Save Changes'}
                   </button>
                 </div>
 
