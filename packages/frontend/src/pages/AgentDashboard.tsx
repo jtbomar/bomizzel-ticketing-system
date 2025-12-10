@@ -1532,12 +1532,45 @@ const AgentDashboard: React.FC = () => {
       );
     }
 
+    // TEMPORARY DEBUG: Show raw data for Shane
+    if (tickets.length > 0 && filteredTickets.length > 0) {
+      console.log('[DEBUG] Raw tickets data:', tickets.slice(0, 3));
+      console.log('[DEBUG] Filtered tickets data:', filteredTickets.slice(0, 3));
+      console.log('[DEBUG] Statuses data:', statuses);
+      console.log('[DEBUG] Sample ticket statuses:', tickets.slice(0, 10).map(t => t.status));
+    }
+
     return (
-      <div
-        className={`grid grid-cols-1 gap-6`}
-        style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
-      >
-      {statuses.map((statusConfig) => (
+      <div className="space-y-6">
+        {/* TEMPORARY DEBUG DISPLAY FOR SHANE */}
+        <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-4">
+          <h3 className="font-bold text-yellow-800 mb-2">🔧 DEBUG INFO FOR SHANE</h3>
+          <div className="text-sm text-yellow-700 space-y-1">
+            <p><strong>Total tickets:</strong> {tickets.length}</p>
+            <p><strong>Filtered tickets:</strong> {filteredTickets.length}</p>
+            <p><strong>Statuses:</strong> {statuses.length} ({statuses.map(s => s.label).join(', ')})</p>
+            <p><strong>Show only my tickets:</strong> {showOnlyMyTickets ? 'Yes' : 'No'}</p>
+            {tickets.length > 0 && (
+              <p><strong>Sample ticket statuses:</strong> {tickets.slice(0, 5).map(t => t.status).join(', ')}</p>
+            )}
+            {filteredTickets.length > 0 && statuses.length > 0 && (
+              <div>
+                <strong>Tickets per status:</strong>
+                {statuses.map(status => (
+                  <span key={status.value} className="ml-2">
+                    {status.label}: {filteredTickets.filter(t => t.status === status.value).length}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div
+          className={`grid grid-cols-1 gap-6`}
+          style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
+        >
+        {statuses.map((statusConfig) => (
         <div
           key={statusConfig.value}
           className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 min-h-96 transition-colors"
@@ -1681,12 +1714,39 @@ const AgentDashboard: React.FC = () => {
             {getStatusTickets(statusConfig.value).length === 0 && (
               <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                 Drop tickets here
+                <div className="text-xs mt-2">
+                  Status: {statusConfig.value} | Total filtered: {filteredTickets.length}
+                </div>
               </div>
             )}
           </div>
         </div>
-      ))}
-    </div>
+        ))}
+        </div>
+
+        {/* EMERGENCY FALLBACK: Show tickets as simple list if kanban fails */}
+        {filteredTickets.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+            <h3 className="font-bold text-blue-800 mb-3">🚨 EMERGENCY TICKET LIST (if kanban fails)</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredTickets.slice(0, 20).map((ticket, index) => (
+                <div key={ticket.id} className="bg-white p-3 rounded border text-sm">
+                  <div className="font-medium">#{ticket.id}: {ticket.title}</div>
+                  <div className="text-gray-600">
+                    Status: {ticket.status} | Priority: {ticket.priority} | Assigned: {ticket.assigned}
+                  </div>
+                  <div className="text-gray-500">Customer: {ticket.customer}</div>
+                </div>
+              ))}
+              {filteredTickets.length > 20 && (
+                <div className="text-center text-gray-500 py-2">
+                  ... and {filteredTickets.length - 20} more tickets
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 
