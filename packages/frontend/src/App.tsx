@@ -41,6 +41,7 @@ import AgentAccountsList from './pages/AgentAccountsList';
 import AgentCustomersList from './pages/AgentCustomersList';
 import AgentAccountDetail from './pages/AgentAccountDetail';
 import AgentCustomerDetail from './pages/AgentCustomerDetail';
+import SimpleTicketTest from './pages/SimpleTicketTest';
 
 function App() {
   return (
@@ -314,6 +315,14 @@ function App() {
             <Route path="/test-ticket-form" element={<TestTicketForm />} />
             <Route path="/color-picker-demo" element={<ColorPickerDemo />} />
             <Route path="/test" element={<TestAPI />} />
+            <Route 
+              path="/simple-ticket-test" 
+              element={
+                <ProtectedRoute requiredRole="employee">
+                  <SimpleTicketTest />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

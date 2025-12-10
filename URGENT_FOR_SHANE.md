@@ -12,16 +12,24 @@ I've implemented an **aggressive status initialization** that ensures you ALWAYS
 - **Press Ctrl+Shift+R** (or Cmd+Shift+R on Mac)
 - **OR** Press F12 → Right-click refresh button → "Empty Cache and Hard Reload"
 
-### 2. **Check Console Logs**
-After the hard refresh, you should see:
-- `[AgentDashboard] Initializing with default statuses: 4`
-- `[AgentDashboard] Setting default statuses: 4`
-- `[AgentDashboard] Rendering kanban board - statuses: 4` (instead of 0)
+### 2. **Look for the YELLOW DEBUG BOX**
+After the hard refresh, you should see a **bright yellow box** at the top of the kanban board with:
+- 🔧 DEBUG INFO FOR SHANE
+- Total tickets: 75
+- Filtered tickets: (some number)
+- Statuses: 4 (Open, In Progress, Waiting, Resolved)
+- Tickets per status: showing counts for each column
 
-### 3. **What You Should See**
-- ✅ **4 Kanban Columns**: "Open", "In Progress", "Waiting", "Resolved"
-- ✅ **Individual Tickets**: Your 75 tickets distributed across the columns
-- ✅ **Working Board**: Ability to drag, assign, and edit tickets
+### 3. **Look for the BLUE EMERGENCY LIST**
+Below the kanban board, you should see a **blue box** titled:
+- 🚨 EMERGENCY TICKET LIST
+- This will show your tickets as a simple list if the kanban fails
+
+### 4. **Take a Screenshot**
+Take a screenshot showing:
+- The yellow debug box with all the numbers
+- The blue emergency ticket list
+- Any console messages
 
 ## If It Still Doesn't Work:
 1. **Clear all browser data** for the site
