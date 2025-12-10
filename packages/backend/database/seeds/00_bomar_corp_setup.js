@@ -4,103 +4,143 @@ const { v4: uuidv4 } = require('uuid');
 exports.seed = async function (knex) {
   console.log('🌱 Setting up Bomar Corp...\n');
 
+  // Check if setup already exists
+  const existingOrg = await knex('companies').where('name', 'Bomar Corp').first();
+  const existingUsers = await knex('users').where('email', 'jeff@bomar.com').first();
+  
+  if (existingOrg && existingUsers) {
+    console.log('⏭️  Bomar Corp setup already complete, skipping seed');
+    return;
+  }
+
   const passwordHash = await bcrypt.hash('password123', 10);
 
   // 1. Create Bomar Corp Organization (service provider)
-  const bomarOrgId = uuidv4();
-  await knex('companies').insert({
-    id: bomarOrgId,
-    name: 'Bomar Corp',
-    domain: 'bomarcorp.com',
-    description: 'Bomar Corp - Ticketing Service Provider',
-    is_active: true,
-    created_at: knex.fn.now(),
-    updated_at: knex.fn.now(),
-  });
-  console.log('✅ Created Bomar Corp organization');
+  let bomarOrg = await knex('companies').where('name', 'Bomar Corp').first();
+  if (!bomarOrg) {
+    const bomarOrgId = uuidv4();
+    await knex('companies').insert({
+      id: bomarOrgId,
+      name: 'Bomar Corp',
+      domain: 'bomarcorp.com',
+      description: 'Bomar Corp - Ticketing Service Provider',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    });
+    bomarOrg = await knex('companies').where('name', 'Bomar Corp').first();
+    console.log('✅ Created Bomar Corp organization');
+  } else {
+    console.log('⏭️  Bomar Corp organization already exists');
+  }
 
   // 2. Create Bomar Corp Users/Agents
-  const agents = [
-    { id: uuidv4(), firstName: 'Jeff', lastName: 'Bomar', email: 'jeff@bomar.com', role: 'admin' }, // Super Admin
-    { id: uuidv4(), firstName: 'Elena', lastName: 'Bomar', email: 'elena@bomar.com', role: 'admin' }, // Admin
-    { id: uuidv4(), firstName: 'Jeremy', lastName: 'Bomar', email: 'jeremy@bomar.com', role: 'employee' }, // Agent
-    { id: uuidv4(), firstName: 'Elisa', lastName: 'Bomar', email: 'elisa@bomar.com', role: 'employee' }, // Agent
-    { id: uuidv4(), firstName: 'Alaura', lastName: 'Bomar', email: 'alaura@bomar.com', role: 'employee' }, // Agent
-  ];
+  const agentEmails = ['jeff@bomar.com', 'elena@bomar.com', 'jeremy@bomar.com', 'elisa@bomar.com', 'alaura@bomar.com'];
+  const existingAgents = await knex('users').whereIn('email', agentEmails);
+  
+  if (existingAgents.length === 0) {
+    const agents = [
+      { id: uuidv4(), firstName: 'Jeff', lastName: 'Bomar', email: 'jeff@bomar.com', role: 'admin' }, // Super Admin
+      { id: uuidv4(), firstName: 'Elena', lastName: 'Bomar', email: 'elena@bomar.com', role: 'admin' }, // Admin
+      { id: uuidv4(), firstName: 'Jeremy', lastName: 'Bomar', email: 'jeremy@bomar.com', role: 'employee' }, // Agent
+      { id: uuidv4(), firstName: 'Elisa', lastName: 'Bomar', email: 'elisa@bomar.com', role: 'employee' }, // Agent
+      { id: uuidv4(), firstName: 'Alaura', lastName: 'Bomar', email: 'alaura@bomar.com', role: 'employee' }, // Agent
+    ];
 
-  for (const agent of agents) {
-    await knex('users').insert({
-      id: agent.id,
-      email: agent.email,
-      password_hash: passwordHash,
-      first_name: agent.firstName,
-      last_name: agent.lastName,
-      role: agent.role,
-      is_active: true,
-      email_verified: true,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    });
+    for (const agent of agents) {
+      await knex('users').insert({
+        id: agent.id,
+        email: agent.email,
+        password_hash: passwordHash,
+        first_name: agent.firstName,
+        last_name: agent.lastName,
+        role: agent.role,
+        is_active: true,
+        email_verified: true,
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now(),
+      });
+    }
+    console.log('✅ Created 5 Bomar Corp agents (2 admins, 3 employees)');
+  } else {
+    console.log('⏭️  Bomar Corp agents already exist');
   }
-  console.log('✅ Created 5 Bomar Corp agents (2 admins, 3 employees)');
+
+  // Get all agents for later use
+  const agents = await knex('users').whereIn('email', agentEmails);
 
   // 3. Create Teams
-  const supportTeamId = uuidv4();
-  await knex('teams').insert({
-    id: supportTeamId,
-    name: 'Support Team',
-    description: 'Customer support team',
-    is_active: true,
-    created_at: knex.fn.now(),
-    updated_at: knex.fn.now(),
-  });
-
-  // Assign all agents to support team
-  for (const agent of agents) {
-    await knex('team_memberships').insert({
-      user_id: agent.id,
-      team_id: supportTeamId,
-      role: 'member',
-      created_at: knex.fn.now(),
-    });
-  }
-  console.log('✅ Created Support Team and assigned agents');
-
-  // 4. Create Queue
-  const queueId = uuidv4();
-  await knex('queues').insert({
-    id: queueId,
-    name: 'General Queue',
-    team_id: supportTeamId,
-    type: 'unassigned',
-    is_active: true,
-    created_at: knex.fn.now(),
-    updated_at: knex.fn.now(),
-  });
-  console.log('✅ Created General Queue');
-
-  // 5. Create Departments (belong to Bomar Corp)
-  const departments = [
-    { name: 'General Support', description: 'General customer support', color: '#3B82F6' },
-    { name: 'Technical Support', description: 'Technical issues', color: '#10B981' },
-    { name: 'Sales', description: 'Sales inquiries', color: '#F59E0B' },
-  ];
-
-  const deptIds = [];
-  for (const dept of departments) {
-    const deptId = await knex('departments').insert({
-      company_id: bomarOrgId,
-      name: dept.name,
-      description: dept.description,
-      color: dept.color,
+  let supportTeam = await knex('teams').where('name', 'Support Team').first();
+  if (!supportTeam) {
+    const supportTeamId = uuidv4();
+    await knex('teams').insert({
+      id: supportTeamId,
+      name: 'Support Team',
+      description: 'Customer support team',
       is_active: true,
-      is_default: dept.name === 'General Support',
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
-    }).returning('id');
-    deptIds.push(deptId[0]);
+    });
+    supportTeam = await knex('teams').where('name', 'Support Team').first();
+
+    // Assign all agents to support team
+    for (const agent of agents) {
+      await knex('team_memberships').insert({
+        user_id: agent.id,
+        team_id: supportTeam.id,
+        role: 'member',
+        created_at: knex.fn.now(),
+      });
+    }
+    console.log('✅ Created Support Team and assigned agents');
+  } else {
+    console.log('⏭️  Support Team already exists');
   }
-  console.log('✅ Created 3 departments');
+
+  // 4. Create Queue
+  let queue = await knex('queues').where('name', 'General Queue').first();
+  if (!queue) {
+    const queueId = uuidv4();
+    await knex('queues').insert({
+      id: queueId,
+      name: 'General Queue',
+      team_id: supportTeam.id,
+      type: 'unassigned',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    });
+    queue = await knex('queues').where('name', 'General Queue').first();
+    console.log('✅ Created General Queue');
+  } else {
+    console.log('⏭️  General Queue already exists');
+  }
+
+  // 5. Create Departments (belong to Bomar Corp)
+  const existingDepts = await knex('departments').where('company_id', bomarOrg.id);
+  if (existingDepts.length === 0) {
+    const departments = [
+      { name: 'General Support', description: 'General customer support', color: '#3B82F6' },
+      { name: 'Technical Support', description: 'Technical issues', color: '#10B981' },
+      { name: 'Sales', description: 'Sales inquiries', color: '#F59E0B' },
+    ];
+
+    for (const dept of departments) {
+      await knex('departments').insert({
+        company_id: bomarOrg.id,
+        name: dept.name,
+        description: dept.description,
+        color: dept.color,
+        is_active: true,
+        is_default: dept.name === 'General Support',
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now(),
+      });
+    }
+    console.log('✅ Created 3 departments');
+  } else {
+    console.log('⏭️  Departments already exist');
+  }
 
   // 6. Create 5 Customer Accounts (companies)
   const customerAccounts = [

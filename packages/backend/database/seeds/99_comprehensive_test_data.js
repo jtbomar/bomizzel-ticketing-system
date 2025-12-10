@@ -4,27 +4,30 @@ const { v4: uuidv4 } = require('uuid');
 exports.seed = async function (knex) {
   console.log('🌱 Creating comprehensive test data...');
 
+  // Check if comprehensive test data already exists
+  const existingTestUser = await knex('users').where('email', 'admin@bomizzel.com').first();
+  if (existingTestUser) {
+    console.log('⏭️  Comprehensive test data already exists, skipping');
+    return;
+  }
+
   // Hash password
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  // Get or create admin user
-  let admin = await knex('users').where('email', 'admin@bomizzel.com').first();
-  const adminId = admin ? admin.id : uuidv4();
-  
-  if (!admin) {
-    await knex('users').insert({
-      id: adminId,
-      email: 'admin@bomizzel.com',
-      password_hash: passwordHash,
-      first_name: 'Admin',
-      last_name: 'User',
-      role: 'admin',
-      is_active: true,
-      email_verified: true,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    });
-  }
+  // Create admin user
+  const adminId = uuidv4();
+  await knex('users').insert({
+    id: adminId,
+    email: 'admin@bomizzel.com',
+    password_hash: passwordHash,
+    first_name: 'Admin',
+    last_name: 'User',
+    role: 'admin',
+    is_active: true,
+    email_verified: true,
+    created_at: knex.fn.now(),
+    updated_at: knex.fn.now(),
+  });
 
   // Create 4 employee agents
   const agents = [];
