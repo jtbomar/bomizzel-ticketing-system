@@ -1446,15 +1446,69 @@ const AgentDashboard: React.FC = () => {
       console.log('[AgentDashboard] Default statuses:', defaultStatuses);
       setStatuses(defaultStatuses);
       
-      // Return a loading state while statuses are being set
+      // EMERGENCY MODE: Show tickets as simple list when kanban fails
       return (
-        <div className="text-center py-12">
-          <div className="text-gray-400 text-6xl mb-4">⚙️</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Initializing Kanban Board...</h3>
-          <p className="text-gray-600 dark:text-gray-400">Setting up ticket statuses...</p>
-          <div className="mt-4 text-sm text-gray-500">
-            <p>Tickets loaded: {tickets.length}</p>
-            <p>Statuses: {statuses.length} (forcing defaults)</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-red-100 border-l-4 border-red-500 p-6 mb-8">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">🚨 EMERGENCY MODE FOR SHANE</h3>
+                <div className="mt-2 text-sm text-red-700">
+                  <p>Kanban board failed to initialize. Showing tickets in emergency list mode.</p>
+                  <p className="mt-1">Tickets loaded: <strong>{tickets.length}</strong> | Statuses: <strong>{statuses.length}</strong></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency Ticket List */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-md">
+            <div className="px-4 py-5 sm:px-6 bg-gray-50">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                🎫 Emergency Ticket List ({tickets.length} tickets)
+              </h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Your tickets displayed in simple list format while we fix the kanban board.
+              </p>
+            </div>
+            <ul className="divide-y divide-gray-200">
+              {tickets.slice(0, 50).map((ticket) => (
+                <li key={ticket.id} className="px-4 py-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3">
+                          #{ticket.id}
+                        </span>
+                        <h4 className="text-sm font-medium text-gray-900">{ticket.title}</h4>
+                      </div>
+                      <div className="mt-2 flex items-center text-sm text-gray-500 space-x-4">
+                        <span>Status: <strong>{ticket.status}</strong></span>
+                        <span>Priority: <strong>{ticket.priority}</strong></span>
+                        <span>Assigned: <strong>{ticket.assigned}</strong></span>
+                        <span>Customer: <strong>{ticket.customer}</strong></span>
+                      </div>
+                      {ticket.description && (
+                        <p className="mt-1 text-sm text-gray-600 truncate">{ticket.description}</p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 text-sm text-gray-500">
+                      {ticket.created}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {tickets.length > 50 && (
+              <div className="px-4 py-3 bg-gray-50 text-center text-sm text-gray-500">
+                Showing first 50 of {tickets.length} tickets
+              </div>
+            )}
           </div>
         </div>
       );
