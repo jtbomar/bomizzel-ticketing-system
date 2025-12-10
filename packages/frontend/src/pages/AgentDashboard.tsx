@@ -345,7 +345,7 @@ const AgentDashboard: React.FC = () => {
         
         // Get tickets based on filter preference
         const ticketParams: any = { limit: 100 };
-        if (showOnlyMyTickets) {
+        if (showOnlyMyTickets && user) {
           ticketParams.assignedToId = user.id;
           console.log('[AgentDashboard] Fetching tickets assigned to user:', user.id, user.email);
         } else {
@@ -362,7 +362,7 @@ const AgentDashboard: React.FC = () => {
         // Transform API tickets to dashboard format
         const transformedTickets = apiTickets.map((t: any, index: number) => {
           const assignedName = t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned';
-          const isAssignedToCurrentUser = t.assignedTo?.id === user.id;
+          const isAssignedToCurrentUser = user && t.assignedTo?.id === user.id;
           
           // Create a unique numeric ID from the UUID
           const numericId = index + 1000; // Simple sequential IDs starting from 1000
