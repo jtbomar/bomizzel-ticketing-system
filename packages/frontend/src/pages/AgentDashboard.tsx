@@ -352,12 +352,20 @@ const AgentDashboard: React.FC = () => {
 
       // Check if we already have tickets in localStorage for this user
       const userKey = `agent-tickets-${user.id}`;
+      const filterKey = `agent-filter-${user.id}`;
       const existingTickets = localStorage.getItem(userKey);
+      const lastFilter = localStorage.getItem(filterKey);
       
-      // Only fetch from API if no local tickets exist or filter changed
-      if (existingTickets && JSON.parse(existingTickets).length > 0) {
+      // Only fetch from API if no local tickets exist OR filter has changed
+      const filterChanged = lastFilter !== showOnlyMyTickets.toString();
+      if (existingTickets && JSON.parse(existingTickets).length > 0 && !filterChanged) {
         console.log('[AgentDashboard] Using existing tickets from localStorage');
         return;
+      }
+
+      if (filterChanged) {
+        console.log('[AgentDashboard] Filter changed, fetching fresh tickets');
+        localStorage.setItem(filterKey, showOnlyMyTickets.toString());
       }
 
       try {
@@ -3289,7 +3297,9 @@ const AgentDashboard: React.FC = () => {
                 onClick={() => {
                   if (user) {
                     const userKey = `agent-tickets-${user.id}`;
+                    const filterKey = `agent-filter-${user.id}`;
                     localStorage.removeItem(userKey);
+                    localStorage.removeItem(filterKey);
                     window.location.reload();
                   }
                 }}
