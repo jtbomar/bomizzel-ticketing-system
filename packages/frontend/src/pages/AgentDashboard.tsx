@@ -184,7 +184,10 @@ const AgentDashboard: React.FC = () => {
 
   // Load tickets from localStorage or use defaults
   const getInitialTickets = (): Ticket[] => {
-    const saved = localStorage.getItem('agent-tickets');
+    if (!user) return [];
+    
+    const userKey = `agent-tickets-${user.id}`;
+    const saved = localStorage.getItem(userKey);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -324,12 +327,19 @@ const AgentDashboard: React.FC = () => {
     });
   };
 
-  const initialTickets = migrateTickets(getInitialTickets(), statuses);
-  const [tickets, setTickets] = useState<Ticket[]>(initialTickets);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketIdMap, setTicketIdMap] = useState<Map<number, string>>(new Map()); // Maps numeric ID to UUID
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
   const [dragOverTicket, setDragOverTicket] = useState<number | null>(null);
+
+  // Load initial tickets when user is available
+  useEffect(() => {
+    if (user) {
+      const initialTickets = migrateTickets(getInitialTickets(), statuses);
+      setTickets(initialTickets);
+    }
+  }, [user]); // Only run when user becomes available
 
   // Fetch real tickets from API on mount
   useEffect(() => {
@@ -341,9 +351,6 @@ const AgentDashboard: React.FC = () => {
       }
 
       try {
-        // Clear localStorage to use fresh API data
-        localStorage.removeItem('agent-tickets');
-        
         // Get tickets based on filter preference
         const ticketParams: any = { limit: 100 };
         if (showOnlyMyTickets && user) {
@@ -527,20 +534,26 @@ const AgentDashboard: React.FC = () => {
 
   // Load custom views from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('agent-custom-views');
-    if (saved) {
-      try {
-        setCustomViews(JSON.parse(saved));
-      } catch (error) {
-        console.error('Failed to load custom views:', error);
+    if (user) {
+      const userKey = `agent-custom-views-${user.id}`;
+      const saved = localStorage.getItem(userKey);
+      if (saved) {
+        try {
+          setCustomViews(JSON.parse(saved));
+        } catch (error) {
+          console.error('Failed to load custom views:', error);
+        }
       }
     }
-  }, []);
+  }, [user]);
 
   // Save custom views to localStorage
   useEffect(() => {
-    localStorage.setItem('agent-custom-views', JSON.stringify(customViews));
-  }, [customViews]);
+    if (user) {
+      const userKey = `agent-custom-views-${user.id}`;
+      localStorage.setItem(userKey, JSON.stringify(customViews));
+    }
+  }, [customViews, user]);
 
   // Default views for filtering
   const defaultViews = [
@@ -646,11 +659,12 @@ const AgentDashboard: React.FC = () => {
 
   // Save to localStorage whenever tickets change
   useEffect(() => {
-    if (tickets.length > 0) {
-      localStorage.setItem('agent-tickets', JSON.stringify(tickets));
-      console.log('Saved tickets to localStorage:', tickets.length);
+    if (user && tickets.length >= 0) { // Save even if 0 tickets (empty state)
+      const userKey = `agent-tickets-${user.id}`;
+      localStorage.setItem(userKey, JSON.stringify(tickets));
+      console.log('Saved tickets to localStorage:', tickets.length, 'for user:', user.email);
     }
-  }, [tickets]);
+  }, [tickets, user]);
 
   // Open ticket modal if ticket data is in sessionStorage
   useEffect(() => {
@@ -694,21 +708,27 @@ const AgentDashboard: React.FC = () => {
 
   // Load board settings from localStorage
   useEffect(() => {
-    const savedSettings = localStorage.getItem('agent-board-settings');
-    if (savedSettings) {
-      try {
-        const parsed = JSON.parse(savedSettings);
-        setBoardSettings((prev) => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error('Failed to load board settings:', error);
+    if (user) {
+      const userKey = `agent-board-settings-${user.id}`;
+      const savedSettings = localStorage.getItem(userKey);
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setBoardSettings((prev) => ({ ...prev, ...parsed }));
+        } catch (error) {
+          console.error('Failed to load board settings:', error);
+        }
       }
     }
-  }, []);
+  }, [user]);
 
   // Handle board settings changes from AgentProfile
   const handleBoardSettingsChange = (newSettings: any) => {
     setBoardSettings(newSettings);
-    localStorage.setItem('agent-board-settings', JSON.stringify(newSettings));
+    if (user) {
+      const userKey = `agent-board-settings-${user.id}`;
+      localStorage.setItem(userKey, JSON.stringify(newSettings));
+    }
   };
 
   // Handle template selection
@@ -736,7 +756,10 @@ const AgentDashboard: React.FC = () => {
     }));
     
     setTickets(migratedTickets);
-    localStorage.setItem('agent-tickets', JSON.stringify(migratedTickets));
+    if (user) {
+      const userKey = `agent-tickets-${user.id}`;
+      localStorage.setItem(userKey, JSON.stringify(migratedTickets));
+    }
 
     // Close modal and reload page to apply new statuses
     setShowTemplates(false);
@@ -3309,7 +3332,10 @@ const AgentDashboard: React.FC = () => {
                 <button
                   onClick={() => {
                     if (confirm('Reset to default tickets? This will clear all current tickets.')) {
-                      localStorage.removeItem('agent-tickets');
+                      if (user) {
+                        const userKey = `agent-tickets-${user.id}`;
+                        localStorage.removeItem(userKey);
+                      }
                       window.location.reload();
                     }
                   }}
