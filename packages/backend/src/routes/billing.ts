@@ -654,6 +654,9 @@ router.post('/sync-invoice', authenticate, async (req, res, next) => {
     }
 
     // Get invoice from Stripe
+    if (!stripe) {
+      throw new AppError('Stripe not configured', 500);
+    }
     const stripeInvoice = await stripe.invoices.retrieve(invoiceId);
 
     // Create or update billing record

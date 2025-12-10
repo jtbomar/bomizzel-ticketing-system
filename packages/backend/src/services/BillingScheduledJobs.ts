@@ -3,6 +3,7 @@ import { StripeService } from './StripeService';
 import { BillingRecord } from '@/models/BillingRecord';
 import { CustomerSubscription } from '@/models/CustomerSubscription';
 import { EmailService } from './EmailService';
+import { stripe } from '@/config/stripe';
 import { logger } from '@/utils/logger';
 
 export class BillingScheduledJobs {
@@ -143,7 +144,11 @@ export class BillingScheduledJobs {
           if (!subscription.stripe_subscription_id) continue;
 
           // Get recent invoices from Stripe for this subscription
-          const invoices = await StripeService.stripe.invoices.list({
+          if (!stripe) {
+            logger.warn('Stripe not configured, skipping invoice sync');
+            continue;
+          }
+          const invoices = await stripe.invoices.list({
             subscription: subscription.stripe_subscription_id,
             limit: 10,
             created: {

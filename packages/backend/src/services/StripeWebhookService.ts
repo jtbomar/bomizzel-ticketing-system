@@ -29,6 +29,9 @@ export class StripeWebhookService {
       }
 
       // Verify webhook signature
+      if (!stripe) {
+        throw new AppError('Stripe not configured', 500);
+      }
       const event = stripe.webhooks.constructEvent(payload, signature, STRIPE_CONFIG.webhookSecret);
 
       logger.info('Processing Stripe webhook', {
@@ -221,9 +224,10 @@ export class StripeWebhookService {
       // Process billing record
       await BillingService.processInvoicePaymentSucceeded(invoice);
 
-      if (invoice.subscription) {
+      const invoiceWithSub = invoice as any;
+      if (invoiceWithSub.subscription) {
         const subscriptionId =
-          typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id;
+          typeof invoiceWithSub.subscription === 'string' ? invoiceWithSub.subscription : invoiceWithSub.subscription.id;
 
         // Sync subscription status
         await StripeService.syncSubscriptionFromStripe(subscriptionId);
@@ -263,9 +267,10 @@ export class StripeWebhookService {
       // Process billing record
       await BillingService.processInvoicePaymentFailed(invoice);
 
-      if (invoice.subscription) {
+      const invoiceWithSub = invoice as any;
+      if (invoiceWithSub.subscription) {
         const subscriptionId =
-          typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription.id;
+          typeof invoiceWithSub.subscription === 'string' ? invoiceWithSub.subscription : invoiceWithSub.subscription.id;
 
         // Find local subscription
         const localSubscription =
@@ -444,6 +449,7 @@ export class StripeWebhookService {
         return false;
       }
 
+      if (!stripe) return false;
       stripe.webhooks.constructEvent(payload, signature, STRIPE_CONFIG.webhookSecret);
       return true;
     } catch (error) {
@@ -463,6 +469,7 @@ export class StripeWebhookService {
         return null;
       }
 
+      if (!stripe) return null;
       return stripe.webhooks.constructEvent(payload, signature, STRIPE_CONFIG.webhookSecret);
     } catch (error) {
       logger.warn('Failed to construct webhook event', {
