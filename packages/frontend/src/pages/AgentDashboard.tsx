@@ -341,7 +341,7 @@ const AgentDashboard: React.FC = () => {
     }
   }, [user]); // Only run when user becomes available
 
-  // Fetch real tickets from API on mount
+  // Fetch real tickets from API only on initial load or filter change
   useEffect(() => {
     const fetchTickets = async () => {
       // Only fetch if user is authenticated
@@ -350,7 +350,19 @@ const AgentDashboard: React.FC = () => {
         return;
       }
 
+      // Check if we already have tickets in localStorage for this user
+      const userKey = `agent-tickets-${user.id}`;
+      const existingTickets = localStorage.getItem(userKey);
+      
+      // Only fetch from API if no local tickets exist or filter changed
+      if (existingTickets && JSON.parse(existingTickets).length > 0) {
+        console.log('[AgentDashboard] Using existing tickets from localStorage');
+        return;
+      }
+
       try {
+        console.log('[AgentDashboard] Fetching fresh tickets from API');
+        
         // Get tickets based on filter preference
         const ticketParams: any = { limit: 100 };
         if (showOnlyMyTickets && user) {
@@ -397,7 +409,7 @@ const AgentDashboard: React.FC = () => {
         
         // Assign proper order within each status column
         const ticketsByStatus: { [key: string]: any[] } = {};
-        transformedTickets.forEach(ticket => {
+        transformedTickets.forEach((ticket: any) => {
           if (!ticketsByStatus[ticket.status]) {
             ticketsByStatus[ticket.status] = [];
           }
@@ -1131,24 +1143,67 @@ const AgentDashboard: React.FC = () => {
     }
   };
 
-  const changeAssignment = (ticketId: number, newAssigned: string) => {
+  const changeAssignment = async (ticketId: number, newAssigned: string) => {
+    // Update local state optimistically
     setTickets((prev) =>
       prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, assigned: newAssigned } : ticket))
     );
+
+    // Update via API
+    try {
+      const uuidTicketId = ticketIdMap.get(ticketId);
+      if (uuidTicketId) {
+        // Find the agent ID by name
+        const agent = agents.find(a => `${a.firstName} ${a.lastName}` === newAssigned);
+        if (agent) {
+          await apiService.assignTicket(uuidTicketId, agent.id);
+          console.log(`Assigned ticket ${ticketId} to: ${newAssigned}`);
+        } else if (newAssigned === 'Unassigned') {
+          await apiService.unassignTicket(uuidTicketId);
+          console.log(`Unassigned ticket ${ticketId}`);
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to update ticket assignment:', error);
+    }
   };
 
-  const updateTicketTitle = (ticketId: number, newTitle: string) => {
+  const updateTicketTitle = async (ticketId: number, newTitle: string) => {
+    // Update local state optimistically
     setTickets((prev) =>
       prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, title: newTitle } : ticket))
     );
+
+    // Update via API
+    try {
+      const uuidTicketId = ticketIdMap.get(ticketId);
+      if (uuidTicketId) {
+        await apiService.updateTicket(uuidTicketId, { title: newTitle });
+        console.log(`Updated ticket ${ticketId} title to: ${newTitle}`);
+      }
+    } catch (error: any) {
+      console.error('Failed to update ticket title:', error);
+    }
   };
 
-  const updateTicketDescription = (ticketId: number, newDescription: string) => {
+  const updateTicketDescription = async (ticketId: number, newDescription: string) => {
+    // Update local state optimistically
     setTickets((prev) =>
       prev.map((ticket) =>
         ticket.id === ticketId ? { ...ticket, description: newDescription } : ticket
       )
     );
+
+    // Update via API
+    try {
+      const uuidTicketId = ticketIdMap.get(ticketId);
+      if (uuidTicketId) {
+        await apiService.updateTicket(uuidTicketId, { description: newDescription });
+        console.log(`Updated ticket ${ticketId} description`);
+      }
+    } catch (error: any) {
+      console.error('Failed to update ticket description:', error);
+    }
   };
 
   const moveTicketInColumn = (ticketId: number, direction: 'up' | 'down') => {
@@ -3228,6 +3283,21 @@ const AgentDashboard: React.FC = () => {
                   showAllOption={true}
                 />
               </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={() => {
+                  if (user) {
+                    const userKey = `agent-tickets-${user.id}`;
+                    localStorage.removeItem(userKey);
+                    window.location.reload();
+                  }
+                }}
+                className="px-3 py-2 text-sm font-medium rounded-md border bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                title="Refresh tickets from server"
+              >
+                🔄 Refresh
+              </button>
 
               {/* Ticket Filter Toggle */}
               <button
