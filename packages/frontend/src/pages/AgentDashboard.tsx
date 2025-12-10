@@ -347,10 +347,14 @@ const AgentDashboard: React.FC = () => {
         const ticketParams: any = { limit: 100 };
         if (showOnlyMyTickets) {
           ticketParams.assignedToId = user.id;
+          console.log('[AgentDashboard] Fetching tickets assigned to user:', user.id, user.email);
+        } else {
+          console.log('[AgentDashboard] Fetching all tickets');
         }
         
         const response = await apiService.getTickets(ticketParams);
         const apiTickets = response.data || response.tickets || [];
+        console.log('[AgentDashboard] Received', apiTickets.length, 'tickets from API');
         
         // Create ID mapping from numeric to UUID
         const idMapping = new Map<number, string>();
@@ -519,7 +523,7 @@ const AgentDashboard: React.FC = () => {
   const [activeViewFilter, setActiveViewFilter] = useState('all-tickets');
   const [showCreateView, setShowCreateView] = useState(false);
   const [customViews, setCustomViews] = useState<any[]>([]);
-  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(false);
+  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(true); // Default to showing only user's tickets
 
   // Load custom views from localStorage
   useEffect(() => {
@@ -1321,11 +1325,31 @@ const AgentDashboard: React.FC = () => {
     );
   };
 
-  const renderKanbanBoard = () => (
-    <div
-      className={`grid grid-cols-1 gap-6`}
-      style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
-    >
+  const renderKanbanBoard = () => {
+    // Show empty state if no tickets and user is filtering to "My Tickets"
+    if (tickets.length === 0 && showOnlyMyTickets) {
+      return (
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-6xl mb-4">🎫</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Tickets Assigned</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            You don't have any tickets assigned to you yet.
+          </p>
+          <button
+            onClick={() => setShowOnlyMyTickets(false)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            View All Tickets
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`grid grid-cols-1 gap-6`}
+        style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
+      >
       {statuses.map((statusConfig) => (
         <div
           key={statusConfig.value}
@@ -1472,7 +1496,8 @@ const AgentDashboard: React.FC = () => {
         </div>
       ))}
     </div>
-  );
+    );
+  };
 
   const renderListView = () => (
     <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
