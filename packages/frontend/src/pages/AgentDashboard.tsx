@@ -343,7 +343,13 @@ const AgentDashboard: React.FC = () => {
         // Clear localStorage to use fresh API data
         localStorage.removeItem('agent-tickets');
         
-        const response = await apiService.getTickets({ limit: 100 });
+        // Get tickets based on filter preference
+        const ticketParams: any = { limit: 100 };
+        if (showOnlyMyTickets) {
+          ticketParams.assignedToId = user.id;
+        }
+        
+        const response = await apiService.getTickets(ticketParams);
         const apiTickets = response.data || response.tickets || [];
         
         // Create ID mapping from numeric to UUID
@@ -405,7 +411,7 @@ const AgentDashboard: React.FC = () => {
     };
     
     fetchTickets();
-  }, [user]); // Re-fetch when user changes
+  }, [user, showOnlyMyTickets]); // Re-fetch when user changes or filter changes
 
   // Fetch team statuses from API
   useEffect(() => {
@@ -513,6 +519,7 @@ const AgentDashboard: React.FC = () => {
   const [activeViewFilter, setActiveViewFilter] = useState('all-tickets');
   const [showCreateView, setShowCreateView] = useState(false);
   const [customViews, setCustomViews] = useState<any[]>([]);
+  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(false);
 
   // Load custom views from localStorage
   useEffect(() => {
@@ -3173,6 +3180,19 @@ const AgentDashboard: React.FC = () => {
                   showAllOption={true}
                 />
               </div>
+
+              {/* Ticket Filter Toggle */}
+              <button
+                onClick={() => setShowOnlyMyTickets(!showOnlyMyTickets)}
+                className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors ${
+                  showOnlyMyTickets
+                    ? 'bg-green-600 text-white border-green-600'
+                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                }`}
+                title={showOnlyMyTickets ? 'Show all tickets' : 'Show only my tickets'}
+              >
+                {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}
+              </button>
 
               {/* View Toggle */}
               <div className="flex rounded-md shadow-sm">
