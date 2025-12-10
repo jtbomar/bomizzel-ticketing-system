@@ -76,6 +76,7 @@ const AgentDashboard: React.FC = () => {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const [teamId, setTeamId] = useState<string | null>(null);
   const [loadingStatuses, setLoadingStatuses] = useState(true);
+  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(true); // Default to showing only user's tickets
 
   // Load statuses and priorities from AdminStatusConfig or API
   const getStatuses = (): StatusOption[] => {
@@ -523,7 +524,6 @@ const AgentDashboard: React.FC = () => {
   const [activeViewFilter, setActiveViewFilter] = useState('all-tickets');
   const [showCreateView, setShowCreateView] = useState(false);
   const [customViews, setCustomViews] = useState<any[]>([]);
-  const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(true); // Default to showing only user's tickets
 
   // Load custom views from localStorage
   useEffect(() => {
