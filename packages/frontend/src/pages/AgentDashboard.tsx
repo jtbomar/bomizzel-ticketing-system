@@ -179,7 +179,11 @@ const AgentDashboard: React.FC = () => {
     ];
   };
 
-  const [statuses, setStatuses] = useState<StatusOption[]>(getStatuses());
+  const [statuses, setStatuses] = useState<StatusOption[]>(() => {
+    const defaultStatuses = getStatuses();
+    console.log('[AgentDashboard] Initializing with default statuses:', defaultStatuses.length);
+    return defaultStatuses;
+  });
   const [priorities] = useState<PriorityOption[]>(getPriorities());
 
   // Load tickets from localStorage or use defaults
@@ -472,46 +476,54 @@ const AgentDashboard: React.FC = () => {
   // Fetch team statuses from API
   useEffect(() => {
     const fetchTeamStatuses = async () => {
-      if (!user || !teamId) {
+      if (!user) {
         setLoadingStatuses(false);
         return;
       }
 
-      try {
-        console.log('[AgentDashboard] Fetching statuses for team:', teamId);
-        const response = await apiService.getTeamStatuses(teamId);
-        const apiStatuses = response.statuses || [];
-        
-        if (apiStatuses.length > 0) {
-          // Transform API statuses to StatusOption format
-          const transformedStatuses = apiStatuses
-            .filter((s: any) => s.is_active)
-            .sort((a: any, b: any) => a.order - b.order)
-            .map((s: any) => ({
-              id: s.id,
-              label: s.label,
-              value: s.name,
-              color: s.color,
-              order: s.order,
-              isActive: s.is_active,
-              isDefault: s.is_default,
-            }));
+      // Always ensure we have default statuses first
+      const defaultStatuses = getStatuses();
+      console.log('[AgentDashboard] Setting default statuses:', defaultStatuses.length);
+      setStatuses(defaultStatuses);
+
+      // If we have a teamId, try to fetch team-specific statuses
+      if (teamId) {
+        try {
+          console.log('[AgentDashboard] Fetching statuses for team:', teamId);
+          const response = await apiService.getTeamStatuses(teamId);
+          const apiStatuses = response.statuses || [];
           
-          // Save to localStorage and update state
-          localStorage.setItem('admin-statuses', JSON.stringify(transformedStatuses));
-          setStatuses(transformedStatuses);
-          console.log('[AgentDashboard] Loaded', transformedStatuses.length, 'statuses from API');
-        } else {
-          // No statuses from API, ensure we have default statuses
-          console.log('[AgentDashboard] No statuses from API, using defaults');
-          const defaultStatuses = getStatuses();
-          setStatuses(defaultStatuses);
+          if (apiStatuses.length > 0) {
+            // Transform API statuses to StatusOption format
+            const transformedStatuses = apiStatuses
+              .filter((s: any) => s.is_active)
+              .sort((a: any, b: any) => a.order - b.order)
+              .map((s: any) => ({
+                id: s.id,
+                label: s.label,
+                value: s.name,
+                color: s.color,
+                order: s.order,
+                isActive: s.is_active,
+                isDefault: s.is_default,
+              }));
+            
+            // Save to localStorage and update state
+            localStorage.setItem('admin-statuses', JSON.stringify(transformedStatuses));
+            setStatuses(transformedStatuses);
+            console.log('[AgentDashboard] Loaded', transformedStatuses.length, 'statuses from API');
+          } else {
+            console.log('[AgentDashboard] No statuses from API, keeping defaults');
+          }
+        } catch (error) {
+          console.error('[AgentDashboard] Failed to fetch team statuses:', error);
+          console.log('[AgentDashboard] Keeping default statuses due to API error');
         }
-      } catch (error) {
-        console.error('[AgentDashboard] Failed to fetch team statuses:', error);
-      } finally {
-        setLoadingStatuses(false);
+      } else {
+        console.log('[AgentDashboard] No teamId, using default statuses');
       }
+      
+      setLoadingStatuses(false);
     };
 
     fetchTeamStatuses();
@@ -1427,16 +1439,23 @@ const AgentDashboard: React.FC = () => {
   const renderKanbanBoard = () => {
     console.log('[AgentDashboard] Rendering kanban board - tickets:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'filteredTickets:', filteredTickets.length, 'statuses:', statuses.length);
     
-    // Safety check: ensure we always have statuses
+    // CRITICAL: Force default statuses if we have none
     if (statuses.length === 0) {
-      console.log('[AgentDashboard] No statuses available, using defaults');
+      console.log('[AgentDashboard] CRITICAL: No statuses available, forcing defaults');
       const defaultStatuses = getStatuses();
+      console.log('[AgentDashboard] Default statuses:', defaultStatuses);
       setStatuses(defaultStatuses);
+      
+      // Return a loading state while statuses are being set
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">⚙️</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Statuses...</h3>
-          <p className="text-gray-600 dark:text-gray-400">Setting up default ticket statuses...</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Initializing Kanban Board...</h3>
+          <p className="text-gray-600 dark:text-gray-400">Setting up ticket statuses...</p>
+          <div className="mt-4 text-sm text-gray-500">
+            <p>Tickets loaded: {tickets.length}</p>
+            <p>Statuses: {statuses.length} (forcing defaults)</p>
+          </div>
         </div>
       );
     }
