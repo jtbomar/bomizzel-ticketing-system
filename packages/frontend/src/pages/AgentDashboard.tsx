@@ -179,7 +179,7 @@ const AgentDashboard: React.FC = () => {
     ];
   };
 
-  const [statuses] = useState<StatusOption[]>(getStatuses());
+  const [statuses, setStatuses] = useState<StatusOption[]>(getStatuses());
   const [priorities] = useState<PriorityOption[]>(getPriorities());
 
   // Load tickets from localStorage or use defaults
@@ -499,7 +499,13 @@ const AgentDashboard: React.FC = () => {
           
           // Save to localStorage and update state
           localStorage.setItem('admin-statuses', JSON.stringify(transformedStatuses));
+          setStatuses(transformedStatuses);
           console.log('[AgentDashboard] Loaded', transformedStatuses.length, 'statuses from API');
+        } else {
+          // No statuses from API, ensure we have default statuses
+          console.log('[AgentDashboard] No statuses from API, using defaults');
+          const defaultStatuses = getStatuses();
+          setStatuses(defaultStatuses);
         }
       } catch (error) {
         console.error('[AgentDashboard] Failed to fetch team statuses:', error);
@@ -1419,7 +1425,21 @@ const AgentDashboard: React.FC = () => {
   };
 
   const renderKanbanBoard = () => {
-    console.log('[AgentDashboard] Rendering kanban board - tickets:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'filteredTickets:', filteredTickets.length);
+    console.log('[AgentDashboard] Rendering kanban board - tickets:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'filteredTickets:', filteredTickets.length, 'statuses:', statuses.length);
+    
+    // Safety check: ensure we always have statuses
+    if (statuses.length === 0) {
+      console.log('[AgentDashboard] No statuses available, using defaults');
+      const defaultStatuses = getStatuses();
+      setStatuses(defaultStatuses);
+      return (
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-6xl mb-4">⚙️</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Statuses...</h3>
+          <p className="text-gray-600 dark:text-gray-400">Setting up default ticket statuses...</p>
+        </div>
+      );
+    }
     
     // Show empty state if no tickets and user is filtering to "My Tickets"
     if (tickets.length === 0 && showOnlyMyTickets) {
