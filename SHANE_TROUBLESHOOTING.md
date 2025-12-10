@@ -30,10 +30,12 @@ We've deployed debugging improvements to help identify why you're not seeing tic
    - `/api/agents` - should return agent list
 4. **Check if any calls are failing (red status)**
 
-## Step 4: Try Different Views
-1. **Click the filter toggle** to switch between "My Tickets" and "All Tickets"
-2. **Click the 🔄 Refresh button** to force fresh data from server
-3. **Check console for new log messages**
+## Step 4: Check Ticket Filtering
+**The dashboard now defaults to "All Tickets" so you should see tickets immediately!**
+1. **Look for the filter toggle button** - it should show "All Tickets" by default now
+2. **If you see ticket counts but no individual tickets**, check the console for filtering logs
+3. **Click the 🔄 Refresh button** to force fresh data from server
+4. **Try toggling between "All Tickets" and "My Tickets"**
 
 ## Step 5: Clear Cache (If Needed)
 If you're still having issues:

@@ -1001,8 +1001,11 @@ const AgentDashboard: React.FC = () => {
     return () => clearTimeout(timeoutId);
   };
 
-  const getStatusTickets = (status: string) =>
-    filteredTickets.filter((t) => t.status === status).sort((a, b) => a.order - b.order);
+  const getStatusTickets = (status: string) => {
+    const statusTickets = filteredTickets.filter((t) => t.status === status).sort((a, b) => a.order - b.order);
+    console.log(`[AgentDashboard] getStatusTickets("${status}") - filteredTickets:`, filteredTickets.length, 'statusTickets:', statusTickets.length);
+    return statusTickets;
+  };
 
   const getStatusColor = (statusValue: string) => {
     const status = statuses.find((s) => s.value === statusValue);
@@ -1452,7 +1455,40 @@ const AgentDashboard: React.FC = () => {
             <p>User: {user ? `${user.email} (${user.role})` : 'Not logged in'}</p>
             <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
             <p>Total tickets: {tickets.length}</p>
+            <p>Filtered tickets: {filteredTickets.length}</p>
+            <p>Statuses: {statuses.map(s => s.value).join(', ')}</p>
           </div>
+        </div>
+      );
+    }
+
+    // Show debug info if we have tickets but filtered tickets is empty
+    if (tickets.length > 0 && filteredTickets.length === 0) {
+      console.log('[AgentDashboard] Have tickets but filtered tickets is empty');
+      return (
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-6xl mb-4">🔍</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Filtered Tickets</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Tickets exist but none match the current filter. Check console for details.
+          </p>
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>Total tickets: {tickets.length}</p>
+            <p>Filtered tickets: {filteredTickets.length}</p>
+            <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
+            <p>Sample ticket statuses: {tickets.slice(0, 3).map(t => t.status).join(', ')}</p>
+            <p>Expected statuses: {statuses.map(s => s.value).join(', ')}</p>
+          </div>
+          <button
+            onClick={() => {
+              console.log('All tickets:', tickets);
+              console.log('Statuses:', statuses);
+              console.log('Filtered tickets:', filteredTickets);
+            }}
+            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            Log Debug Info
+          </button>
         </div>
       );
     }
@@ -1473,7 +1509,10 @@ const AgentDashboard: React.FC = () => {
             {statusConfig.label} ({getStatusTickets(statusConfig.value).length})
           </h3>
           <div className="space-y-3">
-            {getStatusTickets(statusConfig.value).map((ticket, index) => (
+            {(() => {
+              const statusTickets = getStatusTickets(statusConfig.value);
+              console.log(`[AgentDashboard] Rendering tickets for status "${statusConfig.value}":`, statusTickets.length, statusTickets);
+              return statusTickets.map((ticket, index) => (
               <div key={ticket.id} className="relative">
                 {/* Drop indicator above */}
                 {dragOverTicket === ticket.id && dragOverPosition === 'above' && (
@@ -1597,7 +1636,8 @@ const AgentDashboard: React.FC = () => {
                   <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
                 )}
               </div>
-            ))}
+            ));
+            })()}
 
             {getStatusTickets(statusConfig.value).length === 0 && (
               <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
