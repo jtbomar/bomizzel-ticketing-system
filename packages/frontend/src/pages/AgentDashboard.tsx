@@ -335,8 +335,10 @@ const AgentDashboard: React.FC = () => {
 
   // Load initial tickets when user is available
   useEffect(() => {
+    console.log('[AgentDashboard] User state changed:', user ? `${user.email} (${user.role})` : 'null');
     if (user) {
       const initialTickets = migrateTickets(getInitialTickets(), statuses);
+      console.log('[AgentDashboard] Initial tickets loaded:', initialTickets.length);
       setTickets(initialTickets);
       
       // Load ticket ID mapping from localStorage
@@ -446,14 +448,17 @@ const AgentDashboard: React.FC = () => {
         });
         
         if (transformedTickets.length > 0) {
-          setTickets(migrateTickets(transformedTickets, statuses));
+          const migratedTickets = migrateTickets(transformedTickets, statuses);
+          setTickets(migratedTickets);
           setTicketIdMap(idMapping);
           
           // Save ID mapping to localStorage
           const idMapKey = `agent-ticket-ids-${user.id}`;
           localStorage.setItem(idMapKey, JSON.stringify(Array.from(idMapping.entries())));
           
-          console.log('Loaded', transformedTickets.length, 'tickets from API');
+          console.log('[AgentDashboard] Loaded', transformedTickets.length, 'tickets from API, migrated to:', migratedTickets.length);
+        } else {
+          console.log('[AgentDashboard] No tickets received from API');
         }
       } catch (error) {
         console.error('Failed to fetch tickets:', error);
@@ -1431,8 +1436,11 @@ const AgentDashboard: React.FC = () => {
   };
 
   const renderKanbanBoard = () => {
+    console.log('[AgentDashboard] Rendering kanban board - tickets:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'filteredTickets:', filteredTickets.length);
+    
     // Show empty state if no tickets and user is filtering to "My Tickets"
     if (tickets.length === 0 && showOnlyMyTickets) {
+      console.log('[AgentDashboard] Showing empty state - no tickets assigned');
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🎫</div>
@@ -1446,6 +1454,25 @@ const AgentDashboard: React.FC = () => {
           >
             View All Tickets
           </button>
+        </div>
+      );
+    }
+
+    // Show debug info if no tickets at all
+    if (tickets.length === 0) {
+      console.log('[AgentDashboard] No tickets found at all');
+      return (
+        <div className="text-center py-12">
+          <div className="text-gray-400 text-6xl mb-4">🔍</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Tickets Found</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            No tickets are available. Check the browser console for debugging information.
+          </p>
+          <div className="text-sm text-gray-500 space-y-1">
+            <p>User: {user ? `${user.email} (${user.role})` : 'Not logged in'}</p>
+            <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
+            <p>Total tickets: {tickets.length}</p>
+          </div>
         </div>
       );
     }
