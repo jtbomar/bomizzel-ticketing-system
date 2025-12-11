@@ -78,18 +78,12 @@ const AgentDashboard: React.FC = () => {
   const [loadingStatuses, setLoadingStatuses] = useState(true);
   const [showOnlyMyTickets, setShowOnlyMyTickets] = useState(false); // Default to showing all tickets so Shane can see them
 
-  // Load statuses and priorities from AdminStatusConfig or API
+  // FORCE default statuses - bypass localStorage corruption
   const getStatuses = (): StatusOption[] => {
-    const saved = localStorage.getItem('admin-statuses');
-    if (saved) {
-      try {
-        return JSON.parse(saved).filter((s: StatusOption) => s.isActive);
-      } catch (error) {
-        console.error('Error loading statuses:', error);
-      }
-    }
-    // Default statuses if none configured
-    return [
+    console.log('[AgentDashboard] getStatuses called');
+    
+    // ALWAYS return default statuses to fix Shane's issue
+    const defaultStatuses = [
       {
         id: '1',
         label: 'Open',
@@ -127,6 +121,9 @@ const AgentDashboard: React.FC = () => {
         isDefault: true,
       },
     ];
+    
+    console.log('[AgentDashboard] Returning default statuses:', defaultStatuses.length);
+    return defaultStatuses;
   };
 
   const getPriorities = (): PriorityOption[] => {
@@ -463,6 +460,8 @@ const AgentDashboard: React.FC = () => {
           console.log('[AgentDashboard] Loaded', transformedTickets.length, 'tickets from API, migrated to:', migratedTickets.length);
         } else {
           console.log('[AgentDashboard] No tickets received from API');
+          console.log('[AgentDashboard] API response:', response);
+          console.log('[AgentDashboard] Raw API tickets:', apiTickets);
         }
       } catch (error) {
         console.error('Failed to fetch tickets:', error);
@@ -1444,7 +1443,9 @@ const AgentDashboard: React.FC = () => {
       console.log('[AgentDashboard] CRITICAL: No statuses available, forcing defaults');
       const defaultStatuses = getStatuses();
       console.log('[AgentDashboard] Default statuses:', defaultStatuses);
-      setStatuses(defaultStatuses);
+      
+      // Use setTimeout to prevent infinite re-render
+      setTimeout(() => setStatuses(defaultStatuses), 0);
       
       // EMERGENCY MODE: Show tickets as simple list when kanban fails
       return (
