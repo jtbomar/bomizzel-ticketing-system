@@ -675,8 +675,17 @@ const AgentDashboard: React.FC = () => {
     
     // Simple filter based on showOnlyMyTickets toggle
     if (showOnlyMyTickets) {
-      const myTickets = tickets.filter((ticket) => ticket.assigned === 'You');
-      console.log('[AgentDashboard] My tickets filter - found:', myTickets.length, 'tickets assigned to "You"');
+      // Check for tickets assigned to current user - handle multiple formats
+      const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
+      const myTickets = tickets.filter((ticket) => {
+        const isAssignedToMe = ticket.assigned === 'You' || 
+                              ticket.assigned === currentUserName ||
+                              (user && ticket.assigned === user.email);
+        return isAssignedToMe;
+      });
+      console.log('[AgentDashboard] My tickets filter - found:', myTickets.length, 'tickets');
+      console.log('[AgentDashboard] Looking for assignments to:', ['You', currentUserName, user?.email]);
+      console.log('[AgentDashboard] Sample ticket assignments:', tickets.slice(0, 5).map(t => t.assigned));
       return myTickets;
     } else {
       console.log('[AgentDashboard] All tickets filter - showing all:', tickets.length, 'tickets');
@@ -1176,9 +1185,12 @@ const AgentDashboard: React.FC = () => {
   };
 
   const changeAssignment = async (ticketId: number, newAssigned: string) => {
-    // Update local state optimistically
+    // Update local state optimistically - convert to "You" if assigning to current user
+    const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
+    const displayAssigned = (newAssigned === currentUserName) ? 'You' : newAssigned;
+    
     setTickets((prev) =>
-      prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, assigned: newAssigned } : ticket))
+      prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, assigned: displayAssigned } : ticket))
     );
 
     // Update via API
