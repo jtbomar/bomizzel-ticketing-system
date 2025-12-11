@@ -10,7 +10,7 @@ if (!stripeSecretKey) {
 }
 
 export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
-  apiVersion: '2025-09-30.clover',
+  apiVersion: '2025-09-30.clover' as any, // Force type to bypass version mismatch
   typescript: true,
 }) : null;
 
