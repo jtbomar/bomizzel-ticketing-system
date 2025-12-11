@@ -1196,19 +1196,30 @@ const AgentDashboard: React.FC = () => {
     // Update via API
     try {
       const uuidTicketId = ticketIdMap.get(ticketId);
+      console.log(`[AgentDashboard] Assignment API call - ticketId: ${ticketId}, uuidTicketId: ${uuidTicketId}, newAssigned: ${newAssigned}`);
+      
       if (uuidTicketId) {
         // Find the agent ID by name
         const agent = agents.find(a => `${a.firstName} ${a.lastName}` === newAssigned);
+        console.log(`[AgentDashboard] Found agent for assignment:`, agent);
+        
         if (agent) {
-          await apiService.assignTicket(uuidTicketId, agent.id);
-          console.log(`Assigned ticket ${ticketId} to: ${newAssigned}`);
+          const result = await apiService.assignTicket(uuidTicketId, agent.id);
+          console.log(`[AgentDashboard] API assignTicket result:`, result);
+          console.log(`Assigned ticket ${ticketId} to: ${newAssigned} (agent ID: ${agent.id})`);
         } else if (newAssigned === 'Unassigned') {
-          await apiService.unassignTicket(uuidTicketId);
+          const result = await apiService.unassignTicket(uuidTicketId);
+          console.log(`[AgentDashboard] API unassignTicket result:`, result);
           console.log(`Unassigned ticket ${ticketId}`);
+        } else {
+          console.log(`[AgentDashboard] No agent found for name: ${newAssigned}`);
         }
+      } else {
+        console.log(`[AgentDashboard] No UUID found for ticket ${ticketId}`);
       }
     } catch (error: any) {
       console.error('Failed to update ticket assignment:', error);
+      console.error('Assignment error details:', error.response?.data || error.message);
     }
   };
 
@@ -3545,7 +3556,10 @@ const AgentDashboard: React.FC = () => {
 
               {/* Ticket Filter Toggle */}
               <button
-                onClick={() => setShowOnlyMyTickets(!showOnlyMyTickets)}
+                onClick={() => {
+                  console.log('[AgentDashboard] Filter toggle clicked - current:', showOnlyMyTickets, 'switching to:', !showOnlyMyTickets);
+                  setShowOnlyMyTickets(!showOnlyMyTickets);
+                }}
                 className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors ${
                   showOnlyMyTickets
                     ? 'bg-green-600 text-white border-green-600'
