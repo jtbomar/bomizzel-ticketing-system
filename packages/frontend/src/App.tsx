@@ -1,54 +1,67 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/ProtectedRoute';
+
+// Core pages loaded immediately (small, frequently accessed)
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import PricingPage from './pages/PricingPage';
-import CustomerDashboard from './pages/CustomerDashboard';
-import AgentDashboard from './pages/AgentDashboard';
-import SimpleAdminDashboard from './pages/SimpleAdminDashboard';
-import TicketLayoutManagement from './pages/TicketLayoutManagement';
-import CreateTicketPage from './pages/CreateTicketPage';
-import TestAPI from './TestAPI';
-import CompanyRegistrationPage from './pages/CompanyRegistrationPage';
-import TestTicketForm from './pages/TestTicketForm';
-import ColorPickerDemo from './pages/ColorPickerDemo';
-import AdminCustomerProvisioning from './pages/AdminCustomerProvisioning';
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import BSIAdminLogin from './pages/BSIAdminLogin';
-import DataManagement from './pages/DataManagement';
-import SQLQueryBuilder from './pages/SQLQueryBuilder';
-import CustomerReports from './pages/CustomerReports';
-import VisualReportBuilder from './pages/VisualReportBuilder';
-import AdminSettings from './pages/AdminSettings';
-import CompanyProfile from './pages/CompanyProfile';
-import Rebranding from './pages/Rebranding';
-import BusinessHours from './pages/BusinessHours';
-import HolidayList from './pages/HolidayList';
-import Departments from './pages/Departments';
-import CustomerHappiness from './pages/CustomerHappiness';
-import Agents from './pages/Agents';
-import Teams from './pages/Teams';
-import OrganizationalRoles from './pages/OrganizationalRoles';
-import Profiles from './pages/Profiles';
-import Products from './pages/Products';
-import Gamification from './pages/Gamification';
-import TicketStatusManagement from './pages/TicketStatusManagement';
-import AgentCreateTicketForm from './components/AgentCreateTicketForm';
-import AgentAccountsList from './pages/AgentAccountsList';
-import AgentCustomersList from './pages/AgentCustomersList';
-import AgentAccountDetail from './pages/AgentAccountDetail';
-import AgentCustomerDetail from './pages/AgentCustomerDetail';
-import SimpleTicketTest from './pages/SimpleTicketTest';
+
+// Lazy load heavy components
+const PricingPage = lazy(() => import('./pages/PricingPage'));
+const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
+const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
+const TicketLayoutManagement = lazy(() => import('./pages/TicketLayoutManagement'));
+const CreateTicketPage = lazy(() => import('./pages/CreateTicketPage'));
+const TestAPI = lazy(() => import('./TestAPI'));
+const CompanyRegistrationPage = lazy(() => import('./pages/CompanyRegistrationPage'));
+const TestTicketForm = lazy(() => import('./pages/TestTicketForm'));
+const ColorPickerDemo = lazy(() => import('./pages/ColorPickerDemo'));
+const AdminCustomerProvisioning = lazy(() => import('./pages/AdminCustomerProvisioning'));
+const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
+const BSIAdminLogin = lazy(() => import('./pages/BSIAdminLogin'));
+const DataManagement = lazy(() => import('./pages/DataManagement'));
+const SQLQueryBuilder = lazy(() => import('./pages/SQLQueryBuilder'));
+const CustomerReports = lazy(() => import('./pages/CustomerReports'));
+const VisualReportBuilder = lazy(() => import('./pages/VisualReportBuilder'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const CompanyProfile = lazy(() => import('./pages/CompanyProfile'));
+const Rebranding = lazy(() => import('./pages/Rebranding'));
+const BusinessHours = lazy(() => import('./pages/BusinessHours'));
+const HolidayList = lazy(() => import('./pages/HolidayList'));
+const Departments = lazy(() => import('./pages/Departments'));
+const CustomerHappiness = lazy(() => import('./pages/CustomerHappiness'));
+const Agents = lazy(() => import('./pages/Agents'));
+const Teams = lazy(() => import('./pages/Teams'));
+const OrganizationalRoles = lazy(() => import('./pages/OrganizationalRoles'));
+const Profiles = lazy(() => import('./pages/Profiles'));
+const Products = lazy(() => import('./pages/Products'));
+const Gamification = lazy(() => import('./pages/Gamification'));
+const TicketStatusManagement = lazy(() => import('./pages/TicketStatusManagement'));
+const AgentCreateTicketForm = lazy(() => import('./components/AgentCreateTicketForm'));
+const AgentAccountsList = lazy(() => import('./pages/AgentAccountsList'));
+const AgentCustomersList = lazy(() => import('./pages/AgentCustomersList'));
+const AgentAccountDetail = lazy(() => import('./pages/AgentAccountDetail'));
+const AgentCustomerDetail = lazy(() => import('./pages/AgentCustomerDetail'));
+const SimpleTicketTest = lazy(() => import('./pages/SimpleTicketTest'));
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <div className="App">
-          <Routes>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path="/pricing" element={<PricingPage />} />
@@ -325,6 +338,7 @@ function App() {
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
         </div>
       </AuthProvider>
     </ThemeProvider>

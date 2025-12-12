@@ -18,6 +18,25 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React libraries
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          
+          // UI Libraries
+          'ui-vendor': [
+            '@heroicons/react',
+            '@headlessui/react'
+          ],
+          
+          // HTTP and API libraries
+          'api-vendor': ['axios']
+        }
+      }
+    },
+    // Increase chunk size warning limit to 600KB (reasonable for chunked bundles)
+    chunkSizeWarningLimit: 600
   },
   test: {
     environment: 'jsdom',
