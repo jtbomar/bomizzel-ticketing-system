@@ -478,7 +478,55 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-app.get('/api/health', (_req: Request, res: Response) => {
+app.get('/api/health', async (req: Request, res: Response) => {
+  const { emergency_reseed } = req.query;
+  
+  // Emergency database reseed capability
+  if (emergency_reseed === 'bomizzel_emergency_2024') {
+    try {
+      console.log('🚨 EMERGENCY RESEED TRIGGERED VIA HEALTH ENDPOINT');
+      
+      const workingDir = __dirname.includes('dist')
+        ? path.resolve(__dirname, '..')
+        : path.resolve(__dirname, '..');
+      const env = process.env.NODE_ENV || 'production';
+      
+      console.log('📂 Working directory:', workingDir);
+      console.log('🌍 Environment:', env);
+      
+      // Run seeds
+      console.log('🌱 Running emergency seeds...');
+      const seedCommand = `npx knex seed:run --knexfile knexfile.js --env ${env}`;
+      execSync(seedCommand, { 
+        stdio: 'inherit',
+        cwd: workingDir 
+      });
+      
+      console.log('✅ Emergency reseed completed via health endpoint');
+      
+      return res.json({
+        status: 'ok',
+        message: 'Emergency database reseed completed successfully',
+        timestamp: new Date().toISOString(),
+        credentials: {
+          superAdmin: 'jeff@bomar.com / password123',
+          admin: 'elena@bomar.com / password123',
+          agent: 'jeremy@bomar.com / password123'
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Emergency reseed failed:', error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Emergency reseed failed',
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+  
+  // Normal health check
   res.json({
     status: 'ok',
     message: 'Bomizzel API is running',
