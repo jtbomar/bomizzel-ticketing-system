@@ -48,3 +48,44 @@ export const mockCustomer = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+export const mockCompany = {
+  id: 'test-company-id',
+  name: 'Test Company',
+  domain: 'testcompany.com',
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+export const mockTeam = {
+  id: 'test-team-id',
+  name: 'Test Team',
+  companyId: 'test-company-id',
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+export const mockQueue = {
+  id: 'test-queue-id',
+  name: 'Test Queue',
+  teamId: 'test-team-id',
+  type: 'employee' as const,
+  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+export const createMockTicketData = (overrides: any = {}) => ({
+  title: 'Test Ticket',
+  description: 'Test Description',
+  submitterId: mockUser.id,
+  companyId: mockCompany.id,
+  queueId: mockQueue.id,
+  teamId: mockTeam.id,
+  status: 'open',
+  priority: 'medium',
+  customFieldValues: {},
+  ...overrides,
+});
