@@ -576,6 +576,55 @@ app.get('/api/health', async (req: Request, res: Response) => {
     }
   }
   
+  // Create Shane's account
+  if (emergency_reseed === 'create_shane') {
+    try {
+      console.log('👤 CREATING SHANE ACCOUNT');
+      
+      const { db } = require('./config/database');
+      const bcrypt = require('bcryptjs');
+      const { v4: uuidv4 } = require('uuid');
+      
+      // Create Shane with his actual password
+      const shaneId = uuidv4();
+      const passwordHash = await bcrypt.hash('Welcome123!', 12);
+      
+      await db('users').insert({
+        id: shaneId,
+        email: 'shane@bomar.com',
+        password_hash: passwordHash,
+        first_name: 'Shane',
+        last_name: 'Bomar',
+        role: 'admin',
+        is_active: true,
+        email_verified: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).onConflict('email').merge({
+        password_hash: passwordHash,
+        updated_at: new Date()
+      });
+      
+      console.log('✅ Shane account created/updated');
+      
+      return res.json({
+        status: 'ok',
+        message: 'Shane account created successfully',
+        credentials: {
+          shane: 'shane@bomar.com / Welcome123!'
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Shane account creation failed:', error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Shane account creation failed',
+        error: error.message
+      });
+    }
+  }
+  
   // Fix passwords capability
   if (emergency_reseed === 'fix_passwords') {
     try {
