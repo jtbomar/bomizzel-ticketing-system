@@ -552,6 +552,10 @@ app.get('/api/health', async (req: Request, res: Response) => {
       
       console.log('✅ Emergency users created directly via database');
       
+      // Debug: Check what users were created
+      const users = await db('users').select('email', 'role', 'is_active', 'email_verified').limit(5);
+      console.log('👥 Users in database:', users);
+      
       return res.json({
         status: 'ok',
         message: 'Emergency database reseed completed successfully',
@@ -560,6 +564,10 @@ app.get('/api/health', async (req: Request, res: Response) => {
           superAdmin: 'jeff@bomar.com / password123',
           admin: 'elena@bomar.com / password123',
           agent: 'jeremy@bomar.com / password123'
+        },
+        debug: {
+          usersCreated: users.length,
+          users: users
         }
       });
       
