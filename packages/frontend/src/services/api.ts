@@ -75,7 +75,17 @@ class ApiService {
       const directLoginUrl = `/health?emergency_reseed=login&email=${encodedEmail}&password=${encodedPassword}`;
       
       console.log('[ApiService] Using direct login URL:', directLoginUrl);
-      const response = await this.client.get(directLoginUrl);
+      
+      // Create a separate axios instance without auth interceptors for login
+      const loginClient = axios.create({
+        baseURL: this.client.defaults.baseURL,
+        timeout: 10000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      const response = await loginClient.get(directLoginUrl);
       
       console.log('[ApiService] Direct login response:', response.data);
       
