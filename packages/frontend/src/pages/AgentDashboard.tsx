@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -675,8 +675,8 @@ const AgentDashboard: React.FC = () => {
     },
   ];
 
-  // Get filtered tickets
-  const getFilteredTickets = () => {
+  // Memoized filtered tickets to prevent excessive re-renders during drag operations
+  const filteredTickets = useMemo(() => {
     console.log('[AgentDashboard] Filtering tickets - total:', tickets.length, 'activeViewFilter:', activeViewFilter, 'showOnlyMyTickets:', showOnlyMyTickets, 'user:', user?.email);
     
     // Use activeViewFilter (sidebar) as primary filter
@@ -721,9 +721,7 @@ const AgentDashboard: React.FC = () => {
         return tickets;
       }
     }
-  };
-
-  const filteredTickets = getFilteredTickets();
+  }, [tickets, activeViewFilter, showOnlyMyTickets, user]);
 
   // Board settings state
   const [boardSettings, setBoardSettings] = useState({
@@ -1057,11 +1055,12 @@ const AgentDashboard: React.FC = () => {
     return () => clearTimeout(timeoutId);
   };
 
-  const getStatusTickets = (status: string) => {
+  // Memoized function to get tickets by status to prevent excessive re-renders during drag
+  const getStatusTickets = useCallback((status: string) => {
     const statusTickets = filteredTickets.filter((t) => t.status === status).sort((a, b) => a.order - b.order);
     console.log(`[AgentDashboard] getStatusTickets("${status}") - filteredTickets:`, filteredTickets.length, 'statusTickets:', statusTickets.length);
     return statusTickets;
-  };
+  }, [filteredTickets]);
 
   const getStatusColor = (statusValue: string) => {
     const status = statuses.find((s) => s.value === statusValue);
@@ -1344,8 +1343,8 @@ const AgentDashboard: React.FC = () => {
     }
   };
 
-  // Enhanced drag and drop with within-column reordering
-  const handleDragStart = (e: React.DragEvent, ticket: Ticket) => {
+  // Enhanced drag and drop with within-column reordering - memoized to prevent re-renders
+  const handleDragStart = useCallback((e: React.DragEvent, ticket: Ticket) => {
     setDraggedTicket(ticket);
     e.dataTransfer.effectAllowed = 'move';
 
@@ -1363,14 +1362,14 @@ const AgentDashboard: React.FC = () => {
         document.body.removeChild(dragElement);
       }
     }, 0);
-  };
+  }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-  };
+  }, []);
 
-  const handleTicketDragOver = (e: React.DragEvent, ticket: Ticket) => {
+  const handleTicketDragOver = useCallback((e: React.DragEvent, ticket: Ticket) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -1382,9 +1381,9 @@ const AgentDashboard: React.FC = () => {
 
     setDragOverTicket(ticket.id);
     setDragOverPosition(position);
-  };
+  }, [draggedTicket]);
 
-  const handleTicketDragLeave = (e: React.DragEvent) => {
+  const handleTicketDragLeave = useCallback((e: React.DragEvent) => {
     // Only clear if we're leaving the ticket entirely
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
@@ -1394,9 +1393,9 @@ const AgentDashboard: React.FC = () => {
       setDragOverTicket(null);
       setDragOverPosition(null);
     }
-  };
+  }, []);
 
-  const handleTicketDrop = (e: React.DragEvent, targetTicket: Ticket) => {
+  const handleTicketDrop = useCallback((e: React.DragEvent, targetTicket: Ticket) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -1426,9 +1425,9 @@ const AgentDashboard: React.FC = () => {
     setDraggedTicket(null);
     setDragOverTicket(null);
     setDragOverPosition(null);
-  };
+  }, [draggedTicket, dragOverPosition, tickets]);
 
-  const handleColumnDrop = (e: React.DragEvent, newStatus: string) => {
+  const handleColumnDrop = useCallback((e: React.DragEvent, newStatus: string) => {
     e.preventDefault();
 
     if (draggedTicket && draggedTicket.status !== newStatus) {
@@ -1438,9 +1437,9 @@ const AgentDashboard: React.FC = () => {
     setDraggedTicket(null);
     setDragOverTicket(null);
     setDragOverPosition(null);
-  };
+  }, [draggedTicket]);
 
-  const reorderTicketsInColumn = (
+  const reorderTicketsInColumn = useCallback((
     draggedId: number,
     targetId: number,
     position: 'above' | 'below'
@@ -1474,9 +1473,9 @@ const AgentDashboard: React.FC = () => {
     setTickets((prev) =>
       prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
     );
-  };
+  }, [tickets, getStatusTickets]);
 
-  const moveTicketToPosition = (
+  const moveTicketToPosition = useCallback((
     draggedId: number,
     newStatus: string,
     targetId: number,
@@ -1511,7 +1510,7 @@ const AgentDashboard: React.FC = () => {
         ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
       )
     );
-  };
+  }, [tickets, getStatusTickets]);
 
   const renderKanbanBoard = () => {
     console.log('[AgentDashboard] Rendering kanban board - tickets:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'filteredTickets:', filteredTickets.length, 'statuses:', statuses.length);
