@@ -504,13 +504,20 @@ app.get('/api/health', async (req: Request, res: Response) => {
         console.log('🔐 Password valid:', isValid);
         
         // Also test with User model method
-        const { User } = require('./models/User');
-        const userModelResult = await User.findByEmail('elisa@bomar.com');
-        console.log('👤 User model found:', !!userModelResult);
+        let userModelResult = null;
+        let modelPasswordValid = false;
         
-        if (userModelResult) {
-          const modelPasswordValid = await User.verifyPassword('password123', userModelResult.password_hash);
-          console.log('🔐 Model password valid:', modelPasswordValid);
+        try {
+          const { User } = require('./models/User');
+          userModelResult = await User.findByEmail('elisa@bomar.com');
+          console.log('👤 User model found:', !!userModelResult);
+          
+          if (userModelResult) {
+            modelPasswordValid = await User.verifyPassword('password123', userModelResult.password_hash);
+            console.log('🔐 Model password valid:', modelPasswordValid);
+          }
+        } catch (modelError) {
+          console.error('❌ User model error:', modelError);
         }
       }
       
@@ -523,7 +530,10 @@ app.get('/api/health', async (req: Request, res: Response) => {
           is_active: user.is_active,
           email_verified: user.email_verified,
           has_password_hash: !!user.password_hash,
-          password_hash_length: user.password_hash ? user.password_hash.length : 0
+          password_hash_length: user.password_hash ? user.password_hash.length : 0,
+          direct_bcrypt_valid: user ? await bcrypt.compare('password123', user.password_hash) : false,
+          user_model_found: !!userModelResult,
+          model_password_valid: modelPasswordValid
         } : null
       });
       
