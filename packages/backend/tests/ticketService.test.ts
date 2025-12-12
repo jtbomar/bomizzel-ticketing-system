@@ -198,20 +198,18 @@ describe('TicketService', () => {
       await TicketService.createTicket({
         title: 'Bug Report',
         description: 'Application crashes on startup',
-        submitterId: customerId,
         companyId: companyId,
         teamId: teamId,
         customFieldValues: { priority_level: 'High' },
-      });
+      }, customerId);
 
       await TicketService.createTicket({
         title: 'Feature Request',
         description: 'Add dark mode support',
-        submitterId: customerId,
         companyId: companyId,
         teamId: teamId,
         customFieldValues: { priority_level: 'Low' },
-      });
+      }, customerId);
     });
 
     it('should search tickets by title', async () => {

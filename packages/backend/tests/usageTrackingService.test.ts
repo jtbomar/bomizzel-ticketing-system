@@ -42,7 +42,6 @@ describe('UsageTrackingService', () => {
       totalTicketLimit: 10,
       features: ['Basic ticketing'],
       trialDays: 0,
-      isActive: true,
       sortOrder: 1,
     });
     freePlanId = freePlan.id;
@@ -58,7 +57,6 @@ describe('UsageTrackingService', () => {
       totalTicketLimit: 40,
       features: ['Advanced ticketing'],
       trialDays: 14,
-      isActive: true,
       sortOrder: 2,
     });
     starterPlanId = starterPlan.id;

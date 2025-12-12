@@ -46,25 +46,25 @@ describe('Email API', () => {
     const company = await CompanyService.createCompany({
       name: 'Test Company',
       domain: 'test.com',
-    });
+    }, employeeId);
     companyId = company.id;
 
     // Create test team
     const team = await TeamService.createTeam({
       name: 'Test Team',
       description: 'Test team for email',
-    });
+    }, employeeId);
     teamId = team.id;
 
     // Add employee to team
-    await TeamService.addMember(teamId, employeeId, 'member');
+    await TeamService.addUserToTeam(teamId, employeeId, 'member', employeeId);
 
     // Create test queue
     const queue = await QueueService.createQueue({
       name: 'Test Queue',
       type: 'unassigned',
       teamId,
-    });
+    }, employeeId, 'employee');
     queueId = queue.id;
 
     // Create test ticket

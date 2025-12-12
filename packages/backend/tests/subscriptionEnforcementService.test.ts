@@ -44,7 +44,6 @@ describe('SubscriptionEnforcementService', () => {
       totalTicketLimit: 6,
       features: ['Limited features'],
       trialDays: 0,
-      isActive: true,
       sortOrder: 1,
     });
     limitedPlanId = limitedPlan.id;
@@ -61,7 +60,6 @@ describe('SubscriptionEnforcementService', () => {
       totalTicketLimit: -1,
       features: ['Unlimited features'],
       trialDays: 0,
-      isActive: true,
       sortOrder: 2,
     });
     unlimitedPlanId = unlimitedPlan.id;

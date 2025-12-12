@@ -34,7 +34,6 @@ describe('SubscriptionService', () => {
       totalTicketLimit: 200,
       features: ['Basic ticketing', 'Email support'],
       trialDays: 0,
-      isActive: true,
       sortOrder: 1,
     });
     freePlanId = freePlan.id;
@@ -50,7 +49,6 @@ describe('SubscriptionService', () => {
       totalTicketLimit: 1000,
       features: ['Advanced ticketing', 'Priority support', 'Custom fields'],
       trialDays: 14,
-      isActive: true,
       sortOrder: 2,
     });
     starterPlanId = starterPlan.id;
@@ -66,7 +64,6 @@ describe('SubscriptionService', () => {
       totalTicketLimit: 10000,
       features: ['All features', 'API access', 'Advanced analytics'],
       trialDays: 14,
-      isActive: true,
       sortOrder: 3,
     });
     professionalPlanId = professionalPlan.id;
@@ -445,7 +442,6 @@ describe('SubscriptionService', () => {
         totalTicketLimit: -1,
         features: ['Unlimited everything'],
         trialDays: 14,
-        isActive: true,
         sortOrder: 5,
       });
       unlimitedPlanId = unlimitedPlan.id;

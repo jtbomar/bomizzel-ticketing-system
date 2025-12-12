@@ -80,12 +80,8 @@ export const mockQueue = {
 export const createMockTicketData = (overrides: any = {}) => ({
   title: 'Test Ticket',
   description: 'Test Description',
-  submitterId: mockUser.id,
   companyId: mockCompany.id,
-  queueId: mockQueue.id,
   teamId: mockTeam.id,
-  status: 'open',
-  priority: 'medium',
   customFieldValues: {},
   ...overrides,
 });
