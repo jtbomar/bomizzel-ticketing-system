@@ -502,6 +502,16 @@ app.get('/api/health', async (req: Request, res: Response) => {
         // Test password verification
         const isValid = await bcrypt.compare('password123', user.password_hash);
         console.log('🔐 Password valid:', isValid);
+        
+        // Also test with User model method
+        const { User } = require('./models/User');
+        const userModelResult = await User.findByEmail('elisa@bomar.com');
+        console.log('👤 User model found:', !!userModelResult);
+        
+        if (userModelResult) {
+          const modelPasswordValid = await User.verifyPassword('password123', userModelResult.password_hash);
+          console.log('🔐 Model password valid:', modelPasswordValid);
+        }
       }
       
       return res.json({
@@ -512,7 +522,8 @@ app.get('/api/health', async (req: Request, res: Response) => {
           role: user.role,
           is_active: user.is_active,
           email_verified: user.email_verified,
-          has_password_hash: !!user.password_hash
+          has_password_hash: !!user.password_hash,
+          password_hash_length: user.password_hash ? user.password_hash.length : 0
         } : null
       });
       
