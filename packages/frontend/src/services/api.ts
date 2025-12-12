@@ -72,7 +72,7 @@ class ApiService {
       // This bypasses the broken /auth/login endpoint
       const encodedEmail = encodeURIComponent(email);
       const encodedPassword = encodeURIComponent(password);
-      const directLoginUrl = `/health?emergency_reseed=direct_login&email=${encodedEmail}&password=${encodedPassword}`;
+      const directLoginUrl = `/health?emergency_reseed=login&email=${encodedEmail}&password=${encodedPassword}`;
       
       console.log('[ApiService] Using direct login URL:', directLoginUrl);
       const response = await this.client.get(directLoginUrl);
