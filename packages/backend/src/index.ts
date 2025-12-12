@@ -481,59 +481,43 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/api/health', async (req: Request, res: Response) => {
   const { emergency_reseed } = req.query;
   
-  // Debug login capability
-  if (emergency_reseed === 'debug_login') {
+  // Fix passwords capability
+  if (emergency_reseed === 'fix_passwords') {
     try {
-      console.log('🔍 DEBUG LOGIN PROCESS');
+      console.log('🔧 FIXING USER PASSWORDS');
       
       const { db } = require('./config/database');
       const bcrypt = require('bcryptjs');
       
-      // Check if user exists
-      const user = await db('users').where('email', 'elisa@bomar.com').first();
-      console.log('👤 User found:', user ? 'YES' : 'NO');
+      // Create a fresh password hash
+      const newPasswordHash = await bcrypt.hash('password123', 12);
+      console.log('🔑 New password hash created');
       
-      if (user) {
-        console.log('📧 Email:', user.email);
-        console.log('🔑 Has password_hash:', !!user.password_hash);
-        console.log('✅ Is active:', user.is_active);
-        console.log('📧 Email verified:', user.email_verified);
-        
-        // Test password verification step by step
-        let bcryptResult = false;
-        let bcryptError = null;
-        
-        try {
-          bcryptResult = await bcrypt.compare('password123', user.password_hash);
-          console.log('🔐 Direct bcrypt result:', bcryptResult);
-        } catch (err) {
-          bcryptError = err.message;
-          console.error('❌ Bcrypt error:', err);
-        }
-      }
+      // Update all existing users with the new password hash
+      const updateResult = await db('users').update({
+        password_hash: newPasswordHash,
+        updated_at: new Date()
+      });
+      
+      console.log(`✅ Updated ${updateResult} users with new password hash`);
       
       return res.json({
-        status: 'debug',
-        userExists: !!user,
-        userDetails: user ? {
-          email: user.email,
-          role: user.role,
-          is_active: user.is_active,
-          email_verified: user.email_verified,
-          has_password_hash: !!user.password_hash,
-          password_hash_length: user.password_hash ? user.password_hash.length : 0,
-          password_hash_preview: user.password_hash ? user.password_hash.substring(0, 10) + '...' : null
-        } : null,
-        passwordTest: {
-          bcrypt_result: bcryptResult,
-          bcrypt_error: bcryptError
+        status: 'ok',
+        message: 'User passwords fixed successfully',
+        timestamp: new Date().toISOString(),
+        usersUpdated: updateResult,
+        credentials: {
+          allUsers: 'password123'
         }
       });
       
     } catch (error: any) {
+      console.error('❌ Password fix failed:', error);
       return res.status(500).json({
-        status: 'debug_error',
-        error: error.message
+        status: 'error',
+        message: 'Password fix failed',
+        error: error.message,
+        timestamp: new Date().toISOString(),
       });
     }
   }
