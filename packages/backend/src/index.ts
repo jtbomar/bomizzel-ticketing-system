@@ -104,8 +104,7 @@ app.use(
   })
 );
 
-// Handle preflight requests
-app.options('*', cors());
+// CORS is already configured above
 
 // Increase payload limit for image uploads
 app.use(express.json({ limit: '10mb' }));
