@@ -123,8 +123,10 @@ export class CustomerHappiness extends BaseModel {
           .where('happiness_setting_id', setting.id)
           .select(
             db.raw('COUNT(*) as total_surveys'),
-            db.raw('COUNT(CASE WHEN status = \'completed\' THEN 1 END) as total_responses'),
-            db.raw('AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as avg_rating')
+            db.raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as total_responses"),
+            db.raw(
+              'AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as avg_rating'
+            )
           )
           .first();
 
@@ -137,8 +139,10 @@ export class CustomerHappiness extends BaseModel {
           .where('created_at', '>=', thirtyDaysAgo)
           .select(
             db.raw('COUNT(*) as recent_surveys'),
-            db.raw('COUNT(CASE WHEN status = \'completed\' THEN 1 END) as recent_responses'),
-            db.raw('AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as recent_avg_rating')
+            db.raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as recent_responses"),
+            db.raw(
+              'AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as recent_avg_rating'
+            )
           )
           .first();
 
@@ -167,7 +171,10 @@ export class CustomerHappiness extends BaseModel {
   }
 
   // Get happiness setting by ID
-  static async getByIdWithStats(id: number, companyId: string): Promise<CustomerHappinessWithStats | null> {
+  static async getByIdWithStats(
+    id: number,
+    companyId: string
+  ): Promise<CustomerHappinessWithStats | null> {
     const setting = await db('customer_happiness_settings')
       .where({ id, company_id: companyId })
       .first();
@@ -181,7 +188,7 @@ export class CustomerHappiness extends BaseModel {
       .where('happiness_setting_id', id)
       .select(
         db.raw('COUNT(*) as total_surveys'),
-        db.raw('COUNT(CASE WHEN status = \'completed\' THEN 1 END) as total_responses'),
+        db.raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as total_responses"),
         db.raw('AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as avg_rating')
       )
       .first();
@@ -195,7 +202,9 @@ export class CustomerHappiness extends BaseModel {
       .select(
         db.raw('COUNT(*) as recent_surveys'),
         db.raw('COUNT(CASE WHEN status = "completed" THEN 1 END) as recent_responses'),
-        db.raw('AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as recent_avg_rating')
+        db.raw(
+          'AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as recent_avg_rating'
+        )
       )
       .first();
 
@@ -220,7 +229,9 @@ export class CustomerHappiness extends BaseModel {
   }
 
   // Create happiness setting
-  static async createSetting(data: Omit<CustomerHappinessSettings, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerHappinessSettings> {
+  static async createSetting(
+    data: Omit<CustomerHappinessSettings, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<CustomerHappinessSettings> {
     const trx = await db.transaction();
 
     try {
@@ -231,9 +242,7 @@ export class CustomerHappiness extends BaseModel {
           .update({ is_default: false });
       }
 
-      const [setting] = await trx('customer_happiness_settings')
-        .insert(data)
-        .returning('*');
+      const [setting] = await trx('customer_happiness_settings').insert(data).returning('*');
 
       await trx.commit();
       return setting;
@@ -247,7 +256,9 @@ export class CustomerHappiness extends BaseModel {
   static async updateSetting(
     id: number,
     companyId: string,
-    data: Partial<Omit<CustomerHappinessSettings, 'id' | 'company_id' | 'created_at' | 'updated_at'>>
+    data: Partial<
+      Omit<CustomerHappinessSettings, 'id' | 'company_id' | 'created_at' | 'updated_at'>
+    >
   ): Promise<CustomerHappinessSettings | null> {
     const trx = await db.transaction();
 
@@ -325,9 +336,7 @@ export class CustomerHappiness extends BaseModel {
       }
 
       // Delete the setting (cascades will handle feedback records)
-      await trx('customer_happiness_settings')
-        .where({ id, company_id: companyId })
-        .del();
+      await trx('customer_happiness_settings').where({ id, company_id: companyId }).del();
 
       await trx.commit();
       return true;
@@ -345,19 +354,17 @@ export class CustomerHappiness extends BaseModel {
   }
 
   // Create feedback record
-  static async createFeedback(data: Omit<CustomerFeedback, 'id' | 'created_at' | 'updated_at'>): Promise<CustomerFeedback> {
-    const [feedback] = await db('customer_feedback')
-      .insert(data)
-      .returning('*');
+  static async createFeedback(
+    data: Omit<CustomerFeedback, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<CustomerFeedback> {
+    const [feedback] = await db('customer_feedback').insert(data).returning('*');
 
     return feedback;
   }
 
   // Get feedback by survey token
   static async getFeedbackByToken(token: string): Promise<CustomerFeedback | null> {
-    return await db('customer_feedback')
-      .where('survey_token', token)
-      .first();
+    return await db('customer_feedback').where('survey_token', token).first();
   }
 
   // Update feedback response
@@ -409,9 +416,17 @@ export class CustomerHappiness extends BaseModel {
     companyId: string,
     limit: number = 50,
     happinessSettingId?: number
-  ): Promise<Array<CustomerFeedback & { ticket_title?: string; customer_name?: string; customer_email?: string }>> {
+  ): Promise<
+    Array<
+      CustomerFeedback & { ticket_title?: string; customer_name?: string; customer_email?: string }
+    >
+  > {
     let query = db('customer_feedback')
-      .join('customer_happiness_settings', 'customer_feedback.happiness_setting_id', 'customer_happiness_settings.id')
+      .join(
+        'customer_happiness_settings',
+        'customer_feedback.happiness_setting_id',
+        'customer_happiness_settings.id'
+      )
       .leftJoin('tickets', 'customer_feedback.ticket_id', 'tickets.id')
       .leftJoin('users', 'customer_feedback.customer_id', 'users.id')
       .where('customer_happiness_settings.company_id', companyId)
@@ -443,10 +458,14 @@ export class CustomerHappiness extends BaseModel {
   }
 
   // Update analytics (called by background job)
-  static async updateAnalytics(companyId: string, happinessSettingId: number, date: string): Promise<void> {
+  static async updateAnalytics(
+    companyId: string,
+    happinessSettingId: number,
+    date: string
+  ): Promise<void> {
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
@@ -456,9 +475,11 @@ export class CustomerHappiness extends BaseModel {
       .whereBetween('created_at', [startOfDay, endOfDay])
       .select(
         db.raw('COUNT(*) as surveys_sent'),
-        db.raw('COUNT(CASE WHEN status = \'completed\' THEN 1 END) as surveys_completed'),
-        db.raw('AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as average_rating'),
-        db.raw('COUNT(CASE WHEN status = \'completed\' THEN 1 END) as total_responses'),
+        db.raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as surveys_completed"),
+        db.raw(
+          'AVG(CASE WHEN overall_rating IS NOT NULL THEN overall_rating END) as average_rating'
+        ),
+        db.raw("COUNT(CASE WHEN status = 'completed' THEN 1 END) as total_responses"),
         db.raw('COUNT(CASE WHEN overall_rating = 1 THEN 1 END) as rating_1_count'),
         db.raw('COUNT(CASE WHEN overall_rating = 2 THEN 1 END) as rating_2_count'),
         db.raw('COUNT(CASE WHEN overall_rating = 3 THEN 1 END) as rating_3_count'),
@@ -472,9 +493,7 @@ export class CustomerHappiness extends BaseModel {
     const completionRate = surveysSent > 0 ? (surveysCompleted / surveysSent) * 100 : 0;
 
     // Get happiness setting to determine low rating threshold
-    const setting = await db('customer_happiness_settings')
-      .where('id', happinessSettingId)
-      .first();
+    const setting = await db('customer_happiness_settings').where('id', happinessSettingId).first();
 
     const lowRatingThreshold = setting?.low_rating_threshold || 3;
     const lowRatingStats = await db('customer_feedback')

@@ -210,9 +210,17 @@ export class Ticket extends BaseModel {
     const ticket = await this.update(ticketId, { custom_field_values: customFieldValues });
 
     if (ticket) {
-      await this.addHistory(ticketId, updatedById, 'updated', 'custom_field_values', undefined, undefined, {
-        customFieldValues,
-      });
+      await this.addHistory(
+        ticketId,
+        updatedById,
+        'updated',
+        'custom_field_values',
+        undefined,
+        undefined,
+        {
+          customFieldValues,
+        }
+      );
     }
 
     return ticket;

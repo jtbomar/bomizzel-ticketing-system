@@ -8,10 +8,10 @@ const knexConfig = require('../knexfile');
 
 async function resetDatabase() {
   const db = knex(knexConfig.production);
-  
+
   try {
     console.log('💣 NUCLEAR RESET: Dropping all tables...');
-    
+
     // Drop all tables in the public schema
     await db.raw(`
       DO $$ DECLARE
@@ -22,19 +22,19 @@ async function resetDatabase() {
         END LOOP;
       END $$;
     `);
-    
+
     console.log('✅ All tables dropped');
     console.log('🔄 Running migrations from scratch...');
-    
+
     await db.destroy();
-    
+
     // Recreate connection and run migrations
     const freshDb = knex(knexConfig.production);
     await freshDb.migrate.latest();
-    
+
     console.log('✅ Database reset complete!');
     console.log('✅ All migrations run successfully');
-    
+
     await freshDb.destroy();
   } catch (error) {
     console.error('❌ Error:', error.message);

@@ -64,7 +64,7 @@ export class UserService {
       const userModels = await Promise.all(
         users.map(async (user: any) => {
           const baseModel = User.toModel(user);
-          
+
           // Add company associations for customers
           if (user.role === 'customer') {
             const companies = await User.getUserCompanies(user.id);
@@ -73,7 +73,7 @@ export class UserService {
               companies,
             };
           }
-          
+
           return baseModel;
         })
       );
@@ -351,7 +351,7 @@ export class UserService {
       const userModels = await Promise.all(
         users.map(async (user: any) => {
           const baseModel = User.toModel(user);
-          
+
           if (user.role === 'customer') {
             const companies = await User.getUserCompanies(user.id);
             return {
@@ -359,7 +359,7 @@ export class UserService {
               companies,
             };
           }
-          
+
           return baseModel;
         })
       );
@@ -410,10 +410,12 @@ export class UserService {
   /**
    * Get all customers with their company associations
    */
-  static async getCustomersWithCompanies(): Promise<Array<UserModel & { companies: UserCompanyAssociation[] }>> {
+  static async getCustomersWithCompanies(): Promise<
+    Array<UserModel & { companies: UserCompanyAssociation[] }>
+  > {
     try {
       const customers = await User.findActiveUsers({ role: 'customer' });
-      
+
       const customersWithCompanies = await Promise.all(
         customers.map(async (customer) => {
           const companies = await User.getUserCompanies(customer.id);
@@ -437,13 +439,13 @@ export class UserService {
   static async getAllCompanies(isActive?: boolean): Promise<any[]> {
     try {
       let query = Company.query;
-      
+
       if (isActive !== undefined) {
         query = query.where('is_active', isActive);
       }
 
       const companies = await query.orderBy('name', 'asc');
-      
+
       // Enrich with ticket and contact counts
       const enrichedCompanies = await Promise.all(
         companies.map(async (company: any) => {
@@ -452,13 +454,13 @@ export class UserService {
             .where('company_id', company.id)
             .count('* as count')
             .first();
-          
+
           // Get contact/customer count
           const contactCount = await Company.db('user_company_associations')
             .where('company_id', company.id)
             .count('* as count')
             .first();
-          
+
           return {
             ...Company.toModel(company),
             ticketCount: parseInt(String(ticketCount?.count || 0), 10),
@@ -466,7 +468,7 @@ export class UserService {
           };
         })
       );
-      
+
       return enrichedCompanies;
     } catch (error) {
       logger.error('Get all companies error:', error);

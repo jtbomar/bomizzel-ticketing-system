@@ -7,7 +7,7 @@ exports.seed = async function (knex) {
   // Check if setup already exists
   const existingOrg = await knex('companies').where('name', 'Bomar Corp').first();
   const existingUsers = await knex('users').where('email', 'jeff@bomar.com').first();
-  
+
   if (existingOrg && existingUsers) {
     console.log('⏭️  Bomar Corp setup already complete, skipping seed');
     return;
@@ -35,16 +35,52 @@ exports.seed = async function (knex) {
   }
 
   // 2. Create Bomar Corp Users/Agents
-  const agentEmails = ['jeff@bomar.com', 'elena@bomar.com', 'jeremy@bomar.com', 'elisa@bomar.com', 'alaura@bomar.com'];
+  const agentEmails = [
+    'jeff@bomar.com',
+    'elena@bomar.com',
+    'jeremy@bomar.com',
+    'elisa@bomar.com',
+    'alaura@bomar.com',
+  ];
   const existingAgents = await knex('users').whereIn('email', agentEmails);
-  
+
   if (existingAgents.length === 0) {
     const agents = [
-      { id: uuidv4(), firstName: 'Jeff', lastName: 'Bomar', email: 'jeff@bomar.com', role: 'admin' }, // Super Admin
-      { id: uuidv4(), firstName: 'Elena', lastName: 'Bomar', email: 'elena@bomar.com', role: 'admin' }, // Admin
-      { id: uuidv4(), firstName: 'Jeremy', lastName: 'Bomar', email: 'jeremy@bomar.com', role: 'employee' }, // Agent
-      { id: uuidv4(), firstName: 'Elisa', lastName: 'Bomar', email: 'elisa@bomar.com', role: 'employee' }, // Agent
-      { id: uuidv4(), firstName: 'Alaura', lastName: 'Bomar', email: 'alaura@bomar.com', role: 'employee' }, // Agent
+      {
+        id: uuidv4(),
+        firstName: 'Jeff',
+        lastName: 'Bomar',
+        email: 'jeff@bomar.com',
+        role: 'admin',
+      }, // Super Admin
+      {
+        id: uuidv4(),
+        firstName: 'Elena',
+        lastName: 'Bomar',
+        email: 'elena@bomar.com',
+        role: 'admin',
+      }, // Admin
+      {
+        id: uuidv4(),
+        firstName: 'Jeremy',
+        lastName: 'Bomar',
+        email: 'jeremy@bomar.com',
+        role: 'employee',
+      }, // Agent
+      {
+        id: uuidv4(),
+        firstName: 'Elisa',
+        lastName: 'Bomar',
+        email: 'elisa@bomar.com',
+        role: 'employee',
+      }, // Agent
+      {
+        id: uuidv4(),
+        firstName: 'Alaura',
+        lastName: 'Bomar',
+        email: 'alaura@bomar.com',
+        role: 'employee',
+      }, // Agent
     ];
 
     for (const agent of agents) {
@@ -206,7 +242,12 @@ exports.seed = async function (knex) {
         updated_at: knex.fn.now(),
       });
 
-      allCustomers.push({ id: customerId, name: `${firstName} ${lastName}`, companyId: account.id, companyName: account.name });
+      allCustomers.push({
+        id: customerId,
+        name: `${firstName} ${lastName}`,
+        companyId: account.id,
+        companyName: account.name,
+      });
     }
   }
   console.log('✅ Created 15 customers (3 per account)');
@@ -227,7 +268,7 @@ exports.seed = async function (knex) {
   for (const customer of allCustomers) {
     for (let i = 0; i < 5; i++) {
       const assignedAgent = agents[ticketCount % agents.length];
-      
+
       await knex('tickets').insert({
         id: uuidv4(),
         title: ticketTitles[i],

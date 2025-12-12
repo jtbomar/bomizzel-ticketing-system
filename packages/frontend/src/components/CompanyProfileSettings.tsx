@@ -55,7 +55,7 @@ const CompanyProfileSettings: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      
+
       console.log('Loading company profile...');
       console.log('Token:', token ? 'Present' : 'Missing');
 
@@ -78,7 +78,9 @@ const CompanyProfileSettings: React.FC = () => {
         setError('');
       } else if (response.status === 404) {
         // No company found - this is okay, show a message
-        setError('No company profile found. Please contact your administrator to set up your company.');
+        setError(
+          'No company profile found. Please contact your administrator to set up your company.'
+        );
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         console.error('Error response:', errorData);

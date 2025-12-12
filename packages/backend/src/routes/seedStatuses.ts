@@ -28,10 +28,38 @@ router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res)
 
     // Default statuses
     const defaultStatuses = [
-      { name: 'open', label: 'Open', color: '#EF4444', order: 1, is_default: true, is_closed: false },
-      { name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, is_default: false, is_closed: false },
-      { name: 'waiting', label: 'Waiting', color: '#3B82F6', order: 3, is_default: false, is_closed: false },
-      { name: 'resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false, is_closed: true },
+      {
+        name: 'open',
+        label: 'Open',
+        color: '#EF4444',
+        order: 1,
+        is_default: true,
+        is_closed: false,
+      },
+      {
+        name: 'in_progress',
+        label: 'In Progress',
+        color: '#F59E0B',
+        order: 2,
+        is_default: false,
+        is_closed: false,
+      },
+      {
+        name: 'waiting',
+        label: 'Waiting',
+        color: '#3B82F6',
+        order: 3,
+        is_default: false,
+        is_closed: false,
+      },
+      {
+        name: 'resolved',
+        label: 'Resolved',
+        color: '#10B981',
+        order: 4,
+        is_default: false,
+        is_closed: true,
+      },
     ];
 
     let teamsProcessed = 0;
@@ -44,7 +72,7 @@ router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res)
         .count('* as count')
         .first();
 
-      const count = parseInt(existingStatuses?.count as string || '0');
+      const count = parseInt((existingStatuses?.count as string) || '0');
 
       if (count > 0) {
         console.log(`Team ${team.name} already has ${count} statuses, skipping`);
@@ -80,7 +108,7 @@ router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res)
       message: 'Default ticket statuses seeded successfully',
       teamsProcessed,
       statusesCreated,
-      teams: teams.map(t => t.name),
+      teams: teams.map((t) => t.name),
     });
   } catch (error: any) {
     console.error('Failed to seed statuses:', error);

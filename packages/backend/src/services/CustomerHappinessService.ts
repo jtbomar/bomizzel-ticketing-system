@@ -1,4 +1,9 @@
-import { CustomerHappiness, CustomerHappinessSettings, CustomerFeedback, CustomerHappinessWithStats } from '../models/CustomerHappiness';
+import {
+  CustomerHappiness,
+  CustomerHappinessSettings,
+  CustomerFeedback,
+  CustomerHappinessWithStats,
+} from '../models/CustomerHappiness';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 
@@ -105,40 +110,66 @@ export class CustomerHappinessService {
       return await CustomerHappiness.getByCompany(companyId);
     } catch (error) {
       logger.error('Error fetching happiness settings:', error);
-      throw new AppError('Failed to fetch happiness settings', 500, 'FETCH_HAPPINESS_SETTINGS_FAILED');
+      throw new AppError(
+        'Failed to fetch happiness settings',
+        500,
+        'FETCH_HAPPINESS_SETTINGS_FAILED'
+      );
     }
   }
 
   // Get happiness setting by ID
-  static async getHappinessSettingById(id: number, companyId: string): Promise<CustomerHappinessWithStats | null> {
+  static async getHappinessSettingById(
+    id: number,
+    companyId: string
+  ): Promise<CustomerHappinessWithStats | null> {
     try {
       return await CustomerHappiness.getByIdWithStats(id, companyId);
     } catch (error) {
       logger.error('Error fetching happiness setting:', error);
-      throw new AppError('Failed to fetch happiness setting', 500, 'FETCH_HAPPINESS_SETTING_FAILED');
+      throw new AppError(
+        'Failed to fetch happiness setting',
+        500,
+        'FETCH_HAPPINESS_SETTING_FAILED'
+      );
     }
   }
 
   // Create new happiness setting
-  static async createHappinessSetting(companyId: string, data: CreateHappinessSettingRequest): Promise<CustomerHappinessSettings> {
+  static async createHappinessSetting(
+    companyId: string,
+    data: CreateHappinessSettingRequest
+  ): Promise<CustomerHappinessSettings> {
     try {
       // Validate required fields
       if (!data.name?.trim()) {
-        throw new AppError('Happiness setting name is required', 400, 'INVALID_HAPPINESS_SETTING_NAME');
+        throw new AppError(
+          'Happiness setting name is required',
+          400,
+          'INVALID_HAPPINESS_SETTING_NAME'
+        );
       }
 
       if (!data.survey_config || !data.trigger_conditions || !data.email_template) {
-        throw new AppError('Survey configuration, trigger conditions, and email template are required', 400, 'INVALID_HAPPINESS_SETTING_CONFIG');
+        throw new AppError(
+          'Survey configuration, trigger conditions, and email template are required',
+          400,
+          'INVALID_HAPPINESS_SETTING_CONFIG'
+        );
       }
 
       // Check if name already exists for this company
       const existingSettings = await CustomerHappiness.getByCompany(companyId);
       const nameExists = existingSettings.some(
-        setting => setting.name.toLowerCase() === data.name.trim().toLowerCase()
+        (setting) => setting.name.toLowerCase() === data.name.trim().toLowerCase()
       );
 
       if (nameExists) {
-        throw new AppError('Happiness setting name already exists', 409, 'HAPPINESS_SETTING_NAME_EXISTS');
+        throw new AppError(
+          'Happiness setting name already exists',
+          409,
+          'HAPPINESS_SETTING_NAME_EXISTS'
+        );
       }
 
       const settingData: Omit<CustomerHappinessSettings, 'id' | 'created_at' | 'updated_at'> = {
@@ -159,7 +190,7 @@ export class CustomerHappinessService {
       };
 
       const setting = await CustomerHappiness.createSetting(settingData);
-      
+
       logger.info(`Happiness setting created: ${setting.name}`, {
         settingId: setting.id,
         companyId,
@@ -171,7 +202,11 @@ export class CustomerHappinessService {
         throw error;
       }
       logger.error('Error creating happiness setting:', error);
-      throw new AppError('Failed to create happiness setting', 500, 'CREATE_HAPPINESS_SETTING_FAILED');
+      throw new AppError(
+        'Failed to create happiness setting',
+        500,
+        'CREATE_HAPPINESS_SETTING_FAILED'
+      );
     }
   }
 
@@ -185,35 +220,51 @@ export class CustomerHappinessService {
       // Validate name if provided
       if (data.name !== undefined) {
         if (!data.name?.trim()) {
-          throw new AppError('Happiness setting name is required', 400, 'INVALID_HAPPINESS_SETTING_NAME');
+          throw new AppError(
+            'Happiness setting name is required',
+            400,
+            'INVALID_HAPPINESS_SETTING_NAME'
+          );
         }
 
         // Check if name already exists (excluding current setting)
         const existingSettings = await CustomerHappiness.getByCompany(companyId);
         const nameExists = existingSettings.some(
-          setting => setting.id !== id && setting.name.toLowerCase() === data.name!.trim().toLowerCase()
+          (setting) =>
+            setting.id !== id && setting.name.toLowerCase() === data.name!.trim().toLowerCase()
         );
 
         if (nameExists) {
-          throw new AppError('Happiness setting name already exists', 409, 'HAPPINESS_SETTING_NAME_EXISTS');
+          throw new AppError(
+            'Happiness setting name already exists',
+            409,
+            'HAPPINESS_SETTING_NAME_EXISTS'
+          );
         }
       }
 
-      const updateData: Partial<Omit<CustomerHappinessSettings, 'id' | 'company_id' | 'created_at' | 'updated_at'>> = {};
+      const updateData: Partial<
+        Omit<CustomerHappinessSettings, 'id' | 'company_id' | 'created_at' | 'updated_at'>
+      > = {};
 
       if (data.name !== undefined) updateData.name = data.name.trim();
-      if (data.description !== undefined) updateData.description = data.description?.trim() || undefined;
+      if (data.description !== undefined)
+        updateData.description = data.description?.trim() || undefined;
       if (data.is_active !== undefined) updateData.is_active = data.is_active;
       if (data.is_default !== undefined) updateData.is_default = data.is_default;
       if (data.survey_config !== undefined) updateData.survey_config = data.survey_config as any;
-      if (data.trigger_conditions !== undefined) updateData.trigger_conditions = data.trigger_conditions as any;
+      if (data.trigger_conditions !== undefined)
+        updateData.trigger_conditions = data.trigger_conditions as any;
       if (data.email_template !== undefined) updateData.email_template = data.email_template as any;
       if (data.delay_hours !== undefined) updateData.delay_hours = data.delay_hours;
       if (data.reminder_hours !== undefined) updateData.reminder_hours = data.reminder_hours;
       if (data.max_reminders !== undefined) updateData.max_reminders = data.max_reminders;
-      if (data.thank_you_message !== undefined) updateData.thank_you_message = data.thank_you_message;
-      if (data.follow_up_message !== undefined) updateData.follow_up_message = data.follow_up_message || undefined;
-      if (data.low_rating_threshold !== undefined) updateData.low_rating_threshold = data.low_rating_threshold;
+      if (data.thank_you_message !== undefined)
+        updateData.thank_you_message = data.thank_you_message;
+      if (data.follow_up_message !== undefined)
+        updateData.follow_up_message = data.follow_up_message || undefined;
+      if (data.low_rating_threshold !== undefined)
+        updateData.low_rating_threshold = data.low_rating_threshold;
 
       const updated = await CustomerHappiness.updateSetting(id, companyId, updateData);
 
@@ -230,7 +281,11 @@ export class CustomerHappinessService {
         throw error;
       }
       logger.error('Error updating happiness setting:', error);
-      throw new AppError('Failed to update happiness setting', 500, 'UPDATE_HAPPINESS_SETTING_FAILED');
+      throw new AppError(
+        'Failed to update happiness setting',
+        500,
+        'UPDATE_HAPPINESS_SETTING_FAILED'
+      );
     }
   }
 
@@ -249,10 +304,18 @@ export class CustomerHappinessService {
       return success;
     } catch (error) {
       if (error instanceof Error && error.message === 'Cannot delete the only happiness setting') {
-        throw new AppError('Cannot delete the only happiness setting', 400, 'CANNOT_DELETE_ONLY_HAPPINESS_SETTING');
+        throw new AppError(
+          'Cannot delete the only happiness setting',
+          400,
+          'CANNOT_DELETE_ONLY_HAPPINESS_SETTING'
+        );
       }
       logger.error('Error deleting happiness setting:', error);
-      throw new AppError('Failed to delete happiness setting', 500, 'DELETE_HAPPINESS_SETTING_FAILED');
+      throw new AppError(
+        'Failed to delete happiness setting',
+        500,
+        'DELETE_HAPPINESS_SETTING_FAILED'
+      );
     }
   }
 
@@ -260,7 +323,7 @@ export class CustomerHappinessService {
   static async getFeedbackByToken(token: string): Promise<CustomerFeedback | null> {
     try {
       const feedback = await CustomerHappiness.getFeedbackByToken(token);
-      
+
       if (!feedback) {
         return null;
       }
@@ -269,7 +332,9 @@ export class CustomerHappinessService {
       if (feedback.expires_at && new Date() > new Date(feedback.expires_at)) {
         // Mark as expired if not already
         if (feedback.status === 'pending') {
-          await CustomerHappiness.updateFeedbackResponse(token, { response_metadata: { expired: true } });
+          await CustomerHappiness.updateFeedbackResponse(token, {
+            response_metadata: { expired: true },
+          });
         }
         throw new AppError('Survey has expired', 400, 'SURVEY_EXPIRED');
       }
@@ -290,11 +355,14 @@ export class CustomerHappinessService {
   }
 
   // Submit feedback response
-  static async submitFeedback(token: string, data: SubmitFeedbackRequest): Promise<CustomerFeedback> {
+  static async submitFeedback(
+    token: string,
+    data: SubmitFeedbackRequest
+  ): Promise<CustomerFeedback> {
     try {
       // Validate the survey token first
       const existingFeedback = await this.getFeedbackByToken(token);
-      
+
       if (!existingFeedback) {
         throw new AppError('Invalid survey token', 404, 'INVALID_SURVEY_TOKEN');
       }
@@ -348,7 +416,12 @@ export class CustomerHappinessService {
     happinessSettingId?: number
   ) {
     try {
-      const analytics = await CustomerHappiness.getAnalytics(companyId, startDate, endDate, happinessSettingId);
+      const analytics = await CustomerHappiness.getAnalytics(
+        companyId,
+        startDate,
+        endDate,
+        happinessSettingId
+      );
       return analytics;
     } catch (error) {
       logger.error('Error fetching happiness analytics:', error);
@@ -363,7 +436,11 @@ export class CustomerHappinessService {
     happinessSettingId?: number
   ) {
     try {
-      const feedback = await CustomerHappiness.getRecentFeedback(companyId, limit, happinessSettingId);
+      const feedback = await CustomerHappiness.getRecentFeedback(
+        companyId,
+        limit,
+        happinessSettingId
+      );
       return feedback;
     } catch (error) {
       logger.error('Error fetching recent feedback:', error);
@@ -372,7 +449,9 @@ export class CustomerHappinessService {
   }
 
   // Create default happiness setting for a company
-  static async createDefaultHappinessSetting(companyId: string): Promise<CustomerHappinessSettings> {
+  static async createDefaultHappinessSetting(
+    companyId: string
+  ): Promise<CustomerHappinessSettings> {
     try {
       const defaultData: CreateHappinessSettingRequest = {
         name: 'Default Customer Satisfaction Survey',
@@ -395,7 +474,13 @@ export class CustomerHappinessService {
               question: 'How helpful was our support agent?',
               type: 'scale',
               required: false,
-              options: ['Not Helpful', 'Slightly Helpful', 'Moderately Helpful', 'Very Helpful', 'Extremely Helpful'],
+              options: [
+                'Not Helpful',
+                'Slightly Helpful',
+                'Moderately Helpful',
+                'Very Helpful',
+                'Extremely Helpful',
+              ],
             },
           ],
           include_comments: true,
@@ -412,7 +497,8 @@ export class CustomerHappinessService {
         },
         email_template: {
           subject: 'How was your support experience?',
-          header_text: 'We hope we were able to help you! Please take a moment to rate your experience.',
+          header_text:
+            'We hope we were able to help you! Please take a moment to rate your experience.',
           footer_text: 'Thank you for choosing our support services.',
           button_text: 'Rate Your Experience',
           primary_color: '#3B82F6',
@@ -421,15 +507,21 @@ export class CustomerHappinessService {
         delay_hours: 24,
         reminder_hours: 72,
         max_reminders: 1,
-        thank_you_message: 'Thank you for your feedback! We appreciate you taking the time to help us improve.',
-        follow_up_message: 'We\'re sorry to hear about your experience. A member of our team will reach out to you shortly to address your concerns.',
+        thank_you_message:
+          'Thank you for your feedback! We appreciate you taking the time to help us improve.',
+        follow_up_message:
+          "We're sorry to hear about your experience. A member of our team will reach out to you shortly to address your concerns.",
         low_rating_threshold: 3,
       };
 
       return await this.createHappinessSetting(companyId, defaultData);
     } catch (error) {
       logger.error('Error creating default happiness setting:', error);
-      throw new AppError('Failed to create default happiness setting', 500, 'CREATE_DEFAULT_HAPPINESS_SETTING_FAILED');
+      throw new AppError(
+        'Failed to create default happiness setting',
+        500,
+        'CREATE_DEFAULT_HAPPINESS_SETTING_FAILED'
+      );
     }
   }
 
@@ -442,7 +534,7 @@ export class CustomerHappinessService {
     try {
       // Get default happiness setting for company
       const setting = await CustomerHappiness.getDefault(companyId);
-      
+
       if (!setting || !setting.is_active) {
         logger.debug(`No active happiness setting found for company ${companyId}`);
         return null;
@@ -457,7 +549,7 @@ export class CustomerHappinessService {
 
       // Generate survey token
       const surveyToken = CustomerHappiness.generateSurveyToken();
-      
+
       // Calculate expiry date (30 days from now)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 30);

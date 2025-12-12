@@ -1,7 +1,7 @@
 /**
  * Create products table for department-specific product management
  */
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   await knex.schema.createTable('products', (table) => {
     table.increments('id').primary();
     table.uuid('company_id').notNullable();
@@ -22,7 +22,7 @@ exports.up = async function(knex) {
     table.index(['company_id', 'department_id']);
     table.index(['org_id', 'department_id']);
     table.index('product_code');
-    
+
     // Unique constraint on product code per department
     table.unique(['department_id', 'product_code']);
   });
@@ -30,6 +30,6 @@ exports.up = async function(knex) {
   console.log('✅ Created products table');
 };
 
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   await knex.schema.dropTableIfExists('products');
 };

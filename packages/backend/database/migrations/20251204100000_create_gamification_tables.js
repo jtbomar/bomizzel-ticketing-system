@@ -1,7 +1,7 @@
 /**
  * Create gamification tables for badges and trophies
  */
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   // Trophies/Achievements table
   await knex.schema.createTable('trophies', (table) => {
     table.increments('id').primary();
@@ -10,7 +10,9 @@ exports.up = async function(knex) {
     table.string('name', 255).notNullable();
     table.string('description', 500);
     table.string('icon', 100); // emoji or icon name
-    table.enum('category', ['response', 'resolution', 'rating', 'volume', 'quality', 'speed']).notNullable();
+    table
+      .enum('category', ['response', 'resolution', 'rating', 'volume', 'quality', 'speed'])
+      .notNullable();
     table.enum('criteria_type', ['tickets', 'time', 'rating', 'count']).notNullable();
     table.jsonb('criteria'); // { metric: 'first_response', operator: 'within', value: 20, unit: 'minutes' }
     table.integer('points').defaultTo(0);
@@ -87,7 +89,7 @@ exports.up = async function(knex) {
   console.log('✅ Created gamification tables');
 };
 
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   await knex.schema.dropTableIfExists('user_gamification_stats');
   await knex.schema.dropTableIfExists('user_badges');
   await knex.schema.dropTableIfExists('user_trophies');

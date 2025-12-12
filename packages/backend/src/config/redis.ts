@@ -30,7 +30,7 @@ export const connectRedis = async (): Promise<void> => {
       logger.warn('⚠️ REDIS_URL not configured - Redis features disabled');
       return;
     }
-    
+
     await redisClient.connect();
     isRedisConnected = true;
   } catch (error) {

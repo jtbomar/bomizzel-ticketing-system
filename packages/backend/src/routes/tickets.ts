@@ -40,7 +40,7 @@ router.post(
       const ticketData: CreateTicketRequest = req.body;
       const currentUserId = req.user!.id;
       const currentUserRole = req.user!.role;
-      
+
       // Allow agents to create tickets on behalf of customers
       let submitterId = currentUserId;
       if (req.body.submitterId && ['admin', 'team_lead', 'employee'].includes(currentUserRole)) {

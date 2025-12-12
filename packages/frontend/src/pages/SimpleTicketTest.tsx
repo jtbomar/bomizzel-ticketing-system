@@ -48,14 +48,22 @@ const SimpleTicketTest: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">🔧 Simple Ticket Test for Shane</h1>
-        
+
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Debug Information</h2>
           <div className="space-y-2 text-sm">
-            <p><strong>User:</strong> {user ? `${user.email} (${user.role})` : 'Not logged in'}</p>
-            <p><strong>Tickets loaded:</strong> {tickets.length}</p>
-            <p><strong>Loading state:</strong> {loading ? 'Loading...' : 'Complete'}</p>
-            <p><strong>Error:</strong> {error || 'None'}</p>
+            <p>
+              <strong>User:</strong> {user ? `${user.email} (${user.role})` : 'Not logged in'}
+            </p>
+            <p>
+              <strong>Tickets loaded:</strong> {tickets.length}
+            </p>
+            <p>
+              <strong>Loading state:</strong> {loading ? 'Loading...' : 'Complete'}
+            </p>
+            <p>
+              <strong>Error:</strong> {error || 'None'}
+            </p>
           </div>
         </div>
 
@@ -67,7 +75,7 @@ const SimpleTicketTest: React.FC = () => {
 
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4">Tickets ({tickets.length})</h2>
-          
+
           {tickets.length === 0 ? (
             <p className="text-gray-500">No tickets found.</p>
           ) : (
@@ -79,9 +87,7 @@ const SimpleTicketTest: React.FC = () => {
                       <h3 className="font-medium text-gray-900">
                         #{ticket.id}: {ticket.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {ticket.description}
-                      </p>
+                      <p className="text-sm text-gray-600 mt-1">{ticket.description}</p>
                       <div className="flex space-x-4 mt-2 text-xs text-gray-500">
                         <span>Status: {ticket.status}</span>
                         <span>Priority: {ticket.priority}</span>
@@ -90,16 +96,22 @@ const SimpleTicketTest: React.FC = () => {
                     </div>
                     <div className="text-right text-sm">
                       <p className="text-gray-600">
-                        Assigned: {ticket.assignedTo ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}` : 'Unassigned'}
+                        Assigned:{' '}
+                        {ticket.assignedTo
+                          ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}`
+                          : 'Unassigned'}
                       </p>
                       <p className="text-gray-600">
-                        Customer: {ticket.submitter ? `${ticket.submitter.firstName} ${ticket.submitter.lastName}` : 'Unknown'}
+                        Customer:{' '}
+                        {ticket.submitter
+                          ? `${ticket.submitter.firstName} ${ticket.submitter.lastName}`
+                          : 'Unknown'}
                       </p>
                     </div>
                   </div>
                 </div>
               ))}
-              
+
               {tickets.length > 20 && (
                 <div className="text-center text-gray-500 py-4">
                   ... and {tickets.length - 20} more tickets
@@ -110,8 +122,8 @@ const SimpleTicketTest: React.FC = () => {
         </div>
 
         <div className="mt-6 text-center">
-          <a 
-            href="/agent" 
+          <a
+            href="/agent"
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Back to Agent Dashboard

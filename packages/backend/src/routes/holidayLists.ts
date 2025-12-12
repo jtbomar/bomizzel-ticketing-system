@@ -9,24 +9,22 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const userRole = req.user!.role;
-    
+
     // For admin/employee/team_lead, get all holiday lists across all companies
     if (['admin', 'employee', 'team_lead'].includes(userRole)) {
-      const allHolidayLists = await db('holiday_lists')
-        .select('*')
-        .orderBy('company_id');
+      const allHolidayLists = await db('holiday_lists').select('*').orderBy('company_id');
       return res.json(allHolidayLists);
     }
-    
+
     // For customers, get holiday lists for their associated company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const holidayLists = await HolidayListService.getHolidayLists(companyId);
     return res.json(holidayLists);
@@ -40,20 +38,20 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const holidayList = await HolidayListService.getHolidayListById(parseInt(id), companyId);
-    
+
     if (!holidayList) {
       return res.status(404).json({ error: 'Holiday list not found' });
     }
@@ -72,11 +70,11 @@ router.post('/', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     // Get user's current org
@@ -88,7 +86,7 @@ router.post('/', authenticate, async (req, res) => {
       const userOrg = await db('user_organization_associations')
         .where('user_id', req.user!.id)
         .first();
-      
+
       if (userOrg) {
         orgId = userOrg.org_id;
       } else {
@@ -126,16 +124,16 @@ router.post('/', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const { holidayList, holidays } = req.body;
@@ -145,9 +143,9 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     const result = await HolidayListService.updateHolidayList(
-      parseInt(id), 
-      companyId, 
-      holidayList, 
+      parseInt(id),
+      companyId,
+      holidayList,
       holidays
     );
 
@@ -166,16 +164,16 @@ router.put('/:id', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const success = await HolidayListService.deleteHolidayList(parseInt(id), companyId);
@@ -201,15 +199,15 @@ router.get('/default/current', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const holidayList = await HolidayListService.getDefaultHolidayList(companyId);
-    
+
     if (!holidayList) {
       // Create default US holiday list if none exist
       const defaultHolidayList = await HolidayListService.createDefaultUSHolidayList(companyId);
@@ -227,16 +225,16 @@ router.get('/default/current', authenticate, async (req, res) => {
 router.get('/check/:date', authenticate, async (req, res) => {
   try {
     const { date } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const isHoliday = await HolidayListService.isHoliday(companyId, date);
@@ -244,7 +242,7 @@ router.get('/check/:date', authenticate, async (req, res) => {
     return res.json({
       date,
       isHoliday,
-      message: isHoliday ? 'This date is a holiday' : 'This date is not a holiday'
+      message: isHoliday ? 'This date is a holiday' : 'This date is not a holiday',
     });
   } catch (error) {
     console.error('Error checking holiday status:', error);

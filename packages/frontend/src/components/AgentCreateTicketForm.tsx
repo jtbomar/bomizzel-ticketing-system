@@ -24,15 +24,13 @@ interface CustomerSearchResult {
 
 const AgentCreateTicketForm: React.FC = () => {
   const navigate = useNavigate();
-  
+
   // Get tab and customerId from URL params
   const searchParams = new URLSearchParams(window.location.search);
   const urlTab = searchParams.get('tab') as 'ticket' | 'account' | 'customer' | null;
   const urlCustomerId = searchParams.get('customerId');
-  
-  const [activeTab, setActiveTab] = useState<'ticket' | 'account' | 'customer'>(
-    urlTab || 'ticket'
-  );
+
+  const [activeTab, setActiveTab] = useState<'ticket' | 'account' | 'customer'>(urlTab || 'ticket');
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState('');
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -57,7 +55,7 @@ const AgentCreateTicketForm: React.FC = () => {
     description: '',
     teamId: '',
   });
-  
+
   // New account form
   const [accountFormData, setAccountFormData] = useState({
     name: '',
@@ -82,7 +80,7 @@ const AgentCreateTicketForm: React.FC = () => {
 
   useEffect(() => {
     loadTeams();
-    
+
     // Pre-populate customer if customerId is in URL
     if (urlCustomerId) {
       loadCustomerById(urlCustomerId);
@@ -96,7 +94,7 @@ const AgentCreateTicketForm: React.FC = () => {
       console.log('[CreateTicket] Customer response:', response);
       const customerData = response.user || response;
       console.log('[CreateTicket] Customer data:', customerData);
-      
+
       if (customerData && customerData.companies && customerData.companies.length > 0) {
         const customer = {
           id: customerData.id,
@@ -256,7 +254,7 @@ const AgentCreateTicketForm: React.FC = () => {
     setCustomerSearch('');
     setShowSearchResults(false);
     setSearchResults([]);
-    
+
     // Clear any customer-related errors
     const newErrors = { ...errors };
     delete newErrors.customer;
@@ -273,7 +271,7 @@ const AgentCreateTicketForm: React.FC = () => {
     setAccountSearch('');
     setShowAccountResults(false);
     setAccountResults([]);
-    
+
     const newErrors = { ...errors };
     delete newErrors.account;
     setErrors(newErrors);
@@ -287,7 +285,7 @@ const AgentCreateTicketForm: React.FC = () => {
   const handleAccountFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setAccountFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       const newErrors = { ...errors };
       delete newErrors[name];
@@ -298,7 +296,7 @@ const AgentCreateTicketForm: React.FC = () => {
   const handleCustomerFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCustomerFormData((prev) => ({ ...prev, [name]: value }));
-    
+
     if (errors[name]) {
       const newErrors = { ...errors };
       delete newErrors[name];
@@ -395,11 +393,11 @@ const AgentCreateTicketForm: React.FC = () => {
 
   const handleSubmitAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const newErrors: Record<string, string> = {};
     if (!accountFormData.name.trim()) newErrors.name = 'Company name is required';
     if (!accountFormData.primaryEmail.trim()) newErrors.primaryEmail = 'Primary email is required';
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -409,7 +407,7 @@ const AgentCreateTicketForm: React.FC = () => {
     try {
       const response = await apiService.createCompany(accountFormData);
       const newCompany = response.company || response.data || response;
-      
+
       // Show success and navigate back
       alert(`Account "${newCompany.name}" created successfully!`);
       navigate('/agent');
@@ -422,14 +420,14 @@ const AgentCreateTicketForm: React.FC = () => {
 
   const handleSubmitCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const newErrors: Record<string, string> = {};
     if (!selectedAccount) newErrors.account = 'Please select an account';
     if (!customerFormData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!customerFormData.lastName.trim()) newErrors.lastName = 'Last name is required';
     if (!customerFormData.email.trim()) newErrors.email = 'Email is required';
     // Password is optional - will be set when they accept invitation
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -439,7 +437,7 @@ const AgentCreateTicketForm: React.FC = () => {
     try {
       // Create customer with temporary password (they'll set real one via invitation)
       const tempPassword = Math.random().toString(36).slice(-12) + 'Aa1!';
-      
+
       const response = await apiService.register({
         firstName: customerFormData.firstName,
         lastName: customerFormData.lastName,
@@ -448,32 +446,32 @@ const AgentCreateTicketForm: React.FC = () => {
         role: 'customer',
       });
       const newUser = response.user || response.data || response;
-      
+
       // Associate user with company
       await apiService.addUserToCompany(newUser.id, selectedAccount.id, 'member');
-      
+
       // Send invitation email if requested
       if (sendInvitation) {
         try {
           await apiService.sendCustomerInvitation(newUser.id);
           alert(
             `Customer "${newUser.firstName} ${newUser.lastName}" created successfully!\n\n` +
-            `An invitation email has been sent to ${newUser.email}.\n` +
-            `They can use it to set their password and access the support portal.`
+              `An invitation email has been sent to ${newUser.email}.\n` +
+              `They can use it to set their password and access the support portal.`
           );
         } catch (inviteError) {
           alert(
             `Customer created but invitation email failed to send.\n` +
-            `You can resend the invitation from the customer management page.`
+              `You can resend the invitation from the customer management page.`
           );
         }
       } else {
         alert(
           `Customer "${newUser.firstName} ${newUser.lastName}" created successfully!\n\n` +
-          `No invitation sent. You can send it later from the customer management page.`
+            `No invitation sent. You can send it later from the customer management page.`
         );
       }
-      
+
       navigate('/agent');
     } catch (error: any) {
       setErrors({ submit: error.response?.data?.error?.message || 'Failed to create customer' });
@@ -505,7 +503,7 @@ const AgentCreateTicketForm: React.FC = () => {
 
       // Show success message
       alert(`Ticket #${newTicket.id.slice(-8)} created successfully!`);
-      
+
       // Navigate back to dashboard
       navigate('/agent');
     } catch (error: any) {
@@ -661,175 +659,173 @@ const AgentCreateTicketForm: React.FC = () => {
         {/* Ticket Form */}
         {activeTab === 'ticket' && (
           <form onSubmit={handleSubmit} className="space-y-6">
-          {errors.submit && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {errors.submit}
-            </div>
-          )}
-
-          {/* Customer Search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Customer <span className="text-red-500">*</span>
-            </label>
-            
-            {selectedCustomer ? (
-              <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <UserIcon className="h-5 w-5 text-gray-400" />
-                      <span className="font-medium text-gray-900">
-                        {selectedCustomer.firstName} {selectedCustomer.lastName}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
-                      <EnvelopeIcon className="h-4 w-4" />
-                      <span>{selectedCustomer.email}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <BuildingOfficeIcon className="h-4 w-4" />
-                      <span className="font-medium">{selectedCustomer.company.name}</span>
-                      {selectedCustomer.company.domain && (
-                        <span className="text-gray-400">({selectedCustomer.company.domain})</span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={clearCustomer}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                </div>
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {errors.submit}
               </div>
-            ) : (
-              <div className="relative">
+            )}
+
+            {/* Customer Search */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Customer <span className="text-red-500">*</span>
+              </label>
+
+              {selectedCustomer ? (
+                <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <UserIcon className="h-5 w-5 text-gray-400" />
+                        <span className="font-medium text-gray-900">
+                          {selectedCustomer.firstName} {selectedCustomer.lastName}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
+                        <EnvelopeIcon className="h-4 w-4" />
+                        <span>{selectedCustomer.email}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <BuildingOfficeIcon className="h-4 w-4" />
+                        <span className="font-medium">{selectedCustomer.company.name}</span>
+                        {selectedCustomer.company.domain && (
+                          <span className="text-gray-400">({selectedCustomer.company.domain})</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearCustomer}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
                 <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                    className={`input pl-10 ${errors.customer ? 'border-red-300' : ''}`}
-                    placeholder="Search by name or email..."
-                  />
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                      className={`input pl-10 ${errors.customer ? 'border-red-300' : ''}`}
+                      placeholder="Search by name or email..."
+                    />
+                  </div>
+
+                  {showSearchResults && searchResults.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults.map((customer) => (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => selectCustomer(customer)}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="font-medium text-gray-900">
+                            {customer.firstName} {customer.lastName}
+                          </div>
+                          <div className="text-sm text-gray-600">{customer.email}</div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            <BuildingOfficeIcon className="inline h-3 w-3 mr-1" />
+                            {customer.company.name}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {showSearchResults &&
+                    searchResults.length === 0 &&
+                    customerSearch.length >= 2 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
+                        No customers found
+                      </div>
+                    )}
                 </div>
+              )}
+              {errors.customer && <p className="mt-1 text-sm text-red-600">{errors.customer}</p>}
+            </div>
 
-                {showSearchResults && searchResults.length > 0 && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                    {searchResults.map((customer) => (
-                      <button
-                        key={customer.id}
-                        type="button"
-                        onClick={() => selectCustomer(customer)}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-gray-900">
-                          {customer.firstName} {customer.lastName}
-                        </div>
-                        <div className="text-sm text-gray-600">{customer.email}</div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          <BuildingOfficeIcon className="inline h-3 w-3 mr-1" />
-                          {customer.company.name}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {/* Team Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Team <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedTeamId}
+                onChange={handleTeamChange}
+                className={`input ${errors.teamId ? 'border-red-300' : ''}`}
+                disabled={teams.length <= 1}
+              >
+                <option value="">Select a team</option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              {errors.teamId && <p className="mt-1 text-sm text-red-600">{errors.teamId}</p>}
+            </div>
 
-                {showSearchResults && searchResults.length === 0 && customerSearch.length >= 2 && (
-                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
-                    No customers found
-                  </div>
-                )}
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className={`input ${errors.title ? 'border-red-300' : ''}`}
+                placeholder="Brief description of the issue"
+              />
+              {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="description"
+                rows={6}
+                value={formData.description}
+                onChange={handleInputChange}
+                className={`input ${errors.description ? 'border-red-300' : ''}`}
+                placeholder="Detailed information about the issue"
+              />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+              )}
+            </div>
+
+            {/* Custom Fields */}
+            {customFields.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Additional Information</h3>
+                {customFields.sort((a, b) => a.order - b.order).map(renderCustomField)}
               </div>
             )}
-            {errors.customer && <p className="mt-1 text-sm text-red-600">{errors.customer}</p>}
-          </div>
 
-          {/* Team Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Team <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={selectedTeamId}
-              onChange={handleTeamChange}
-              className={`input ${errors.teamId ? 'border-red-300' : ''}`}
-              disabled={teams.length <= 1}
-            >
-              <option value="">Select a team</option>
-              {teams.map((team) => (
-                <option key={team.id} value={team.id}>
-                  {team.name}
-                </option>
-              ))}
-            </select>
-            {errors.teamId && <p className="mt-1 text-sm text-red-600">{errors.teamId}</p>}
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              className={`input ${errors.title ? 'border-red-300' : ''}`}
-              placeholder="Brief description of the issue"
-            />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              name="description"
-              rows={6}
-              value={formData.description}
-              onChange={handleInputChange}
-              className={`input ${errors.description ? 'border-red-300' : ''}`}
-              placeholder="Detailed information about the issue"
-            />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-            )}
-          </div>
-
-          {/* Custom Fields */}
-          {customFields.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Additional Information</h3>
-              {customFields.sort((a, b) => a.order - b.order).map(renderCustomField)}
+            {/* Submit Button */}
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+              <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Creating Ticket...' : 'Create Ticket'}
+              </button>
             </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="btn-secondary"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creating Ticket...' : 'Create Ticket'}
-            </button>
-          </div>
-        </form>
+          </form>
         )}
 
         {/* Account Form */}
@@ -858,9 +854,7 @@ const AgentCreateTicketForm: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Domain
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Domain</label>
                 <input
                   type="text"
                   name="domain"
@@ -918,11 +912,7 @@ const AgentCreateTicketForm: React.FC = () => {
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="btn-secondary"
-              >
+              <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
                 Cancel
               </button>
               <button
@@ -1003,11 +993,13 @@ const AgentCreateTicketForm: React.FC = () => {
                     </div>
                   )}
 
-                  {showAccountResults && accountResults.length === 0 && accountSearch.length >= 2 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
-                      No accounts found
-                    </div>
-                  )}
+                  {showAccountResults &&
+                    accountResults.length === 0 &&
+                    accountSearch.length >= 2 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
+                        No accounts found
+                      </div>
+                    )}
                 </div>
               )}
               {errors.account && <p className="mt-1 text-sm text-red-600">{errors.account}</p>}
@@ -1073,23 +1065,22 @@ const AgentCreateTicketForm: React.FC = () => {
                   className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                 />
                 <div className="flex-1">
-                  <label htmlFor="sendInvitation" className="font-medium text-gray-900 cursor-pointer">
+                  <label
+                    htmlFor="sendInvitation"
+                    className="font-medium text-gray-900 cursor-pointer"
+                  >
                     Send invitation email
                   </label>
                   <p className="text-sm text-gray-600 mt-1">
-                    Customer will receive an email to set their password and access the support portal.
-                    If unchecked, you can send the invitation later.
+                    Customer will receive an email to set their password and access the support
+                    portal. If unchecked, you can send the invitation later.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="flex justify-end space-x-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="btn-secondary"
-              >
+              <button type="button" onClick={() => navigate(-1)} className="btn-secondary">
                 Cancel
               </button>
               <button

@@ -10,7 +10,7 @@ router.get('/trophies', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
@@ -35,7 +35,7 @@ router.post('/trophies', authenticate, authorize('admin'), async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
@@ -88,7 +88,7 @@ router.get('/badges', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
@@ -112,7 +112,7 @@ router.post('/badges', authenticate, authorize('admin'), async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
@@ -163,7 +163,7 @@ router.get('/leaderboard', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }

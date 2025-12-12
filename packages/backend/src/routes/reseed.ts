@@ -14,7 +14,7 @@ const router = Router();
 router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     console.log('🔄 Starting database reseed...');
-    
+
     // Run the seed command
     const { stdout, stderr } = await execAsync('npm run seed', {
       cwd: process.cwd(),

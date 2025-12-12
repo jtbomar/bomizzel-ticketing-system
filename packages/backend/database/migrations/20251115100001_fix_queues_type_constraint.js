@@ -9,7 +9,7 @@ exports.up = async function (knex) {
     ALTER TABLE queues 
     DROP CONSTRAINT IF EXISTS queues_type_check;
   `);
-  
+
   console.log('✅ Removed queues_type_check constraint');
 };
 

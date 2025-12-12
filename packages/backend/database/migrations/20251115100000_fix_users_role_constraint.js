@@ -9,7 +9,7 @@ exports.up = async function (knex) {
     ALTER TABLE users 
     DROP CONSTRAINT IF EXISTS users_role_check;
   `);
-  
+
   console.log('✅ Removed users_role_check constraint');
 };
 

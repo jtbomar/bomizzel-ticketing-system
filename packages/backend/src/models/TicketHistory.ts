@@ -183,11 +183,13 @@ export class TicketHistory extends BaseModel {
   /**
    * Convert database row to model
    */
-  static toModel(row: TicketHistoryTable & { 
-    user_first_name?: string; 
-    user_last_name?: string; 
-    user_email?: string; 
-  }): TicketHistoryModel {
+  static toModel(
+    row: TicketHistoryTable & {
+      user_first_name?: string;
+      user_last_name?: string;
+      user_email?: string;
+    }
+  ): TicketHistoryModel {
     return {
       id: row.id,
       ticketId: row.ticket_id,

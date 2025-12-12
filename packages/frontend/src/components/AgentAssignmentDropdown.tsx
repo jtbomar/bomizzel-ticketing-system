@@ -48,11 +48,11 @@ const AgentAssignmentDropdown: React.FC<AgentAssignmentDropdownProps> = ({
       setError(null);
       const result = await apiService.assignTicket(ticketId, agentId);
       const updatedTicket = result.data || result.ticket || result;
-      
+
       if (onAssignmentChange) {
         onAssignmentChange(updatedTicket.assignedTo || null);
       }
-      
+
       setIsOpen(false);
     } catch (err: any) {
       console.error('Failed to assign ticket:', err);
@@ -67,11 +67,11 @@ const AgentAssignmentDropdown: React.FC<AgentAssignmentDropdownProps> = ({
       setAssigning(true);
       setError(null);
       const response = await apiService.unassignTicket(ticketId);
-      
+
       if (onAssignmentChange) {
         onAssignmentChange(null);
       }
-      
+
       setIsOpen(false);
     } catch (err: any) {
       console.error('Failed to unassign ticket:', err);

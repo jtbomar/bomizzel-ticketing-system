@@ -12,18 +12,18 @@ export interface EnhancedRegistrationData {
   email: string;
   password: string;
   phone?: string;
-  
+
   // Company Information
   companyAction: 'create' | 'join';
   companyName?: string; // For creating new company
-  companyId?: string;   // For joining existing company
+  companyId?: string; // For joining existing company
   companyInviteCode?: string; // For joining with invite
-  
+
   // Role and Preferences
   role?: 'customer' | 'employee';
   department?: string;
   jobTitle?: string;
-  
+
   // Marketing and Communication
   marketingOptIn?: boolean;
   communicationPreferences?: {
@@ -65,7 +65,7 @@ export class EnhancedRegistrationService {
           success: false,
           verificationRequired: false,
           message: 'Validation failed',
-          errors: validation.errors
+          errors: validation.errors,
         };
       }
 
@@ -76,7 +76,7 @@ export class EnhancedRegistrationService {
           success: false,
           verificationRequired: false,
           message: 'An account with this email already exists',
-          errors: { email: 'Email already registered' }
+          errors: { email: 'Email already registered' },
         };
       }
 
@@ -109,7 +109,7 @@ export class EnhancedRegistrationService {
             defaultView: 'kanban',
             ticketsPerPage: 25,
           },
-        }
+        },
       });
 
       // Handle company association
@@ -134,7 +134,7 @@ export class EnhancedRegistrationService {
         userId: user.id,
         email: user.email,
         companyId: company?.id,
-        companyAction: data.companyAction
+        companyAction: data.companyAction,
       });
 
       return {
@@ -144,24 +144,25 @@ export class EnhancedRegistrationService {
           email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          role: user.role
+          role: user.role,
         },
-        company: company ? {
-          id: company.id,
-          name: company.name,
-          role: companyRole
-        } : undefined,
+        company: company
+          ? {
+              id: company.id,
+              name: company.name,
+              role: companyRole,
+            }
+          : undefined,
         verificationRequired: true,
-        message: 'Registration successful! Please check your email to verify your account.'
+        message: 'Registration successful! Please check your email to verify your account.',
       };
-
     } catch (error) {
       logger.error('Enhanced registration failed:', error);
       return {
         success: false,
         verificationRequired: false,
         message: 'Registration failed. Please try again.',
-        errors: { general: 'An unexpected error occurred' }
+        errors: { general: 'An unexpected error occurred' },
       };
     }
   }
@@ -177,8 +178,8 @@ export class EnhancedRegistrationService {
       settings: JSON.stringify({
         allowSelfRegistration: true,
         requireApproval: false,
-        defaultRole: 'member'
-      })
+        defaultRole: 'member',
+      }),
     });
 
     // Associate user with company as admin using the existing method
@@ -190,7 +191,11 @@ export class EnhancedRegistrationService {
   /**
    * Join an existing company
    */
-  private static async joinExistingCompany(userId: string, companyId?: string, inviteCode?: string) {
+  private static async joinExistingCompany(
+    userId: string,
+    companyId?: string,
+    inviteCode?: string
+  ) {
     let company;
 
     if (companyId) {
@@ -255,7 +260,7 @@ export class EnhancedRegistrationService {
 
     return {
       isValid: Object.keys(errors).length === 0,
-      errors
+      errors,
     };
   }
 
@@ -266,7 +271,7 @@ export class EnhancedRegistrationService {
     try {
       const verificationToken = uuidv4();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-      
+
       // Store verification token using existing method
       await User.setEmailVerificationToken(user.id, verificationToken, expiresAt);
 
@@ -287,7 +292,7 @@ export class EnhancedRegistrationService {
         This link will expire in 24 hours.
         If you didn't create this account, please ignore this email.
       `;
-      
+
       await EmailService.sendNotificationEmail(
         [user.email],
         'Verify Your Email Address - Bomizzel',
@@ -295,7 +300,6 @@ export class EnhancedRegistrationService {
         textBody,
         { type: 'email_verification', userId: user.id }
       );
-
     } catch (error) {
       logger.error('Failed to send verification email:', error);
       // Don't throw error - registration should still succeed
@@ -309,13 +313,13 @@ export class EnhancedRegistrationService {
     try {
       const companies = await Company.findActiveCompanies({
         search: query,
-        limit
+        limit,
       });
-      return companies.map(company => ({
+      return companies.map((company) => ({
         id: company.id,
         name: company.name,
         description: company.description,
-        allowsSelfRegistration: true // For now, assume all companies allow self-registration
+        allowsSelfRegistration: true, // For now, assume all companies allow self-registration
       }));
     } catch (error) {
       logger.error('Company search failed:', error);
@@ -329,18 +333,18 @@ export class EnhancedRegistrationService {
   static async verifyEmail(token: string) {
     try {
       const user = await User.findByEmailVerificationToken(token);
-      
+
       if (!user) {
         return {
           success: false,
-          message: 'Invalid or expired verification token'
+          message: 'Invalid or expired verification token',
         };
       }
 
       // Activate user and verify email using existing method
       await User.verifyEmail(user.id);
       await User.update(user.id, {
-        is_active: true
+        is_active: true,
       });
 
       logger.info('Email verified successfully', { userId: user.id, email: user.email });
@@ -352,15 +356,14 @@ export class EnhancedRegistrationService {
           id: user.id,
           email: user.email,
           firstName: user.first_name,
-          lastName: user.last_name
-        }
+          lastName: user.last_name,
+        },
       };
-
     } catch (error) {
       logger.error('Email verification failed:', error);
       return {
         success: false,
-        message: 'Email verification failed. Please try again.'
+        message: 'Email verification failed. Please try again.',
       };
     }
   }

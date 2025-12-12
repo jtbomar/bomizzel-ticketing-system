@@ -45,14 +45,11 @@ const ProvisionedCustomersList: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.get(
-        `${apiUrl}/api/admin/provisioning/customers`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.get(`${apiUrl}/api/admin/provisioning/customers`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCustomers(response.data.data.customers);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load customers');
@@ -86,7 +83,11 @@ const ProvisionedCustomersList: React.FC = () => {
     const reason = prompt('Reason for disabling this customer?');
     if (!reason) return;
 
-    if (!confirm('Are you sure you want to disable this customer? All their users will be blocked from accessing the system.')) {
+    if (
+      !confirm(
+        'Are you sure you want to disable this customer? All their users will be blocked from accessing the system.'
+      )
+    ) {
       return;
     }
 
@@ -136,7 +137,11 @@ const ProvisionedCustomersList: React.FC = () => {
     const reason = prompt('Reason for deleting this customer?');
     if (!reason) return;
 
-    if (!confirm('⚠️ WARNING: This will PERMANENTLY delete the customer, all their users, and all their data. This cannot be undone. Are you absolutely sure?')) {
+    if (
+      !confirm(
+        '⚠️ WARNING: This will PERMANENTLY delete the customer, all their users, and all their data. This cannot be undone. Are you absolutely sure?'
+      )
+    ) {
       return;
     }
 
@@ -147,15 +152,12 @@ const ProvisionedCustomersList: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      await axios.delete(
-        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          data: { reason }
-        }
-      );
+      await axios.delete(`${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        data: { reason },
+      });
       fetchCustomers(); // Refresh list
       alert('Customer deleted successfully!');
     } catch (err: any) {
@@ -200,12 +202,7 @@ const ProvisionedCustomersList: React.FC = () => {
           onClick={fetchCustomers}
           className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
-          <svg
-            className="h-4 w-4 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -245,9 +242,7 @@ const ProvisionedCustomersList: React.FC = () => {
                 <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
                   Company
                 </th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Admin
-                </th>
+                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Admin</th>
                 <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                   Status
                 </th>
@@ -266,9 +261,7 @@ const ProvisionedCustomersList: React.FC = () => {
               {customers.map((customer) => (
                 <tr key={customer.subscriptionId}>
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                    <div className="font-medium text-gray-900">
-                      {customer.company.name}
-                    </div>
+                    <div className="font-medium text-gray-900">{customer.company.name}</div>
                     <div className="text-gray-500">{customer.company.id}</div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -281,10 +274,10 @@ const ProvisionedCustomersList: React.FC = () => {
                         customer.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : customer.status === 'trial'
-                          ? 'bg-blue-100 text-blue-800'
-                          : customer.status === 'suspended'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-gray-100 text-gray-800'
+                            ? 'bg-blue-100 text-blue-800'
+                            : customer.status === 'suspended'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
                       }`}
                     >
                       {customer.status}
@@ -296,9 +289,7 @@ const ProvisionedCustomersList: React.FC = () => {
                     <div>Storage: {customer.limits.storageQuotaGB}GB</div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>
-                      {new Date(customer.currentPeriod.start).toLocaleDateString()}
-                    </div>
+                    <div>{new Date(customer.currentPeriod.start).toLocaleDateString()}</div>
                     <div className="text-gray-400">
                       to {new Date(customer.currentPeriod.end).toLocaleDateString()}
                     </div>
@@ -355,9 +346,7 @@ const ProvisionedCustomersList: React.FC = () => {
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Max Users
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700">Max Users</label>
                     <input
                       type="number"
                       value={updateLimits.maxUsers}
@@ -408,9 +397,7 @@ const ProvisionedCustomersList: React.FC = () => {
                     </label>
                     <textarea
                       value={updateLimits.reason}
-                      onChange={(e) =>
-                        setUpdateLimits({ ...updateLimits, reason: e.target.value })
-                      }
+                      onChange={(e) => setUpdateLimits({ ...updateLimits, reason: e.target.value })}
                       rows={3}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       placeholder="e.g., Customer requested storage upgrade"

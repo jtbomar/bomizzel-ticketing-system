@@ -47,12 +47,12 @@ const AgentAccountDetail: React.FC = () => {
   const loadAccountDetails = async () => {
     try {
       setLoading(true);
-      
+
       // Load account details
       const accountResponse = await apiService.getCompany(accountId!);
       const accountData = accountResponse.company || accountResponse.data || accountResponse;
       setAccount(accountData);
-      
+
       // Initialize edit form
       setEditForm({
         name: accountData.name || '',
@@ -63,7 +63,11 @@ const AgentAccountDetail: React.FC = () => {
       });
 
       // Load customers for this account
-      const customersResponse = await apiService.getUsers({ role: 'customer', limit: 100, page: 1 });
+      const customersResponse = await apiService.getUsers({
+        role: 'customer',
+        limit: 100,
+        page: 1,
+      });
       const allCustomers = customersResponse.data || [];
       const accountCustomers = allCustomers.filter((c: any) =>
         c.companies?.some((comp: any) => comp.companyId === accountId)
@@ -85,7 +89,7 @@ const AgentAccountDetail: React.FC = () => {
     try {
       setSaving(true);
       await apiService.updateCompany(accountId!, editForm);
-      
+
       // Reload account details
       await loadAccountDetails();
       setIsEditing(false);
@@ -257,7 +261,9 @@ const AgentAccountDetail: React.FC = () => {
                   ) : account.domain ? (
                     <div className="flex items-center mt-1">
                       <GlobeAltIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900 dark:text-white">{account.domain}</span>
+                      <span className="text-sm text-gray-900 dark:text-white">
+                        {account.domain}
+                      </span>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Not set</p>
@@ -448,28 +454,37 @@ const AgentAccountDetail: React.FC = () => {
                       className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer"
                       onClick={() => {
                         // Store ticket data temporarily
-                        sessionStorage.setItem('openTicket', JSON.stringify({
-                          id: ticket.id,
-                          title: ticket.title,
-                          status: ticket.status,
-                          priority: ticket.priority || 'medium',
-                          customer: ticket.submitter ? `${ticket.submitter.firstName} ${ticket.submitter.lastName}` : 'Unknown',
-                          assigned: ticket.assignedTo ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}` : 'Unassigned',
-                          created: new Date(ticket.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          }),
-                          description: ticket.description || 'No description provided',
-                          order: 1,
-                          customerInfo: ticket.submitter ? {
-                            name: `${ticket.submitter.firstName} ${ticket.submitter.lastName}`,
-                            email: ticket.submitter.email,
-                            phone: '',
-                            company: account?.name || '',
-                            website: account?.domain || '',
-                          } : undefined
-                        }));
+                        sessionStorage.setItem(
+                          'openTicket',
+                          JSON.stringify({
+                            id: ticket.id,
+                            title: ticket.title,
+                            status: ticket.status,
+                            priority: ticket.priority || 'medium',
+                            customer: ticket.submitter
+                              ? `${ticket.submitter.firstName} ${ticket.submitter.lastName}`
+                              : 'Unknown',
+                            assigned: ticket.assignedTo
+                              ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}`
+                              : 'Unassigned',
+                            created: new Date(ticket.createdAt).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            }),
+                            description: ticket.description || 'No description provided',
+                            order: 1,
+                            customerInfo: ticket.submitter
+                              ? {
+                                  name: `${ticket.submitter.firstName} ${ticket.submitter.lastName}`,
+                                  email: ticket.submitter.email,
+                                  phone: '',
+                                  company: account?.name || '',
+                                  website: account?.domain || '',
+                                }
+                              : undefined,
+                          })
+                        );
                         navigate('/agent');
                       }}
                     >

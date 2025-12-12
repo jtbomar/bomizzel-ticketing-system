@@ -49,7 +49,7 @@ const AgentAccountsList: React.FC = () => {
       setLoading(true);
       const response = await apiService.getCompanies({ limit: 100 });
       const accountsList = response.companies || response.data || [];
-      
+
       // TODO: Backend should return contactCount and ticketCount
       // For now, these will show as 0 until backend is updated
       setAccounts(accountsList);

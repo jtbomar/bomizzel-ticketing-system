@@ -12,14 +12,14 @@ router.get('/', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const settings = await CustomerHappinessService.getHappinessSettings(companyId);
-    
+
     return res.json(settings);
   } catch (error) {
     console.error('Error fetching happiness settings:', error);
@@ -31,19 +31,19 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const setting = await CustomerHappinessService.getHappinessSettingById(parseInt(id), companyId);
-    
+
     if (!setting) {
       return res.status(404).json({ error: 'Happiness setting not found' });
     }
@@ -62,11 +62,11 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const {
       name,
@@ -89,7 +89,11 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     }
 
     if (!survey_config || !trigger_conditions || !email_template) {
-      return res.status(400).json({ error: 'Survey configuration, trigger conditions, and email template are required' });
+      return res
+        .status(400)
+        .json({
+          error: 'Survey configuration, trigger conditions, and email template are required',
+        });
     }
 
     const setting = await CustomerHappinessService.createHappinessSetting(companyId, {
@@ -122,16 +126,16 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const {
       name,
@@ -183,16 +187,16 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
 router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const success = await CustomerHappinessService.deleteHappinessSetting(parseInt(id), companyId);
 
@@ -217,11 +221,11 @@ router.get('/analytics/overview', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const { start_date, end_date, happiness_setting_id } = req.query;
 
@@ -250,11 +254,11 @@ router.get('/feedback/recent', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const { limit, happiness_setting_id } = req.query;
 
@@ -277,9 +281,9 @@ router.get('/feedback/recent', authenticate, async (req, res) => {
 router.get('/survey/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    
+
     const feedback = await CustomerHappinessService.getFeedbackByToken(token);
-    
+
     if (!feedback) {
       return res.status(404).json({ error: 'Survey not found' });
     }

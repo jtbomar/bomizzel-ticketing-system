@@ -25,11 +25,12 @@ const BSIAdminLogin: React.FC = () => {
 
       // Check if user is BSI admin (from Bomizzel Services Inc.)
       // Allow Jeff Bomar's email and any @bomizzel.com emails
-      const isBSIAdmin = user.role === 'admin' && 
-        (email === 'jeffrey.t.bomar@gmail.com' || 
-         email.includes('@bomizzel.com') || 
-         email.includes('bomizzel'));
-      
+      const isBSIAdmin =
+        user.role === 'admin' &&
+        (email === 'jeffrey.t.bomar@gmail.com' ||
+          email.includes('@bomizzel.com') ||
+          email.includes('bomizzel'));
+
       if (!isBSIAdmin) {
         setError('Access denied. This portal is for Bomizzel Services Inc. administrators only.');
         setLoading(false);
@@ -69,13 +70,9 @@ const BSIAdminLogin: React.FC = () => {
               />
             </svg>
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Bomizzel Services Inc.
-          </h2>
+          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Bomizzel Services Inc.</h2>
           <p className="mt-2 text-sm text-gray-600">Admin Portal</p>
-          <p className="mt-1 text-xs text-gray-500">
-            For BSI administrators only
-          </p>
+          <p className="mt-1 text-xs text-gray-500">For BSI administrators only</p>
         </div>
 
         {/* Login Form */}
@@ -85,11 +82,7 @@ const BSIAdminLogin: React.FC = () => {
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
                 <div className="flex">
                   <div className="flex-shrink-0">
-                    <svg
-                      className="h-5 w-5 text-red-400"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                    >
+                    <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
                       <path
                         fillRule="evenodd"
                         d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"

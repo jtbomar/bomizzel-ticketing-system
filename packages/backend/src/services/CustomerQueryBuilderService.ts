@@ -30,7 +30,7 @@ export class CustomerQueryBuilderService {
     'users',
     'custom_fields',
     'teams',
-    'queues'
+    'queues',
   ];
 
   // Blocked keywords for safety
@@ -45,7 +45,7 @@ export class CustomerQueryBuilderService {
     'GRANT',
     'REVOKE',
     'EXEC',
-    'EXECUTE'
+    'EXECUTE',
   ];
 
   /**
@@ -71,15 +71,15 @@ export class CustomerQueryBuilderService {
       // Add company filter to query
       const scopedQuery = this.addCompanyScope(query, companyId);
 
-      logger.info('Executing customer query', { 
-        userId, 
-        companyId, 
-        query: scopedQuery.substring(0, 100) 
+      logger.info('Executing customer query', {
+        userId,
+        companyId,
+        query: scopedQuery.substring(0, 100),
       });
 
       // Execute query
       const result = await db.raw(scopedQuery);
-      
+
       const executionTime = Date.now() - startTime;
 
       // Extract columns and rows
@@ -93,9 +93,8 @@ export class CustomerQueryBuilderService {
         columns,
         rows,
         rowCount: rows.length,
-        executionTime
+        executionTime,
       };
-
     } catch (error) {
       logger.error('Customer query execution failed', { error, userId, companyId });
       throw new AppError(
@@ -111,15 +110,15 @@ export class CustomerQueryBuilderService {
   private static addCompanyScope(query: string, companyId: string): string {
     // This is a simplified approach - in production you'd want more sophisticated query parsing
     // For now, we'll add a WHERE clause or AND condition
-    
+
     const upperQuery = query.toUpperCase();
-    
+
     // Find the main table being queried
     const fromMatch = query.match(/FROM\s+(\w+)/i);
     if (!fromMatch) {
       throw new AppError('Could not determine table from query', 400);
     }
-    
+
     const tableName = fromMatch[1];
     const tableAlias = this.getTableAlias(query, tableName);
     const prefix = tableAlias || tableName;
@@ -212,7 +211,8 @@ export class CustomerQueryBuilderService {
       const tables: TableInfo[] = [];
 
       for (const tableName of this.ALLOWED_TABLES) {
-        const columns = await db.raw(`
+        const columns = await db.raw(
+          `
           SELECT 
             column_name,
             data_type,
@@ -220,20 +220,21 @@ export class CustomerQueryBuilderService {
           FROM information_schema.columns
           WHERE table_name = ?
           ORDER BY ordinal_position
-        `, [tableName]);
+        `,
+          [tableName]
+        );
 
         tables.push({
           tableName,
           columns: columns.rows.map((col: any) => ({
             columnName: col.column_name,
             dataType: col.data_type,
-            isNullable: col.is_nullable === 'YES'
-          }))
+            isNullable: col.is_nullable === 'YES',
+          })),
         });
       }
 
       return tables;
-
     } catch (error) {
       logger.error('Failed to get table schema', { error });
       throw new AppError('Failed to retrieve database schema', 500);
@@ -258,7 +259,7 @@ export class CustomerQueryBuilderService {
 FROM tickets
 WHERE status IN ('open', 'in_progress')
 ORDER BY created_at DESC
-LIMIT 100`
+LIMIT 100`,
       },
       {
         name: 'Tickets by Status',
@@ -268,7 +269,7 @@ LIMIT 100`
   COUNT(*) as ticket_count
 FROM tickets
 GROUP BY status
-ORDER BY ticket_count DESC`
+ORDER BY ticket_count DESC`,
       },
       {
         name: 'Tickets by Priority',
@@ -284,7 +285,7 @@ ORDER BY
     WHEN 'high' THEN 2
     WHEN 'medium' THEN 3
     WHEN 'low' THEN 4
-  END`
+  END`,
       },
       {
         name: 'Recent Ticket Activity',
@@ -297,7 +298,7 @@ ORDER BY
   created_at
 FROM tickets
 WHERE created_at > NOW() - INTERVAL '7 days'
-ORDER BY created_at DESC`
+ORDER BY created_at DESC`,
       },
       {
         name: 'Tickets with Most Notes',
@@ -311,7 +312,7 @@ FROM tickets t
 LEFT JOIN ticket_notes tn ON t.id = tn.ticket_id
 GROUP BY t.id, t.title, t.status
 ORDER BY note_count DESC
-LIMIT 20`
+LIMIT 20`,
       },
       {
         name: 'My Company Users',
@@ -326,7 +327,7 @@ LIMIT 20`
 FROM users u
 JOIN user_company_associations uca ON u.id = uca.user_id
 WHERE u.is_active = true
-ORDER BY u.first_name, u.last_name`
+ORDER BY u.first_name, u.last_name`,
       },
       {
         name: 'Ticket Resolution Time',
@@ -337,7 +338,7 @@ ORDER BY u.first_name, u.last_name`
   AVG(EXTRACT(EPOCH FROM (resolved_at - created_at))/3600) as avg_hours_to_resolve
 FROM tickets
 WHERE resolved_at IS NOT NULL
-GROUP BY status`
+GROUP BY status`,
       },
       {
         name: 'Tickets by Category',
@@ -348,8 +349,8 @@ GROUP BY status`
 FROM tickets
 WHERE category IS NOT NULL
 GROUP BY category
-ORDER BY ticket_count DESC`
-      }
+ORDER BY ticket_count DESC`,
+      },
     ];
   }
 
@@ -370,7 +371,7 @@ ORDER BY ticket_count DESC`
         query: query.substring(0, 2000),
         row_count: rowCount,
         execution_time_ms: executionTime,
-        executed_at: new Date()
+        executed_at: new Date(),
       });
     } catch (error) {
       logger.error('Failed to log customer query execution', { error });
@@ -385,16 +386,22 @@ ORDER BY ticket_count DESC`
 
     const header = columns.join(',');
 
-    const csvRows = rows.map(row => {
-      return columns.map(col => {
-        const value = row[col];
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      }).join(',');
+    const csvRows = rows.map((row) => {
+      return columns
+        .map((col) => {
+          const value = row[col];
+          if (value === null || value === undefined) return '';
+          const stringValue = String(value);
+          if (
+            stringValue.includes(',') ||
+            stringValue.includes('"') ||
+            stringValue.includes('\n')
+          ) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(',');
     });
 
     return [header, ...csvRows].join('\n');

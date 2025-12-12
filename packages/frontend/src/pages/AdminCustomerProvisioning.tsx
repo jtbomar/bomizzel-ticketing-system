@@ -109,20 +109,16 @@ const AdminCustomerProvisioning: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.post(
-        `${apiUrl}/api/admin/provisioning/customers`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await axios.post(`${apiUrl}/api/admin/provisioning/customers`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       setSuccess('Customer provisioned successfully!');
       setProvisionedCustomer(response.data.data);
-      
+
       // Reset form
       setFormData({
         companyName: '',
@@ -201,11 +197,7 @@ const AdminCustomerProvisioning: React.FC = () => {
           <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-green-400"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
+                <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -244,11 +236,7 @@ const AdminCustomerProvisioning: React.FC = () => {
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg
-                  className="h-5 w-5 text-red-400"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
+                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -268,14 +256,10 @@ const AdminCustomerProvisioning: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Company Information */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Company Information
-              </h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Company Information</h2>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Company Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Company Name *</label>
                   <input
                     type="text"
                     name="companyName"
@@ -286,9 +270,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Company Domain
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Company Domain</label>
                   <input
                     type="text"
                     name="companyDomain"
@@ -315,14 +297,10 @@ const AdminCustomerProvisioning: React.FC = () => {
 
             {/* Admin User Information */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Administrator Information
-              </h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Administrator Information</h2>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    First Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">First Name *</label>
                   <input
                     type="text"
                     name="adminFirstName"
@@ -333,9 +311,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Last Name *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Last Name *</label>
                   <input
                     type="text"
                     name="adminLastName"
@@ -346,9 +322,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Email *</label>
                   <input
                     type="email"
                     name="adminEmail"
@@ -359,9 +333,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Phone
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Phone</label>
                   <input
                     type="tel"
                     name="adminPhone"
@@ -376,20 +348,14 @@ const AdminCustomerProvisioning: React.FC = () => {
 
             {/* Subscription Limits */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Subscription Limits
-              </h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Limits</h2>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Max Users
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Max Users</label>
                   <input
                     type="number"
                     value={formData.customLimits.maxUsers}
-                    onChange={(e) =>
-                      handleLimitChange('maxUsers', parseInt(e.target.value))
-                    }
+                    onChange={(e) => handleLimitChange('maxUsers', parseInt(e.target.value))}
                     min="1"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
@@ -429,9 +395,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   <input
                     type="number"
                     value={formData.customLimits.maxTotalTickets}
-                    onChange={(e) =>
-                      handleLimitChange('maxTotalTickets', parseInt(e.target.value))
-                    }
+                    onChange={(e) => handleLimitChange('maxTotalTickets', parseInt(e.target.value))}
                     min="1"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
@@ -443,9 +407,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   <input
                     type="number"
                     value={formData.customLimits.storageQuotaGB}
-                    onChange={(e) =>
-                      handleLimitChange('storageQuotaGB', parseInt(e.target.value))
-                    }
+                    onChange={(e) => handleLimitChange('storageQuotaGB', parseInt(e.target.value))}
                     min="1"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
@@ -471,23 +433,17 @@ const AdminCustomerProvisioning: React.FC = () => {
                   <input
                     type="number"
                     value={formData.customLimits.maxCustomFields}
-                    onChange={(e) =>
-                      handleLimitChange('maxCustomFields', parseInt(e.target.value))
-                    }
+                    onChange={(e) => handleLimitChange('maxCustomFields', parseInt(e.target.value))}
                     min="1"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Max Queues
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Max Queues</label>
                   <input
                     type="number"
                     value={formData.customLimits.maxQueues}
-                    onChange={(e) =>
-                      handleLimitChange('maxQueues', parseInt(e.target.value))
-                    }
+                    onChange={(e) => handleLimitChange('maxQueues', parseInt(e.target.value))}
                     min="1"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
@@ -497,9 +453,7 @@ const AdminCustomerProvisioning: React.FC = () => {
 
             {/* Pricing & Billing */}
             <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Pricing & Billing
-              </h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Pricing & Billing</h2>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -523,33 +477,25 @@ const AdminCustomerProvisioning: React.FC = () => {
                   <input
                     type="number"
                     value={formData.customPricing.annualPrice}
-                    onChange={(e) =>
-                      handlePricingChange('annualPrice', parseFloat(e.target.value))
-                    }
+                    onChange={(e) => handlePricingChange('annualPrice', parseFloat(e.target.value))}
                     min="0"
                     step="0.01"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Setup Fee ($)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Setup Fee ($)</label>
                   <input
                     type="number"
                     value={formData.customPricing.setupFee}
-                    onChange={(e) =>
-                      handlePricingChange('setupFee', parseFloat(e.target.value))
-                    }
+                    onChange={(e) => handlePricingChange('setupFee', parseFloat(e.target.value))}
                     min="0"
                     step="0.01"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Billing Cycle
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Billing Cycle</label>
                   <select
                     name="billingCycle"
                     value={formData.billingCycle}
@@ -561,9 +507,7 @@ const AdminCustomerProvisioning: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Trial Days
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700">Trial Days</label>
                   <input
                     type="number"
                     name="trialDays"

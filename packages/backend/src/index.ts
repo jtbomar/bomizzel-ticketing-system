@@ -14,35 +14,35 @@ console.log('🔄 Running database migrations...');
 try {
   const env = process.env.NODE_ENV || (process.env.DATABASE_URL ? 'production' : 'development');
   console.log(`🎯 Environment: ${env}`);
-  
+
   // Determine the correct working directory
   // In production (Railway), __dirname will be /app/dist, so we need to go up to /app
-  const workingDir = __dirname.includes('dist') 
-    ? path.resolve(__dirname, '..') 
+  const workingDir = __dirname.includes('dist')
+    ? path.resolve(__dirname, '..')
     : path.resolve(__dirname, '..');
-  
+
   console.log(`📂 Working directory: ${workingDir}`);
   console.log(`📍 Current __dirname: ${__dirname}`);
-  
+
   // First, clean up old migration records
   console.log('🧹 Cleaning up old migration records...');
   try {
-    execSync('node scripts/cleanup-migrations.js', { 
+    execSync('node scripts/cleanup-migrations.js', {
       stdio: 'inherit',
-      cwd: workingDir
+      cwd: workingDir,
     });
   } catch (cleanupError) {
     console.log('⚠️  Cleanup script failed (may not be needed)');
   }
-  
+
   const migrateCommand = `npx knex migrate:latest --knexfile knexfile.js --env ${env}`;
   console.log(`⚙️  Command: ${migrateCommand}`);
-  
-  execSync(migrateCommand, { 
+
+  execSync(migrateCommand, {
     stdio: 'inherit',
-    cwd: workingDir
+    cwd: workingDir,
   });
-  
+
   console.log('✅ Migrations completed');
 } catch (error: any) {
   console.error('❌ Migration failed:', error.message);
@@ -74,20 +74,20 @@ app.use(
   cors({
     origin: (origin, callback) => {
       console.log('🌐 CORS request from origin:', origin);
-      
+
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) {
         return callback(null, true);
       }
-      
+
       // Check if origin is allowed
-      const isAllowed = allowedOrigins.some(allowed => {
+      const isAllowed = allowedOrigins.some((allowed) => {
         if (typeof allowed === 'string') {
           return allowed === origin;
         }
         return allowed.test(origin);
       });
-      
+
       if (isAllowed) {
         console.log('✅ CORS: Origin allowed:', origin);
         callback(null, true);
@@ -118,7 +118,7 @@ try {
   console.log('✅ API routes registered successfully');
 } catch (error) {
   console.warn('⚠️ Could not register API routes:', error);
-  
+
   // Try to register critical routes individually
   try {
     const authRoutes = require('./routes/auth').default;
@@ -134,7 +134,7 @@ try {
     const userProfilesRoutes = require('./routes/userProfiles').default;
     const agentsRoutes = require('./routes/agents').default;
     const usersRoutes = require('./routes/users').default;
-    
+
     // Try to load tickets, custom fields, and teams routes
     let ticketsRoutes, customFieldsRoutes, teamsRoutes;
     try {
@@ -144,7 +144,7 @@ try {
     } catch (err) {
       console.warn('⚠️ Could not load tickets/custom-fields/teams routes:', err);
     }
-    
+
     app.use('/api/auth', authRoutes);
     app.use('/api/auth', enhancedRegistrationRoutes);
     app.use('/api/admin', adminRoutes);
@@ -158,7 +158,7 @@ try {
     app.use('/api/user-profiles', userProfilesRoutes);
     app.use('/api/agents', agentsRoutes);
     app.use('/api/users', usersRoutes);
-    
+
     if (ticketsRoutes) {
       app.use('/api/tickets', ticketsRoutes);
       console.log('✅ Tickets routes registered');
@@ -171,40 +171,42 @@ try {
       app.use('/api/teams', teamsRoutes);
       console.log('✅ Teams routes registered');
     }
-    
-    console.log('✅ Auth, admin, companies, agents, users, admin provisioning, enhanced registration, business hours, holiday lists, departments, customer happiness, organizational roles, and user profiles routes registered');
+
+    console.log(
+      '✅ Auth, admin, companies, agents, users, admin provisioning, enhanced registration, business hours, holiday lists, departments, customer happiness, organizational roles, and user profiles routes registered'
+    );
   } catch (err) {
     console.error('❌ Failed to register provisioning routes:', err);
   }
-  
+
   // Manually register auth verify endpoint as fallback
   app.get('/api/auth/verify', async (req: Request, res: Response): Promise<void> => {
     try {
       const { authenticate } = await import('./middleware/auth');
       const { User } = await import('./models/User');
-      
+
       // Extract token
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.status(401).json({ error: 'No token provided' });
         return;
       }
-      
+
       const token = authHeader.substring(7);
       const { JWTUtils } = await import('./utils/jwt');
       const payload = JWTUtils.verifyAccessToken(token);
-      
+
       if (!payload) {
         res.status(401).json({ error: 'Invalid token' });
         return;
       }
-      
+
       const user = await User.findById(payload.userId);
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;
       }
-      
+
       res.json({
         valid: true,
         user: {
@@ -227,10 +229,10 @@ try {
 app.get('/api/company-registration/profile', async (req: Request, res: Response) => {
   try {
     const { db } = await import('./config/database');
-    
+
     // Get the first company profile (for now, we'll use a single profile)
     const profile = await db('company_profiles').first();
-    
+
     if (profile) {
       res.json({
         success: true,
@@ -344,10 +346,10 @@ app.put('/api/company-registration/profile', async (req: Request, res: Response)
 app.get('/api/company-registration/branding', async (req: Request, res: Response) => {
   try {
     const { db } = await import('./config/database');
-    
+
     // Get the first branding profile
     const branding = await db('company_profiles').first();
-    
+
     if (branding) {
       res.json({
         success: true,
@@ -406,19 +408,17 @@ app.put('/api/company-registration/branding', async (req: Request, res: Response
 
     if (existingProfile) {
       // Update existing profile
-      await db('company_profiles')
-        .where({ id: existingProfile.id })
-        .update({
-          logo,
-          favicon,
-          linkback_url: linkbackUrl,
-          company_name: companyName,
-          tagline,
-          primary_color: primaryColor,
-          secondary_color: secondaryColor,
-          accent_color: accentColor,
-          updated_at: db.fn.now(),
-        });
+      await db('company_profiles').where({ id: existingProfile.id }).update({
+        logo,
+        favicon,
+        linkback_url: linkbackUrl,
+        company_name: companyName,
+        tagline,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        accent_color: accentColor,
+        updated_at: db.fn.now(),
+      });
     } else {
       // Create new profile
       await db('company_profiles').insert({

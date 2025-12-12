@@ -8,13 +8,13 @@ const ApiTest: React.FC = () => {
   const testConnection = async () => {
     setLoading(true);
     setResult('');
-    
+
     try {
       const testUrl = 'http://localhost:3001/health';
       console.log('Direct test URL:', testUrl);
-      
+
       setResult(`🔍 Testing direct connection to: ${testUrl}`);
-      
+
       // Use fetch instead of axios to avoid any axios configuration issues
       const response = await fetch(testUrl, {
         method: 'GET',
@@ -22,11 +22,11 @@ const ApiTest: React.FC = () => {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       setResult(`✅ Success with fetch: ${JSON.stringify(data)}`);
     } catch (error: any) {
@@ -42,19 +42,21 @@ Stack: ${error.stack || 'No stack trace'}`);
   const testLogin = async () => {
     setLoading(true);
     setResult('');
-    
+
     try {
       const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
       console.log('Testing login to:', `${apiUrl}/api/auth/login`);
-      
+
       const response = await axios.post(`${apiUrl}/api/auth/login`, {
         email: 'admin@bomizzel.com',
-        password: 'password123'
+        password: 'password123',
       });
       setResult(`✅ Login Success: ${JSON.stringify(response.data, null, 2)}`);
     } catch (error: any) {
       console.error('Login test failed:', error);
-      setResult(`❌ Login Error: ${error.message} - Status: ${error.response?.status} - Data: ${JSON.stringify(error.response?.data)}`);
+      setResult(
+        `❌ Login Error: ${error.message} - Status: ${error.response?.status} - Data: ${JSON.stringify(error.response?.data)}`
+      );
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ Stack: ${error.stack || 'No stack trace'}`);
   return (
     <div className="p-4 bg-white border rounded-lg shadow">
       <h3 className="text-lg font-semibold mb-4">API Connection Test</h3>
-      
+
       <div className="space-y-2 mb-4">
         <button
           onClick={testConnection}
@@ -72,7 +74,7 @@ Stack: ${error.stack || 'No stack trace'}`);
         >
           {loading ? 'Testing...' : 'Test Health Endpoint'}
         </button>
-        
+
         <button
           onClick={testLogin}
           disabled={loading}
@@ -81,7 +83,7 @@ Stack: ${error.stack || 'No stack trace'}`);
           {loading ? 'Testing...' : 'Test Login'}
         </button>
       </div>
-      
+
       {result && (
         <div className="p-3 bg-gray-100 rounded text-sm font-mono whitespace-pre-wrap">
           {result}

@@ -8,10 +8,10 @@ interface ProtectedRouteProps {
   requireBSI?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
   requiredRole,
-  requireBSI = false 
+  requireBSI = false,
 }) => {
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -32,13 +32,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
       try {
         const user = JSON.parse(userStr);
-        const apiUrl = (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
+        const apiUrl =
+          (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
 
         console.log('[ProtectedRoute] Verifying token for user:', user.email, 'role:', user.role);
 
         // Verify token is still valid
         const response = await axios.get(`${apiUrl}/auth/verify`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         console.log('[ProtectedRoute] Auth verify response:', response.data);
@@ -49,11 +50,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
           // Check BSI admin access
           if (requireBSI) {
-            const isBSIAdmin = user.role === 'admin' && 
-              (user.email === 'jeffrey.t.bomar@gmail.com' || 
-               user.email?.includes('@bomizzel.com') || 
-               user.email?.includes('bomizzel'));
-            
+            const isBSIAdmin =
+              user.role === 'admin' &&
+              (user.email === 'jeffrey.t.bomar@gmail.com' ||
+                user.email?.includes('@bomizzel.com') ||
+                user.email?.includes('bomizzel'));
+
             console.log('[ProtectedRoute] BSI admin check:', isBSIAdmin);
             setHasPermission(isBSIAdmin);
             return;
@@ -61,10 +63,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
           // Check role-based access
           if (requiredRole) {
-            const hasRole = user.role === requiredRole || 
-                           (requiredRole === 'employee' && user.role === 'admin') ||
-                           (requiredRole === 'customer' && user.role === 'admin');
-            console.log('[ProtectedRoute] Role check - required:', requiredRole, 'user:', user.role, 'hasRole:', hasRole);
+            const hasRole =
+              user.role === requiredRole ||
+              (requiredRole === 'employee' && user.role === 'admin') ||
+              (requiredRole === 'customer' && user.role === 'admin');
+            console.log(
+              '[ProtectedRoute] Role check - required:',
+              requiredRole,
+              'user:',
+              user.role,
+              'hasRole:',
+              hasRole
+            );
             setHasPermission(hasRole);
           } else {
             console.log('[ProtectedRoute] No role required, granting access');

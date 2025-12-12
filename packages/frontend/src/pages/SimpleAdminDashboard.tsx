@@ -61,7 +61,9 @@ const SimpleAdminDashboard: React.FC = () => {
     } catch (error: any) {
       console.error('Error fetching users:', error);
       console.error('Error details:', error.response?.data);
-      alert(`Failed to load users: ${error.response?.data?.message || error.message || 'Please try again.'}`);
+      alert(
+        `Failed to load users: ${error.response?.data?.message || error.message || 'Please try again.'}`
+      );
     } finally {
       setLoading(false);
     }
@@ -73,14 +75,25 @@ const SimpleAdminDashboard: React.FC = () => {
         console.log('Creating user:', newUser.email, 'with role:', newUser.role);
         await apiService.createUser(newUser);
         console.log('User created successfully');
-        setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee', isActive: true });
+        setNewUser({
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+          role: 'employee',
+          isActive: true,
+        });
         setShowAddUserModal(false);
         fetchUsers(); // Refresh the list
         alert('User created successfully!');
       } catch (error: any) {
         console.error('Error creating user:', error);
         console.error('Error details:', error.response?.data);
-        alert(error.response?.data?.error?.message || error.response?.data?.message || 'Failed to create user. Please try again.');
+        alert(
+          error.response?.data?.error?.message ||
+            error.response?.data?.message ||
+            'Failed to create user. Please try again.'
+        );
       }
     } else {
       alert('Please fill in all required fields including password.');
@@ -96,7 +109,9 @@ const SimpleAdminDashboard: React.FC = () => {
     } catch (error: any) {
       console.error('Error updating user status:', error);
       console.error('Error details:', error.response?.data);
-      alert(`Failed to update user status: ${error.response?.data?.message || error.message || 'Please try again.'}`);
+      alert(
+        `Failed to update user status: ${error.response?.data?.message || error.message || 'Please try again.'}`
+      );
     }
   };
 
@@ -149,222 +164,222 @@ const SimpleAdminDashboard: React.FC = () => {
           </button>
         </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div
-          className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
-          }`}
-        >
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div
-            className={`text-2xl font-bold transition-colors ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
+            className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
+              theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
             }`}
           >
-            {users.length}
-          </div>
-          <div
-            className={`text-sm transition-colors ${
-              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-            }`}
-          >
-            Total Users
-          </div>
-        </div>
-        <div
-          className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
-          }`}
-        >
-          <div
-            className={`text-2xl font-bold transition-colors ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            {users.filter((u) => u.role === 'admin').length}
-          </div>
-          <div
-            className={`text-sm transition-colors ${
-              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-            }`}
-          >
-            Admins
-          </div>
-        </div>
-        <div
-          className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
-          }`}
-        >
-          <div
-            className={`text-2xl font-bold transition-colors ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            {users.filter((u) => u.role === 'employee').length}
-          </div>
-          <div
-            className={`text-sm transition-colors ${
-              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-            }`}
-          >
-            Agents
-          </div>
-        </div>
-        <div
-          className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
-            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
-          }`}
-        >
-          <div
-            className={`text-2xl font-bold transition-colors ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}
-          >
-            {users.filter((u) => u.isActive).length}
-          </div>
-          <div
-            className={`text-sm transition-colors ${
-              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-            }`}
-          >
-            Active Users
-          </div>
-        </div>
-      </div>
-
-      <div
-        className={`backdrop-blur-sm rounded-lg border transition-colors ${
-          theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white border-gray-200'
-        }`}
-      >
-        <div className="overflow-x-auto">
-          <table
-            className={`min-w-full divide-y transition-colors ${
-              theme === 'dark' ? 'divide-white/20' : 'divide-gray-200'
-            }`}
-          >
-            <thead
-              className={`transition-colors ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'}`}
-            >
-              <tr>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
-                    theme === 'dark' ? 'text-white/80' : 'text-gray-500'
-                  }`}
-                >
-                  Name
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
-                    theme === 'dark' ? 'text-white/80' : 'text-gray-500'
-                  }`}
-                >
-                  Email
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
-                    theme === 'dark' ? 'text-white/80' : 'text-gray-500'
-                  }`}
-                >
-                  Role
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
-                    theme === 'dark' ? 'text-white/80' : 'text-gray-500'
-                  }`}
-                >
-                  Status
-                </th>
-                <th
-                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
-                    theme === 'dark' ? 'text-white/80' : 'text-gray-500'
-                  }`}
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody
-              className={`divide-y transition-colors ${
-                theme === 'dark' ? 'divide-white/10' : 'divide-gray-200'
+            <div
+              className={`text-2xl font-bold transition-colors ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
               }`}
             >
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className={`transition-colors ${
-                    theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm transition-colors ${
-                      theme === 'dark' ? 'text-white' : 'text-gray-900'
+              {users.length}
+            </div>
+            <div
+              className={`text-sm transition-colors ${
+                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+              }`}
+            >
+              Total Users
+            </div>
+          </div>
+          <div
+            className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
+              theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
+            }`}
+          >
+            <div
+              className={`text-2xl font-bold transition-colors ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}
+            >
+              {users.filter((u) => u.role === 'admin').length}
+            </div>
+            <div
+              className={`text-sm transition-colors ${
+                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+              }`}
+            >
+              Admins
+            </div>
+          </div>
+          <div
+            className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
+              theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
+            }`}
+          >
+            <div
+              className={`text-2xl font-bold transition-colors ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}
+            >
+              {users.filter((u) => u.role === 'employee').length}
+            </div>
+            <div
+              className={`text-sm transition-colors ${
+                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+              }`}
+            >
+              Agents
+            </div>
+          </div>
+          <div
+            className={`backdrop-blur-sm rounded-lg p-4 border transition-colors ${
+              theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-gray-50 border-gray-200'
+            }`}
+          >
+            <div
+              className={`text-2xl font-bold transition-colors ${
+                theme === 'dark' ? 'text-white' : 'text-gray-900'
+              }`}
+            >
+              {users.filter((u) => u.isActive).length}
+            </div>
+            <div
+              className={`text-sm transition-colors ${
+                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+              }`}
+            >
+              Active Users
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`backdrop-blur-sm rounded-lg border transition-colors ${
+            theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-white border-gray-200'
+          }`}
+        >
+          <div className="overflow-x-auto">
+            <table
+              className={`min-w-full divide-y transition-colors ${
+                theme === 'dark' ? 'divide-white/20' : 'divide-gray-200'
+              }`}
+            >
+              <thead
+                className={`transition-colors ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'}`}
+              >
+                <tr>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
+                      theme === 'dark' ? 'text-white/80' : 'text-gray-500'
                     }`}
                   >
-                    {user.firstName} {user.lastName}
-                  </td>
-                  <td
-                    className={`px-6 py-4 whitespace-nowrap text-sm transition-colors ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-600'
+                    Name
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
+                      theme === 'dark' ? 'text-white/80' : 'text-gray-500'
                     }`}
                   >
-                    {user.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-800'
-                          : user.role === 'employee'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
+                    Email
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
+                      theme === 'dark' ? 'text-white/80' : 'text-gray-500'
+                    }`}
+                  >
+                    Role
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
+                      theme === 'dark' ? 'text-white/80' : 'text-gray-500'
+                    }`}
+                  >
+                    Status
+                  </th>
+                  <th
+                    className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider transition-colors ${
+                      theme === 'dark' ? 'text-white/80' : 'text-gray-500'
+                    }`}
+                  >
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody
+                className={`divide-y transition-colors ${
+                  theme === 'dark' ? 'divide-white/10' : 'divide-gray-200'
+                }`}
+              >
+                {users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className={`transition-colors ${
+                      theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <td
+                      className={`px-6 py-4 whitespace-nowrap text-sm transition-colors ${
+                        theme === 'dark' ? 'text-white' : 'text-gray-900'
                       }`}
                     >
-                      {user.role === 'employee' ? 'agent' : user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleUserStatus(user.id, user.isActive)}
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
-                        user.isActive
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                      {user.firstName} {user.lastName}
+                    </td>
+                    <td
+                      className={`px-6 py-4 whitespace-nowrap text-sm transition-colors ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-600'
                       }`}
                     >
-                      {user.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => toggleUserStatus(user.id, user.isActive)}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                          user.isActive
-                            ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                            : 'bg-green-600 text-white hover:bg-green-700'
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.role === 'admin'
+                            ? 'bg-purple-100 text-purple-800'
+                            : user.role === 'employee'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-green-100 text-green-800'
                         }`}
                       >
-                        {user.isActive ? 'Deactivate' : 'Activate'}
+                        {user.role === 'employee' ? 'agent' : user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => toggleUserStatus(user.id, user.isActive)}
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer transition-colors ${
+                          user.isActive
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        {user.isActive ? 'Active' : 'Inactive'}
                       </button>
-                      {user.role !== 'admin' && (
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
                         <button
-                          onClick={() => deleteUser(user.id)}
-                          className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
+                          onClick={() => toggleUserStatus(user.id, user.isActive)}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                            user.isActive
+                              ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
                         >
-                          Delete
+                          {user.isActive ? 'Deactivate' : 'Activate'}
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {user.role !== 'admin' && (
+                          <button
+                            onClick={() => deleteUser(user.id)}
+                            className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
     );
   };
 
@@ -608,7 +623,9 @@ const SimpleAdminDashboard: React.FC = () => {
             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
           />
         </svg>
-        <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+        <h3
+          className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+        >
           Data Management
         </h3>
         <p className={`mb-6 ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
@@ -618,12 +635,7 @@ const SimpleAdminDashboard: React.FC = () => {
           to="/data-management"
           className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -633,26 +645,60 @@ const SimpleAdminDashboard: React.FC = () => {
           </svg>
           Go to Data Management
         </Link>
-        <div className={`mt-8 max-w-2xl mx-auto text-left ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}>
+        <div
+          className={`mt-8 max-w-2xl mx-auto text-left ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}
+        >
           <h4 className="font-semibold mb-3">What you can do:</h4>
           <ul className="space-y-2">
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-green-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>Export Data:</strong> Create backups of users, tickets, attachments, and custom fields</span>
+              <span>
+                <strong>Export Data:</strong> Create backups of users, tickets, attachments, and
+                custom fields
+              </span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-green-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>Import Data:</strong> Restore from previous backups or migrate from other systems</span>
+              <span>
+                <strong>Import Data:</strong> Restore from previous backups or migrate from other
+                systems
+              </span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-green-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-green-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>View History:</strong> Track all export and import activities</span>
+              <span>
+                <strong>View History:</strong> Track all export and import activities
+              </span>
             </li>
           </ul>
         </div>
@@ -676,7 +722,9 @@ const SimpleAdminDashboard: React.FC = () => {
             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
           />
         </svg>
-        <h3 className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+        <h3
+          className={`text-xl font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+        >
           Reports & Analytics
         </h3>
         <p className={`mb-6 ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
@@ -686,12 +734,7 @@ const SimpleAdminDashboard: React.FC = () => {
           to="/reports"
           className="inline-flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
         >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -701,32 +744,74 @@ const SimpleAdminDashboard: React.FC = () => {
           </svg>
           Go to Reports
         </Link>
-        <div className={`mt-8 max-w-2xl mx-auto text-left ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}>
+        <div
+          className={`mt-8 max-w-2xl mx-auto text-left ${theme === 'dark' ? 'text-white/80' : 'text-gray-700'}`}
+        >
           <h4 className="font-semibold mb-3">Available Reports:</h4>
           <ul className="space-y-2">
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-purple-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>Ticket Reports:</strong> Analyze tickets by status, priority, category</span>
+              <span>
+                <strong>Ticket Reports:</strong> Analyze tickets by status, priority, category
+              </span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-purple-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>User Activity:</strong> View user lists and activity</span>
+              <span>
+                <strong>User Activity:</strong> View user lists and activity
+              </span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-purple-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>Custom Queries:</strong> Write your own SQL queries</span>
+              <span>
+                <strong>Custom Queries:</strong> Write your own SQL queries
+              </span>
             </li>
             <li className="flex items-start">
-              <svg className="w-5 h-5 text-purple-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-purple-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
               </svg>
-              <span><strong>Export to CSV:</strong> Download reports for analysis</span>
+              <span>
+                <strong>Export to CSV:</strong> Download reports for analysis
+              </span>
             </li>
           </ul>
         </div>
@@ -983,7 +1068,14 @@ const SimpleAdminDashboard: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowAddUserModal(false);
-                    setNewUser({ firstName: '', lastName: '', email: '', password: '', role: 'employee', isActive: true });
+                    setNewUser({
+                      firstName: '',
+                      lastName: '',
+                      email: '',
+                      password: '',
+                      role: 'employee',
+                      isActive: true,
+                    });
                   }}
                   className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
                 >

@@ -171,9 +171,7 @@ const Products: React.FC = () => {
                 ← Back to Settings
               </button>
               <h2 className="text-2xl font-bold text-gray-900">Products</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Manage products by department
-              </p>
+              <p className="text-sm text-gray-600 mt-1">Manage products by department</p>
             </div>
             {!isEditing && (
               <button
@@ -200,7 +198,7 @@ const Products: React.FC = () => {
               <option value="all">All Departments ({products.length} products)</option>
               {departments.map((dept) => (
                 <option key={dept.id} value={dept.id}>
-                  {dept.name} ({products.filter(p => p.department_id === dept.id).length})
+                  {dept.name} ({products.filter((p) => p.department_id === dept.id).length})
                 </option>
               ))}
             </select>
@@ -244,7 +242,9 @@ const Products: React.FC = () => {
                           </div>
                           <p className="text-sm text-gray-600">{product.department_name}</p>
                           {product.description && (
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                              {product.description}
+                            </p>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -305,7 +305,9 @@ const Products: React.FC = () => {
                         </label>
                         <select
                           value={formData.department_id}
-                          onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, department_id: e.target.value })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           disabled={!isCreating}
                         >
@@ -317,7 +319,9 @@ const Products: React.FC = () => {
                           ))}
                         </select>
                         {!isCreating && (
-                          <p className="text-sm text-gray-500 mt-1">Department cannot be changed after creation</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Department cannot be changed after creation
+                          </p>
                         )}
                       </div>
 
@@ -328,7 +332,9 @@ const Products: React.FC = () => {
                         <input
                           type="text"
                           value={formData.product_code}
-                          onChange={(e) => setFormData({ ...formData, product_code: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, product_code: e.target.value })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="e.g., PROD-001"
                         />
@@ -353,7 +359,9 @@ const Products: React.FC = () => {
                         </label>
                         <textarea
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
                           rows={4}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Optional product description"
@@ -366,11 +374,15 @@ const Products: React.FC = () => {
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Product Details</h3>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Department</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Department
+                        </label>
                         <p className="mt-1 text-gray-900">{selectedProduct.department_name}</p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Product Code</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Product Code
+                        </label>
                         <p className="mt-1 text-gray-900">{selectedProduct.product_code}</p>
                       </div>
                       <div>
@@ -379,7 +391,9 @@ const Products: React.FC = () => {
                       </div>
                       {selectedProduct.description && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">Description</label>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
                           <p className="mt-1 text-gray-900">{selectedProduct.description}</p>
                         </div>
                       )}

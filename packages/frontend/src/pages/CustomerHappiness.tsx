@@ -76,9 +76,11 @@ const CustomerHappiness: React.FC = () => {
       setLoading(true);
       const settingsData = await apiService.getCustomerHappinessSettings();
       setSettings(settingsData);
-      
+
       // Select the default one if available
-      const defaultSetting = settingsData.find((setting: CustomerHappinessSetting) => setting.is_default);
+      const defaultSetting = settingsData.find(
+        (setting: CustomerHappinessSetting) => setting.is_default
+      );
       if (defaultSetting) {
         setSelectedSetting(defaultSetting);
       } else if (settingsData.length > 0) {
@@ -86,7 +88,9 @@ const CustomerHappiness: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching customer happiness settings:', error);
-      alert('Failed to load customer happiness settings. Please check your authentication and try again.');
+      alert(
+        'Failed to load customer happiness settings. Please check your authentication and try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -111,7 +115,12 @@ const CustomerHappiness: React.FC = () => {
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Back to Settings
               </button>
@@ -135,7 +144,9 @@ const CustomerHappiness: React.FC = () => {
           {settings.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">😊</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Customer Happiness Settings Configured</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Customer Happiness Settings Configured
+              </h3>
               <p className="text-gray-600 mb-4">
                 Create customer satisfaction surveys to collect feedback after ticket resolution.
               </p>
@@ -166,7 +177,9 @@ const CustomerHappiness: React.FC = () => {
                         <div>
                           <h4 className="font-medium text-gray-900">{setting.name}</h4>
                           {setting.description && (
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{setting.description}</p>
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                              {setting.description}
+                            </p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
                             {setting.is_default && (
@@ -186,16 +199,24 @@ const CustomerHappiness: React.FC = () => {
                           </div>
                           <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-500">
                             <div>
-                              <span className="font-medium">{setting.stats.total_surveys_sent}</span> surveys sent
+                              <span className="font-medium">
+                                {setting.stats.total_surveys_sent}
+                              </span>{' '}
+                              surveys sent
                             </div>
                             <div>
-                              <span className="font-medium">{setting.stats.completion_rate}%</span> completion
+                              <span className="font-medium">{setting.stats.completion_rate}%</span>{' '}
+                              completion
                             </div>
                             <div>
-                              <span className="font-medium">{setting.stats.total_responses}</span> responses
+                              <span className="font-medium">{setting.stats.total_responses}</span>{' '}
+                              responses
                             </div>
                             <div>
-                              <span className="font-medium">{setting.stats.average_rating.toFixed(1)}</span> avg rating
+                              <span className="font-medium">
+                                {setting.stats.average_rating.toFixed(1)}
+                              </span>{' '}
+                              avg rating
                             </div>
                           </div>
                         </div>
@@ -251,19 +272,27 @@ const CustomerHappiness: React.FC = () => {
                     {/* Statistics Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                       <div className="bg-blue-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">{selectedSetting.stats.total_surveys_sent}</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {selectedSetting.stats.total_surveys_sent}
+                        </div>
                         <div className="text-sm text-blue-800">Surveys Sent</div>
                       </div>
                       <div className="bg-green-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">{selectedSetting.stats.total_responses}</div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {selectedSetting.stats.total_responses}
+                        </div>
                         <div className="text-sm text-green-800">Responses</div>
                       </div>
                       <div className="bg-purple-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">{selectedSetting.stats.completion_rate}%</div>
+                        <div className="text-2xl font-bold text-purple-600">
+                          {selectedSetting.stats.completion_rate}%
+                        </div>
                         <div className="text-sm text-purple-800">Completion Rate</div>
                       </div>
                       <div className="bg-yellow-50 p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-yellow-600">{selectedSetting.stats.average_rating.toFixed(1)}</div>
+                        <div className="text-2xl font-bold text-yellow-600">
+                          {selectedSetting.stats.average_rating.toFixed(1)}
+                        </div>
                         <div className="text-sm text-yellow-800">Average Rating</div>
                       </div>
                     </div>
@@ -272,25 +301,41 @@ const CustomerHappiness: React.FC = () => {
                     <div className="space-y-6">
                       {/* Survey Configuration */}
                       <div>
-                        <h4 className="text-md font-medium text-gray-900 mb-3">Survey Configuration</h4>
+                        <h4 className="text-md font-medium text-gray-900 mb-3">
+                          Survey Configuration
+                        </h4>
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           <div>
                             <span className="text-sm font-medium text-gray-700">Rating Scale:</span>
-                            <span className="ml-2 text-sm text-gray-600 capitalize">{selectedSetting.survey_config.rating_scale.replace('_', ' ')}</span>
+                            <span className="ml-2 text-sm text-gray-600 capitalize">
+                              {selectedSetting.survey_config.rating_scale.replace('_', ' ')}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-sm font-medium text-gray-700">Rating Question:</span>
-                            <span className="ml-2 text-sm text-gray-600">{selectedSetting.survey_config.rating_question}</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Rating Question:
+                            </span>
+                            <span className="ml-2 text-sm text-gray-600">
+                              {selectedSetting.survey_config.rating_question}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-sm font-medium text-gray-700">Custom Questions:</span>
-                            <span className="ml-2 text-sm text-gray-600">{selectedSetting.survey_config.custom_questions.length} questions</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Custom Questions:
+                            </span>
+                            <span className="ml-2 text-sm text-gray-600">
+                              {selectedSetting.survey_config.custom_questions.length} questions
+                            </span>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-700">Comments:</span>
                             <span className="ml-2 text-sm text-gray-600">
-                              {selectedSetting.survey_config.include_comments ? 'Enabled' : 'Disabled'}
-                              {selectedSetting.survey_config.include_comments && selectedSetting.survey_config.comments_required && ' (Required)'}
+                              {selectedSetting.survey_config.include_comments
+                                ? 'Enabled'
+                                : 'Disabled'}
+                              {selectedSetting.survey_config.include_comments &&
+                                selectedSetting.survey_config.comments_required &&
+                                ' (Required)'}
                             </span>
                           </div>
                         </div>
@@ -298,7 +343,9 @@ const CustomerHappiness: React.FC = () => {
 
                       {/* Trigger Conditions */}
                       <div>
-                        <h4 className="text-md font-medium text-gray-900 mb-3">Trigger Conditions</h4>
+                        <h4 className="text-md font-medium text-gray-900 mb-3">
+                          Trigger Conditions
+                        </h4>
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           <div className="flex items-center gap-4">
                             <label className="flex items-center">
@@ -322,11 +369,15 @@ const CustomerHappiness: React.FC = () => {
                             <label className="flex items-center">
                               <input
                                 type="checkbox"
-                                checked={selectedSetting.trigger_conditions.exclude_internal_tickets}
+                                checked={
+                                  selectedSetting.trigger_conditions.exclude_internal_tickets
+                                }
                                 disabled
                                 className="rounded border-gray-300 text-blue-600"
                               />
-                              <span className="ml-2 text-sm text-gray-700">Exclude Internal Tickets</span>
+                              <span className="ml-2 text-sm text-gray-700">
+                                Exclude Internal Tickets
+                              </span>
                             </label>
                           </div>
                         </div>
@@ -338,24 +389,36 @@ const CustomerHappiness: React.FC = () => {
                         <div className="bg-gray-50 p-4 rounded-lg space-y-3">
                           <div>
                             <span className="text-sm font-medium text-gray-700">Subject:</span>
-                            <span className="ml-2 text-sm text-gray-600">{selectedSetting.email_template.subject}</span>
+                            <span className="ml-2 text-sm text-gray-600">
+                              {selectedSetting.email_template.subject}
+                            </span>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-700">Header Text:</span>
-                            <span className="ml-2 text-sm text-gray-600">{selectedSetting.email_template.header_text}</span>
+                            <span className="ml-2 text-sm text-gray-600">
+                              {selectedSetting.email_template.header_text}
+                            </span>
                           </div>
                           <div>
                             <span className="text-sm font-medium text-gray-700">Button Text:</span>
-                            <span className="ml-2 text-sm text-gray-600">{selectedSetting.email_template.button_text}</span>
+                            <span className="ml-2 text-sm text-gray-600">
+                              {selectedSetting.email_template.button_text}
+                            </span>
                           </div>
                           <div>
-                            <span className="text-sm font-medium text-gray-700">Primary Color:</span>
+                            <span className="text-sm font-medium text-gray-700">
+                              Primary Color:
+                            </span>
                             <span className="ml-2 inline-flex items-center">
                               <div
                                 className="w-4 h-4 rounded border border-gray-300 mr-2"
-                                style={{ backgroundColor: selectedSetting.email_template.primary_color }}
+                                style={{
+                                  backgroundColor: selectedSetting.email_template.primary_color,
+                                }}
                               ></div>
-                              <span className="text-sm text-gray-600">{selectedSetting.email_template.primary_color}</span>
+                              <span className="text-sm text-gray-600">
+                                {selectedSetting.email_template.primary_color}
+                              </span>
                             </span>
                           </div>
                         </div>
@@ -368,11 +431,15 @@ const CustomerHappiness: React.FC = () => {
                           <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
                               <span className="font-medium text-gray-700">Delay:</span>
-                              <div className="text-gray-600">{selectedSetting.delay_hours} hours</div>
+                              <div className="text-gray-600">
+                                {selectedSetting.delay_hours} hours
+                              </div>
                             </div>
                             <div>
                               <span className="font-medium text-gray-700">Reminder:</span>
-                              <div className="text-gray-600">{selectedSetting.reminder_hours} hours</div>
+                              <div className="text-gray-600">
+                                {selectedSetting.reminder_hours} hours
+                              </div>
                             </div>
                             <div>
                               <span className="font-medium text-gray-700">Max Reminders:</span>
@@ -386,9 +453,12 @@ const CustomerHappiness: React.FC = () => {
                 ) : (
                   <div className="text-center py-12">
                     <div className="text-gray-400 text-4xl mb-4">📊</div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Select a Survey Configuration</h3>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Select a Survey Configuration
+                    </h3>
                     <p className="text-gray-600">
-                      Choose a survey configuration from the list to view its details and statistics.
+                      Choose a survey configuration from the list to view its details and
+                      statistics.
                     </p>
                   </div>
                 )}

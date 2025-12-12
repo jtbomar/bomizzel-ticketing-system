@@ -38,7 +38,12 @@ const OrganizationSelector: React.FC = () => {
       >
         <div className="text-center">
           <div className="text-red-500 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-16 h-16 mx-auto"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -47,7 +52,9 @@ const OrganizationSelector: React.FC = () => {
               />
             </svg>
           </div>
-          <h2 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <h2
+            className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+          >
             Error Loading Organizations
           </h2>
           <p className={theme === 'dark' ? 'text-white/60' : 'text-gray-600'}>{error}</p>
@@ -67,7 +74,9 @@ const OrganizationSelector: React.FC = () => {
       >
         <div className="text-center">
           <div className={`text-6xl mb-4`}>🏢</div>
-          <h2 className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <h2
+            className={`text-xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+          >
             No Organizations Found
           </h2>
           <p className={`mb-4 ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
@@ -94,7 +103,9 @@ const OrganizationSelector: React.FC = () => {
     >
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
-          <h1 className={`text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <h1
+            className={`text-3xl font-bold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+          >
             Select Organization
           </h1>
           <p className={theme === 'dark' ? 'text-white/60' : 'text-gray-600'}>
@@ -151,11 +162,7 @@ const OrganizationSelector: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p
-                    className={`text-sm ${
-                      theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-                    }`}
-                  >
+                  <p className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}>
                     Role: {org.role}
                   </p>
                   {org.lastAccessedAt && (

@@ -15,16 +15,16 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     const { department_id } = req.query;
-    
+
     // Get user's company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     let query = db('products')
@@ -53,10 +53,10 @@ router.get('/', authenticate, async (req, res) => {
   } catch (error: any) {
     console.error('Error fetching products:', error);
     console.error('Error stack:', error.stack);
-    return res.status(500).json({ 
-      error: 'Failed to fetch products', 
+    return res.status(500).json({
+      error: 'Failed to fetch products',
       details: error.message,
-      code: error.code 
+      code: error.code,
     });
   }
 });
@@ -65,15 +65,15 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const product = await db('products')
@@ -103,9 +103,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     // Check if products table exists
     const tableExists = await db.schema.hasTable('products');
     if (!tableExists) {
-      return res.status(503).json({ 
-        error: 'Products feature not yet available', 
-        details: 'Database migration pending. Please try again in a few minutes.' 
+      return res.status(503).json({
+        error: 'Products feature not yet available',
+        details: 'Database migration pending. Please try again in a few minutes.',
       });
     }
 
@@ -119,17 +119,17 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
-    
+
     // Get org_id - only use if it exists in organizations table
     const user = await db('users').where('id', req.user!.id).first();
     let orgId = user?.current_org_id;
-    
+
     // Verify org_id exists in organizations table
     if (orgId) {
       const orgExists = await db('organizations').where('id', orgId).first();
@@ -181,15 +181,15 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { product_code, name, description, is_active } = req.body;
-    
+
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const product = await db('products')
@@ -242,15 +242,15 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
 router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const product = await db('products')

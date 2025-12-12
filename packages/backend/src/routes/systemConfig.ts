@@ -11,21 +11,26 @@ const router = Router();
  * GET /system/settings
  * Get all system settings (admin only)
  */
-router.get('/settings', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const settings = await SystemConfigService.getAllSettings();
+router.get(
+  '/settings',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const settings = await SystemConfigService.getAllSettings();
 
-    res.json({ settings });
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'GET_SETTINGS_FAILED',
-        message: 'Failed to retrieve system settings',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
+      res.json({ settings });
+    } catch (error) {
+      res.status(500).json({
+        error: {
+          code: 'GET_SETTINGS_FAILED',
+          message: 'Failed to retrieve system settings',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
   }
-});
+);
 
 /**
  * GET /system/settings/:category
@@ -158,23 +163,28 @@ router.delete(
  * GET /system/config/export
  * Export system configuration (admin only)
  */
-router.get('/config/export', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const config = await SystemConfigService.exportConfig();
+router.get(
+  '/config/export',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const config = await SystemConfigService.exportConfig();
 
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Content-Disposition', 'attachment; filename="system-config.json"');
-    res.json(config);
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'EXPORT_CONFIG_FAILED',
-        message: 'Failed to export system configuration',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename="system-config.json"');
+      res.json(config);
+    } catch (error) {
+      res.status(500).json({
+        error: {
+          code: 'EXPORT_CONFIG_FAILED',
+          message: 'Failed to export system configuration',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
   }
-});
+);
 
 /**
  * POST /system/config/import

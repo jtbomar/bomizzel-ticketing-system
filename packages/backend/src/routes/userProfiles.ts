@@ -7,9 +7,7 @@ const router = Router();
 // Get all user profiles
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const profiles = await db('user_profiles')
-      .where({ is_active: true })
-      .orderBy('name', 'asc');
+    const profiles = await db('user_profiles').where({ is_active: true }).orderBy('name', 'asc');
 
     res.json({ profiles });
   } catch (error) {
@@ -66,9 +64,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
   try {
     const { id } = req.params;
 
-    await db('user_profiles')
-      .where({ id })
-      .update({ is_active: false, updated_at: db.fn.now() });
+    await db('user_profiles').where({ id }).update({ is_active: false, updated_at: db.fn.now() });
 
     res.json({ message: 'User profile deactivated successfully' });
   } catch (error) {

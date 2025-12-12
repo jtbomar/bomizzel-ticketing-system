@@ -87,41 +87,44 @@ router.get('/cache', async (req: Request, res: Response, next: NextFunction) => 
  * Clear cache by pattern
  * DELETE /monitoring/cache/:pattern
  */
-router.delete('/cache/:pattern', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const { pattern } = req.params;
+router.delete(
+  '/cache/:pattern',
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const { pattern } = req.params;
 
-    if (!pattern || pattern.length < 3) {
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'INVALID_PATTERN',
-          message: 'Pattern must be at least 3 characters long',
-        },
-      });
-      return;
-    }
+      if (!pattern || pattern.length < 3) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'INVALID_PATTERN',
+            message: 'Pattern must be at least 3 characters long',
+          },
+        });
+        return;
+      }
 
-    const deletedCount = await CacheService.delPattern(pattern);
+      const deletedCount = await CacheService.delPattern(pattern);
 
-    enhancedLogger.security('Cache cleared by admin', {
-      pattern,
-      deletedCount,
-      adminId: req.user?.id,
-      ip: req.ip,
-    });
-
-    res.json({
-      success: true,
-      data: {
+      enhancedLogger.security('Cache cleared by admin', {
         pattern,
         deletedCount,
-      },
-    });
-  } catch (error) {
-    next(error);
+        adminId: req.user?.id,
+        ip: req.ip,
+      });
+
+      res.json({
+        success: true,
+        data: {
+          pattern,
+          deletedCount,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * Get security logs (last 100 entries)

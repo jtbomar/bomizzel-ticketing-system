@@ -5,10 +5,10 @@ require('dotenv').config();
 
 async function cleanupMigrations() {
   console.log('🧹 Cleaning up old migration records...');
-  
+
   const client = new Client({
     connectionString: process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING,
-    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
   });
 
   try {
@@ -26,10 +26,10 @@ async function cleanupMigrations() {
     `);
 
     console.log(`✅ Deleted ${result.rowCount} old migration records`);
-    
+
     if (result.rows.length > 0) {
       console.log('Deleted migrations:');
-      result.rows.forEach(row => console.log(`  - ${row.name}`));
+      result.rows.forEach((row) => console.log(`  - ${row.name}`));
     }
 
     await client.end();

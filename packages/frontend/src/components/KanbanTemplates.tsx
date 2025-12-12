@@ -210,7 +210,9 @@ const KanbanTemplates: React.FC<KanbanTemplatesProps> = ({ onClose, onSelectTemp
                   <div
                     className={`w-12 h-12 bg-${template.color}-100 dark:bg-${template.color}-900/30 rounded-lg flex items-center justify-center mb-4`}
                   >
-                    <Icon className={`w-6 h-6 text-${template.color}-600 dark:text-${template.color}-400`} />
+                    <Icon
+                      className={`w-6 h-6 text-${template.color}-600 dark:text-${template.color}-400`}
+                    />
                   </div>
 
                   {/* Content */}

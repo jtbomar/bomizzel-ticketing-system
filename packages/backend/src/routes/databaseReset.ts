@@ -12,7 +12,7 @@ const router = Router();
 router.post('/nuclear', authenticate, authorize('admin'), async (req, res): Promise<void> => {
   try {
     const { confirmation } = req.body;
-    
+
     if (confirmation !== 'DELETE_EVERYTHING') {
       res.status(400).json({
         success: false,
@@ -22,7 +22,7 @@ router.post('/nuclear', authenticate, authorize('admin'), async (req, res): Prom
     }
 
     console.log('💣 NUCLEAR RESET initiated by:', req.user?.email);
-    
+
     // Drop all tables
     await db.raw(`
       DO $$ DECLARE
@@ -33,12 +33,12 @@ router.post('/nuclear', authenticate, authorize('admin'), async (req, res): Prom
         END LOOP;
       END $$;
     `);
-    
+
     console.log('✅ All tables dropped');
-    
+
     // Run migrations
     await db.migrate.latest();
-    
+
     console.log('✅ Migrations completed');
 
     res.json({
@@ -66,10 +66,10 @@ router.post('/cleanup-migrations', authenticate, authorize('admin'), async (req,
       .whereIn('name', [
         '20251122100000_add_org_id_to_tables.js',
         '20251122110000_backfill_org_id_data.js',
-        '20251122120000_enhance_user_company_associations.js'
+        '20251122120000_enhance_user_company_associations.js',
       ])
       .del();
-    
+
     res.json({
       success: true,
       message: `Removed ${deleted} old migration records`,

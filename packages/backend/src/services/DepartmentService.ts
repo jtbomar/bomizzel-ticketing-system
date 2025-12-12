@@ -1,4 +1,9 @@
-import { Department, DepartmentTable, DepartmentWithAgents, DepartmentTicketTemplate } from '../models/Department';
+import {
+  Department,
+  DepartmentTable,
+  DepartmentWithAgents,
+  DepartmentTicketTemplate,
+} from '../models/Department';
 import { User } from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
@@ -44,7 +49,10 @@ export class DepartmentService {
   }
 
   // Get department by ID
-  static async getDepartmentById(id: number, companyId: string): Promise<DepartmentWithAgents | null> {
+  static async getDepartmentById(
+    id: number,
+    companyId: string
+  ): Promise<DepartmentWithAgents | null> {
     try {
       return await Department.getByIdWithAgents(id, companyId);
     } catch (error) {
@@ -54,7 +62,10 @@ export class DepartmentService {
   }
 
   // Create new department
-  static async createDepartment(companyId: string, data: CreateDepartmentRequest): Promise<DepartmentTable> {
+  static async createDepartment(
+    companyId: string,
+    data: CreateDepartmentRequest
+  ): Promise<DepartmentTable> {
     try {
       // Validate required fields
       if (!data.name?.trim()) {
@@ -64,7 +75,7 @@ export class DepartmentService {
       // Check if department name already exists for this company
       const existingDepartments = await Department.getByCompany(companyId);
       const nameExists = existingDepartments.some(
-        dept => dept.name.toLowerCase() === data.name.trim().toLowerCase()
+        (dept) => dept.name.toLowerCase() === data.name.trim().toLowerCase()
       );
 
       if (nameExists) {
@@ -82,7 +93,7 @@ export class DepartmentService {
       };
 
       const department = await Department.createDepartment(departmentData);
-      
+
       logger.info(`Department created: ${department.name}`, {
         departmentId: department.id,
         companyId,
@@ -114,7 +125,7 @@ export class DepartmentService {
         // Check if name already exists (excluding current department)
         const existingDepartments = await Department.getByCompany(companyId);
         const nameExists = existingDepartments.some(
-          dept => dept.id !== id && dept.name.toLowerCase() === data.name!.trim().toLowerCase()
+          (dept) => dept.id !== id && dept.name.toLowerCase() === data.name!.trim().toLowerCase()
         );
 
         if (nameExists) {
@@ -122,10 +133,13 @@ export class DepartmentService {
         }
       }
 
-      const updateData: Partial<Omit<DepartmentTable, 'id' | 'company_id' | 'created_at' | 'updated_at'>> = {};
+      const updateData: Partial<
+        Omit<DepartmentTable, 'id' | 'company_id' | 'created_at' | 'updated_at'>
+      > = {};
 
       if (data.name !== undefined) updateData.name = data.name.trim();
-      if (data.description !== undefined) updateData.description = data.description?.trim() || undefined;
+      if (data.description !== undefined)
+        updateData.description = data.description?.trim() || undefined;
       if (data.logo !== undefined) updateData.logo = data.logo || undefined;
       if (data.color !== undefined) updateData.color = data.color || '#3B82F6';
       if (data.is_active !== undefined) updateData.is_active = data.is_active;
@@ -165,7 +179,11 @@ export class DepartmentService {
       return success;
     } catch (error) {
       if (error instanceof Error && error.message === 'Cannot delete the only department') {
-        throw new AppError('Cannot delete the only department', 400, 'CANNOT_DELETE_ONLY_DEPARTMENT');
+        throw new AppError(
+          'Cannot delete the only department',
+          400,
+          'CANNOT_DELETE_ONLY_DEPARTMENT'
+        );
       }
       logger.error('Error deleting department:', error);
       throw new AppError('Failed to delete department', 500, 'DELETE_DEPARTMENT_FAILED');
@@ -210,7 +228,11 @@ export class DepartmentService {
   }
 
   // Remove agent from department
-  static async removeAgent(departmentId: number, companyId: string, userId: string): Promise<boolean> {
+  static async removeAgent(
+    departmentId: number,
+    companyId: string,
+    userId: string
+  ): Promise<boolean> {
     try {
       // Verify department exists and belongs to company
       const department = await Department.getByIdWithAgents(departmentId, companyId);
@@ -249,7 +271,10 @@ export class DepartmentService {
   }
 
   // Get department templates
-  static async getDepartmentTemplates(departmentId: number, companyId: string): Promise<DepartmentTicketTemplate[]> {
+  static async getDepartmentTemplates(
+    departmentId: number,
+    companyId: string
+  ): Promise<DepartmentTicketTemplate[]> {
     try {
       // Verify department exists and belongs to company
       const department = await Department.getByIdWithAgents(departmentId, companyId);
@@ -327,10 +352,13 @@ export class DepartmentService {
         throw new AppError('Template name is required', 400, 'INVALID_TEMPLATE_NAME');
       }
 
-      const updateData: Partial<Omit<DepartmentTicketTemplate, 'id' | 'department_id' | 'created_at' | 'updated_at'>> = {};
+      const updateData: Partial<
+        Omit<DepartmentTicketTemplate, 'id' | 'department_id' | 'created_at' | 'updated_at'>
+      > = {};
 
       if (data.name !== undefined) updateData.name = data.name.trim();
-      if (data.description !== undefined) updateData.description = data.description?.trim() || undefined;
+      if (data.description !== undefined)
+        updateData.description = data.description?.trim() || undefined;
       if (data.template_fields !== undefined) updateData.template_fields = data.template_fields;
       if (data.default_values !== undefined) updateData.default_values = data.default_values;
       if (data.priority !== undefined) updateData.priority = data.priority;
@@ -390,7 +418,11 @@ export class DepartmentService {
       return await this.createDepartment(companyId, defaultData);
     } catch (error) {
       logger.error('Error creating default department:', error);
-      throw new AppError('Failed to create default department', 500, 'CREATE_DEFAULT_DEPARTMENT_FAILED');
+      throw new AppError(
+        'Failed to create default department',
+        500,
+        'CREATE_DEFAULT_DEPARTMENT_FAILED'
+      );
     }
   }
 }

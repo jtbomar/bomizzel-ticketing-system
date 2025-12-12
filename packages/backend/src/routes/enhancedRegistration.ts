@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { Router, Request, Response } from 'express';
-import { EnhancedRegistrationService, EnhancedRegistrationData } from '../services/EnhancedRegistrationService';
+import {
+  EnhancedRegistrationService,
+  EnhancedRegistrationData,
+} from '../services/EnhancedRegistrationService';
 import { validate } from '../utils/validation';
 import Joi from 'joi';
 import { logger } from '../utils/logger';
@@ -13,85 +16,91 @@ const enhancedRegistrationSchema = Joi.object({
   firstName: Joi.string().trim().min(1).max(50).required().messages({
     'string.empty': 'First name is required',
     'string.min': 'First name must be at least 1 character',
-    'string.max': 'First name must be less than 50 characters'
+    'string.max': 'First name must be less than 50 characters',
   }),
   lastName: Joi.string().trim().min(1).max(50).required().messages({
     'string.empty': 'Last name is required',
     'string.min': 'Last name must be at least 1 character',
-    'string.max': 'Last name must be less than 50 characters'
+    'string.max': 'Last name must be less than 50 characters',
   }),
   email: Joi.string().email().required().messages({
     'string.email': 'Please enter a valid email address',
-    'string.empty': 'Email is required'
+    'string.empty': 'Email is required',
   }),
   password: Joi.string().min(8).required().messages({
     'string.min': 'Password must be at least 8 characters long',
-    'string.empty': 'Password is required'
+    'string.empty': 'Password is required',
   }),
-  phone: Joi.string().optional().allow('').pattern(/^[\+]?[1-9][\d\s\-\(\)]{0,15}$/).messages({
-    'string.pattern.base': 'Please enter a valid phone number'
-  }),
-  
+  phone: Joi.string()
+    .optional()
+    .allow('')
+    .pattern(/^[\+]?[1-9][\d\s\-\(\)]{0,15}$/)
+    .messages({
+      'string.pattern.base': 'Please enter a valid phone number',
+    }),
+
   // Company Information
   companyAction: Joi.string().valid('create', 'join').required().messages({
     'any.only': 'Company action must be either "create" or "join"',
-    'string.empty': 'Please specify whether to create or join a company'
+    'string.empty': 'Please specify whether to create or join a company',
   }),
   companyName: Joi.when('companyAction', {
     is: 'create',
     then: Joi.string().trim().min(1).max(100).required().messages({
       'string.empty': 'Company name is required when creating a new company',
-      'string.max': 'Company name must be less than 100 characters'
+      'string.max': 'Company name must be less than 100 characters',
     }),
-    otherwise: Joi.string().optional().allow('')
+    otherwise: Joi.string().optional().allow(''),
   }),
   companyId: Joi.when('companyAction', {
     is: 'join',
     then: Joi.string().uuid().optional(),
-    otherwise: Joi.string().optional().allow('')
+    otherwise: Joi.string().optional().allow(''),
   }),
   companyInviteCode: Joi.when('companyAction', {
     is: 'join',
     then: Joi.string().optional().allow(''),
-    otherwise: Joi.string().optional().allow('')
+    otherwise: Joi.string().optional().allow(''),
   }),
-  
+
   // Role and Preferences
   role: Joi.string().valid('customer', 'employee').default('customer'),
   department: Joi.string().max(50).optional().allow(''),
   jobTitle: Joi.string().max(50).optional().allow(''),
-  
+
   // Marketing and Communication
   marketingOptIn: Joi.boolean().default(false),
   communicationPreferences: Joi.object({
     email: Joi.boolean().default(true),
     sms: Joi.boolean().default(false),
-    push: Joi.boolean().default(true)
-  }).optional()
-}).custom((value, helpers) => {
-  // Custom validation: if joining company, need either companyId or inviteCode
-  if (value.companyAction === 'join' && !value.companyId && !value.companyInviteCode) {
-    return helpers.error('custom.joinCompanyRequired');
-  }
-  return value;
-}).messages({
-  'custom.joinCompanyRequired': 'Please provide a company ID or invite code to join a company'
-});
+    push: Joi.boolean().default(true),
+  }).optional(),
+})
+  .custom((value, helpers) => {
+    // Custom validation: if joining company, need either companyId or inviteCode
+    if (value.companyAction === 'join' && !value.companyId && !value.companyInviteCode) {
+      return helpers.error('custom.joinCompanyRequired');
+    }
+    return value;
+  })
+  .messages({
+    'custom.joinCompanyRequired': 'Please provide a company ID or invite code to join a company',
+  });
 
 const companySearchSchema = Joi.object({
   query: Joi.string().trim().min(2).max(50).required().messages({
     'string.min': 'Search query must be at least 2 characters',
     'string.max': 'Search query must be less than 50 characters',
-    'string.empty': 'Search query is required'
+    'string.empty': 'Search query is required',
   }),
-  limit: Joi.number().integer().min(1).max(20).default(10)
+  limit: Joi.number().integer().min(1).max(20).default(10),
 });
 
 const verifyEmailSchema = Joi.object({
   token: Joi.string().uuid().required().messages({
     'string.empty': 'Verification token is required',
-    'string.uuid': 'Invalid verification token format'
-  })
+    'string.uuid': 'Invalid verification token format',
+  }),
 });
 
 /**
@@ -104,11 +113,11 @@ router.post(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const registrationData: EnhancedRegistrationData = req.body;
-      
+
       logger.info('Enhanced registration attempt', {
         email: registrationData.email,
         companyAction: registrationData.companyAction,
-        role: registrationData.role
+        role: registrationData.role,
       });
 
       const result = await EnhancedRegistrationService.registerWithCompany(registrationData);
@@ -120,23 +129,22 @@ router.post(
           data: {
             user: result.user,
             company: result.company,
-            verificationRequired: result.verificationRequired
-          }
+            verificationRequired: result.verificationRequired,
+          },
         });
       } else {
         res.status(400).json({
           success: false,
           message: result.message,
-          errors: result.errors
+          errors: result.errors,
         });
       }
-
     } catch (error) {
       logger.error('Enhanced registration error:', error);
       res.status(500).json({
         success: false,
         message: 'Registration failed due to server error',
-        error: process.env.NODE_ENV === 'development' ? error : undefined
+        error: process.env.NODE_ENV === 'development' ? error : undefined,
       });
     }
   }
@@ -153,21 +161,20 @@ router.get(
     try {
       const query = req.query.query as string;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      
+
       const companies = await EnhancedRegistrationService.searchCompanies(query, limit);
-      
+
       res.json({
         success: true,
         data: companies,
-        message: `Found ${companies.length} companies matching "${query}"`
+        message: `Found ${companies.length} companies matching "${query}"`,
       });
-
     } catch (error) {
       logger.error('Company search error:', error);
       res.status(500).json({
         success: false,
         message: 'Company search failed',
-        error: process.env.NODE_ENV === 'development' ? error : undefined
+        error: process.env.NODE_ENV === 'development' ? error : undefined,
       });
     }
   }
@@ -183,7 +190,7 @@ router.post(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { token } = req.body;
-      
+
       logger.info('Email verification attempt', { token });
 
       const result = await EnhancedRegistrationService.verifyEmail(token);
@@ -192,21 +199,20 @@ router.post(
         res.json({
           success: true,
           message: result.message,
-          data: result.user
+          data: result.user,
         });
       } else {
         res.status(400).json({
           success: false,
-          message: result.message
+          message: result.message,
         });
       }
-
     } catch (error) {
       logger.error('Email verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Email verification failed due to server error',
-        error: process.env.NODE_ENV === 'development' ? error : undefined
+        error: process.env.NODE_ENV === 'development' ? error : undefined,
       });
     }
   }
@@ -218,45 +224,48 @@ router.post(
  */
 router.post(
   '/resend-verification',
-  validate(Joi.object({
-    email: Joi.string().email().required().messages({
-      'string.email': 'Please enter a valid email address',
-      'string.empty': 'Email is required'
+  validate(
+    Joi.object({
+      email: Joi.string().email().required().messages({
+        'string.email': 'Please enter a valid email address',
+        'string.empty': 'Email is required',
+      }),
     })
-  })),
+  ),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { email } = req.body;
-      
+
       // Find user by email
       const User = require('../models/User').User;
       const user = await User.findByEmail(email);
-      
+
       if (!user) {
         // Don't reveal if email exists or not for security
         res.json({
           success: true,
-          message: 'If an account with this email exists and is unverified, a verification email has been sent.'
+          message:
+            'If an account with this email exists and is unverified, a verification email has been sent.',
         });
         return;
       }
-      
+
       if (user.emailVerified) {
         res.status(400).json({
           success: false,
-          message: 'This email address is already verified.'
+          message: 'This email address is already verified.',
         });
         return;
       }
-      
+
       // Resend verification email
       const EmailService = require('../services/EmailService').EmailService;
       const { v4: uuidv4 } = require('uuid');
-      
+
       const verificationToken = uuidv4();
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
       await User.setEmailVerificationToken(user.id, verificationToken, expiresAt);
-      
+
       const htmlBody = `
         <h2>Verify Your Email Address</h2>
         <p>Hi ${user.first_name},</p>
@@ -271,7 +280,7 @@ router.post(
         ${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}
         This link will expire in 24 hours.
       `;
-      
+
       await EmailService.sendNotificationEmail(
         [user.email],
         'Verify Your Email Address - Bomizzel',
@@ -279,18 +288,17 @@ router.post(
         textBody,
         { type: 'email_verification_resend', userId: user.id }
       );
-      
+
       res.json({
         success: true,
-        message: 'Verification email sent successfully.'
+        message: 'Verification email sent successfully.',
       });
-
     } catch (error) {
       logger.error('Resend verification error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to resend verification email',
-        error: process.env.NODE_ENV === 'development' ? error : undefined
+        error: process.env.NODE_ENV === 'development' ? error : undefined,
       });
     }
   }

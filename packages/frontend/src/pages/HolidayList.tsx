@@ -33,7 +33,7 @@ const REGIONS = [
   { value: 'DE', label: 'Germany' },
   { value: 'FR', label: 'France' },
   { value: 'JP', label: 'Japan' },
-  { value: 'OTHER', label: 'Other' }
+  { value: 'OTHER', label: 'Other' },
 ];
 
 const HolidayListPage: React.FC = () => {
@@ -52,7 +52,7 @@ const HolidayListPage: React.FC = () => {
     region: 'US',
     is_active: true,
     is_default: false,
-    holidays: []
+    holidays: [],
   });
 
   useEffect(() => {
@@ -63,15 +63,15 @@ const HolidayListPage: React.FC = () => {
     try {
       setLoading(true);
       const holidayListsData = await apiService.getHolidayLists();
-      
+
       // Add default holidays array if missing
       const dataWithHolidays = holidayListsData.map((hl: HolidayList) => ({
         ...hl,
-        holidays: hl.holidays || []
+        holidays: hl.holidays || [],
       }));
-      
+
       setHolidayLists(dataWithHolidays);
-      
+
       // Select the default one if available
       const defaultHL = dataWithHolidays.find((hl: HolidayList) => hl.is_default);
       if (defaultHL) {
@@ -96,16 +96,16 @@ const HolidayListPage: React.FC = () => {
 
     try {
       setSaving(true);
-      
+
       const payload = {
         holidayList: {
           name: formData.name,
           description: formData.description,
           region: formData.region,
           is_active: formData.is_active,
-          is_default: formData.is_default
+          is_default: formData.is_default,
         },
-        holidays: formData.holidays
+        holidays: formData.holidays,
       };
 
       if (isCreating) {
@@ -134,7 +134,7 @@ const HolidayListPage: React.FC = () => {
     try {
       await apiService.deleteHolidayList(id);
       await fetchHolidayLists();
-      
+
       if (selectedHolidayList?.id === id) {
         setSelectedHolidayList(holidayLists.length > 1 ? holidayLists[0] : null);
       }
@@ -158,7 +158,7 @@ const HolidayListPage: React.FC = () => {
         region: 'US',
         is_active: true,
         is_default: false,
-        holidays: []
+        holidays: [],
       });
       setIsCreating(true);
       setIsEditing(true);
@@ -174,7 +174,7 @@ const HolidayListPage: React.FC = () => {
       region: 'US',
       is_active: true,
       is_default: false,
-      holidays: []
+      holidays: [],
     });
   };
 
@@ -184,11 +184,11 @@ const HolidayListPage: React.FC = () => {
       date: '',
       is_recurring: true,
       recurrence_pattern: 'yearly',
-      description: ''
+      description: '',
     };
     setFormData({
       ...formData,
-      holidays: [...formData.holidays, newHoliday]
+      holidays: [...formData.holidays, newHoliday],
     });
   };
 
@@ -196,7 +196,7 @@ const HolidayListPage: React.FC = () => {
     const newHolidays = [...formData.holidays];
     newHolidays[index] = {
       ...newHolidays[index],
-      [field]: value
+      [field]: value,
     };
     setFormData({ ...formData, holidays: newHolidays });
   };
@@ -225,7 +225,12 @@ const HolidayListPage: React.FC = () => {
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Back to Settings
               </button>
@@ -249,7 +254,9 @@ const HolidayListPage: React.FC = () => {
           {holidayLists.length === 0 && !isEditing ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">📅</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Holiday Lists Configured</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Holiday Lists Configured
+              </h3>
               <p className="text-gray-600 mb-4">
                 Create holiday lists to exclude specific dates from business hours calculations.
               </p>
@@ -304,7 +311,8 @@ const HolidayListPage: React.FC = () => {
                             )}
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
-                            {hl.holidays?.length || 0} holiday{(hl.holidays?.length || 0) !== 1 ? 's' : ''}
+                            {hl.holidays?.length || 0} holiday
+                            {(hl.holidays?.length || 0) !== 1 ? 's' : ''}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -384,8 +392,10 @@ const HolidayListPage: React.FC = () => {
                             onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            {REGIONS.map(region => (
-                              <option key={region.value} value={region.value}>{region.label}</option>
+                            {REGIONS.map((region) => (
+                              <option key={region.value} value={region.value}>
+                                {region.label}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -397,7 +407,9 @@ const HolidayListPage: React.FC = () => {
                         </label>
                         <textarea
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Optional description for this holiday list"
@@ -409,7 +421,9 @@ const HolidayListPage: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={formData.is_active}
-                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_active: e.target.checked })
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="ml-2 text-sm text-gray-700">Active</span>
@@ -418,7 +432,9 @@ const HolidayListPage: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={formData.is_default}
-                            onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_default: e.target.checked })
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="ml-2 text-sm text-gray-700">Set as Default</span>
@@ -436,10 +452,12 @@ const HolidayListPage: React.FC = () => {
                             Add Holiday
                           </button>
                         </div>
-                        
+
                         {formData.holidays.length === 0 ? (
                           <div className="text-center py-8 bg-gray-50 rounded-lg">
-                            <p className="text-gray-600">No holidays added yet. Click "Add Holiday" to get started.</p>
+                            <p className="text-gray-600">
+                              No holidays added yet. Click "Add Holiday" to get started.
+                            </p>
                           </div>
                         ) : (
                           <div className="space-y-3">
@@ -447,7 +465,9 @@ const HolidayListPage: React.FC = () => {
                               <div key={index} className="p-4 bg-gray-50 rounded-lg">
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                   <div>
-                                    <label className="block text-xs text-gray-600 mb-1">Holiday Name</label>
+                                    <label className="block text-xs text-gray-600 mb-1">
+                                      Holiday Name
+                                    </label>
                                     <input
                                       type="text"
                                       value={holiday.name}
@@ -470,7 +490,9 @@ const HolidayListPage: React.FC = () => {
                                       <input
                                         type="checkbox"
                                         checked={holiday.is_recurring}
-                                        onChange={(e) => updateHoliday(index, 'is_recurring', e.target.checked)}
+                                        onChange={(e) =>
+                                          updateHoliday(index, 'is_recurring', e.target.checked)
+                                        }
                                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                       />
                                       <span className="ml-2 text-xs text-gray-700">Recurring</span>
@@ -485,11 +507,15 @@ const HolidayListPage: React.FC = () => {
                                 </div>
                                 {holiday.description !== undefined && (
                                   <div className="mt-2">
-                                    <label className="block text-xs text-gray-600 mb-1">Description (Optional)</label>
+                                    <label className="block text-xs text-gray-600 mb-1">
+                                      Description (Optional)
+                                    </label>
                                     <input
                                       type="text"
                                       value={holiday.description}
-                                      onChange={(e) => updateHoliday(index, 'description', e.target.value)}
+                                      onChange={(e) =>
+                                        updateHoliday(index, 'description', e.target.value)
+                                      }
                                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       placeholder="Optional description"
                                     />
@@ -527,18 +553,26 @@ const HolidayListPage: React.FC = () => {
                       {selectedHolidayList.region && (
                         <div>
                           <h4 className="text-sm font-medium text-gray-700 mb-1">Region</h4>
-                          <p className="text-gray-600">{REGIONS.find(r => r.value === selectedHolidayList.region)?.label || selectedHolidayList.region}</p>
+                          <p className="text-gray-600">
+                            {REGIONS.find((r) => r.value === selectedHolidayList.region)?.label ||
+                              selectedHolidayList.region}
+                          </p>
                         </div>
                       )}
 
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-3">Holidays ({selectedHolidayList.holidays.length})</h4>
+                        <h4 className="text-sm font-medium text-gray-700 mb-3">
+                          Holidays ({selectedHolidayList.holidays.length})
+                        </h4>
                         {selectedHolidayList.holidays.length === 0 ? (
                           <p className="text-gray-500 italic">No holidays configured</p>
                         ) : (
                           <div className="space-y-2">
                             {selectedHolidayList.holidays.map((holiday, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <div
+                                key={index}
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                              >
                                 <div>
                                   <span className="font-medium text-gray-900">{holiday.name}</span>
                                   <span className="text-sm text-gray-600 ml-2">
@@ -551,7 +585,9 @@ const HolidayListPage: React.FC = () => {
                                   )}
                                 </div>
                                 {holiday.description && (
-                                  <span className="text-sm text-gray-500">{holiday.description}</span>
+                                  <span className="text-sm text-gray-500">
+                                    {holiday.description}
+                                  </span>
                                 )}
                               </div>
                             ))}

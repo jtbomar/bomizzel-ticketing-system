@@ -75,10 +75,7 @@ export class TeamService {
         teamsQuery = teamsQuery.where('teams.name', 'ilike', `%${search}%`);
       }
 
-      const teams = await teamsQuery
-        .limit(limit)
-        .offset(offset)
-        .orderBy('teams.name', 'asc');
+      const teams = await teamsQuery.limit(limit).offset(offset).orderBy('teams.name', 'asc');
 
       // Get total count
       let countQuery = Team.query;

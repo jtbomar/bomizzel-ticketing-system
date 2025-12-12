@@ -10,7 +10,7 @@ router.get('/', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
@@ -34,7 +34,7 @@ router.put('/', authenticate, authorize('admin'), async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }

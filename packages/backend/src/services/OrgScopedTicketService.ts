@@ -10,8 +10,7 @@ export class OrgScopedTicketService {
    * Get all tickets for an organization
    */
   static async getTickets(orgId: string, filters: any = {}) {
-    const query = db('tickets')
-      .where('tickets.org_id', orgId);
+    const query = db('tickets').where('tickets.org_id', orgId);
 
     // Apply filters
     if (filters.status) {
@@ -30,9 +29,7 @@ export class OrgScopedTicketService {
       query.where('tickets.customer_id', filters.customerId);
     }
 
-    const tickets = await query
-      .select('tickets.*')
-      .orderBy('tickets.created_at', 'desc');
+    const tickets = await query.select('tickets.*').orderBy('tickets.created_at', 'desc');
 
     return tickets;
   }
@@ -41,10 +38,7 @@ export class OrgScopedTicketService {
    * Get single ticket (with org verification)
    */
   static async getTicket(orgId: string, ticketId: string) {
-    const ticket = await db('tickets')
-      .where('id', ticketId)
-      .where('org_id', orgId)
-      .first();
+    const ticket = await db('tickets').where('id', ticketId).where('org_id', orgId).first();
 
     if (!ticket) {
       throw new AppError('Ticket not found', 404, 'TICKET_NOT_FOUND');
@@ -59,10 +53,7 @@ export class OrgScopedTicketService {
   static async createTicket(orgId: string, data: any) {
     // Verify queue belongs to org
     if (data.queue_id) {
-      const queue = await db('queues')
-        .where('id', data.queue_id)
-        .where('org_id', orgId)
-        .first();
+      const queue = await db('queues').where('id', data.queue_id).where('org_id', orgId).first();
 
       if (!queue) {
         throw new AppError('Queue not found in this organization', 404, 'QUEUE_NOT_FOUND');
@@ -90,10 +81,7 @@ export class OrgScopedTicketService {
 
     // If updating queue, verify new queue belongs to org
     if (updates.queue_id) {
-      const queue = await db('queues')
-        .where('id', updates.queue_id)
-        .where('org_id', orgId)
-        .first();
+      const queue = await db('queues').where('id', updates.queue_id).where('org_id', orgId).first();
 
       if (!queue) {
         throw new AppError('Queue not found in this organization', 404, 'QUEUE_NOT_FOUND');
@@ -116,10 +104,7 @@ export class OrgScopedTicketService {
    * Delete ticket (with org verification)
    */
   static async deleteTicket(orgId: string, ticketId: string) {
-    const deleted = await db('tickets')
-      .where('id', ticketId)
-      .where('org_id', orgId)
-      .del();
+    const deleted = await db('tickets').where('id', ticketId).where('org_id', orgId).del();
 
     if (deleted === 0) {
       throw new AppError('Ticket not found', 404, 'TICKET_NOT_FOUND');

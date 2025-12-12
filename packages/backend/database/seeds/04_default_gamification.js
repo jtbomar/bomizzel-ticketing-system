@@ -1,12 +1,12 @@
 /**
  * Seed default trophies and badges for gamification
  */
-exports.seed = async function(knex) {
+exports.seed = async function (knex) {
   console.log('🎮 Setting up default gamification...');
 
   // Get Bomar Corp organization
   const bomarOrg = await knex('organizations').where('name', 'Bomar Corp').first();
-  
+
   if (!bomarOrg) {
     console.log('⚠️  Bomar Corp organization not found, skipping gamification setup');
     return;
@@ -30,7 +30,12 @@ exports.seed = async function(knex) {
       icon: '⚡',
       category: 'response',
       criteria_type: 'time',
-      criteria: JSON.stringify({ metric: 'first_response', operator: 'within', value: 20, unit: 'minutes' }),
+      criteria: JSON.stringify({
+        metric: 'first_response',
+        operator: 'within',
+        value: 20,
+        unit: 'minutes',
+      }),
       points: 3,
       is_active: true,
     },
@@ -42,7 +47,12 @@ exports.seed = async function(knex) {
       icon: '⚡',
       category: 'response',
       criteria_type: 'time',
-      criteria: JSON.stringify({ metric: 'first_response', operator: 'within', value: 5, unit: 'minutes' }),
+      criteria: JSON.stringify({
+        metric: 'first_response',
+        operator: 'within',
+        value: 5,
+        unit: 'minutes',
+      }),
       points: 10,
       is_active: true,
     },
@@ -104,7 +114,12 @@ exports.seed = async function(knex) {
       icon: '🚀',
       category: 'speed',
       criteria_type: 'time',
-      criteria: JSON.stringify({ metric: 'resolution_time', operator: 'less_than', value: 2, unit: 'hours' }),
+      criteria: JSON.stringify({
+        metric: 'resolution_time',
+        operator: 'less_than',
+        value: 2,
+        unit: 'hours',
+      }),
       points: 10,
       is_active: true,
     },
@@ -116,7 +131,12 @@ exports.seed = async function(knex) {
       icon: '⚡',
       category: 'speed',
       criteria_type: 'time',
-      criteria: JSON.stringify({ metric: 'resolution_time', operator: 'less_than', value: 30, unit: 'minutes' }),
+      criteria: JSON.stringify({
+        metric: 'resolution_time',
+        operator: 'less_than',
+        value: 30,
+        unit: 'minutes',
+      }),
       points: 20,
       is_active: true,
     },
@@ -141,7 +161,12 @@ exports.seed = async function(knex) {
       icon: '🌟',
       category: 'rating',
       criteria_type: 'rating',
-      criteria: JSON.stringify({ metric: 'rating', operator: 'equals', value: 'excellent', count: 5 }),
+      criteria: JSON.stringify({
+        metric: 'rating',
+        operator: 'equals',
+        value: 'excellent',
+        count: 5,
+      }),
       points: 25,
       is_active: true,
     },

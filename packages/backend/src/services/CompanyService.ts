@@ -94,13 +94,13 @@ export class CompanyService {
             .where('company_id', company.id)
             .count('* as count')
             .first();
-          
+
           // Get contact/customer count
           const contactCount = await Company.db('user_company_associations')
             .where('company_id', company.id)
             .count('* as count')
             .first();
-          
+
           return {
             ...Company.toModel(company),
             ticketCount: parseInt(String(ticketCount?.count || 0), 10),

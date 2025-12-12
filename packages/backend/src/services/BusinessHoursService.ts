@@ -45,7 +45,7 @@ export class BusinessHoursService {
 
       businessHoursWithSchedule.push({
         ...bh,
-        schedule
+        schedule,
       });
     }
 
@@ -53,10 +53,11 @@ export class BusinessHoursService {
   }
 
   // Get a specific business hours configuration
-  static async getBusinessHoursById(id: number, companyId: string): Promise<BusinessHoursWithSchedule | null> {
-    const businessHours = await db('business_hours')
-      .where({ id, company_id: companyId })
-      .first();
+  static async getBusinessHoursById(
+    id: number,
+    companyId: string
+  ): Promise<BusinessHoursWithSchedule | null> {
+    const businessHours = await db('business_hours').where({ id, company_id: companyId }).first();
 
     if (!businessHours) {
       return null;
@@ -68,12 +69,15 @@ export class BusinessHoursService {
 
     return {
       ...businessHours,
-      schedule
+      schedule,
     };
   }
 
   // Create new business hours
-  static async createBusinessHours(data: BusinessHours, schedule: Omit<BusinessHoursSchedule, 'business_hours_id'>[]): Promise<BusinessHoursWithSchedule> {
+  static async createBusinessHours(
+    data: BusinessHours,
+    schedule: Omit<BusinessHoursSchedule, 'business_hours_id'>[]
+  ): Promise<BusinessHoursWithSchedule> {
     const trx = await db.transaction();
 
     try {
@@ -88,9 +92,9 @@ export class BusinessHoursService {
       const id = typeof businessHoursId === 'object' ? businessHoursId.id : businessHoursId;
 
       // Insert schedule
-      const scheduleData = schedule.map(s => ({
+      const scheduleData = schedule.map((s) => ({
         ...s,
-        business_hours_id: id
+        business_hours_id: id,
       }));
 
       await trx('business_hours_schedule').insert(scheduleData);
@@ -106,14 +110,17 @@ export class BusinessHoursService {
   }
 
   // Update business hours
-  static async updateBusinessHours(id: number, companyId: string, data: Partial<BusinessHours>, schedule?: Omit<BusinessHoursSchedule, 'business_hours_id'>[]): Promise<BusinessHoursWithSchedule | null> {
+  static async updateBusinessHours(
+    id: number,
+    companyId: string,
+    data: Partial<BusinessHours>,
+    schedule?: Omit<BusinessHoursSchedule, 'business_hours_id'>[]
+  ): Promise<BusinessHoursWithSchedule | null> {
     const trx = await db.transaction();
 
     try {
       // Check if business hours exists
-      const existing = await trx('business_hours')
-        .where({ id, company_id: companyId })
-        .first();
+      const existing = await trx('business_hours').where({ id, company_id: companyId }).first();
 
       if (!existing) {
         await trx.rollback();
@@ -133,18 +140,16 @@ export class BusinessHoursService {
         .where({ id, company_id: companyId })
         .update({
           ...data,
-          updated_at: new Date()
+          updated_at: new Date(),
         });
 
       // Update schedule if provided
       if (schedule) {
-        await trx('business_hours_schedule')
-          .where('business_hours_id', id)
-          .del();
+        await trx('business_hours_schedule').where('business_hours_id', id).del();
 
-        const scheduleData = schedule.map(s => ({
+        const scheduleData = schedule.map((s) => ({
           ...s,
-          business_hours_id: id
+          business_hours_id: id,
         }));
 
         await trx('business_hours_schedule').insert(scheduleData);
@@ -165,9 +170,7 @@ export class BusinessHoursService {
     const trx = await db.transaction();
 
     try {
-      const existing = await trx('business_hours')
-        .where({ id, company_id: companyId })
-        .first();
+      const existing = await trx('business_hours').where({ id, company_id: companyId }).first();
 
       if (!existing) {
         await trx.rollback();
@@ -193,19 +196,13 @@ export class BusinessHoursService {
           .first();
 
         if (nextDefault) {
-          await trx('business_hours')
-            .where('id', nextDefault.id)
-            .update({ is_default: true });
+          await trx('business_hours').where('id', nextDefault.id).update({ is_default: true });
         }
       }
 
-      await trx('business_hours_schedule')
-        .where('business_hours_id', id)
-        .del();
+      await trx('business_hours_schedule').where('business_hours_id', id).del();
 
-      await trx('business_hours')
-        .where({ id, company_id: companyId })
-        .del();
+      await trx('business_hours').where({ id, company_id: companyId }).del();
 
       await trx.commit();
       return true;
@@ -216,7 +213,9 @@ export class BusinessHoursService {
   }
 
   // Get default business hours for a company
-  static async getDefaultBusinessHours(companyId: string): Promise<BusinessHoursWithSchedule | null> {
+  static async getDefaultBusinessHours(
+    companyId: string
+  ): Promise<BusinessHoursWithSchedule | null> {
     const businessHours = await db('business_hours')
       .where({ company_id: companyId, is_default: true })
       .first();
@@ -231,7 +230,7 @@ export class BusinessHoursService {
 
     return {
       ...businessHours,
-      schedule
+      schedule,
     };
   }
 
@@ -253,28 +252,40 @@ export class BusinessHoursService {
       description: 'Standard Monday to Friday, 9 AM to 5 PM business hours',
       timezone: 'America/New_York',
       is_active: true,
-      is_default: true
+      is_default: true,
     };
 
     return await this.createBusinessHours(businessHours, defaultSchedule);
   }
 
   // Check if current time is within business hours
-  static isWithinBusinessHours(schedule: BusinessHoursSchedule[], currentTime: Date, timezone: string): boolean {
+  static isWithinBusinessHours(
+    schedule: BusinessHoursSchedule[],
+    currentTime: Date,
+    timezone: string
+  ): boolean {
     const dayOfWeek = currentTime.getDay();
-    const daySchedule = schedule.find(s => s.day_of_week === dayOfWeek);
+    const daySchedule = schedule.find((s) => s.day_of_week === dayOfWeek);
 
-    if (!daySchedule || !daySchedule.is_working_day || !daySchedule.start_time || !daySchedule.end_time) {
+    if (
+      !daySchedule ||
+      !daySchedule.is_working_day ||
+      !daySchedule.start_time ||
+      !daySchedule.end_time
+    ) {
       return false;
     }
 
     const currentTimeString = currentTime.toTimeString().substring(0, 8);
-    
+
     // Check if within main working hours
     if (currentTimeString >= daySchedule.start_time && currentTimeString <= daySchedule.end_time) {
       // Check if not in break time
       if (daySchedule.break_start && daySchedule.break_end) {
-        if (currentTimeString >= daySchedule.break_start && currentTimeString <= daySchedule.break_end) {
+        if (
+          currentTimeString >= daySchedule.break_start &&
+          currentTimeString <= daySchedule.break_end
+        ) {
           return false; // In break time
         }
       }

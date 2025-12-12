@@ -1,15 +1,19 @@
 # Admin Provisioning API Documentation
 
 ## Overview
+
 The Admin Provisioning API allows administrators to provision new customers with custom subscriptions, limits, and pricing.
 
 ## Base URL
+
 ```
 /api/admin/provisioning
 ```
 
 ## Authentication
+
 All endpoints require admin authentication:
+
 ```
 Authorization: Bearer <admin-jwt-token>
 ```
@@ -25,19 +29,20 @@ Authorization: Bearer <admin-jwt-token>
 Provision a complete customer setup including company, admin user, and subscription.
 
 #### Request Body
+
 ```json
 {
   "companyName": "ABC Appliance",
   "companyDomain": "abcappliance.com",
   "companyDescription": "Home appliance repair and service",
-  
+
   "adminEmail": "admin@abcappliance.com",
   "adminFirstName": "John",
   "adminLastName": "Smith",
   "adminPhone": "+1-555-0123",
-  
-  "planId": "uuid-of-base-plan",  // Optional: use existing plan as base
-  
+
+  "planId": "uuid-of-base-plan", // Optional: use existing plan as base
+
   "customLimits": {
     "maxUsers": 100,
     "maxActiveTickets": 2000,
@@ -48,17 +53,17 @@ Provision a complete customer setup including company, admin user, and subscript
     "maxCustomFields": 100,
     "maxQueues": 25
   },
-  
+
   "customPricing": {
-    "monthlyPrice": 499.00,
-    "annualPrice": 5390.00,
-    "setupFee": 1000.00
+    "monthlyPrice": 499.0,
+    "annualPrice": 5390.0,
+    "setupFee": 1000.0
   },
-  
+
   "billingCycle": "monthly",
   "trialDays": 30,
   "startDate": "2024-01-01T00:00:00Z",
-  
+
   "notes": "Enterprise customer - custom pricing negotiated",
   "metadata": {
     "salesRep": "Jane Doe",
@@ -68,6 +73,7 @@ Provision a complete customer setup including company, admin user, and subscript
 ```
 
 #### Response (201 Created)
+
 ```json
 {
   "success": true,
@@ -110,16 +116,19 @@ Provision a complete customer setup including company, admin user, and subscript
 Get all provisioned customers with pagination.
 
 #### Query Parameters
+
 - `limit` (optional): Number of results per page (default: 50)
 - `offset` (optional): Pagination offset (default: 0)
 - `status` (optional): Filter by subscription status
 
 #### Example Request
+
 ```
 GET /api/admin/provisioning/customers?limit=20&offset=0&status=active
 ```
 
 #### Response (200 OK)
+
 ```json
 {
   "success": true,
@@ -165,6 +174,7 @@ GET /api/admin/provisioning/customers?limit=20&offset=0&status=active
 Update limits for an existing subscription.
 
 #### Request Body
+
 ```json
 {
   "maxUsers": 150,
@@ -175,6 +185,7 @@ Update limits for an existing subscription.
 ```
 
 #### Response (200 OK)
+
 ```json
 {
   "success": true,
@@ -206,6 +217,7 @@ Update limits for an existing subscription.
 Get detailed information about a specific subscription.
 
 #### Response (200 OK)
+
 ```json
 {
   "success": true,
@@ -219,8 +231,8 @@ Get detailed information about a specific subscription.
         "storageQuotaGB": 100
       },
       "customPricing": {
-        "monthlyPrice": 499.00,
-        "setupFee": 1000.00
+        "monthlyPrice": 499.0,
+        "setupFee": 1000.0
       },
       "billingCycle": "monthly",
       "currentPeriod": {
@@ -261,6 +273,7 @@ Get detailed information about a specific subscription.
 Enhanced registration that allows users to create or join a company during signup.
 
 #### Request Body
+
 ```json
 {
   "firstName": "Jane",
@@ -268,14 +281,14 @@ Enhanced registration that allows users to create or join a company during signu
   "email": "jane@example.com",
   "password": "SecurePass123!",
   "phone": "+1-555-0199",
-  
+
   "companyAction": "create",
   "companyName": "New Company Inc",
-  
+
   "role": "customer",
   "department": "Support",
   "jobTitle": "Support Manager",
-  
+
   "marketingOptIn": true,
   "communicationPreferences": {
     "email": true,
@@ -286,6 +299,7 @@ Enhanced registration that allows users to create or join a company during signu
 ```
 
 #### Response (201 Created)
+
 ```json
 {
   "success": true,
@@ -317,6 +331,7 @@ Enhanced registration that allows users to create or join a company during signu
 Search for companies to join during registration.
 
 #### Response (200 OK)
+
 ```json
 {
   "success": true,
@@ -341,6 +356,7 @@ Search for companies to join during registration.
 Verify email address with token.
 
 #### Request Body
+
 ```json
 {
   "token": "verification-token-uuid"
@@ -348,6 +364,7 @@ Verify email address with token.
 ```
 
 #### Response (200 OK)
+
 ```json
 {
   "success": true,
@@ -372,6 +389,7 @@ Verify email address with token.
 Resend verification email to user.
 
 #### Request Body
+
 ```json
 {
   "email": "jane@example.com"
@@ -379,6 +397,7 @@ Resend verification email to user.
 ```
 
 #### Response (200 OK)
+
 ```json
 {
   "success": true,
@@ -453,6 +472,7 @@ curl -X POST http://localhost:5000/api/auth/register-enhanced \
 ## Error Responses
 
 ### 400 Bad Request
+
 ```json
 {
   "success": false,
@@ -465,6 +485,7 @@ curl -X POST http://localhost:5000/api/auth/register-enhanced \
 ```
 
 ### 401 Unauthorized
+
 ```json
 {
   "success": false,
@@ -473,6 +494,7 @@ curl -X POST http://localhost:5000/api/auth/register-enhanced \
 ```
 
 ### 403 Forbidden
+
 ```json
 {
   "success": false,
@@ -481,6 +503,7 @@ curl -X POST http://localhost:5000/api/auth/register-enhanced \
 ```
 
 ### 404 Not Found
+
 ```json
 {
   "success": false,
@@ -489,6 +512,7 @@ curl -X POST http://localhost:5000/api/auth/register-enhanced \
 ```
 
 ### 500 Internal Server Error
+
 ```json
 {
   "success": false,

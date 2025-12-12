@@ -50,11 +50,11 @@ const Teams: React.FC = () => {
       setLoading(true);
       const response = await apiService.getTeams();
       console.log('[Teams] API Response:', response);
-      
+
       // Handle different response structures
       const teamsData = response.data?.data || response.data || response;
       console.log('[Teams] Teams data:', teamsData);
-      
+
       setTeams(Array.isArray(teamsData) ? teamsData : []);
     } catch (error: any) {
       console.error('[Teams] Error fetching teams:', error);
@@ -91,7 +91,7 @@ const Teams: React.FC = () => {
     try {
       setSaving(true);
       console.log('[Teams] Saving team:', formData, 'Editing:', editingTeam?.id);
-      
+
       if (editingTeam) {
         const response = await apiService.updateTeam(editingTeam.id, formData);
         console.log('[Teams] Update response:', response);
@@ -99,14 +99,15 @@ const Teams: React.FC = () => {
         const response = await apiService.createTeam(formData);
         console.log('[Teams] Create response:', response);
       }
-      
+
       await fetchTeams();
       setIsEditing(false);
       setEditingTeam(null);
     } catch (error: any) {
       console.error('[Teams] Save error:', error);
       console.error('[Teams] Error response:', error.response?.data);
-      const errorMsg = error.response?.data?.error?.message || error.response?.data?.error || error.message;
+      const errorMsg =
+        error.response?.data?.error?.message || error.response?.data?.error || error.message;
       alert(`Failed to save team: ${errorMsg}`);
     } finally {
       setSaving(false);
@@ -115,14 +116,22 @@ const Teams: React.FC = () => {
 
   const toggleTeamStatus = async (team: Team) => {
     try {
-      console.log('[Teams] Toggling team status:', team.id, 'from', team.isActive, 'to', !team.isActive);
+      console.log(
+        '[Teams] Toggling team status:',
+        team.id,
+        'from',
+        team.isActive,
+        'to',
+        !team.isActive
+      );
       const response = await apiService.updateTeam(team.id, { isActive: !team.isActive });
       console.log('[Teams] Toggle response:', response);
       await fetchTeams();
     } catch (error: any) {
       console.error('[Teams] Toggle error:', error);
       console.error('[Teams] Error response:', error.response?.data);
-      const errorMsg = error.response?.data?.error?.message || error.response?.data?.error || error.message;
+      const errorMsg =
+        error.response?.data?.error?.message || error.response?.data?.error || error.message;
       alert(`Failed to update team: ${errorMsg}`);
     }
   };
@@ -135,7 +144,9 @@ const Teams: React.FC = () => {
       setTeamMembers(response.members || response.data || response);
     } catch (error: any) {
       console.error('[Teams] Error loading members:', error);
-      alert(`Failed to load team members: ${error.response?.data?.error?.message || error.message}`);
+      alert(
+        `Failed to load team members: ${error.response?.data?.error?.message || error.message}`
+      );
     } finally {
       setLoadingMembers(false);
     }
@@ -273,9 +284,7 @@ const Teams: React.FC = () => {
               <div className="text-center py-12">
                 <div className="text-gray-400 text-6xl mb-4">👥</div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Teams Configured</h3>
-                <p className="text-gray-600 mb-4">
-                  Create teams to organize your support agents.
-                </p>
+                <p className="text-gray-600 mb-4">Create teams to organize your support agents.</p>
                 <button
                   onClick={() => startEditing()}
                   className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"
@@ -353,7 +362,12 @@ const Teams: React.FC = () => {
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>

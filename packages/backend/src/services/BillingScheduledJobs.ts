@@ -278,7 +278,10 @@ export class BillingScheduledJobs {
         },
         failedPayments: {
           count: failedPayments.length,
-          totalAmount: failedPayments.reduce((sum: number, payment: any) => sum + payment.amount_due, 0),
+          totalAmount: failedPayments.reduce(
+            (sum: number, payment: any) => sum + payment.amount_due,
+            0
+          ),
         },
         generatedAt: new Date(),
       };

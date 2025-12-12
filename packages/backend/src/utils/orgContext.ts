@@ -11,20 +11,16 @@ export async function getUserOrgId(userId: string): Promise<string> {
 
   // If no org is set, try to get the first organization for this user
   if (!orgId) {
-    const userOrg = await db('user_organization_associations')
-      .where('user_id', userId)
-      .first();
-    
+    const userOrg = await db('user_organization_associations').where('user_id', userId).first();
+
     if (userOrg) {
       orgId = userOrg.org_id;
       // Update user's current_org_id for next time
       await db('users').where('id', userId).update({ current_org_id: orgId });
     } else {
       // Fallback: use company_id as org_id
-      const userCompany = await db('user_company_associations')
-        .where('user_id', userId)
-        .first();
-      
+      const userCompany = await db('user_company_associations').where('user_id', userId).first();
+
       if (userCompany) {
         orgId = userCompany.company_id;
       }
@@ -41,11 +37,11 @@ export async function getUserOrgId(userId: string): Promise<string> {
 /**
  * Get both company_id and org_id for the current user
  */
-export async function getUserCompanyAndOrg(userId: string): Promise<{ companyId: string; orgId: string }> {
-  const userCompany = await db('user_company_associations')
-    .where('user_id', userId)
-    .first();
-  
+export async function getUserCompanyAndOrg(
+  userId: string
+): Promise<{ companyId: string; orgId: string }> {
+  const userCompany = await db('user_company_associations').where('user_id', userId).first();
+
   if (!userCompany) {
     throw new Error('User not associated with any company');
   }
@@ -54,6 +50,6 @@ export async function getUserCompanyAndOrg(userId: string): Promise<{ companyId:
 
   return {
     companyId: userCompany.company_id,
-    orgId
+    orgId,
   };
 }

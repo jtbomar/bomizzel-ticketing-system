@@ -101,31 +101,31 @@ router.use('/database-reset', databaseResetRoutes); // DANGER: Database reset en
 router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { db } = require('../config/database');
-    
+
     // Get first company
     const firstCompany = await db('companies').orderBy('created_at').first();
-    
+
     // Rename it
     await db('companies').where('id', firstCompany.id).update({
       name: 'Bomizzel Test Organization',
       domain: 'bomizzel-test.com',
-      description: 'Test organization'
+      description: 'Test organization',
     });
-    
+
     // Delete others
     const deleted = await db('companies').whereNot('id', firstCompany.id).del();
-    
+
     // Get counts
     const companyCount = await db('companies').count('* as count').first();
     const deptCount = await db('departments').count('* as count').first();
-    
+
     res.json({
       success: true,
       deleted: deleted,
       remaining: {
         companies: companyCount?.count || 0,
-        departments: deptCount?.count || 0
-      }
+        departments: deptCount?.count || 0,
+      },
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -197,8 +197,10 @@ router.post('/fix-departments', authenticate, async (req, res, next) => {
     }
 
     const { db } = require('../config/database');
-    const updated = await db('departments')
-      .update({ company_id: bomizzelOrgId, updated_at: db.fn.now() });
+    const updated = await db('departments').update({
+      company_id: bomizzelOrgId,
+      updated_at: db.fn.now(),
+    });
 
     return res.json({
       success: true,

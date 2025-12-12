@@ -99,24 +99,29 @@ const checkTeamAccess = async (req: Request, res: Response, next: Function): Pro
  * GET /custom-fields/teams/:teamId
  * Get all custom fields for a team
  */
-router.get('/teams/:teamId', authenticate, checkTeamAccess, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { teamId } = req.params;
+router.get(
+  '/teams/:teamId',
+  authenticate,
+  checkTeamAccess,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { teamId } = req.params;
 
-    const fields = await CustomFieldService.getTeamCustomFields(teamId);
+      const fields = await CustomFieldService.getTeamCustomFields(teamId);
 
-    res.json({
-      success: true,
-      data: fields,
-    });
-  } catch (error) {
-    logger.error('Get team custom fields error:', error);
-    res.status(500).json({
-      error: 'Failed to retrieve custom fields',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
+      res.json({
+        success: true,
+        data: fields,
+      });
+    } catch (error) {
+      logger.error('Get team custom fields error:', error);
+      res.status(500).json({
+        error: 'Failed to retrieve custom fields',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
-});
+);
 
 /**
  * POST /custom-fields/teams/:teamId
@@ -134,9 +139,7 @@ router.post(
 
       // Only team leads and admins can create custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        res
-          .status(403)
-          .json({ error: 'Only team leads and admins can create custom fields' });
+        res.status(403).json({ error: 'Only team leads and admins can create custom fields' });
         return;
       }
 
@@ -218,9 +221,7 @@ router.put(
 
       // Only team leads and admins can update custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        res
-          .status(403)
-          .json({ error: 'Only team leads and admins can update custom fields' });
+        res.status(403).json({ error: 'Only team leads and admins can update custom fields' });
         return;
       }
 
@@ -260,9 +261,7 @@ router.delete(
 
       // Only team leads and admins can delete custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        res
-          .status(403)
-          .json({ error: 'Only team leads and admins can delete custom fields' });
+        res.status(403).json({ error: 'Only team leads and admins can delete custom fields' });
         return;
       }
 
@@ -304,9 +303,7 @@ router.put(
 
       // Only team leads and admins can reorder custom fields
       if (!['team_lead', 'admin'].includes(req.user!.role)) {
-        res
-          .status(403)
-          .json({ error: 'Only team leads and admins can reorder custom fields' });
+        res.status(403).json({ error: 'Only team leads and admins can reorder custom fields' });
         return;
       }
 

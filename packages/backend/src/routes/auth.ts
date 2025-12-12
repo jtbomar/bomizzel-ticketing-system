@@ -220,11 +220,11 @@ router.get('/verify', authenticate, async (req, res, next) => {
     // Fetch full user data from database
     const { User } = await import('@/models/User');
     const user = await User.findById(req.user!.id);
-    
+
     if (!user) {
       throw new AppError('User not found', 404, 'USER_NOT_FOUND');
     }
-    
+
     res.json({
       valid: true,
       user: {

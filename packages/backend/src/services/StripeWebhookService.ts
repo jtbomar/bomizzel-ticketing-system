@@ -227,7 +227,9 @@ export class StripeWebhookService {
       const invoiceWithSub = invoice as any;
       if (invoiceWithSub.subscription) {
         const subscriptionId =
-          typeof invoiceWithSub.subscription === 'string' ? invoiceWithSub.subscription : invoiceWithSub.subscription.id;
+          typeof invoiceWithSub.subscription === 'string'
+            ? invoiceWithSub.subscription
+            : invoiceWithSub.subscription.id;
 
         // Sync subscription status
         await StripeService.syncSubscriptionFromStripe(subscriptionId);
@@ -270,7 +272,9 @@ export class StripeWebhookService {
       const invoiceWithSub = invoice as any;
       if (invoiceWithSub.subscription) {
         const subscriptionId =
-          typeof invoiceWithSub.subscription === 'string' ? invoiceWithSub.subscription : invoiceWithSub.subscription.id;
+          typeof invoiceWithSub.subscription === 'string'
+            ? invoiceWithSub.subscription
+            : invoiceWithSub.subscription.id;
 
         // Find local subscription
         const localSubscription =

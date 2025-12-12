@@ -45,7 +45,7 @@ export class HolidayListService {
 
       holidayListsWithHolidays.push({
         ...list,
-        holidays
+        holidays,
       });
     }
 
@@ -53,27 +53,29 @@ export class HolidayListService {
   }
 
   // Get a specific holiday list
-  static async getHolidayListById(id: number, companyId: string): Promise<HolidayListWithHolidays | null> {
-    const holidayList = await db('holiday_lists')
-      .where({ id, company_id: companyId })
-      .first();
+  static async getHolidayListById(
+    id: number,
+    companyId: string
+  ): Promise<HolidayListWithHolidays | null> {
+    const holidayList = await db('holiday_lists').where({ id, company_id: companyId }).first();
 
     if (!holidayList) {
       return null;
     }
 
-    const holidays = await db('holidays')
-      .where('holiday_list_id', id)
-      .orderBy('date', 'asc');
+    const holidays = await db('holidays').where('holiday_list_id', id).orderBy('date', 'asc');
 
     return {
       ...holidayList,
-      holidays
+      holidays,
     };
   }
 
   // Create new holiday list
-  static async createHolidayList(data: HolidayList, holidays: Omit<Holiday, 'holiday_list_id'>[]): Promise<HolidayListWithHolidays> {
+  static async createHolidayList(
+    data: HolidayList,
+    holidays: Omit<Holiday, 'holiday_list_id'>[]
+  ): Promise<HolidayListWithHolidays> {
     const trx = await db.transaction();
 
     try {
@@ -89,9 +91,9 @@ export class HolidayListService {
 
       // Insert holidays
       if (holidays.length > 0) {
-        const holidayData = holidays.map(h => ({
+        const holidayData = holidays.map((h) => ({
           ...h,
-          holiday_list_id: id
+          holiday_list_id: id,
         }));
 
         await trx('holidays').insert(holidayData);
@@ -108,14 +110,17 @@ export class HolidayListService {
   }
 
   // Update holiday list
-  static async updateHolidayList(id: number, companyId: string, data: Partial<HolidayList>, holidays?: Omit<Holiday, 'holiday_list_id'>[]): Promise<HolidayListWithHolidays | null> {
+  static async updateHolidayList(
+    id: number,
+    companyId: string,
+    data: Partial<HolidayList>,
+    holidays?: Omit<Holiday, 'holiday_list_id'>[]
+  ): Promise<HolidayListWithHolidays | null> {
     const trx = await db.transaction();
 
     try {
       // Check if holiday list exists
-      const existing = await trx('holiday_lists')
-        .where({ id, company_id: companyId })
-        .first();
+      const existing = await trx('holiday_lists').where({ id, company_id: companyId }).first();
 
       if (!existing) {
         await trx.rollback();
@@ -135,19 +140,17 @@ export class HolidayListService {
         .where({ id, company_id: companyId })
         .update({
           ...data,
-          updated_at: new Date()
+          updated_at: new Date(),
         });
 
       // Update holidays if provided
       if (holidays) {
-        await trx('holidays')
-          .where('holiday_list_id', id)
-          .del();
+        await trx('holidays').where('holiday_list_id', id).del();
 
         if (holidays.length > 0) {
-          const holidayData = holidays.map(h => ({
+          const holidayData = holidays.map((h) => ({
             ...h,
-            holiday_list_id: id
+            holiday_list_id: id,
           }));
 
           await trx('holidays').insert(holidayData);
@@ -169,9 +172,7 @@ export class HolidayListService {
     const trx = await db.transaction();
 
     try {
-      const existing = await trx('holiday_lists')
-        .where({ id, company_id: companyId })
-        .first();
+      const existing = await trx('holiday_lists').where({ id, company_id: companyId }).first();
 
       if (!existing) {
         await trx.rollback();
@@ -197,25 +198,17 @@ export class HolidayListService {
           .first();
 
         if (nextDefault) {
-          await trx('holiday_lists')
-            .where('id', nextDefault.id)
-            .update({ is_default: true });
+          await trx('holiday_lists').where('id', nextDefault.id).update({ is_default: true });
         }
       }
 
       // Delete holidays first (cascade should handle this, but being explicit)
-      await trx('holidays')
-        .where('holiday_list_id', id)
-        .del();
+      await trx('holidays').where('holiday_list_id', id).del();
 
       // Delete business hours associations
-      await trx('business_hours_holiday_lists')
-        .where('holiday_list_id', id)
-        .del();
+      await trx('business_hours_holiday_lists').where('holiday_list_id', id).del();
 
-      await trx('holiday_lists')
-        .where({ id, company_id: companyId })
-        .del();
+      await trx('holiday_lists').where({ id, company_id: companyId }).del();
 
       await trx.commit();
       return true;
@@ -241,20 +234,50 @@ export class HolidayListService {
 
     return {
       ...holidayList,
-      holidays
+      holidays,
     };
   }
 
   // Create default US holiday list for a new company
   static async createDefaultUSHolidayList(companyId: string): Promise<HolidayListWithHolidays> {
     const currentYear = new Date().getFullYear();
-    
+
     const defaultHolidays = [
-      { name: 'New Year\'s Day', date: `${currentYear}-01-01`, is_recurring: true, recurrence_pattern: 'yearly', description: 'New Year\'s Day' },
-      { name: 'Independence Day', date: `${currentYear}-07-04`, is_recurring: true, recurrence_pattern: 'yearly', description: 'Independence Day' },
-      { name: 'Christmas Day', date: `${currentYear}-12-25`, is_recurring: true, recurrence_pattern: 'yearly', description: 'Christmas Day' },
-      { name: 'Thanksgiving', date: `${currentYear}-11-28`, is_recurring: true, recurrence_pattern: 'yearly', description: 'Thanksgiving Day (4th Thursday in November)' },
-      { name: 'Labor Day', date: `${currentYear}-09-02`, is_recurring: true, recurrence_pattern: 'yearly', description: 'Labor Day (1st Monday in September)' },
+      {
+        name: "New Year's Day",
+        date: `${currentYear}-01-01`,
+        is_recurring: true,
+        recurrence_pattern: 'yearly',
+        description: "New Year's Day",
+      },
+      {
+        name: 'Independence Day',
+        date: `${currentYear}-07-04`,
+        is_recurring: true,
+        recurrence_pattern: 'yearly',
+        description: 'Independence Day',
+      },
+      {
+        name: 'Christmas Day',
+        date: `${currentYear}-12-25`,
+        is_recurring: true,
+        recurrence_pattern: 'yearly',
+        description: 'Christmas Day',
+      },
+      {
+        name: 'Thanksgiving',
+        date: `${currentYear}-11-28`,
+        is_recurring: true,
+        recurrence_pattern: 'yearly',
+        description: 'Thanksgiving Day (4th Thursday in November)',
+      },
+      {
+        name: 'Labor Day',
+        date: `${currentYear}-09-02`,
+        is_recurring: true,
+        recurrence_pattern: 'yearly',
+        description: 'Labor Day (1st Monday in September)',
+      },
     ];
 
     const holidayList: HolidayList = {
@@ -263,14 +286,18 @@ export class HolidayListService {
       description: 'Standard US federal holidays',
       region: 'US',
       is_active: true,
-      is_default: true
+      is_default: true,
     };
 
     return await this.createHolidayList(holidayList, defaultHolidays);
   }
 
   // Check if a date is a holiday
-  static async isHoliday(companyId: string, date: string, holidayListId?: number): Promise<boolean> {
+  static async isHoliday(
+    companyId: string,
+    date: string,
+    holidayListId?: number
+  ): Promise<boolean> {
     let query = db('holidays')
       .join('holiday_lists', 'holidays.holiday_list_id', 'holiday_lists.id')
       .where('holiday_lists.company_id', companyId)
@@ -286,7 +313,12 @@ export class HolidayListService {
   }
 
   // Get holidays for a date range
-  static async getHolidaysInRange(companyId: string, startDate: string, endDate: string, holidayListId?: number): Promise<Holiday[]> {
+  static async getHolidaysInRange(
+    companyId: string,
+    startDate: string,
+    endDate: string,
+    holidayListId?: number
+  ): Promise<Holiday[]> {
     let query = db('holidays')
       .join('holiday_lists', 'holidays.holiday_list_id', 'holiday_lists.id')
       .where('holiday_lists.company_id', companyId)

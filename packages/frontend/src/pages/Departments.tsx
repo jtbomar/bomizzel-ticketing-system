@@ -88,32 +88,30 @@ const Departments: React.FC = () => {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch both departments and companies
       const [departmentsData, companiesResponse] = await Promise.all([
         apiService.getDepartments(),
-        apiService.getCompanies({ limit: 100 })
+        apiService.getCompanies({ limit: 100 }),
       ]);
-      
+
       // Store companies for filter dropdown
       const companiesList = companiesResponse.companies || companiesResponse.data || [];
       setCompanies(companiesList);
-      
+
       // Create company lookup map
-      const companyMap = new Map(
-        companiesList.map((c: any) => [c.id, c.name])
-      );
-      
+      const companyMap = new Map(companiesList.map((c: any) => [c.id, c.name]));
+
       // Add default agents and templates arrays if missing, plus company name
       const dataWithDefaults = departmentsData.map((dept: any) => ({
         ...dept,
         agents: dept.agents || [],
         templates: dept.templates || [],
-        company_name: companyMap.get(dept.company_id) || 'Unknown Company'
+        company_name: companyMap.get(dept.company_id) || 'Unknown Company',
       }));
-      
+
       setDepartments(dataWithDefaults);
-      
+
       // Select the default one if available
       const defaultDept = dataWithDefaults.find((dept: Department) => dept.is_default);
       if (defaultDept) {
@@ -135,9 +133,7 @@ const Departments: React.FC = () => {
       const response = await apiService.getUsers({ limit: 100 });
       const allUsers = response.data || [];
       // Filter to only show agents, not customers
-      const agents = allUsers.filter((user: User) => 
-        ['admin', 'employee'].includes(user.role)
-      );
+      const agents = allUsers.filter((user: User) => ['admin', 'employee'].includes(user.role));
       setAvailableUsers(agents);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -153,7 +149,7 @@ const Departments: React.FC = () => {
 
     try {
       setSaving(true);
-      
+
       const payload = {
         name: formData.name,
         description: formData.description,
@@ -184,14 +180,18 @@ const Departments: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this department? This will remove all agent assignments and templates.')) {
+    if (
+      !confirm(
+        'Are you sure you want to delete this department? This will remove all agent assignments and templates.'
+      )
+    ) {
       return;
     }
 
     try {
       await apiService.deleteDepartment(id);
       await fetchDepartments();
-      
+
       if (selectedDepartment?.id === id) {
         setSelectedDepartment(departments.length > 1 ? departments[0] : null);
       }
@@ -253,7 +253,8 @@ const Departments: React.FC = () => {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+    if (file.size > 2 * 1024 * 1024) {
+      // 2MB limit
       alert('Image size must be less than 2MB');
       return;
     }
@@ -274,13 +275,13 @@ const Departments: React.FC = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
         const maxWidth = 200;
         const maxHeight = 200;
-        
+
         let { width, height } = img;
-        
+
         if (width > height) {
           if (width > maxWidth) {
             height = (height * maxWidth) / width;
@@ -292,15 +293,15 @@ const Departments: React.FC = () => {
             height = maxHeight;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         ctx?.drawImage(img, 0, 0, width, height);
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
         resolve(compressedDataUrl);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
@@ -355,7 +356,12 @@ const Departments: React.FC = () => {
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Back to Settings
               </button>
@@ -397,7 +403,7 @@ const Departments: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Departments</h3>
                 </div>
-                
+
                 {/* Company Filter */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -411,94 +417,105 @@ const Departments: React.FC = () => {
                     <option value="all">All Companies ({departments.length} departments)</option>
                     {companies.map((company) => (
                       <option key={company.id} value={company.id}>
-                        {company.name} ({departments.filter((d: any) => d.company_id === company.id).length})
+                        {company.name} (
+                        {departments.filter((d: any) => d.company_id === company.id).length})
                       </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="space-y-2">
                   {departments
-                    .filter((dept: any) => selectedCompanyId === 'all' || dept.company_id === selectedCompanyId)
+                    .filter(
+                      (dept: any) =>
+                        selectedCompanyId === 'all' || dept.company_id === selectedCompanyId
+                    )
                     .map((dept) => (
-                    <div
-                      key={dept.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedDepartment?.id === dept.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      onClick={() => setSelectedDepartment(dept)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {dept.logo ? (
-                            <img
-                              src={dept.logo}
-                              alt={dept.name}
-                              className="w-10 h-10 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div
-                              className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
-                              style={{ backgroundColor: dept.color }}
-                            >
-                              {dept.name.charAt(0).toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <h4 className="font-medium text-gray-900">{dept.name}</h4>
-                            <p className="text-xs text-gray-500">{(dept as any).company_name}</p>
-                            {dept.description && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-2">{dept.description}</p>
+                      <div
+                        key={dept.id}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                          selectedDepartment?.id === dept.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                        onClick={() => setSelectedDepartment(dept)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {dept.logo ? (
+                              <img
+                                src={dept.logo}
+                                alt={dept.name}
+                                className="w-10 h-10 rounded-lg object-cover"
+                              />
+                            ) : (
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold"
+                                style={{ backgroundColor: dept.color }}
+                              >
+                                {dept.name.charAt(0).toUpperCase()}
+                              </div>
                             )}
-                            <div className="flex items-center gap-2 mt-2">
-                              {dept.is_default && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Default
-                                </span>
+                            <div>
+                              <h4 className="font-medium text-gray-900">{dept.name}</h4>
+                              <p className="text-xs text-gray-500">{(dept as any).company_name}</p>
+                              {dept.description && (
+                                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                                  {dept.description}
+                                </p>
                               )}
-                              {dept.is_active ? (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  Active
+                              <div className="flex items-center gap-2 mt-2">
+                                {dept.is_default && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Default
+                                  </span>
+                                )}
+                                {dept.is_active ? (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Active
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                                <span>
+                                  {dept.agent_count} agent{dept.agent_count !== 1 ? 's' : ''}
                                 </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  Inactive
+                                <span>
+                                  {dept.template_count} template
+                                  {dept.template_count !== 1 ? 's' : ''}
                                 </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                              <span>{dept.agent_count} agent{dept.agent_count !== 1 ? 's' : ''}</span>
-                              <span>{dept.template_count} template{dept.template_count !== 1 ? 's' : ''}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditing(dept);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 text-sm"
-                          >
-                            Edit
-                          </button>
-                          {!dept.is_default && (
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDelete(dept.id);
+                                startEditing(dept);
                               }}
-                              className="text-red-600 hover:text-red-800 text-sm"
+                              className="text-blue-600 hover:text-blue-800 text-sm"
                             >
-                              Delete
+                              Edit
                             </button>
-                          )}
+                            {!dept.is_default && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(dept.id);
+                                }}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
 
@@ -576,7 +593,9 @@ const Departments: React.FC = () => {
                         </label>
                         <textarea
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Optional description for this department"
@@ -645,7 +664,9 @@ const Departments: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={formData.is_active}
-                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_active: e.target.checked })
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="ml-2 text-sm text-gray-700">Active</span>
@@ -654,7 +675,9 @@ const Departments: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={formData.is_default}
-                            onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_default: e.target.checked })
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="ml-2 text-sm text-gray-700">Set as Default</span>
@@ -710,29 +733,40 @@ const Departments: React.FC = () => {
                           Add Agent
                         </button>
                       </div>
-                      
+
                       {selectedDepartment.agents.length === 0 ? (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
-                          <p className="text-gray-600">No agents assigned to this department yet.</p>
+                          <p className="text-gray-600">
+                            No agents assigned to this department yet.
+                          </p>
                         </div>
                       ) : (
                         <div className="space-y-2">
                           {selectedDepartment.agents.map((agent) => (
-                            <div key={agent.user_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div
+                              key={agent.user_id}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            >
                               <div>
                                 <span className="font-medium text-gray-900">
                                   {agent.first_name} {agent.last_name}
                                 </span>
                                 <span className="text-sm text-gray-600 ml-2">({agent.email})</span>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                    agent.department_role === 'manager' ? 'bg-purple-100 text-purple-800' :
-                                    agent.department_role === 'lead' ? 'bg-blue-100 text-blue-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
+                                  <span
+                                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                      agent.department_role === 'manager'
+                                        ? 'bg-purple-100 text-purple-800'
+                                        : agent.department_role === 'lead'
+                                          ? 'bg-blue-100 text-blue-800'
+                                          : 'bg-gray-100 text-gray-800'
+                                    }`}
+                                  >
                                     {agent.department_role}
                                   </span>
-                                  <span className="text-xs text-gray-500">System Role: {agent.role}</span>
+                                  <span className="text-xs text-gray-500">
+                                    System Role: {agent.role}
+                                  </span>
                                 </div>
                               </div>
                               <button
@@ -763,7 +797,7 @@ const Departments: React.FC = () => {
                           Manage Templates
                         </button>
                       </div>
-                      
+
                       <div className="text-center py-8 bg-gray-50 rounded-lg">
                         <p className="text-gray-600">Template management interface coming soon.</p>
                       </div>
@@ -786,12 +820,17 @@ const Departments: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Add Agent to Department</h3>
-            
+
             <div className="space-y-4">
               {availableUsers
-                .filter(user => !selectedDepartment?.agents.some(agent => agent.user_id === user.id))
+                .filter(
+                  (user) => !selectedDepartment?.agents.some((agent) => agent.user_id === user.id)
+                )
                 .map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
+                  >
                     <div>
                       <span className="font-medium text-gray-900">
                         {user.first_name} {user.last_name}

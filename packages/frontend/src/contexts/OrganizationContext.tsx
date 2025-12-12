@@ -44,7 +44,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Determine current org
       const savedOrgId = localStorage.getItem('currentOrgId');
       const urlOrgId = extractOrgIdFromUrl();
-      
+
       let current: Organization | null = null;
 
       // Priority: URL > localStorage > default > first
@@ -53,7 +53,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       } else if (savedOrgId) {
         current = orgs.find((o: Organization) => o.id === savedOrgId) || null;
       }
-      
+
       if (!current) {
         current = orgs.find((o: Organization) => o.isDefault) || orgs[0] || null;
       }
@@ -83,11 +83,11 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const switchOrg = (orgId: string) => {
-    const org = organizations.find(o => o.id === orgId);
+    const org = organizations.find((o) => o.id === orgId);
     if (org) {
       setCurrentOrg(org);
       localStorage.setItem('currentOrgId', orgId);
-      
+
       // Navigate to org-scoped dashboard
       window.location.href = `/org/${orgId}/dashboard`;
     }
@@ -96,10 +96,10 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const setDefaultOrg = async (orgId: string) => {
     try {
       await apiService.setDefaultOrganization(orgId);
-      
+
       // Update local state
-      setOrganizations(orgs =>
-        orgs.map(o => ({
+      setOrganizations((orgs) =>
+        orgs.map((o) => ({
           ...o,
           isDefault: o.id === orgId,
         }))

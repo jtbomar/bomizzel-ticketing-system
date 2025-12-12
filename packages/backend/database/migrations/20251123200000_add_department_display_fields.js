@@ -1,9 +1,12 @@
 /**
  * Add display fields to departments table to match Zoho Desk functionality
  */
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   const hasDisplayName = await knex.schema.hasColumn('departments', 'display_name');
-  const hasDisplayInHelpCenter = await knex.schema.hasColumn('departments', 'display_in_help_center');
+  const hasDisplayInHelpCenter = await knex.schema.hasColumn(
+    'departments',
+    'display_in_help_center'
+  );
 
   if (!hasDisplayName || !hasDisplayInHelpCenter) {
     await knex.schema.alterTable('departments', (table) => {
@@ -30,7 +33,7 @@ exports.up = async function(knex) {
   }
 };
 
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   await knex.schema.alterTable('departments', (table) => {
     table.dropColumn('display_name');
     table.dropColumn('display_in_help_center');

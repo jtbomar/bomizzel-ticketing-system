@@ -23,10 +23,7 @@ export class OrgScopedQueueService {
    * Get single queue (with org verification)
    */
   static async getQueue(orgId: string, queueId: string) {
-    const queue = await db('queues')
-      .where('id', queueId)
-      .where('org_id', orgId)
-      .first();
+    const queue = await db('queues').where('id', queueId).where('org_id', orgId).first();
 
     if (!queue) {
       throw new AppError('Queue not found', 404, 'QUEUE_NOT_FOUND');
@@ -83,17 +80,10 @@ export class OrgScopedQueueService {
       .first();
 
     if (ticketCount && parseInt(ticketCount.count as string) > 0) {
-      throw new AppError(
-        'Cannot delete queue with existing tickets',
-        400,
-        'QUEUE_HAS_TICKETS'
-      );
+      throw new AppError('Cannot delete queue with existing tickets', 400, 'QUEUE_HAS_TICKETS');
     }
 
-    const deleted = await db('queues')
-      .where('id', queueId)
-      .where('org_id', orgId)
-      .del();
+    const deleted = await db('queues').where('id', queueId).where('org_id', orgId).del();
 
     if (deleted === 0) {
       throw new AppError('Queue not found', 404, 'QUEUE_NOT_FOUND');

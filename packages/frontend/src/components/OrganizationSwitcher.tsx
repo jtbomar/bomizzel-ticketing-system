@@ -29,9 +29,7 @@ export const OrganizationSwitcher: React.FC = () => {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center space-x-3 px-4 py-2 rounded-lg transition-colors ${
-          theme === 'dark'
-            ? 'hover:bg-white/10 text-white'
-            : 'hover:bg-gray-100 text-gray-900'
+          theme === 'dark' ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-100 text-gray-900'
         }`}
       >
         {currentOrg.logoUrl ? (
@@ -51,9 +49,7 @@ export const OrganizationSwitcher: React.FC = () => {
         )}
         <div className="flex-1 text-left">
           <div className="font-medium text-sm">{currentOrg.name}</div>
-          <div
-            className={`text-xs ${theme === 'dark' ? 'text-white/60' : 'text-gray-500'}`}
-          >
+          <div className={`text-xs ${theme === 'dark' ? 'text-white/60' : 'text-gray-500'}`}>
             {currentOrg.role}
           </div>
         </div>
@@ -63,29 +59,19 @@ export const OrganizationSwitcher: React.FC = () => {
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
           {/* Dropdown */}
           <div
             className={`absolute top-full left-0 mt-2 w-80 rounded-lg shadow-lg border z-50 ${
-              theme === 'dark'
-                ? 'bg-slate-800 border-white/10'
-                : 'bg-white border-gray-200'
+              theme === 'dark' ? 'bg-slate-800 border-white/10' : 'bg-white border-gray-200'
             }`}
           >
             <div className="p-2">

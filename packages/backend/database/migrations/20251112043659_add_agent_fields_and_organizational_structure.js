@@ -42,7 +42,10 @@ exports.up = async function (knex) {
     table.boolean('must_change_password').defaultTo(false);
     table.string('default_password'); // Temporary storage for initial password
 
-    table.foreign('organizational_role_id').references('organizational_roles.id').onDelete('SET NULL');
+    table
+      .foreign('organizational_role_id')
+      .references('organizational_roles.id')
+      .onDelete('SET NULL');
     table.foreign('user_profile_id').references('user_profiles.id').onDelete('SET NULL');
   });
 
@@ -68,7 +71,7 @@ exports.up = async function (knex) {
  */
 exports.down = async function (knex) {
   await knex.schema.dropTableIfExists('user_departments');
-  
+
   await knex.schema.table('users', function (table) {
     table.dropForeign('organizational_role_id');
     table.dropForeign('user_profile_id');

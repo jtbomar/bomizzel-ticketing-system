@@ -214,10 +214,21 @@ router.post(
   }),
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { 
-        firstName, lastName, email, password, role, teamId,
-        phone, mobilePhone, extension, about,
-        organizationalRoleId, userProfileId, departmentIds, mustChangePassword
+      const {
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        teamId,
+        phone,
+        mobilePhone,
+        extension,
+        about,
+        organizationalRoleId,
+        userProfileId,
+        departmentIds,
+        mustChangePassword,
       } = req.body;
       const createdById = req.user?.id;
 
@@ -322,202 +333,247 @@ router.put(
  * GET /admin/stats/roles
  * Get role statistics (admin only)
  */
-router.get('/stats/roles', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const stats = await UserRoleService.getRoleStats();
+router.get(
+  '/stats/roles',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const stats = await UserRoleService.getRoleStats();
 
-    res.json({ stats });
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'GET_ROLE_STATS_FAILED',
-        message: 'Failed to retrieve role statistics',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
+      res.json({ stats });
+    } catch (error) {
+      res.status(500).json({
+        error: {
+          code: 'GET_ROLE_STATS_FAILED',
+          message: 'Failed to retrieve role statistics',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
   }
-});
+);
 
 /**
  * GET /admin/users/:userId/assigned-tickets
  * Check how many tickets are assigned to a user (admin only)
  */
-router.get('/users/:userId/assigned-tickets', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    const { db } = require('@/config/database');
-    
-    // Count tickets assigned to this user
-    const result = await db('tickets')
-      .where('assigned_to', userId)
-      .count('* as count')
-      .first();
-    
-    const count = parseInt(result?.count || '0');
-    
-    res.json({ 
-      userId,
-      ticketCount: count,
-      hasTickets: count > 0
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'CHECK_TICKETS_FAILED',
-        message: 'Failed to check assigned tickets',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
+router.get(
+  '/users/:userId/assigned-tickets',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      const { db } = require('@/config/database');
+
+      // Count tickets assigned to this user
+      const result = await db('tickets').where('assigned_to', userId).count('* as count').first();
+
+      const count = parseInt(result?.count || '0');
+
+      res.json({
+        userId,
+        ticketCount: count,
+        hasTickets: count > 0,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: {
+          code: 'CHECK_TICKETS_FAILED',
+          message: 'Failed to check assigned tickets',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
   }
-});
+);
 
 /**
  * DELETE /admin/users/:userId/permanent
  * Permanently delete a user (admin only)
  */
-router.delete('/users/:userId/permanent', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { userId } = req.params;
-    const { db } = require('@/config/database');
-    
-    // Check if user exists and is inactive
-    const user = await db('users').where('id', userId).first();
-    
-    if (!user) {
-      res.status(404).json({
+router.delete(
+  '/users/:userId/permanent',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { userId } = req.params;
+      const { db } = require('@/config/database');
+
+      // Check if user exists and is inactive
+      const user = await db('users').where('id', userId).first();
+
+      if (!user) {
+        res.status(404).json({
+          error: {
+            code: 'USER_NOT_FOUND',
+            message: 'User not found',
+          },
+        });
+        return;
+      }
+
+      if (user.is_active) {
+        res.status(400).json({
+          error: {
+            code: 'USER_STILL_ACTIVE',
+            message: 'User must be deactivated before permanent deletion',
+          },
+        });
+        return;
+      }
+
+      // Check for assigned tickets
+      const ticketCount = await db('tickets')
+        .where('assigned_to', userId)
+        .count('* as count')
+        .first();
+
+      if (parseInt(ticketCount?.count || '0') > 0) {
+        res.status(400).json({
+          error: {
+            code: 'HAS_ASSIGNED_TICKETS',
+            message: 'Cannot delete user with assigned tickets. Please reassign tickets first.',
+          },
+        });
+        return;
+      }
+
+      // Permanently delete the user
+      await db('users').where('id', userId).del();
+
+      res.json({
+        message: 'User permanently deleted',
+        userId,
+      });
+    } catch (error) {
+      res.status(500).json({
         error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found',
+          code: 'DELETE_USER_FAILED',
+          message: 'Failed to delete user',
+          details: error instanceof Error ? error.message : 'Unknown error',
         },
       });
-      return;
     }
-    
-    if (user.is_active) {
-      res.status(400).json({
-        error: {
-          code: 'USER_STILL_ACTIVE',
-          message: 'User must be deactivated before permanent deletion',
-        },
-      });
-      return;
-    }
-    
-    // Check for assigned tickets
-    const ticketCount = await db('tickets')
-      .where('assigned_to', userId)
-      .count('* as count')
-      .first();
-    
-    if (parseInt(ticketCount?.count || '0') > 0) {
-      res.status(400).json({
-        error: {
-          code: 'HAS_ASSIGNED_TICKETS',
-          message: 'Cannot delete user with assigned tickets. Please reassign tickets first.',
-        },
-      });
-      return;
-    }
-    
-    // Permanently delete the user
-    await db('users').where('id', userId).del();
-    
-    res.json({ 
-      message: 'User permanently deleted',
-      userId 
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'DELETE_USER_FAILED',
-        message: 'Failed to delete user',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
   }
-});
+);
 
 /**
  * POST /admin/seed-statuses
  * One-time endpoint to seed default ticket statuses for all teams
  */
-router.post('/seed-statuses', authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { db } = require('@/config/database');
-    const { v4: uuidv4 } = require('uuid');
-    
-    console.log('🌱 Seeding default ticket statuses...');
+router.post(
+  '/seed-statuses',
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { db } = require('@/config/database');
+      const { v4: uuidv4 } = require('uuid');
 
-    const teams = await db('teams').select('id', 'name');
+      console.log('🌱 Seeding default ticket statuses...');
 
-    if (teams.length === 0) {
-      res.json({ success: true, message: 'No teams found', teamsProcessed: 0 });
-      return;
-    }
+      const teams = await db('teams').select('id', 'name');
 
-    const defaultStatuses = [
-      { name: 'open', label: 'Open', color: '#EF4444', order: 1, is_default: true, is_closed: false },
-      { name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, is_default: false, is_closed: false },
-      { name: 'waiting', label: 'Waiting', color: '#3B82F6', order: 3, is_default: false, is_closed: false },
-      { name: 'resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false, is_closed: true },
-    ];
-
-    let teamsProcessed = 0;
-    let statusesCreated = 0;
-
-    for (const team of teams) {
-      const existingStatuses = await db('ticket_statuses')
-        .where('team_id', team.id)
-        .count('* as count')
-        .first();
-
-      const count = parseInt(existingStatuses?.count as string || '0');
-
-      if (count > 0) {
-        console.log(`Team ${team.name} already has ${count} statuses, skipping`);
-        continue;
+      if (teams.length === 0) {
+        res.json({ success: true, message: 'No teams found', teamsProcessed: 0 });
+        return;
       }
 
-      for (const status of defaultStatuses) {
-        await db('ticket_statuses').insert({
-          id: uuidv4(),
-          team_id: team.id,
-          name: status.name,
-          label: status.label,
-          color: status.color,
-          order: status.order,
-          is_default: status.is_default,
-          is_closed: status.is_closed,
-          is_active: true,
-          created_at: db.fn.now(),
-          updated_at: db.fn.now(),
-        });
-        statusesCreated++;
+      const defaultStatuses = [
+        {
+          name: 'open',
+          label: 'Open',
+          color: '#EF4444',
+          order: 1,
+          is_default: true,
+          is_closed: false,
+        },
+        {
+          name: 'in_progress',
+          label: 'In Progress',
+          color: '#F59E0B',
+          order: 2,
+          is_default: false,
+          is_closed: false,
+        },
+        {
+          name: 'waiting',
+          label: 'Waiting',
+          color: '#3B82F6',
+          order: 3,
+          is_default: false,
+          is_closed: false,
+        },
+        {
+          name: 'resolved',
+          label: 'Resolved',
+          color: '#10B981',
+          order: 4,
+          is_default: false,
+          is_closed: true,
+        },
+      ];
+
+      let teamsProcessed = 0;
+      let statusesCreated = 0;
+
+      for (const team of teams) {
+        const existingStatuses = await db('ticket_statuses')
+          .where('team_id', team.id)
+          .count('* as count')
+          .first();
+
+        const count = parseInt((existingStatuses?.count as string) || '0');
+
+        if (count > 0) {
+          console.log(`Team ${team.name} already has ${count} statuses, skipping`);
+          continue;
+        }
+
+        for (const status of defaultStatuses) {
+          await db('ticket_statuses').insert({
+            id: uuidv4(),
+            team_id: team.id,
+            name: status.name,
+            label: status.label,
+            color: status.color,
+            order: status.order,
+            is_default: status.is_default,
+            is_closed: status.is_closed,
+            is_active: true,
+            created_at: db.fn.now(),
+            updated_at: db.fn.now(),
+          });
+          statusesCreated++;
+        }
+
+        teamsProcessed++;
+        console.log(`✅ Created default statuses for team ${team.name}`);
       }
 
-      teamsProcessed++;
-      console.log(`✅ Created default statuses for team ${team.name}`);
+      console.log(`✅ Seeded ${statusesCreated} statuses for ${teamsProcessed} teams`);
+
+      res.json({
+        success: true,
+        message: 'Default ticket statuses seeded successfully',
+        teamsProcessed,
+        statusesCreated,
+        teams: teams.map((t: any) => t.name),
+      });
+    } catch (error) {
+      console.error('Failed to seed statuses:', error);
+      res.status(500).json({
+        error: {
+          code: 'SEED_STATUSES_FAILED',
+          message: 'Failed to seed statuses',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
     }
-
-    console.log(`✅ Seeded ${statusesCreated} statuses for ${teamsProcessed} teams`);
-
-    res.json({
-      success: true,
-      message: 'Default ticket statuses seeded successfully',
-      teamsProcessed,
-      statusesCreated,
-      teams: teams.map((t: any) => t.name),
-    });
-  } catch (error) {
-    console.error('Failed to seed statuses:', error);
-    res.status(500).json({
-      error: {
-        code: 'SEED_STATUSES_FAILED',
-        message: 'Failed to seed statuses',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
   }
-});
+);
 
 export default router;

@@ -100,10 +100,11 @@ export class Department extends BaseModel {
   }
 
   // Get department by ID with agents
-  static async getByIdWithAgents(id: number, companyId: string): Promise<DepartmentWithAgents | null> {
-    const department = await db('departments')
-      .where({ id, company_id: companyId })
-      .first();
+  static async getByIdWithAgents(
+    id: number,
+    companyId: string
+  ): Promise<DepartmentWithAgents | null> {
+    const department = await db('departments').where({ id, company_id: companyId }).first();
 
     if (!department) {
       return null;
@@ -138,20 +139,18 @@ export class Department extends BaseModel {
   }
 
   // Create department
-  static async createDepartment(data: Omit<DepartmentTable, 'id' | 'created_at' | 'updated_at'>): Promise<DepartmentTable> {
+  static async createDepartment(
+    data: Omit<DepartmentTable, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<DepartmentTable> {
     const trx = await db.transaction();
 
     try {
       // If this is being set as default, unset other defaults
       if (data.is_default) {
-        await trx('departments')
-          .where('company_id', data.company_id)
-          .update({ is_default: false });
+        await trx('departments').where('company_id', data.company_id).update({ is_default: false });
       }
 
-      const [department] = await trx('departments')
-        .insert(data)
-        .returning('*');
+      const [department] = await trx('departments').insert(data).returning('*');
 
       await trx.commit();
       return department;
@@ -171,9 +170,7 @@ export class Department extends BaseModel {
 
     try {
       // Check if department exists
-      const existing = await trx('departments')
-        .where({ id, company_id: companyId })
-        .first();
+      const existing = await trx('departments').where({ id, company_id: companyId }).first();
 
       if (!existing) {
         await trx.rollback();
@@ -209,9 +206,7 @@ export class Department extends BaseModel {
     const trx = await db.transaction();
 
     try {
-      const existing = await trx('departments')
-        .where({ id, company_id: companyId })
-        .first();
+      const existing = await trx('departments').where({ id, company_id: companyId }).first();
 
       if (!existing) {
         await trx.rollback();
@@ -237,21 +232,15 @@ export class Department extends BaseModel {
           .first();
 
         if (nextDefault) {
-          await trx('departments')
-            .where('id', nextDefault.id)
-            .update({ is_default: true });
+          await trx('departments').where('id', nextDefault.id).update({ is_default: true });
         }
       }
 
       // Update tickets to remove department association
-      await trx('tickets')
-        .where('department_id', id)
-        .update({ department_id: null });
+      await trx('tickets').where('department_id', id).update({ department_id: null });
 
       // Delete department (cascades will handle agents and templates)
-      await trx('departments')
-        .where({ id, company_id: companyId })
-        .del();
+      await trx('departments').where({ id, company_id: companyId }).del();
 
       await trx.commit();
       return true;
@@ -325,7 +314,9 @@ export class Department extends BaseModel {
   }
 
   // Create department template
-  static async createTemplate(data: Omit<DepartmentTicketTemplate, 'id' | 'created_at' | 'updated_at'>): Promise<DepartmentTicketTemplate> {
+  static async createTemplate(
+    data: Omit<DepartmentTicketTemplate, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<DepartmentTicketTemplate> {
     const trx = await db.transaction();
 
     try {
@@ -336,9 +327,7 @@ export class Department extends BaseModel {
           .update({ is_default: false });
       }
 
-      const [template] = await trx('department_ticket_templates')
-        .insert(data)
-        .returning('*');
+      const [template] = await trx('department_ticket_templates').insert(data).returning('*');
 
       await trx.commit();
       return template;
@@ -351,14 +340,14 @@ export class Department extends BaseModel {
   // Update department template
   static async updateTemplate(
     id: number,
-    data: Partial<Omit<DepartmentTicketTemplate, 'id' | 'department_id' | 'created_at' | 'updated_at'>>
+    data: Partial<
+      Omit<DepartmentTicketTemplate, 'id' | 'department_id' | 'created_at' | 'updated_at'>
+    >
   ): Promise<DepartmentTicketTemplate | null> {
     const trx = await db.transaction();
 
     try {
-      const existing = await trx('department_ticket_templates')
-        .where('id', id)
-        .first();
+      const existing = await trx('department_ticket_templates').where('id', id).first();
 
       if (!existing) {
         await trx.rollback();
@@ -391,9 +380,7 @@ export class Department extends BaseModel {
 
   // Delete department template
   static async deleteTemplate(id: number): Promise<boolean> {
-    const deleted = await db('department_ticket_templates')
-      .where('id', id)
-      .del();
+    const deleted = await db('department_ticket_templates').where('id', id).del();
 
     return deleted > 0;
   }

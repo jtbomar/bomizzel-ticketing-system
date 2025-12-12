@@ -26,19 +26,17 @@ interface BusinessHours {
   schedule: BusinessHoursSchedule[];
 }
 
-const DAYS_OF_WEEK = [
-  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-];
+const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const TIMEZONES = [
   'America/New_York',
-  'America/Chicago', 
+  'America/Chicago',
   'America/Denver',
   'America/Los_Angeles',
   'America/Phoenix',
   'America/Anchorage',
   'Pacific/Honolulu',
-  'UTC'
+  'UTC',
 ];
 
 const BusinessHours: React.FC = () => {
@@ -63,14 +61,12 @@ const BusinessHours: React.FC = () => {
       start_time: index >= 1 && index <= 5 ? '09:00' : '',
       end_time: index >= 1 && index <= 5 ? '17:00' : '',
       break_start: '',
-      break_end: ''
-    }))
+      break_end: '',
+    })),
   });
 
   // Track which days have breaks enabled
-  const [breaksEnabled, setBreaksEnabled] = useState<boolean[]>(
-    DAYS_OF_WEEK.map(() => false)
-  );
+  const [breaksEnabled, setBreaksEnabled] = useState<boolean[]>(DAYS_OF_WEEK.map(() => false));
 
   useEffect(() => {
     fetchBusinessHours();
@@ -80,22 +76,24 @@ const BusinessHours: React.FC = () => {
     try {
       setLoading(true);
       const businessHoursData = await apiService.getBusinessHours();
-      
+
       // Add default schedule if missing
       const dataWithSchedule = businessHoursData.map((bh: BusinessHours) => ({
         ...bh,
-        schedule: bh.schedule || DAYS_OF_WEEK.map((_, index) => ({
-          day_of_week: index,
-          is_working_day: index >= 1 && index <= 5,
-          start_time: index >= 1 && index <= 5 ? '09:00' : '',
-          end_time: index >= 1 && index <= 5 ? '17:00' : '',
-          break_start: '',
-          break_end: ''
-        }))
+        schedule:
+          bh.schedule ||
+          DAYS_OF_WEEK.map((_, index) => ({
+            day_of_week: index,
+            is_working_day: index >= 1 && index <= 5,
+            start_time: index >= 1 && index <= 5 ? '09:00' : '',
+            end_time: index >= 1 && index <= 5 ? '17:00' : '',
+            break_start: '',
+            break_end: '',
+          })),
       }));
-      
+
       setBusinessHoursList(dataWithSchedule);
-      
+
       // Select the default one if available
       const defaultBH = dataWithSchedule.find((bh: BusinessHours) => bh.is_default);
       if (defaultBH) {
@@ -120,14 +118,14 @@ const BusinessHours: React.FC = () => {
 
     try {
       setSaving(true);
-      
+
       // Convert time format from HH:MM to HH:MM:SS for backend
-      const scheduleData = formData.schedule.map(s => ({
+      const scheduleData = formData.schedule.map((s) => ({
         ...s,
         start_time: s.start_time && s.start_time.trim() ? `${s.start_time}:00` : null,
         end_time: s.end_time && s.end_time.trim() ? `${s.end_time}:00` : null,
         break_start: s.break_start && s.break_start.trim() ? `${s.break_start}:00` : null,
-        break_end: s.break_end && s.break_end.trim() ? `${s.break_end}:00` : null
+        break_end: s.break_end && s.break_end.trim() ? `${s.break_end}:00` : null,
       }));
 
       const payload = {
@@ -136,9 +134,9 @@ const BusinessHours: React.FC = () => {
           description: formData.description,
           timezone: formData.timezone,
           is_active: formData.is_active,
-          is_default: formData.is_default
+          is_default: formData.is_default,
         },
-        schedule: scheduleData
+        schedule: scheduleData,
       };
 
       if (isCreating) {
@@ -167,7 +165,7 @@ const BusinessHours: React.FC = () => {
     try {
       await apiService.deleteBusinessHours(id);
       await fetchBusinessHours();
-      
+
       if (selectedBusinessHours?.id === id) {
         setSelectedBusinessHours(businessHoursList.length > 1 ? businessHoursList[0] : null);
       }
@@ -180,22 +178,22 @@ const BusinessHours: React.FC = () => {
   const startEditing = (businessHours?: BusinessHours) => {
     if (businessHours) {
       // Convert time format from HH:MM:SS to HH:MM for form inputs
-      const scheduleData = businessHours.schedule.map(s => ({
+      const scheduleData = businessHours.schedule.map((s) => ({
         ...s,
         start_time: s.start_time ? s.start_time.substring(0, 5) : '',
         end_time: s.end_time ? s.end_time.substring(0, 5) : '',
         break_start: s.break_start ? s.break_start.substring(0, 5) : '',
-        break_end: s.break_end ? s.break_end.substring(0, 5) : ''
+        break_end: s.break_end ? s.break_end.substring(0, 5) : '',
       }));
 
       // Set breaks enabled state based on existing data
-      const breaksEnabledState = businessHours.schedule.map(s => 
-        !!(s.break_start && s.break_end)
+      const breaksEnabledState = businessHours.schedule.map(
+        (s) => !!(s.break_start && s.break_end)
       );
 
       setFormData({
         ...businessHours,
-        schedule: scheduleData
+        schedule: scheduleData,
       });
       setBreaksEnabled(breaksEnabledState);
       setSelectedBusinessHours(businessHours);
@@ -215,8 +213,8 @@ const BusinessHours: React.FC = () => {
           start_time: index >= 1 && index <= 5 ? '09:00' : '',
           end_time: index >= 1 && index <= 5 ? '17:00' : '',
           break_start: '',
-          break_end: ''
-        }))
+          break_end: '',
+        })),
       });
       setBreaksEnabled(DAYS_OF_WEEK.map(() => false));
       setIsCreating(true);
@@ -233,7 +231,7 @@ const BusinessHours: React.FC = () => {
       timezone: 'America/New_York',
       is_active: true,
       is_default: false,
-      schedule: []
+      schedule: [],
     });
   };
 
@@ -241,7 +239,7 @@ const BusinessHours: React.FC = () => {
     const newSchedule = [...formData.schedule];
     newSchedule[dayIndex] = {
       ...newSchedule[dayIndex],
-      [field]: value
+      [field]: value,
     };
     setFormData({ ...formData, schedule: newSchedule });
   };
@@ -265,7 +263,12 @@ const BusinessHours: React.FC = () => {
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Back to Settings
               </button>
@@ -289,7 +292,9 @@ const BusinessHours: React.FC = () => {
           {businessHoursList.length === 0 && !isEditing ? (
             <div className="text-center py-12">
               <div className="text-gray-400 text-6xl mb-4">🕐</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Business Hours Configured</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                No Business Hours Configured
+              </h3>
               <p className="text-gray-600 mb-4">
                 Set up your business hours to enable SLA calculations and time-based automations.
               </p>
@@ -416,8 +421,10 @@ const BusinessHours: React.FC = () => {
                             onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
-                            {TIMEZONES.map(tz => (
-                              <option key={tz} value={tz}>{tz}</option>
+                            {TIMEZONES.map((tz) => (
+                              <option key={tz} value={tz}>
+                                {tz}
+                              </option>
                             ))}
                           </select>
                         </div>
@@ -429,7 +436,9 @@ const BusinessHours: React.FC = () => {
                         </label>
                         <textarea
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           placeholder="Optional description for this business hours configuration"
@@ -441,7 +450,9 @@ const BusinessHours: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={formData.is_active}
-                            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_active: e.target.checked })
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="ml-2 text-sm text-gray-700">Active</span>
@@ -450,7 +461,9 @@ const BusinessHours: React.FC = () => {
                           <input
                             type="checkbox"
                             checked={formData.is_default}
-                            onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                            onChange={(e) =>
+                              setFormData({ ...formData, is_default: e.target.checked })
+                            }
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                           <span className="ml-2 text-sm text-gray-700">Set as Default</span>
@@ -474,7 +487,9 @@ const BusinessHours: React.FC = () => {
                                     <input
                                       type="checkbox"
                                       checked={day.is_working_day}
-                                      onChange={(e) => updateScheduleDay(index, 'is_working_day', e.target.checked)}
+                                      onChange={(e) =>
+                                        updateScheduleDay(index, 'is_working_day', e.target.checked)
+                                      }
                                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
                                     <span className="ml-2 text-sm text-gray-700">Working Day</span>
@@ -486,7 +501,9 @@ const BusinessHours: React.FC = () => {
                                       <input
                                         type="time"
                                         value={day.start_time}
-                                        onChange={(e) => updateScheduleDay(index, 'start_time', e.target.value)}
+                                        onChange={(e) =>
+                                          updateScheduleDay(index, 'start_time', e.target.value)
+                                        }
                                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       />
                                     </div>
@@ -494,7 +511,9 @@ const BusinessHours: React.FC = () => {
                                       <input
                                         type="time"
                                         value={day.end_time}
-                                        onChange={(e) => updateScheduleDay(index, 'end_time', e.target.value)}
+                                        onChange={(e) =>
+                                          updateScheduleDay(index, 'end_time', e.target.value)
+                                        }
                                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       />
                                     </div>
@@ -507,7 +526,7 @@ const BusinessHours: React.FC = () => {
                                             const newBreaksEnabled = [...breaksEnabled];
                                             newBreaksEnabled[index] = e.target.checked;
                                             setBreaksEnabled(newBreaksEnabled);
-                                            
+
                                             // Clear break times if unchecked
                                             if (!e.target.checked) {
                                               updateScheduleDay(index, 'break_start', '');
@@ -516,31 +535,41 @@ const BusinessHours: React.FC = () => {
                                           }}
                                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                         />
-                                        <span className="ml-2 text-sm text-gray-700">Add Break</span>
+                                        <span className="ml-2 text-sm text-gray-700">
+                                          Add Break
+                                        </span>
                                       </label>
                                     </div>
                                   </>
                                 )}
                               </div>
-                              
+
                               {day.is_working_day && breaksEnabled[index] && (
                                 <div className="grid grid-cols-12 gap-3 items-center mt-2">
                                   <div className="col-span-6"></div>
                                   <div className="col-span-3">
-                                    <label className="block text-xs text-gray-600 mb-1">Break Start</label>
+                                    <label className="block text-xs text-gray-600 mb-1">
+                                      Break Start
+                                    </label>
                                     <input
                                       type="time"
                                       value={day.break_start}
-                                      onChange={(e) => updateScheduleDay(index, 'break_start', e.target.value)}
+                                      onChange={(e) =>
+                                        updateScheduleDay(index, 'break_start', e.target.value)
+                                      }
                                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                   </div>
                                   <div className="col-span-3">
-                                    <label className="block text-xs text-gray-600 mb-1">Break End</label>
+                                    <label className="block text-xs text-gray-600 mb-1">
+                                      Break End
+                                    </label>
                                     <input
                                       type="time"
                                       value={day.break_end}
-                                      onChange={(e) => updateScheduleDay(index, 'break_end', e.target.value)}
+                                      onChange={(e) =>
+                                        updateScheduleDay(index, 'break_end', e.target.value)
+                                      }
                                       className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     />
                                   </div>
@@ -592,16 +621,23 @@ const BusinessHours: React.FC = () => {
                         <h4 className="text-sm font-medium text-gray-700 mb-3">Weekly Schedule</h4>
                         <div className="space-y-2">
                           {selectedBusinessHours.schedule?.map((day, index) => (
-                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div
+                              key={index}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            >
                               <span className="font-medium text-gray-700 w-20">
                                 {DAYS_OF_WEEK[index]}
                               </span>
                               {day.is_working_day ? (
                                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                                  <span>{day.start_time?.substring(0, 5)} - {day.end_time?.substring(0, 5)}</span>
+                                  <span>
+                                    {day.start_time?.substring(0, 5)} -{' '}
+                                    {day.end_time?.substring(0, 5)}
+                                  </span>
                                   {day.break_start && day.break_end && (
                                     <span className="text-orange-600">
-                                      Break: {day.break_start.substring(0, 5)} - {day.break_end.substring(0, 5)}
+                                      Break: {day.break_start.substring(0, 5)} -{' '}
+                                      {day.break_end.substring(0, 5)}
                                     </span>
                                   )}
                                 </div>
@@ -617,7 +653,9 @@ const BusinessHours: React.FC = () => {
                 ) : (
                   <div className="text-center py-12">
                     <div className="text-gray-400 text-4xl mb-4">📅</div>
-                    <p className="text-gray-600">Select a business hours configuration to view details</p>
+                    <p className="text-gray-600">
+                      Select a business hours configuration to view details
+                    </p>
                   </div>
                 )}
               </div>

@@ -10,27 +10,25 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const userRole = req.user!.role;
-    
+
     // For admin/agent/team_lead, get all departments across all companies
     if (['admin', 'employee', 'team_lead'].includes(userRole)) {
-      const departments = await db('departments')
-        .select('*')
-        .orderBy('name');
+      const departments = await db('departments').select('*').orderBy('name');
       return res.json(departments);
     }
-    
+
     // For customers, get departments for their associated company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const departments = await DepartmentService.getDepartments(companyId);
-    
+
     return res.json(departments);
   } catch (error) {
     console.error('Error fetching departments:', error);
@@ -43,31 +41,29 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const userRole = req.user!.role;
-    
+
     // For admin/agent/team_lead, get department without company restriction
     if (['admin', 'employee', 'team_lead'].includes(userRole)) {
-      const department = await db('departments')
-        .where('id', parseInt(id))
-        .first();
-      
+      const department = await db('departments').where('id', parseInt(id)).first();
+
       if (!department) {
         return res.status(404).json({ error: 'Department not found' });
       }
       return res.json(department);
     }
-    
+
     // For customers, verify they have access to this department's company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const department = await DepartmentService.getDepartmentById(parseInt(id), companyId);
-    
+
     if (!department) {
       return res.status(404).json({ error: 'Department not found' });
     }
@@ -82,7 +78,17 @@ router.get('/:id', authenticate, async (req, res) => {
 // Create new department (admin only)
 router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { name, description, display_name, logo, color, is_active, is_default, display_in_help_center, associate_agent } = req.body;
+    const {
+      name,
+      description,
+      display_name,
+      logo,
+      color,
+      is_active,
+      is_default,
+      display_in_help_center,
+      associate_agent,
+    } = req.body;
 
     console.log('Creating department:', { name, user: req.user?.email });
 
@@ -94,9 +100,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     console.log('User company:', userCompany);
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
@@ -112,7 +118,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       const userOrg = await db('user_organization_associations')
         .where('user_id', req.user!.id)
         .first();
-      
+
       if (userOrg) {
         orgId = userOrg.org_id;
         // Update user's current_org_id
@@ -141,8 +147,11 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 
     // Only add new fields if they exist in the schema
     const hasDisplayName = await db.schema.hasColumn('departments', 'display_name');
-    const hasDisplayInHelpCenter = await db.schema.hasColumn('departments', 'display_in_help_center');
-    
+    const hasDisplayInHelpCenter = await db.schema.hasColumn(
+      'departments',
+      'display_in_help_center'
+    );
+
     if (hasDisplayName) {
       departmentData.display_name = display_name || name;
     }
@@ -150,9 +159,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       departmentData.display_in_help_center = display_in_help_center !== false;
     }
 
-    const [department] = await db('departments')
-      .insert(departmentData)
-      .returning('*');
+    const [department] = await db('departments').insert(departmentData).returning('*');
 
     console.log('Department created:', department.id);
 
@@ -169,7 +176,8 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     return res.status(201).json(department);
   } catch (error: any) {
     console.error('Error creating department:', error);
-    if (error.code === '23505') { // Unique constraint violation
+    if (error.code === '23505') {
+      // Unique constraint violation
       return res.status(409).json({ error: 'Department name already exists' });
     }
     return res.status(500).json({ error: 'Failed to create department', details: error.message });
@@ -180,16 +188,16 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const { name, description, logo, color, is_active, is_default } = req.body;
 
@@ -220,16 +228,16 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
 router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const success = await DepartmentService.deleteDepartment(parseInt(id), companyId);
 
@@ -252,16 +260,16 @@ router.post('/:id/agents', authenticate, authorize('admin'), async (req, res) =>
   try {
     const { id } = req.params;
     const { user_id, role = 'member' } = req.body;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     if (!user_id) {
@@ -291,16 +299,16 @@ router.post('/:id/agents', authenticate, authorize('admin'), async (req, res) =>
 router.delete('/:id/agents/:userId', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id, userId } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const success = await DepartmentService.removeAgent(parseInt(id), companyId, userId);
 
@@ -333,19 +341,19 @@ router.get('/user/my-departments', authenticate, async (req, res) => {
 router.get('/:id/templates', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const templates = await DepartmentService.getDepartmentTemplates(parseInt(id), companyId);
-    
+
     return res.json(templates);
   } catch (error: any) {
     console.error('Error fetching department templates:', error);
@@ -360,18 +368,27 @@ router.get('/:id/templates', authenticate, async (req, res) => {
 router.post('/:id/templates', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
-    const { name, description, template_fields, default_values, priority, category, is_active, is_default } = req.body;
+    const {
+      name,
+      description,
+      template_fields,
+      default_values,
+      priority,
+      category,
+      is_active,
+      is_default,
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({ error: 'Template name is required' });
@@ -402,18 +419,27 @@ router.post('/:id/templates', authenticate, authorize('admin'), async (req, res)
 router.put('/templates/:templateId', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { templateId } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
-    const { name, description, template_fields, default_values, priority, category, is_active, is_default } = req.body;
+    const {
+      name,
+      description,
+      template_fields,
+      default_values,
+      priority,
+      category,
+      is_active,
+      is_default,
+    } = req.body;
 
     const template = await DepartmentService.updateTemplate(parseInt(templateId), companyId, {
       name,
@@ -441,16 +467,16 @@ router.put('/templates/:templateId', authenticate, authorize('admin'), async (re
 router.delete('/templates/:templateId', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { templateId } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const success = await DepartmentService.deleteTemplate(parseInt(templateId), companyId);
 

@@ -480,7 +480,7 @@ export class StripeService {
         periodEnd: new Date(),
         nextPaymentAttempt: undefined,
       };
-      
+
       /* 
       const invoice = await stripe.invoices.retrieveUpcoming({
         subscription: subscriptionId,

@@ -81,7 +81,7 @@ const AgentDashboard: React.FC = () => {
   // FORCE default statuses - bypass localStorage corruption
   const getStatuses = (): StatusOption[] => {
     console.log('[AgentDashboard] getStatuses called');
-    
+
     // ALWAYS return default statuses to fix Shane's issue
     const defaultStatuses = [
       {
@@ -121,7 +121,7 @@ const AgentDashboard: React.FC = () => {
         isDefault: true,
       },
     ];
-    
+
     console.log('[AgentDashboard] Returning default statuses:', defaultStatuses.length);
     return defaultStatuses;
   };
@@ -186,7 +186,7 @@ const AgentDashboard: React.FC = () => {
   // Load tickets from localStorage or use defaults
   const getInitialTickets = (): Ticket[] => {
     if (!user) return [];
-    
+
     const userKey = `agent-tickets-${user.id}`;
     const saved = localStorage.getItem(userKey);
     if (saved) {
@@ -336,12 +336,15 @@ const AgentDashboard: React.FC = () => {
 
   // Load initial tickets when user is available
   useEffect(() => {
-    console.log('[AgentDashboard] User state changed:', user ? `${user.email} (${user.role})` : 'null');
+    console.log(
+      '[AgentDashboard] User state changed:',
+      user ? `${user.email} (${user.role})` : 'null'
+    );
     if (user) {
       const initialTickets = migrateTickets(getInitialTickets(), statuses);
       console.log('[AgentDashboard] Initial tickets loaded:', initialTickets.length);
       setTickets(initialTickets);
-      
+
       // Load ticket ID mapping from localStorage
       const idMapKey = `agent-ticket-ids-${user.id}`;
       const savedIdMap = localStorage.getItem(idMapKey);
@@ -372,7 +375,7 @@ const AgentDashboard: React.FC = () => {
       const filterKey = `agent-filter-${user.id}`;
       const existingTickets = localStorage.getItem(userKey);
       const lastFilter = localStorage.getItem(filterKey);
-      
+
       // Only fetch from API if no local tickets exist OR filter has changed
       const filterChanged = lastFilter !== showOnlyMyTickets.toString();
       if (existingTickets && JSON.parse(existingTickets).length > 0 && !filterChanged) {
@@ -387,7 +390,7 @@ const AgentDashboard: React.FC = () => {
 
       try {
         console.log('[AgentDashboard] Fetching fresh tickets from API');
-        
+
         // Get tickets based on filter preference
         const ticketParams: any = { limit: 100 };
         if (showOnlyMyTickets && user) {
@@ -396,23 +399,25 @@ const AgentDashboard: React.FC = () => {
         } else {
           console.log('[AgentDashboard] Fetching all tickets');
         }
-        
+
         const response = await apiService.getTickets(ticketParams);
         const apiTickets = response.data || response.tickets || [];
         console.log('[AgentDashboard] Received', apiTickets.length, 'tickets from API');
-        
+
         // Create ID mapping from numeric to UUID
         const idMapping = new Map<number, string>();
-        
+
         // Transform API tickets to dashboard format
         const transformedTickets = apiTickets.map((t: any, index: number) => {
-          const assignedName = t.assignedTo ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}` : 'Unassigned';
+          const assignedName = t.assignedTo
+            ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}`
+            : 'Unassigned';
           const isAssignedToCurrentUser = user && t.assignedTo?.id === user.id;
-          
+
           // Create a unique numeric ID from the UUID
           const numericId = index + 1000; // Simple sequential IDs starting from 1000
           idMapping.set(numericId, t.id); // Store UUID mapping
-          
+
           return {
             id: numericId,
             title: t.title,
@@ -423,15 +428,17 @@ const AgentDashboard: React.FC = () => {
             created: new Date(t.createdAt).toLocaleDateString(),
             description: t.description || '',
             order: 0, // Will be set below
-            customerInfo: t.submitter ? {
-              name: `${t.submitter.firstName} ${t.submitter.lastName}`,
-              email: t.submitter.email,
-              company: t.company?.name || '',
-              companyId: t.companyId,
-            } : undefined,
+            customerInfo: t.submitter
+              ? {
+                  name: `${t.submitter.firstName} ${t.submitter.lastName}`,
+                  email: t.submitter.email,
+                  company: t.company?.name || '',
+                  companyId: t.companyId,
+                }
+              : undefined,
           };
         });
-        
+
         // Assign proper order within each status column
         const ticketsByStatus: { [key: string]: any[] } = {};
         transformedTickets.forEach((ticket: any) => {
@@ -440,24 +447,29 @@ const AgentDashboard: React.FC = () => {
           }
           ticketsByStatus[ticket.status].push(ticket);
         });
-        
+
         // Set order for each status group
-        Object.keys(ticketsByStatus).forEach(status => {
+        Object.keys(ticketsByStatus).forEach((status) => {
           ticketsByStatus[status].forEach((ticket, index) => {
             ticket.order = index + 1;
           });
         });
-        
+
         if (transformedTickets.length > 0) {
           const migratedTickets = migrateTickets(transformedTickets, statuses);
           setTickets(migratedTickets);
           setTicketIdMap(idMapping);
-          
+
           // Save ID mapping to localStorage
           const idMapKey = `agent-ticket-ids-${user.id}`;
           localStorage.setItem(idMapKey, JSON.stringify(Array.from(idMapping.entries())));
-          
-          console.log('[AgentDashboard] Loaded', transformedTickets.length, 'tickets from API, migrated to:', migratedTickets.length);
+
+          console.log(
+            '[AgentDashboard] Loaded',
+            transformedTickets.length,
+            'tickets from API, migrated to:',
+            migratedTickets.length
+          );
         } else {
           console.log('[AgentDashboard] No tickets received from API');
           console.log('[AgentDashboard] API response:', response);
@@ -468,7 +480,7 @@ const AgentDashboard: React.FC = () => {
         // Keep using localStorage tickets on error
       }
     };
-    
+
     fetchTickets();
   }, [user, showOnlyMyTickets]); // Re-fetch when user changes or filter changes
 
@@ -491,7 +503,7 @@ const AgentDashboard: React.FC = () => {
           console.log('[AgentDashboard] Fetching statuses for team:', teamId);
           const response = await apiService.getTeamStatuses(teamId);
           const apiStatuses = response.statuses || [];
-          
+
           if (apiStatuses.length > 0) {
             // Transform API statuses to StatusOption format
             const transformedStatuses = apiStatuses
@@ -506,7 +518,7 @@ const AgentDashboard: React.FC = () => {
                 isActive: s.is_active,
                 isDefault: s.is_default,
               }));
-            
+
             // Save to localStorage and update state
             localStorage.setItem('admin-statuses', JSON.stringify(transformedStatuses));
             setStatuses(transformedStatuses);
@@ -521,7 +533,7 @@ const AgentDashboard: React.FC = () => {
       } else {
         console.log('[AgentDashboard] No teamId, using default statuses');
       }
-      
+
       setLoadingStatuses(false);
     };
 
@@ -537,7 +549,7 @@ const AgentDashboard: React.FC = () => {
         // Try to get team from user's tickets
         const response = await apiService.getTickets({ limit: 1 });
         const tickets = response.data || response.tickets || [];
-        
+
         if (tickets.length > 0 && tickets[0].teamId) {
           setTeamId(tickets[0].teamId);
           return;
@@ -632,9 +644,11 @@ const AgentDashboard: React.FC = () => {
       filter: (ticket: Ticket) => {
         // Use same logic as main filtering
         const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
-        return ticket.assigned === 'You' || 
-               ticket.assigned === currentUserName ||
-               (user && ticket.assigned === user.email);
+        return (
+          ticket.assigned === 'You' ||
+          ticket.assigned === currentUserName ||
+          (user && ticket.assigned === user.email)
+        );
       },
       isDefault: true,
     },
@@ -660,7 +674,7 @@ const AgentDashboard: React.FC = () => {
         // Check if ticket is closed/resolved
         const isClosedStatus = ticket.status === 'closed' || ticket.status === 'resolved';
         if (!isClosedStatus) return false;
-        
+
         // Check if created today (as a proxy for closed date since we don't have closedAt)
         // In a real system, you'd check ticket.closedAt or ticket.updatedAt
         const today = new Date();
@@ -677,28 +691,49 @@ const AgentDashboard: React.FC = () => {
 
   // Memoized filtered tickets to prevent excessive re-renders during drag operations
   const filteredTickets = useMemo(() => {
-    console.log('[AgentDashboard] Filtering tickets - total:', tickets.length, 'activeViewFilter:', activeViewFilter, 'showOnlyMyTickets:', showOnlyMyTickets, 'user:', user?.email);
-    
+    console.log(
+      '[AgentDashboard] Filtering tickets - total:',
+      tickets.length,
+      'activeViewFilter:',
+      activeViewFilter,
+      'showOnlyMyTickets:',
+      showOnlyMyTickets,
+      'user:',
+      user?.email
+    );
+
     // Use activeViewFilter (sidebar) as primary filter
     if (activeViewFilter === 'my-queue') {
       // Check for tickets assigned to current user - handle multiple formats
       const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
       const myTickets = tickets.filter((ticket) => {
-        const isAssignedToMe = ticket.assigned === 'You' || 
-                              ticket.assigned === currentUserName ||
-                              (user && ticket.assigned === user.email);
+        const isAssignedToMe =
+          ticket.assigned === 'You' ||
+          ticket.assigned === currentUserName ||
+          (user && ticket.assigned === user.email);
         return isAssignedToMe;
       });
       console.log('[AgentDashboard] My Queue filter - found:', myTickets.length, 'tickets');
-      console.log('[AgentDashboard] Looking for assignments to:', ['You', currentUserName, user?.email]);
-      console.log('[AgentDashboard] Sample ticket assignments:', tickets.slice(0, 5).map(t => t.assigned));
+      console.log('[AgentDashboard] Looking for assignments to:', [
+        'You',
+        currentUserName,
+        user?.email,
+      ]);
+      console.log(
+        '[AgentDashboard] Sample ticket assignments:',
+        tickets.slice(0, 5).map((t) => t.assigned)
+      );
       return myTickets;
     } else if (activeViewFilter === 'all-tickets') {
       console.log('[AgentDashboard] All tickets filter - showing all:', tickets.length, 'tickets');
       return tickets;
     } else if (activeViewFilter === 'unassigned') {
       const unassignedTickets = tickets.filter((ticket) => ticket.assigned === 'Unassigned');
-      console.log('[AgentDashboard] Unassigned filter - found:', unassignedTickets.length, 'tickets');
+      console.log(
+        '[AgentDashboard] Unassigned filter - found:',
+        unassignedTickets.length,
+        'tickets'
+      );
       return unassignedTickets;
     } else if (activeViewFilter === 'all-open') {
       const openTickets = tickets.filter((ticket) => ticket.status === 'open');
@@ -709,15 +744,24 @@ const AgentDashboard: React.FC = () => {
       if (showOnlyMyTickets) {
         const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
         const myTickets = tickets.filter((ticket) => {
-          const isAssignedToMe = ticket.assigned === 'You' || 
-                                ticket.assigned === currentUserName ||
-                                (user && ticket.assigned === user.email);
+          const isAssignedToMe =
+            ticket.assigned === 'You' ||
+            ticket.assigned === currentUserName ||
+            (user && ticket.assigned === user.email);
           return isAssignedToMe;
         });
-        console.log('[AgentDashboard] Fallback My tickets filter - found:', myTickets.length, 'tickets');
+        console.log(
+          '[AgentDashboard] Fallback My tickets filter - found:',
+          myTickets.length,
+          'tickets'
+        );
         return myTickets;
       } else {
-        console.log('[AgentDashboard] Fallback All tickets filter - showing all:', tickets.length, 'tickets');
+        console.log(
+          '[AgentDashboard] Fallback All tickets filter - showing all:',
+          tickets.length,
+          'tickets'
+        );
         return tickets;
       }
     }
@@ -737,7 +781,8 @@ const AgentDashboard: React.FC = () => {
 
   // Save to localStorage whenever tickets change
   useEffect(() => {
-    if (user && tickets.length >= 0) { // Save even if 0 tickets (empty state)
+    if (user && tickets.length >= 0) {
+      // Save even if 0 tickets (empty state)
       const userKey = `agent-tickets-${user.id}`;
       localStorage.setItem(userKey, JSON.stringify(tickets));
       console.log('Saved tickets to localStorage:', tickets.length, 'for user:', user.email);
@@ -770,8 +815,8 @@ const AgentDashboard: React.FC = () => {
       } catch (error) {
         console.error('Failed to load agents:', error);
         // Fallback: extract unique agents from tickets
-        const uniqueAgents = Array.from(new Set(tickets.map(t => t.assigned)))
-          .filter(name => name !== 'Unassigned')
+        const uniqueAgents = Array.from(new Set(tickets.map((t) => t.assigned)))
+          .filter((name) => name !== 'Unassigned')
           .map((name, index) => ({
             id: `fallback-${index}`,
             firstName: name.split(' ')[0] || name,
@@ -832,7 +877,7 @@ const AgentDashboard: React.FC = () => {
       status: firstStatus.value,
       order: ticket.order,
     }));
-    
+
     setTickets(migratedTickets);
     if (user) {
       const userKey = `agent-tickets-${user.id}`;
@@ -1003,7 +1048,7 @@ const AgentDashboard: React.FC = () => {
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   };
 
   // Update contact info
@@ -1029,11 +1074,9 @@ const AgentDashboard: React.FC = () => {
       const companies = response.companies || response.data || [];
       setCompanySearchResults(companies);
       setShowCompanyDropdown(companies.length > 0);
-      
+
       // Show create prompt if no exact match found
-      const exactMatch = companies.some(
-        (c: any) => c.name.toLowerCase() === query.toLowerCase()
-      );
+      const exactMatch = companies.some((c: any) => c.name.toLowerCase() === query.toLowerCase());
       setShowCreateCompanyPrompt(!exactMatch && query.length > 2);
     } catch (error) {
       console.error('Failed to search companies:', error);
@@ -1046,7 +1089,7 @@ const AgentDashboard: React.FC = () => {
   // Handle company field change with debounce
   const handleCompanyChange = (value: string) => {
     setEditedContactInfo({ ...editedContactInfo, company: value });
-    
+
     // Debounce the search
     const timeoutId = setTimeout(() => {
       searchCompanies(value);
@@ -1056,11 +1099,21 @@ const AgentDashboard: React.FC = () => {
   };
 
   // Memoized function to get tickets by status to prevent excessive re-renders during drag
-  const getStatusTickets = useCallback((status: string) => {
-    const statusTickets = filteredTickets.filter((t) => t.status === status).sort((a, b) => a.order - b.order);
-    console.log(`[AgentDashboard] getStatusTickets("${status}") - filteredTickets:`, filteredTickets.length, 'statusTickets:', statusTickets.length);
-    return statusTickets;
-  }, [filteredTickets]);
+  const getStatusTickets = useCallback(
+    (status: string) => {
+      const statusTickets = filteredTickets
+        .filter((t) => t.status === status)
+        .sort((a, b) => a.order - b.order);
+      console.log(
+        `[AgentDashboard] getStatusTickets("${status}") - filteredTickets:`,
+        filteredTickets.length,
+        'statusTickets:',
+        statusTickets.length
+      );
+      return statusTickets;
+    },
+    [filteredTickets]
+  );
 
   const getStatusColor = (statusValue: string) => {
     const status = statuses.find((s) => s.value === statusValue);
@@ -1151,7 +1204,7 @@ const AgentDashboard: React.FC = () => {
 
   const moveTicket = async (ticketId: number, newStatus: string) => {
     console.log(`[moveTicket] Moving ticket ${ticketId} to status ${newStatus}`);
-    
+
     // Update local state optimistically
     setTickets((prev) => {
       const targetStatusTickets = prev.filter((t) => t.status === newStatus);
@@ -1167,13 +1220,13 @@ const AgentDashboard: React.FC = () => {
     try {
       const uuidTicketId = ticketIdMap.get(ticketId);
       console.log(`[moveTicket] UUID for ticket ${ticketId}:`, uuidTicketId);
-      
+
       if (!uuidTicketId) {
         console.error(`[moveTicket] No UUID found for ticket ${ticketId}`);
         console.log('[moveTicket] Available ticket IDs:', Array.from(ticketIdMap.keys()));
         return;
       }
-      
+
       console.log(`[moveTicket] Calling API to update ticket ${uuidTicketId}`);
       console.log(`[moveTicket] Request body:`, { status: newStatus });
       const response = await apiService.updateTicket(uuidTicketId, { status: newStatus });
@@ -1181,14 +1234,14 @@ const AgentDashboard: React.FC = () => {
     } catch (error: any) {
       console.error('[moveTicket] Failed to update ticket status:', error);
       console.error('[moveTicket] Error details:', error.response?.data || error.message);
-      
+
       // Revert the optimistic update
       setTickets((prev) =>
         prev.map((ticket) =>
           ticket.id === ticketId ? { ...ticket, status: ticket.status } : ticket
         )
       );
-      
+
       alert(`Failed to move ticket: ${error.response?.data?.message || error.message}`);
     }
   };
@@ -1216,22 +1269,26 @@ const AgentDashboard: React.FC = () => {
   const changeAssignment = async (ticketId: number, newAssigned: string) => {
     // Update local state optimistically - convert to "You" if assigning to current user
     const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
-    const displayAssigned = (newAssigned === currentUserName) ? 'You' : newAssigned;
-    
+    const displayAssigned = newAssigned === currentUserName ? 'You' : newAssigned;
+
     setTickets((prev) =>
-      prev.map((ticket) => (ticket.id === ticketId ? { ...ticket, assigned: displayAssigned } : ticket))
+      prev.map((ticket) =>
+        ticket.id === ticketId ? { ...ticket, assigned: displayAssigned } : ticket
+      )
     );
 
     // Update via API
     try {
       const uuidTicketId = ticketIdMap.get(ticketId);
-      console.log(`[AgentDashboard] Assignment API call - ticketId: ${ticketId}, uuidTicketId: ${uuidTicketId}, newAssigned: ${newAssigned}`);
-      
+      console.log(
+        `[AgentDashboard] Assignment API call - ticketId: ${ticketId}, uuidTicketId: ${uuidTicketId}, newAssigned: ${newAssigned}`
+      );
+
       if (uuidTicketId) {
         // Find the agent ID by name
-        const agent = agents.find(a => `${a.firstName} ${a.lastName}` === newAssigned);
+        const agent = agents.find((a) => `${a.firstName} ${a.lastName}` === newAssigned);
         console.log(`[AgentDashboard] Found agent for assignment:`, agent);
-        
+
         if (agent) {
           const result = await apiService.assignTicket(uuidTicketId, agent.id);
           console.log(`[AgentDashboard] API assignTicket result:`, result);
@@ -1291,8 +1348,10 @@ const AgentDashboard: React.FC = () => {
   };
 
   const moveTicketInColumn = (ticketId: number, direction: 'up' | 'down') => {
-    console.log(`[AgentDashboard] moveTicketInColumn called - ticketId: ${ticketId}, direction: ${direction}`);
-    
+    console.log(
+      `[AgentDashboard] moveTicketInColumn called - ticketId: ${ticketId}, direction: ${direction}`
+    );
+
     const ticket = tickets.find((t) => t.id === ticketId);
     if (!ticket) {
       console.log(`[AgentDashboard] Ticket ${ticketId} not found`);
@@ -1301,22 +1360,27 @@ const AgentDashboard: React.FC = () => {
 
     const statusTickets = getStatusTickets(ticket.status);
     const currentIndex = statusTickets.findIndex((t) => t.id === ticketId);
-    
+
     console.log(`[AgentDashboard] Current ticket:`, ticket);
-    console.log(`[AgentDashboard] Status tickets:`, statusTickets.map(t => ({id: t.id, title: t.title, order: t.order})));
+    console.log(
+      `[AgentDashboard] Status tickets:`,
+      statusTickets.map((t) => ({ id: t.id, title: t.title, order: t.order }))
+    );
     console.log(`[AgentDashboard] Current index: ${currentIndex} of ${statusTickets.length}`);
 
     if (direction === 'up' && currentIndex > 0) {
       const otherTicket = statusTickets[currentIndex - 1];
       console.log(`[AgentDashboard] Moving up - swapping with:`, otherTicket);
-      
+
       // Use a more robust reordering system
       const newOrder = otherTicket.order - 0.1; // Place slightly before the other ticket
-      
+
       setTickets((prev) =>
         prev.map((t) => {
           if (t.id === ticketId) {
-            console.log(`[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`);
+            console.log(
+              `[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`
+            );
             return { ...t, order: newOrder };
           }
           return t;
@@ -1325,21 +1389,25 @@ const AgentDashboard: React.FC = () => {
     } else if (direction === 'down' && currentIndex < statusTickets.length - 1) {
       const otherTicket = statusTickets[currentIndex + 1];
       console.log(`[AgentDashboard] Moving down - swapping with:`, otherTicket);
-      
+
       // Use a more robust reordering system
       const newOrder = otherTicket.order + 0.1; // Place slightly after the other ticket
-      
+
       setTickets((prev) =>
         prev.map((t) => {
           if (t.id === ticketId) {
-            console.log(`[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`);
+            console.log(
+              `[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`
+            );
             return { ...t, order: newOrder };
           }
           return t;
         })
       );
     } else {
-      console.log(`[AgentDashboard] Cannot move ${direction} - at boundary (index: ${currentIndex}, length: ${statusTickets.length})`);
+      console.log(
+        `[AgentDashboard] Cannot move ${direction} - at boundary (index: ${currentIndex}, length: ${statusTickets.length})`
+      );
     }
   };
 
@@ -1369,19 +1437,22 @@ const AgentDashboard: React.FC = () => {
     e.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleTicketDragOver = useCallback((e: React.DragEvent, ticket: Ticket) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleTicketDragOver = useCallback(
+    (e: React.DragEvent, ticket: Ticket) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (!draggedTicket || draggedTicket.id === ticket.id) return;
+      if (!draggedTicket || draggedTicket.id === ticket.id) return;
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    const position = e.clientY < midY ? 'above' : 'below';
+      const rect = e.currentTarget.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const position = e.clientY < midY ? 'above' : 'below';
 
-    setDragOverTicket(ticket.id);
-    setDragOverPosition(position);
-  }, [draggedTicket]);
+      setDragOverTicket(ticket.id);
+      setDragOverPosition(position);
+    },
+    [draggedTicket]
+  );
 
   const handleTicketDragLeave = useCallback((e: React.DragEvent) => {
     // Only clear if we're leaving the ticket entirely
@@ -1395,135 +1466,147 @@ const AgentDashboard: React.FC = () => {
     }
   }, []);
 
-  const handleTicketDrop = useCallback((e: React.DragEvent, targetTicket: Ticket) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleTicketDrop = useCallback(
+    (e: React.DragEvent, targetTicket: Ticket) => {
+      e.preventDefault();
+      e.stopPropagation();
 
-    if (!draggedTicket || draggedTicket.id === targetTicket.id) {
+      if (!draggedTicket || draggedTicket.id === targetTicket.id) {
+        setDraggedTicket(null);
+        setDragOverTicket(null);
+        setDragOverPosition(null);
+        return;
+      }
+
+      const sourceStatus = draggedTicket.status;
+      const targetStatus = targetTicket.status;
+
+      if (sourceStatus === targetStatus) {
+        // Reordering within the same column
+        reorderTicketsInColumn(draggedTicket.id, targetTicket.id, dragOverPosition || 'below');
+      } else {
+        // Moving to different column
+        moveTicketToPosition(
+          draggedTicket.id,
+          targetStatus,
+          targetTicket.id,
+          dragOverPosition || 'below'
+        );
+      }
+
       setDraggedTicket(null);
       setDragOverTicket(null);
       setDragOverPosition(null);
-      return;
-    }
+    },
+    [draggedTicket, dragOverPosition, tickets]
+  );
 
-    const sourceStatus = draggedTicket.status;
-    const targetStatus = targetTicket.status;
+  const handleColumnDrop = useCallback(
+    (e: React.DragEvent, newStatus: string) => {
+      e.preventDefault();
 
-    if (sourceStatus === targetStatus) {
-      // Reordering within the same column
-      reorderTicketsInColumn(draggedTicket.id, targetTicket.id, dragOverPosition || 'below');
-    } else {
-      // Moving to different column
-      moveTicketToPosition(
-        draggedTicket.id,
-        targetStatus,
-        targetTicket.id,
-        dragOverPosition || 'below'
+      if (draggedTicket && draggedTicket.status !== newStatus) {
+        moveTicket(draggedTicket.id, newStatus);
+      }
+
+      setDraggedTicket(null);
+      setDragOverTicket(null);
+      setDragOverPosition(null);
+    },
+    [draggedTicket]
+  );
+
+  const reorderTicketsInColumn = useCallback(
+    (draggedId: number, targetId: number, position: 'above' | 'below') => {
+      const draggedTicket = tickets.find((t) => t.id === draggedId);
+      const targetTicket = tickets.find((t) => t.id === targetId);
+
+      if (!draggedTicket || !targetTicket || draggedTicket.status !== targetTicket.status) return;
+
+      const statusTickets = getStatusTickets(draggedTicket.status);
+      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
+
+      let newOrder: number;
+
+      if (position === 'above') {
+        if (targetIndex === 0) {
+          newOrder = Math.max(1, targetTicket.order - 1);
+        } else {
+          const prevTicket = statusTickets[targetIndex - 1];
+          newOrder = (prevTicket.order + targetTicket.order) / 2;
+        }
+      } else {
+        if (targetIndex === statusTickets.length - 1) {
+          newOrder = targetTicket.order + 1;
+        } else {
+          const nextTicket = statusTickets[targetIndex + 1];
+          newOrder = (targetTicket.order + nextTicket.order) / 2;
+        }
+      }
+
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
       );
-    }
+    },
+    [tickets, getStatusTickets]
+  );
 
-    setDraggedTicket(null);
-    setDragOverTicket(null);
-    setDragOverPosition(null);
-  }, [draggedTicket, dragOverPosition, tickets]);
+  const moveTicketToPosition = useCallback(
+    (draggedId: number, newStatus: string, targetId: number, position: 'above' | 'below') => {
+      const targetTicket = tickets.find((t) => t.id === targetId);
+      if (!targetTicket) return;
 
-  const handleColumnDrop = useCallback((e: React.DragEvent, newStatus: string) => {
-    e.preventDefault();
+      const statusTickets = getStatusTickets(newStatus);
+      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
 
-    if (draggedTicket && draggedTicket.status !== newStatus) {
-      moveTicket(draggedTicket.id, newStatus);
-    }
+      let newOrder: number;
 
-    setDraggedTicket(null);
-    setDragOverTicket(null);
-    setDragOverPosition(null);
-  }, [draggedTicket]);
-
-  const reorderTicketsInColumn = useCallback((
-    draggedId: number,
-    targetId: number,
-    position: 'above' | 'below'
-  ) => {
-    const draggedTicket = tickets.find((t) => t.id === draggedId);
-    const targetTicket = tickets.find((t) => t.id === targetId);
-
-    if (!draggedTicket || !targetTicket || draggedTicket.status !== targetTicket.status) return;
-
-    const statusTickets = getStatusTickets(draggedTicket.status);
-    const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-    let newOrder: number;
-
-    if (position === 'above') {
-      if (targetIndex === 0) {
-        newOrder = Math.max(1, targetTicket.order - 1);
+      if (position === 'above') {
+        if (targetIndex === 0) {
+          newOrder = Math.max(1, targetTicket.order - 1);
+        } else {
+          const prevTicket = statusTickets[targetIndex - 1];
+          newOrder = (prevTicket.order + targetTicket.order) / 2;
+        }
       } else {
-        const prevTicket = statusTickets[targetIndex - 1];
-        newOrder = (prevTicket.order + targetTicket.order) / 2;
+        if (targetIndex === statusTickets.length - 1) {
+          newOrder = targetTicket.order + 1;
+        } else {
+          const nextTicket = statusTickets[targetIndex + 1];
+          newOrder = (targetTicket.order + nextTicket.order) / 2;
+        }
       }
-    } else {
-      if (targetIndex === statusTickets.length - 1) {
-        newOrder = targetTicket.order + 1;
-      } else {
-        const nextTicket = statusTickets[targetIndex + 1];
-        newOrder = (targetTicket.order + nextTicket.order) / 2;
-      }
-    }
 
-    setTickets((prev) =>
-      prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
-    );
-  }, [tickets, getStatusTickets]);
-
-  const moveTicketToPosition = useCallback((
-    draggedId: number,
-    newStatus: string,
-    targetId: number,
-    position: 'above' | 'below'
-  ) => {
-    const targetTicket = tickets.find((t) => t.id === targetId);
-    if (!targetTicket) return;
-
-    const statusTickets = getStatusTickets(newStatus);
-    const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-    let newOrder: number;
-
-    if (position === 'above') {
-      if (targetIndex === 0) {
-        newOrder = Math.max(1, targetTicket.order - 1);
-      } else {
-        const prevTicket = statusTickets[targetIndex - 1];
-        newOrder = (prevTicket.order + targetTicket.order) / 2;
-      }
-    } else {
-      if (targetIndex === statusTickets.length - 1) {
-        newOrder = targetTicket.order + 1;
-      } else {
-        const nextTicket = statusTickets[targetIndex + 1];
-        newOrder = (targetTicket.order + nextTicket.order) / 2;
-      }
-    }
-
-    setTickets((prev) =>
-      prev.map((ticket) =>
-        ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
-      )
-    );
-  }, [tickets, getStatusTickets]);
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
+        )
+      );
+    },
+    [tickets, getStatusTickets]
+  );
 
   const renderKanbanBoard = () => {
-    console.log('[AgentDashboard] Rendering kanban board - tickets:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'filteredTickets:', filteredTickets.length, 'statuses:', statuses.length);
-    
+    console.log(
+      '[AgentDashboard] Rendering kanban board - tickets:',
+      tickets.length,
+      'showOnlyMyTickets:',
+      showOnlyMyTickets,
+      'filteredTickets:',
+      filteredTickets.length,
+      'statuses:',
+      statuses.length
+    );
+
     // CRITICAL: Force default statuses if we have none
     if (statuses.length === 0) {
       console.log('[AgentDashboard] CRITICAL: No statuses available, forcing defaults');
       const defaultStatuses = getStatuses();
       console.log('[AgentDashboard] Default statuses:', defaultStatuses);
-      
+
       // Use setTimeout to prevent infinite re-render
       setTimeout(() => setStatuses(defaultStatuses), 0);
-      
+
       // EMERGENCY MODE: Show tickets as simple list when kanban fails
       return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1531,14 +1614,21 @@ const AgentDashboard: React.FC = () => {
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-red-800">🚨 EMERGENCY MODE FOR SHANE</h3>
                 <div className="mt-2 text-sm text-red-700">
                   <p>Kanban board failed to initialize. Showing tickets in emergency list mode.</p>
-                  <p className="mt-1">Tickets loaded: <strong>{tickets.length}</strong> | Statuses: <strong>{statuses.length}</strong></p>
+                  <p className="mt-1">
+                    Tickets loaded: <strong>{tickets.length}</strong> | Statuses:{' '}
+                    <strong>{statuses.length}</strong>
+                  </p>
                 </div>
               </div>
             </div>
@@ -1566,18 +1656,24 @@ const AgentDashboard: React.FC = () => {
                         <h4 className="text-sm font-medium text-gray-900">{ticket.title}</h4>
                       </div>
                       <div className="mt-2 flex items-center text-sm text-gray-500 space-x-4">
-                        <span>Status: <strong>{ticket.status}</strong></span>
-                        <span>Priority: <strong>{ticket.priority}</strong></span>
-                        <span>Assigned: <strong>{ticket.assigned}</strong></span>
-                        <span>Customer: <strong>{ticket.customer}</strong></span>
+                        <span>
+                          Status: <strong>{ticket.status}</strong>
+                        </span>
+                        <span>
+                          Priority: <strong>{ticket.priority}</strong>
+                        </span>
+                        <span>
+                          Assigned: <strong>{ticket.assigned}</strong>
+                        </span>
+                        <span>
+                          Customer: <strong>{ticket.customer}</strong>
+                        </span>
                       </div>
                       {ticket.description && (
                         <p className="mt-1 text-sm text-gray-600 truncate">{ticket.description}</p>
                       )}
                     </div>
-                    <div className="flex-shrink-0 text-sm text-gray-500">
-                      {ticket.created}
-                    </div>
+                    <div className="flex-shrink-0 text-sm text-gray-500">{ticket.created}</div>
                   </div>
                 </li>
               ))}
@@ -1591,14 +1687,16 @@ const AgentDashboard: React.FC = () => {
         </div>
       );
     }
-    
+
     // Show empty state if no tickets and user is filtering to "My Tickets"
     if (tickets.length === 0 && showOnlyMyTickets) {
       console.log('[AgentDashboard] Showing empty state - no tickets assigned');
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🎫</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Tickets Assigned</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No Tickets Assigned
+          </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             You don't have any tickets assigned to you yet.
           </p>
@@ -1618,7 +1716,9 @@ const AgentDashboard: React.FC = () => {
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Tickets Found</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No Tickets Found
+          </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             No tickets are available. Check the browser console for debugging information.
           </p>
@@ -1627,7 +1727,7 @@ const AgentDashboard: React.FC = () => {
             <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
             <p>Total tickets: {tickets.length}</p>
             <p>Filtered tickets: {filteredTickets.length}</p>
-            <p>Statuses: {statuses.map(s => s.value).join(', ')}</p>
+            <p>Statuses: {statuses.map((s) => s.value).join(', ')}</p>
           </div>
         </div>
       );
@@ -1639,7 +1739,9 @@ const AgentDashboard: React.FC = () => {
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Filtered Tickets</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No Filtered Tickets
+          </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             Tickets exist but none match the current filter. Check console for details.
           </p>
@@ -1647,8 +1749,14 @@ const AgentDashboard: React.FC = () => {
             <p>Total tickets: {tickets.length}</p>
             <p>Filtered tickets: {filteredTickets.length}</p>
             <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
-            <p>Sample ticket statuses: {tickets.slice(0, 3).map(t => t.status).join(', ')}</p>
-            <p>Expected statuses: {statuses.map(s => s.value).join(', ')}</p>
+            <p>
+              Sample ticket statuses:{' '}
+              {tickets
+                .slice(0, 3)
+                .map((t) => t.status)
+                .join(', ')}
+            </p>
+            <p>Expected statuses: {statuses.map((s) => s.value).join(', ')}</p>
           </div>
           <button
             onClick={() => {
@@ -1669,7 +1777,10 @@ const AgentDashboard: React.FC = () => {
       console.log('[DEBUG] Raw tickets data:', tickets.slice(0, 3));
       console.log('[DEBUG] Filtered tickets data:', filteredTickets.slice(0, 3));
       console.log('[DEBUG] Statuses data:', statuses);
-      console.log('[DEBUG] Sample ticket statuses:', tickets.slice(0, 10).map(t => t.status));
+      console.log(
+        '[DEBUG] Sample ticket statuses:',
+        tickets.slice(0, 10).map((t) => t.status)
+      );
     }
 
     return (
@@ -1678,19 +1789,35 @@ const AgentDashboard: React.FC = () => {
         <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-4">
           <h3 className="font-bold text-yellow-800 mb-2">🔧 DEBUG INFO FOR SHANE</h3>
           <div className="text-sm text-yellow-700 space-y-1">
-            <p><strong>Total tickets:</strong> {tickets.length}</p>
-            <p><strong>Filtered tickets:</strong> {filteredTickets.length}</p>
-            <p><strong>Statuses:</strong> {statuses.length} ({statuses.map(s => s.label).join(', ')})</p>
-            <p><strong>Show only my tickets:</strong> {showOnlyMyTickets ? 'Yes' : 'No'}</p>
+            <p>
+              <strong>Total tickets:</strong> {tickets.length}
+            </p>
+            <p>
+              <strong>Filtered tickets:</strong> {filteredTickets.length}
+            </p>
+            <p>
+              <strong>Statuses:</strong> {statuses.length} (
+              {statuses.map((s) => s.label).join(', ')})
+            </p>
+            <p>
+              <strong>Show only my tickets:</strong> {showOnlyMyTickets ? 'Yes' : 'No'}
+            </p>
             {tickets.length > 0 && (
-              <p><strong>Sample ticket statuses:</strong> {tickets.slice(0, 5).map(t => t.status).join(', ')}</p>
+              <p>
+                <strong>Sample ticket statuses:</strong>{' '}
+                {tickets
+                  .slice(0, 5)
+                  .map((t) => t.status)
+                  .join(', ')}
+              </p>
             )}
             {filteredTickets.length > 0 && statuses.length > 0 && (
               <div>
                 <strong>Tickets per status:</strong>
-                {statuses.map(status => (
+                {statuses.map((status) => (
                   <span key={status.value} className="ml-2">
-                    {status.label}: {filteredTickets.filter(t => t.status === status.value).length}
+                    {status.label}:{' '}
+                    {filteredTickets.filter((t) => t.status === status.value).length}
                   </span>
                 ))}
               </div>
@@ -1702,170 +1829,187 @@ const AgentDashboard: React.FC = () => {
           className={`grid grid-cols-1 gap-6`}
           style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
         >
-        {statuses.map((statusConfig) => (
-        <div
-          key={statusConfig.value}
-          className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 min-h-96 transition-colors"
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleColumnDrop(e, statusConfig.value)}
-        >
-          <h3 className="font-medium text-gray-900 dark:text-white mb-4">
-            {statusConfig.label} ({getStatusTickets(statusConfig.value).length})
-          </h3>
-          <div className="space-y-3">
-            {(() => {
-              const statusTickets = getStatusTickets(statusConfig.value);
-              console.log(`[AgentDashboard] Rendering tickets for status "${statusConfig.value}":`, statusTickets.length, statusTickets);
-              return statusTickets.map((ticket, index) => (
-              <div key={ticket.id} className="relative">
-                {/* Drop indicator above */}
-                {dragOverTicket === ticket.id && dragOverPosition === 'above' && (
-                  <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
-                )}
-
-                <div
-                  draggable={boardSettings.dragAndDrop}
-                  onDragStart={
-                    boardSettings.dragAndDrop ? (e) => handleDragStart(e, ticket) : undefined
-                  }
-                  onDragOver={
-                    boardSettings.dragAndDrop ? (e) => handleTicketDragOver(e, ticket) : undefined
-                  }
-                  onDragLeave={boardSettings.dragAndDrop ? handleTicketDragLeave : undefined}
-                  onDrop={
-                    boardSettings.dragAndDrop ? (e) => handleTicketDrop(e, ticket) : undefined
-                  }
-                  className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-move hover:shadow-md transition-all duration-200 ${getStatusColor(
-                    ticket.status
-                  )} ${draggedTicket?.id === ticket.id ? 'opacity-50 rotate-2 scale-105' : ''} ${
-                    dragOverTicket === ticket.id
-                      ? 'ring-2 ring-blue-300 dark:ring-blue-500 ring-opacity-50'
-                      : ''
-                  }`}
-                  onClick={() => setSelectedTicket(ticket)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-2 flex-1">
-                      {/* Drag handle */}
-                      {boardSettings.dragAndDrop && (
-                        <div className="flex flex-col space-y-0.5 mt-1 opacity-40 hover:opacity-70 transition-opacity">
-                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                          <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                        </div>
+          {statuses.map((statusConfig) => (
+            <div
+              key={statusConfig.value}
+              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 min-h-96 transition-colors"
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleColumnDrop(e, statusConfig.value)}
+            >
+              <h3 className="font-medium text-gray-900 dark:text-white mb-4">
+                {statusConfig.label} ({getStatusTickets(statusConfig.value).length})
+              </h3>
+              <div className="space-y-3">
+                {(() => {
+                  const statusTickets = getStatusTickets(statusConfig.value);
+                  console.log(
+                    `[AgentDashboard] Rendering tickets for status "${statusConfig.value}":`,
+                    statusTickets.length,
+                    statusTickets
+                  );
+                  return statusTickets.map((ticket, index) => (
+                    <div key={ticket.id} className="relative">
+                      {/* Drop indicator above */}
+                      {dragOverTicket === ticket.id && dragOverPosition === 'above' && (
+                        <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
                       )}
 
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                          {ticket.title}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {boardSettings.showTicketIds && `#${ticket.id} • `}
-                          {ticket.customer}
-                        </p>
-                        {boardSettings.showAssignee && (
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Assigned: {ticket.assigned}
-                          </p>
-                        )}
-                        {ticket.notes && ticket.notes.length > 0 && (
-                          <div className="flex items-center mt-1">
-                            <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
-                              💬 {ticket.notes.length} note{ticket.notes.length !== 1 ? 's' : ''}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end space-y-1">
-                      <select
-                        value={ticket.priority}
-                        onChange={(e) =>
-                          changePriority(ticket.id, e.target.value as 'High' | 'Medium' | 'Low')
+                      <div
+                        draggable={boardSettings.dragAndDrop}
+                        onDragStart={
+                          boardSettings.dragAndDrop ? (e) => handleDragStart(e, ticket) : undefined
                         }
-                        className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
-                        onClick={(e) => e.stopPropagation()}
+                        onDragOver={
+                          boardSettings.dragAndDrop
+                            ? (e) => handleTicketDragOver(e, ticket)
+                            : undefined
+                        }
+                        onDragLeave={boardSettings.dragAndDrop ? handleTicketDragLeave : undefined}
+                        onDrop={
+                          boardSettings.dragAndDrop ? (e) => handleTicketDrop(e, ticket) : undefined
+                        }
+                        className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-move hover:shadow-md transition-all duration-200 ${getStatusColor(
+                          ticket.status
+                        )} ${draggedTicket?.id === ticket.id ? 'opacity-50 rotate-2 scale-105' : ''} ${
+                          dragOverTicket === ticket.id
+                            ? 'ring-2 ring-blue-300 dark:ring-blue-500 ring-opacity-50'
+                            : ''
+                        }`}
+                        onClick={() => setSelectedTicket(ticket)}
                       >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                      </select>
-                      {boardSettings.showPriorityArrows && (
-                        <div className="flex flex-col space-y-1">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-2 flex-1">
+                            {/* Drag handle */}
+                            {boardSettings.dragAndDrop && (
+                              <div className="flex flex-col space-y-0.5 mt-1 opacity-40 hover:opacity-70 transition-opacity">
+                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                              </div>
+                            )}
+
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                                {ticket.title}
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {boardSettings.showTicketIds && `#${ticket.id} • `}
+                                {ticket.customer}
+                              </p>
+                              {boardSettings.showAssignee && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Assigned: {ticket.assigned}
+                                </p>
+                              )}
+                              {ticket.notes && ticket.notes.length > 0 && (
+                                <div className="flex items-center mt-1">
+                                  <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                                    💬 {ticket.notes.length} note
+                                    {ticket.notes.length !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-1">
+                            <select
+                              value={ticket.priority}
+                              onChange={(e) =>
+                                changePriority(
+                                  ticket.id,
+                                  e.target.value as 'High' | 'Medium' | 'Low'
+                                )
+                              }
+                              className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <option value="High">High</option>
+                              <option value="Medium">Medium</option>
+                              <option value="Low">Low</option>
+                            </select>
+                            {boardSettings.showPriorityArrows && (
+                              <div className="flex flex-col space-y-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveTicketInColumn(ticket.id, 'up');
+                                  }}
+                                  disabled={index === 0}
+                                  className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title="Move up"
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    moveTicketInColumn(ticket.id, 'down');
+                                  }}
+                                  disabled={
+                                    index === getStatusTickets(statusConfig.value).length - 1
+                                  }
+                                  className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                  title="Move down"
+                                >
+                                  ↓
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {ticket.created}
+                          </span>
                           <button
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                             onClick={(e) => {
                               e.stopPropagation();
-                              moveTicketInColumn(ticket.id, 'up');
+                              setSelectedTicket(ticket);
                             }}
-                            disabled={index === 0}
-                            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Move up"
                           >
-                            ↑
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              moveTicketInColumn(ticket.id, 'down');
-                            }}
-                            disabled={index === getStatusTickets(statusConfig.value).length - 1}
-                            className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                            title="Move down"
-                          >
-                            ↓
+                            View
                           </button>
                         </div>
+                      </div>
+
+                      {/* Drop indicator below */}
+                      {dragOverTicket === ticket.id && dragOverPosition === 'below' && (
+                        <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
                       )}
                     </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {ticket.created}
-                    </span>
-                    <button
-                      className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTicket(ticket);
-                      }}
-                    >
-                      View
-                    </button>
-                  </div>
-                </div>
+                  ));
+                })()}
 
-                {/* Drop indicator below */}
-                {dragOverTicket === ticket.id && dragOverPosition === 'below' && (
-                  <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+                {getStatusTickets(statusConfig.value).length === 0 && (
+                  <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                    Drop tickets here
+                    <div className="text-xs mt-2">
+                      Status: {statusConfig.value} | Total filtered: {filteredTickets.length}
+                    </div>
+                  </div>
                 )}
               </div>
-            ));
-            })()}
-
-            {getStatusTickets(statusConfig.value).length === 0 && (
-              <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                Drop tickets here
-                <div className="text-xs mt-2">
-                  Status: {statusConfig.value} | Total filtered: {filteredTickets.length}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-        ))}
+            </div>
+          ))}
         </div>
 
         {/* EMERGENCY FALLBACK: Show tickets as simple list if kanban fails */}
         {filteredTickets.length > 0 && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-            <h3 className="font-bold text-blue-800 mb-3">🚨 EMERGENCY TICKET LIST (if kanban fails)</h3>
+            <h3 className="font-bold text-blue-800 mb-3">
+              🚨 EMERGENCY TICKET LIST (if kanban fails)
+            </h3>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {filteredTickets.slice(0, 20).map((ticket, index) => (
                 <div key={ticket.id} className="bg-white p-3 rounded border text-sm">
-                  <div className="font-medium">#{ticket.id}: {ticket.title}</div>
+                  <div className="font-medium">
+                    #{ticket.id}: {ticket.title}
+                  </div>
                   <div className="text-gray-600">
-                    Status: {ticket.status} | Priority: {ticket.priority} | Assigned: {ticket.assigned}
+                    Status: {ticket.status} | Priority: {ticket.priority} | Assigned:{' '}
+                    {ticket.assigned}
                   </div>
                   <div className="text-gray-500">Customer: {ticket.customer}</div>
                 </div>
@@ -2035,7 +2179,8 @@ const AgentDashboard: React.FC = () => {
                         const isCurrentUser = user?.id === agent.id;
                         return (
                           <option key={agent.id} value={agentName}>
-                            {agentName}{isCurrentUser ? ' (You)' : ''}
+                            {agentName}
+                            {isCurrentUser ? ' (You)' : ''}
                           </option>
                         );
                       })}
@@ -2241,7 +2386,12 @@ const AgentDashboard: React.FC = () => {
                       className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
                       title="Edit title"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -2343,7 +2493,12 @@ const AgentDashboard: React.FC = () => {
                           className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           title="Edit description"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -2399,161 +2554,416 @@ const AgentDashboard: React.FC = () => {
 
                   {/* Status, Priority & Assignment */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                      Status
-                    </label>
-                    <select
-                      value={selectedTicket.status}
-                      onChange={(e) => {
-                        moveTicket(selectedTicket.id, e.target.value);
-                        setSelectedTicket({ ...selectedTicket, status: e.target.value });
-                      }}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    >
-                      {statuses.map((status) => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                      Priority
-                    </label>
-                    <select
-                      value={selectedTicket.priority}
-                      onChange={(e) => {
-                        changePriority(selectedTicket.id, e.target.value);
-                        setSelectedTicket({ ...selectedTicket, priority: e.target.value });
-                      }}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    >
-                      {priorities.map((priority) => (
-                        <option key={priority.value} value={priority.value}>
-                          {priority.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
-                      Assigned To
-                    </label>
-                    <select
-                      value={selectedTicket.assigned}
-                      onChange={(e) => {
-                        changeAssignment(selectedTicket.id, e.target.value);
-                        setSelectedTicket({ ...selectedTicket, assigned: e.target.value });
-                      }}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    >
-                      <option value="Unassigned">Unassigned</option>
-                      {agents.map((agent) => {
-                        const agentName = `${agent.firstName} ${agent.lastName}`;
-                        const isCurrentUser = user?.id === agent.id;
-                        return (
-                          <option key={agent.id} value={agentName}>
-                            {agentName}{isCurrentUser ? ' (You)' : ''}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeModalTab === 'notes' && (
-              <div className="space-y-6">
-                {/* Add New Note */}
-                <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-900/30">
-                  <div className="space-y-4">
-                    <textarea
-                      value={newNoteContent}
-                      onChange={(e) => setNewNoteContent(e.target.value)}
-                      placeholder="Add a note to this ticket..."
-                      rows={4}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors placeholder-gray-400 dark:placeholder-gray-500"
-                    />
-                    <div className="flex items-center justify-between">
-                      <label className="flex items-center space-x-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newNoteIsInternal}
-                          onChange={(e) => setNewNoteIsInternal(e.target.checked)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                          Internal note (visible to team only)
-                        </span>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Status
                       </label>
-                      <button
-                        onClick={() =>
-                          addNoteToTicket(selectedTicket.id, newNoteContent, newNoteIsInternal)
-                        }
-                        disabled={!newNoteContent.trim()}
-                        className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                      <select
+                        value={selectedTicket.status}
+                        onChange={(e) => {
+                          moveTicket(selectedTicket.id, e.target.value);
+                          setSelectedTicket({ ...selectedTicket, status: e.target.value });
+                        }}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       >
-                        Add Note
-                      </button>
+                        {statuses.map((status) => (
+                          <option key={status.value} value={status.value}>
+                            {status.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Priority
+                      </label>
+                      <select
+                        value={selectedTicket.priority}
+                        onChange={(e) => {
+                          changePriority(selectedTicket.id, e.target.value);
+                          setSelectedTicket({ ...selectedTicket, priority: e.target.value });
+                        }}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      >
+                        {priorities.map((priority) => (
+                          <option key={priority.value} value={priority.value}>
+                            {priority.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Assigned To
+                      </label>
+                      <select
+                        value={selectedTicket.assigned}
+                        onChange={(e) => {
+                          changeAssignment(selectedTicket.id, e.target.value);
+                          setSelectedTicket({ ...selectedTicket, assigned: e.target.value });
+                        }}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                      >
+                        <option value="Unassigned">Unassigned</option>
+                        {agents.map((agent) => {
+                          const agentName = `${agent.firstName} ${agent.lastName}`;
+                          const isCurrentUser = user?.id === agent.id;
+                          return (
+                            <option key={agent.id} value={agentName}>
+                              {agentName}
+                              {isCurrentUser ? ' (You)' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
                     </div>
                   </div>
                 </div>
+              )}
 
-                {/* Notes List */}
-                <div className="space-y-4">
-                  {selectedTicket.notes && selectedTicket.notes.length > 0 ? (
-                    selectedTicket.notes.map((note) => (
-                      <div
-                        key={note.id}
-                        className={`relative rounded-xl p-6 border transition-colors group ${
-                          note.isInternal
-                            ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30'
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                        }`}
-                      >
-                        {note.isInternal && (
-                          <div className="absolute top-4 right-4">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
-                              Internal
-                            </span>
+              {activeModalTab === 'notes' && (
+                <div className="space-y-6">
+                  {/* Add New Note */}
+                  <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-900/30">
+                    <div className="space-y-4">
+                      <textarea
+                        value={newNoteContent}
+                        onChange={(e) => setNewNoteContent(e.target.value)}
+                        placeholder="Add a note to this ticket..."
+                        rows={4}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors placeholder-gray-400 dark:placeholder-gray-500"
+                      />
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={newNoteIsInternal}
+                            onChange={(e) => setNewNoteIsInternal(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Internal note (visible to team only)
+                          </span>
+                        </label>
+                        <button
+                          onClick={() =>
+                            addNoteToTicket(selectedTicket.id, newNoteContent, newNoteIsInternal)
+                          }
+                          disabled={!newNoteContent.trim()}
+                          className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                        >
+                          Add Note
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes List */}
+                  <div className="space-y-4">
+                    {selectedTicket.notes && selectedTicket.notes.length > 0 ? (
+                      selectedTicket.notes.map((note) => (
+                        <div
+                          key={note.id}
+                          className={`relative rounded-xl p-6 border transition-colors group ${
+                            note.isInternal
+                              ? 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30'
+                              : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                          }`}
+                        >
+                          {note.isInternal && (
+                            <div className="absolute top-4 right-4">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
+                                Internal
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Edit/Delete buttons */}
+                          {editingNoteId !== note.id && (
+                            <div className="absolute top-4 right-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => {
+                                  setEditingNoteId(note.id);
+                                  setEditedNoteContent(note.content);
+                                }}
+                                className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                                title="Edit note"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                  />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('Delete this note?')) {
+                                    deleteNoteFromTicket(selectedTicket.id, note.id);
+                                  }
+                                }}
+                                className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                                title="Delete note"
+                              >
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="flex items-center space-x-3 mb-3">
+                            <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                                {note.author.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {note.author}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {note.timestamp}
+                              </p>
+                            </div>
                           </div>
-                        )}
 
-                        {/* Edit/Delete buttons */}
-                        {editingNoteId !== note.id && (
-                          <div className="absolute top-4 right-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => {
-                                setEditingNoteId(note.id);
-                                setEditedNoteContent(note.content);
-                              }}
-                              className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-                              title="Edit note"
+                          {editingNoteId === note.id ? (
+                            <div className="space-y-3">
+                              <textarea
+                                value={editedNoteContent}
+                                onChange={(e) => setEditedNoteContent(e.target.value)}
+                                rows={4}
+                                className="w-full px-4 py-3 border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white resize-none"
+                                autoFocus
+                              />
+                              <div className="flex justify-end space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingNoteId(null);
+                                    setEditedNoteContent('');
+                                  }}
+                                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    editNoteInTicket(selectedTicket.id, note.id, editedNoteContent);
+                                  }}
+                                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="prose prose-sm max-w-none">
+                              <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                {note.content}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <svg
+                            className="w-8 h-8 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                            />
+                          </svg>
+                        </div>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                          No notes yet
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Start the conversation by adding the first note
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeModalTab === 'attachments' && (
+                <div className="space-y-6">
+                  {/* Upload Area */}
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+                    <input
+                      type="file"
+                      id="file-upload"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        if (files) {
+                          Array.from(files).forEach((file) => {
+                            addAttachmentToTicket(selectedTicket.id, file);
+                          });
+                        }
+                        e.target.value = '';
+                      }}
+                    />
+                    <label
+                      htmlFor="file-upload"
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <svg
+                        className="w-12 h-12 text-gray-400 mb-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500">
+                        Any file type supported (Max 10MB per file)
+                      </p>
+                    </label>
+                  </div>
+
+                  {/* Attachments List */}
+                  <div className="space-y-3">
+                    {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
+                      selectedTicket.attachments.map((attachment) => (
+                        <div
+                          key={attachment.id}
+                          className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow group"
+                        >
+                          <div className="flex items-center space-x-3 flex-1 min-w-0">
+                            {/* File Icon */}
+                            <div className="flex-shrink-0">
+                              {attachment.type.startsWith('image/') ? (
+                                <svg
+                                  className="w-10 h-10 text-blue-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              ) : attachment.type.includes('pdf') ? (
+                                <svg
+                                  className="w-10 h-10 text-red-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                  />
+                                </svg>
+                              ) : (
+                                <svg
+                                  className="w-10 h-10 text-gray-500"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+
+                            {/* File Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {attachment.name}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {formatFileSize(attachment.size)} • Uploaded by{' '}
+                                {attachment.uploadedBy} • {attachment.uploadedAt}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center space-x-2 ml-4">
+                            <a
+                              href={attachment.url}
+                              download={attachment.name}
+                              className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                              title="Download"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
                                 <path
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth={2}
-                                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                                 />
                               </svg>
-                            </button>
+                            </a>
                             <button
                               onClick={() => {
-                                if (confirm('Delete this note?')) {
-                                  deleteNoteFromTicket(selectedTicket.id, note.id);
+                                if (confirm(`Delete ${attachment.name}?`)) {
+                                  deleteAttachmentFromTicket(selectedTicket.id, attachment.id);
                                 }
                               }}
-                              className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                              title="Delete note"
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
+                              title="Delete"
                             >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
                                 <path
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
@@ -2563,280 +2973,36 @@ const AgentDashboard: React.FC = () => {
                               </svg>
                             </button>
                           </div>
-                        )}
-
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                              {note.author.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                              {note.author}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {note.timestamp}
-                            </p>
-                          </div>
                         </div>
-
-                        {editingNoteId === note.id ? (
-                          <div className="space-y-3">
-                            <textarea
-                              value={editedNoteContent}
-                              onChange={(e) => setEditedNoteContent(e.target.value)}
-                              rows={4}
-                              className="w-full px-4 py-3 border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white resize-none"
-                              autoFocus
+                      ))
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <svg
+                            className="w-8 h-8 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                             />
-                            <div className="flex justify-end space-x-2">
-                              <button
-                                onClick={() => {
-                                  setEditingNoteId(null);
-                                  setEditedNoteContent('');
-                                }}
-                                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={() => {
-                                  editNoteInTicket(selectedTicket.id, note.id, editedNoteContent);
-                                }}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="prose prose-sm max-w-none">
-                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                              {note.content}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg
-                          className="w-8 h-8 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                          />
-                        </svg>
-                      </div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                        No notes yet
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Start the conversation by adding the first note
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeModalTab === 'attachments' && (
-              <div className="space-y-6">
-                {/* Upload Area */}
-                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files) {
-                        Array.from(files).forEach((file) => {
-                          addAttachmentToTicket(selectedTicket.id, file);
-                        });
-                      }
-                      e.target.value = '';
-                    }}
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <svg
-                      className="w-12 h-12 text-gray-400 mb-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                      />
-                    </svg>
-                    <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-500">
-                      Any file type supported (Max 10MB per file)
-                    </p>
-                  </label>
-                </div>
-
-                {/* Attachments List */}
-                <div className="space-y-3">
-                  {selectedTicket.attachments && selectedTicket.attachments.length > 0 ? (
-                    selectedTicket.attachments.map((attachment) => (
-                      <div
-                        key={attachment.id}
-                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow group"
-                      >
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          {/* File Icon */}
-                          <div className="flex-shrink-0">
-                            {attachment.type.startsWith('image/') ? (
-                              <svg
-                                className="w-10 h-10 text-blue-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                              </svg>
-                            ) : attachment.type.includes('pdf') ? (
-                              <svg
-                                className="w-10 h-10 text-red-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                />
-                              </svg>
-                            ) : (
-                              <svg
-                                className="w-10 h-10 text-gray-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                />
-                              </svg>
-                            )}
-                          </div>
-
-                          {/* File Info */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                              {attachment.name}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {formatFileSize(attachment.size)} • Uploaded by{' '}
-                              {attachment.uploadedBy} • {attachment.uploadedAt}
-                            </p>
-                          </div>
+                          </svg>
                         </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center space-x-2 ml-4">
-                          <a
-                            href={attachment.url}
-                            download={attachment.name}
-                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                            title="Download"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                              />
-                            </svg>
-                          </a>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete ${attachment.name}?`)) {
-                                deleteAttachmentFromTicket(selectedTicket.id, attachment.id);
-                              }
-                            }}
-                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete"
-                          >
-                            <svg
-                              className="w-5 h-5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                          No attachments yet
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Upload files to attach them to this ticket
+                        </p>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg
-                          className="w-8 h-8 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
-                          />
-                        </svg>
-                      </div>
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
-                        No attachments yet
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Upload files to attach them to this ticket
-                      </p>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             </div>
 
             {/* Sidebar - Customer Info */}
@@ -2846,8 +3012,18 @@ const AgentDashboard: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
                       </svg>
                       Contact Info
                     </h3>
@@ -2855,7 +3031,8 @@ const AgentDashboard: React.FC = () => {
                       <button
                         onClick={() => {
                           setEditedContactInfo({
-                            name: selectedTicket.customerInfo?.name || selectedTicket.customer || '',
+                            name:
+                              selectedTicket.customerInfo?.name || selectedTicket.customer || '',
                             email: selectedTicket.customerInfo?.email || '',
                             phone: selectedTicket.customerInfo?.phone || '',
                             company: selectedTicket.customerInfo?.company || '',
@@ -2865,10 +3042,17 @@ const AgentDashboard: React.FC = () => {
                           setIsEditingContactInfo(true);
                         }}
                         className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        title={selectedTicket.customerInfo ? "Edit contact info" : "Add contact info"}
+                        title={
+                          selectedTicket.customerInfo ? 'Edit contact info' : 'Add contact info'
+                        }
                       >
                         {selectedTicket.customerInfo ? (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -2877,7 +3061,12 @@ const AgentDashboard: React.FC = () => {
                             />
                           </svg>
                         ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -2889,7 +3078,7 @@ const AgentDashboard: React.FC = () => {
                       </button>
                     )}
                   </div>
-                  
+
                   {selectedTicket.customerInfo ? (
                     isEditingContactInfo ? (
                       <div className="space-y-3">
@@ -2901,7 +3090,9 @@ const AgentDashboard: React.FC = () => {
                           <input
                             type="text"
                             value={editedContactInfo.name}
-                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, name: e.target.value })}
+                            onChange={(e) =>
+                              setEditedContactInfo({ ...editedContactInfo, name: e.target.value })
+                            }
                             className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                           />
                         </div>
@@ -2927,7 +3118,7 @@ const AgentDashboard: React.FC = () => {
                             placeholder="Start typing company name..."
                             className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                           />
-                          
+
                           {/* Dropdown with search results */}
                           {showCompanyDropdown && companySearchResults.length > 0 && (
                             <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -2959,7 +3150,7 @@ const AgentDashboard: React.FC = () => {
                               ))}
                             </div>
                           )}
-                          
+
                           {/* Create company prompt */}
                           {showCreateCompanyPrompt && !showCompanyDropdown && (
                             <div className="absolute z-10 w-full mt-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg shadow-lg p-3">
@@ -2986,7 +3177,9 @@ const AgentDashboard: React.FC = () => {
                           <input
                             type="email"
                             value={editedContactInfo.email}
-                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, email: e.target.value })}
+                            onChange={(e) =>
+                              setEditedContactInfo({ ...editedContactInfo, email: e.target.value })
+                            }
                             className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                           />
                         </div>
@@ -2997,7 +3190,9 @@ const AgentDashboard: React.FC = () => {
                           <input
                             type="tel"
                             value={editedContactInfo.phone}
-                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })}
+                            onChange={(e) =>
+                              setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })
+                            }
                             className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                           />
                         </div>
@@ -3008,7 +3203,12 @@ const AgentDashboard: React.FC = () => {
                           <input
                             type="text"
                             value={editedContactInfo.website}
-                            onChange={(e) => setEditedContactInfo({ ...editedContactInfo, website: e.target.value })}
+                            onChange={(e) =>
+                              setEditedContactInfo({
+                                ...editedContactInfo,
+                                website: e.target.value,
+                              })
+                            }
                             className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                           />
                         </div>
@@ -3058,13 +3258,15 @@ const AgentDashboard: React.FC = () => {
                               onClick={async () => {
                                 if (selectedTicket.customerInfo?.companyId) {
                                   // If we have the ID, navigate directly
-                                  navigate(`/agent/accounts/${selectedTicket.customerInfo.companyId}`);
+                                  navigate(
+                                    `/agent/accounts/${selectedTicket.customerInfo.companyId}`
+                                  );
                                 } else {
                                   // Otherwise, search for the company by name
                                   try {
-                                    const response = await apiService.getCompanies({ 
+                                    const response = await apiService.getCompanies({
                                       search: selectedTicket.customerInfo?.company,
-                                      limit: 1 
+                                      limit: 1,
                                     });
                                     const companies = response.companies || response.data || [];
                                     if (companies.length > 0) {
@@ -3143,7 +3345,9 @@ const AgentDashboard: React.FC = () => {
                         <input
                           type="text"
                           value={editedContactInfo.name}
-                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, name: e.target.value })}
+                          onChange={(e) =>
+                            setEditedContactInfo({ ...editedContactInfo, name: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
@@ -3169,7 +3373,7 @@ const AgentDashboard: React.FC = () => {
                           placeholder="Start typing company name..."
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                         />
-                        
+
                         {/* Dropdown with search results */}
                         {showCompanyDropdown && companySearchResults.length > 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -3200,7 +3404,7 @@ const AgentDashboard: React.FC = () => {
                             ))}
                           </div>
                         )}
-                        
+
                         {/* Create company prompt */}
                         {showCreateCompanyPrompt && !showCompanyDropdown && (
                           <div className="absolute z-10 w-full mt-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg shadow-lg p-3">
@@ -3227,7 +3431,9 @@ const AgentDashboard: React.FC = () => {
                         <input
                           type="email"
                           value={editedContactInfo.email}
-                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, email: e.target.value })}
+                          onChange={(e) =>
+                            setEditedContactInfo({ ...editedContactInfo, email: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
@@ -3238,7 +3444,9 @@ const AgentDashboard: React.FC = () => {
                         <input
                           type="tel"
                           value={editedContactInfo.phone}
-                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })}
+                          onChange={(e) =>
+                            setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
@@ -3249,7 +3457,9 @@ const AgentDashboard: React.FC = () => {
                         <input
                           type="text"
                           value={editedContactInfo.website}
-                          onChange={(e) => setEditedContactInfo({ ...editedContactInfo, website: e.target.value })}
+                          onChange={(e) =>
+                            setEditedContactInfo({ ...editedContactInfo, website: e.target.value })
+                          }
                           className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
                         />
                       </div>
@@ -3287,12 +3497,22 @@ const AgentDashboard: React.FC = () => {
                 {/* Key Information Section */}
                 <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     Key Information
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {/* Ticket ID */}
                     <div>
@@ -3336,8 +3556,18 @@ const AgentDashboard: React.FC = () => {
                       onClick={() => navigate(`/agent/customers/${selectedTicket.id}`)}
                       className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
                       </svg>
                       View Customer Profile
                     </button>
@@ -3349,8 +3579,18 @@ const AgentDashboard: React.FC = () => {
                       }}
                       className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                        />
                       </svg>
                       Send Email
                     </button>
@@ -3387,7 +3627,7 @@ const AgentDashboard: React.FC = () => {
             {/* Left: Logo and Menu */}
             <div className="flex items-center space-x-6">
               <h1 className="text-xl font-bold text-gray-900 dark:text-white">Bomizzel</h1>
-              
+
               {/* Menu Items */}
               <div className="hidden md:flex space-x-1">
                 <button
@@ -3395,27 +3635,42 @@ const AgentDashboard: React.FC = () => {
                   className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                    />
                   </svg>
                   <span>Dashboard</span>
                 </button>
-                
+
                 <button
                   onClick={() => navigate('/agent/customers')}
                   className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
                   </svg>
                   <span>Customers</span>
                 </button>
-                
+
                 <button
                   onClick={() => navigate('/agent/accounts')}
                   className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    />
                   </svg>
                   <span>Accounts</span>
                 </button>
@@ -3456,10 +3711,7 @@ const AgentDashboard: React.FC = () => {
 
                 {showCreateMenu && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setShowCreateMenu(false)}
-                    />
+                    <div className="fixed inset-0 z-10" onClick={() => setShowCreateMenu(false)} />
                     <div className="absolute right-0 z-20 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
                       <div className="py-1">
                         <button
@@ -3469,12 +3721,26 @@ const AgentDashboard: React.FC = () => {
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-700"
                         >
-                          <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                          <svg
+                            className="w-5 h-5 text-purple-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                            />
                           </svg>
                           <div>
-                            <div className="font-medium text-gray-900 dark:text-white">New Ticket</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Create ticket for customer</div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              New Ticket
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Create ticket for customer
+                            </div>
                           </div>
                         </button>
 
@@ -3485,12 +3751,26 @@ const AgentDashboard: React.FC = () => {
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-3 border-b border-gray-100 dark:border-gray-700"
                         >
-                          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          <svg
+                            className="w-5 h-5 text-green-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                            />
                           </svg>
                           <div>
-                            <div className="font-medium text-gray-900 dark:text-white">New Account</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Create new company</div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              New Account
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Create new company
+                            </div>
                           </div>
                         </button>
 
@@ -3501,12 +3781,26 @@ const AgentDashboard: React.FC = () => {
                           }}
                           className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-3"
                         >
-                          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          <svg
+                            className="w-5 h-5 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
                           </svg>
                           <div>
-                            <div className="font-medium text-gray-900 dark:text-white">New Customer</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Create customer user</div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              New Customer
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Create customer user
+                            </div>
                           </div>
                         </button>
                       </div>
@@ -3522,7 +3816,8 @@ const AgentDashboard: React.FC = () => {
               >
                 <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
-                    {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                    {user?.firstName?.charAt(0)}
+                    {user?.lastName?.charAt(0)}
                   </span>
                 </div>
                 <div className="hidden md:block text-left">
@@ -3539,8 +3834,18 @@ const AgentDashboard: React.FC = () => {
                 title="Admin Settings"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                 </svg>
               </button>
 
@@ -3551,7 +3856,12 @@ const AgentDashboard: React.FC = () => {
                 title="Logout"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
               </button>
             </div>
@@ -3565,7 +3875,9 @@ const AgentDashboard: React.FC = () => {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">My Tickets</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Drag tickets to reorder or move between columns</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Drag tickets to reorder or move between columns
+              </p>
             </div>
 
             <div className="flex items-center space-x-3">
@@ -3575,7 +3887,12 @@ const AgentDashboard: React.FC = () => {
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                  />
                 </svg>
                 <span>Templates</span>
               </button>
@@ -3612,7 +3929,12 @@ const AgentDashboard: React.FC = () => {
               <button
                 onClick={() => {
                   const newFilter = activeViewFilter === 'my-queue' ? 'all-tickets' : 'my-queue';
-                  console.log('[AgentDashboard] Filter toggle clicked - current:', activeViewFilter, 'switching to:', newFilter);
+                  console.log(
+                    '[AgentDashboard] Filter toggle clicked - current:',
+                    activeViewFilter,
+                    'switching to:',
+                    newFilter
+                  );
                   setActiveViewFilter(newFilter);
                   // Keep showOnlyMyTickets in sync for backward compatibility
                   setShowOnlyMyTickets(newFilter === 'my-queue');
@@ -3622,7 +3944,9 @@ const AgentDashboard: React.FC = () => {
                     ? 'bg-green-600 text-white border-green-600'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
-                title={activeViewFilter === 'my-queue' ? 'Show all tickets' : 'Show only my tickets'}
+                title={
+                  activeViewFilter === 'my-queue' ? 'Show all tickets' : 'Show only my tickets'
+                }
               >
                 {activeViewFilter === 'my-queue' ? 'My Queue' : 'All Tickets'}
               </button>
@@ -3696,12 +4020,17 @@ const AgentDashboard: React.FC = () => {
                   title="Create new view"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
-            
+
             {/* Debug/Reset Section */}
             <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
               <div className="text-xs text-yellow-800 dark:text-yellow-200 space-y-2">
@@ -3730,7 +4059,7 @@ const AgentDashboard: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               {/* Default Views */}
               <div>
@@ -3776,8 +4105,18 @@ const AgentDashboard: React.FC = () => {
                   className="w-full flex items-center justify-between mb-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-2 py-1 transition-colors"
                 >
                   <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center">
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
                     </svg>
                     Agent Queue
                   </h3>
@@ -3789,7 +4128,12 @@ const AgentDashboard: React.FC = () => {
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
                 {!isAgentQueueCollapsed && (
@@ -3803,14 +4147,15 @@ const AgentDashboard: React.FC = () => {
                         })
                         .map((agent) => {
                           const agentName = `${agent.firstName} ${agent.lastName}`;
-                          const agentTickets = tickets.filter(t => 
-                            t.assigned === agentName || 
-                            t.assigned === agent.firstName ||
-                            (user?.id === agent.id && t.assigned === 'You')
+                          const agentTickets = tickets.filter(
+                            (t) =>
+                              t.assigned === agentName ||
+                              t.assigned === agent.firstName ||
+                              (user?.id === agent.id && t.assigned === 'You')
                           );
                           const isActive = activeViewFilter === `agent-${agentName}`;
                           const isCurrentUser = user?.id === agent.id;
-                          
+
                           return (
                             <button
                               key={agent.id}
@@ -3824,11 +4169,13 @@ const AgentDashboard: React.FC = () => {
                               }`}
                             >
                               <div className="flex items-center space-x-2">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
-                                  isCurrentUser
-                                    ? 'bg-blue-500 text-white' 
-                                    : 'bg-green-500 text-white'
-                                }`}>
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                                    isCurrentUser
+                                      ? 'bg-blue-500 text-white'
+                                      : 'bg-green-500 text-white'
+                                  }`}
+                                >
                                   {agent.firstName.charAt(0).toUpperCase()}
                                 </div>
                                 <span className="truncate">
@@ -3918,8 +4265,18 @@ const AgentDashboard: React.FC = () => {
                             className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                             title="Delete view"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
                             </svg>
                           </button>
                         </div>
@@ -4117,8 +4474,18 @@ const AgentDashboard: React.FC = () => {
                       className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-300 dark:border-blue-600"
                       title="Add filter"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
                       </svg>
                     </button>
                   </div>

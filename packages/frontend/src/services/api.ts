@@ -6,12 +6,12 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  
+
   // For local development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:5000/api';
   }
-  
+
   // For production, construct from current protocol and hostname
   // Assumes backend is on same domain or you need to set VITE_API_URL
   const protocol = window.location.protocol;
@@ -75,7 +75,7 @@ class ApiService {
         message: error.message,
         code: error.code,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
       });
       throw error;
     }
@@ -849,22 +849,25 @@ class ApiService {
     return response.data;
   }
 
-  async updateHolidayList(id: number, data: {
-    holidayList: {
-      name: string;
-      description?: string;
-      region?: string;
-      is_active: boolean;
-      is_default: boolean;
-    };
-    holidays: Array<{
-      name: string;
-      date: string;
-      is_recurring: boolean;
-      recurrence_pattern?: string;
-      description?: string;
-    }>;
-  }): Promise<any> {
+  async updateHolidayList(
+    id: number,
+    data: {
+      holidayList: {
+        name: string;
+        description?: string;
+        region?: string;
+        is_active: boolean;
+        is_default: boolean;
+      };
+      holidays: Array<{
+        name: string;
+        date: string;
+        is_recurring: boolean;
+        recurrence_pattern?: string;
+        description?: string;
+      }>;
+    }
+  ): Promise<any> {
     const response = await this.client.put(`/holiday-lists/${id}`, data);
     return response.data;
   }
@@ -999,14 +1002,17 @@ class ApiService {
     return response.data;
   }
 
-  async updateDepartment(id: number, data: {
-    name?: string;
-    description?: string;
-    logo?: string;
-    color?: string;
-    is_active?: boolean;
-    is_default?: boolean;
-  }): Promise<any> {
+  async updateDepartment(
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      logo?: string;
+      color?: string;
+      is_active?: boolean;
+      is_default?: boolean;
+    }
+  ): Promise<any> {
     const response = await this.client.put(`/departments/${id}`, data);
     return response.data;
   }
@@ -1016,8 +1022,15 @@ class ApiService {
     return response.data;
   }
 
-  async addAgentToDepartment(departmentId: number, userId: string, role: 'member' | 'lead' | 'manager' = 'member'): Promise<any> {
-    const response = await this.client.post(`/departments/${departmentId}/agents`, { user_id: userId, role });
+  async addAgentToDepartment(
+    departmentId: number,
+    userId: string,
+    role: 'member' | 'lead' | 'manager' = 'member'
+  ): Promise<any> {
+    const response = await this.client.post(`/departments/${departmentId}/agents`, {
+      user_id: userId,
+      role,
+    });
     return response.data;
   }
 
@@ -1036,30 +1049,36 @@ class ApiService {
     return response.data;
   }
 
-  async createDepartmentTemplate(departmentId: number, data: {
-    name: string;
-    description?: string;
-    template_fields: any;
-    default_values?: any;
-    priority?: 'low' | 'medium' | 'high' | 'urgent';
-    category?: string;
-    is_active?: boolean;
-    is_default?: boolean;
-  }): Promise<any> {
+  async createDepartmentTemplate(
+    departmentId: number,
+    data: {
+      name: string;
+      description?: string;
+      template_fields: any;
+      default_values?: any;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      category?: string;
+      is_active?: boolean;
+      is_default?: boolean;
+    }
+  ): Promise<any> {
     const response = await this.client.post(`/departments/${departmentId}/templates`, data);
     return response.data;
   }
 
-  async updateDepartmentTemplate(templateId: number, data: {
-    name?: string;
-    description?: string;
-    template_fields?: any;
-    default_values?: any;
-    priority?: 'low' | 'medium' | 'high' | 'urgent';
-    category?: string;
-    is_active?: boolean;
-    is_default?: boolean;
-  }): Promise<any> {
+  async updateDepartmentTemplate(
+    templateId: number,
+    data: {
+      name?: string;
+      description?: string;
+      template_fields?: any;
+      default_values?: any;
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      category?: string;
+      is_active?: boolean;
+      is_default?: boolean;
+    }
+  ): Promise<any> {
     const response = await this.client.put(`/departments/templates/${templateId}`, data);
     return response.data;
   }
@@ -1099,21 +1118,24 @@ class ApiService {
     return response.data;
   }
 
-  async updateCustomerHappinessSetting(id: number, data: {
-    name?: string;
-    description?: string;
-    is_active?: boolean;
-    is_default?: boolean;
-    survey_config?: any;
-    trigger_conditions?: any;
-    email_template?: any;
-    delay_hours?: number;
-    reminder_hours?: number;
-    max_reminders?: number;
-    thank_you_message?: string;
-    follow_up_message?: string;
-    low_rating_threshold?: number;
-  }): Promise<any> {
+  async updateCustomerHappinessSetting(
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      is_active?: boolean;
+      is_default?: boolean;
+      survey_config?: any;
+      trigger_conditions?: any;
+      email_template?: any;
+      delay_hours?: number;
+      reminder_hours?: number;
+      max_reminders?: number;
+      thank_you_message?: string;
+      follow_up_message?: string;
+      low_rating_threshold?: number;
+    }
+  ): Promise<any> {
     const response = await this.client.put(`/customer-happiness/${id}`, data);
     return response.data;
   }
@@ -1123,10 +1145,14 @@ class ApiService {
     return response.data;
   }
 
-  async getCustomerHappinessAnalytics(startDate: string, endDate: string, happinessSettingId?: number): Promise<any> {
+  async getCustomerHappinessAnalytics(
+    startDate: string,
+    endDate: string,
+    happinessSettingId?: number
+  ): Promise<any> {
     const params: any = { start_date: startDate, end_date: endDate };
     if (happinessSettingId) params.happiness_setting_id = happinessSettingId;
-    
+
     const response = await this.client.get('/customer-happiness/analytics/overview', { params });
     return response.data;
   }
@@ -1135,7 +1161,7 @@ class ApiService {
     const params: any = {};
     if (limit) params.limit = limit;
     if (happinessSettingId) params.happiness_setting_id = happinessSettingId;
-    
+
     const response = await this.client.get('/customer-happiness/feedback/recent', { params });
     return response.data;
   }
@@ -1146,11 +1172,14 @@ class ApiService {
     return response.data;
   }
 
-  async submitSurveyResponse(token: string, data: {
-    overall_rating: number;
-    question_responses?: Record<string, any>;
-    comments?: string;
-  }): Promise<any> {
+  async submitSurveyResponse(
+    token: string,
+    data: {
+      overall_rating: number;
+      question_responses?: Record<string, any>;
+      comments?: string;
+    }
+  ): Promise<any> {
     const response = await this.client.post(`/customer-happiness/survey/${token}/submit`, data);
     return response.data;
   }
@@ -1182,12 +1211,19 @@ class ApiService {
     return response.data;
   }
 
-  async createOrganizationalRole(data: { name: string; description?: string; hierarchy_level: number }): Promise<any> {
+  async createOrganizationalRole(data: {
+    name: string;
+    description?: string;
+    hierarchy_level: number;
+  }): Promise<any> {
     const response = await this.client.post('/organizational-roles', data);
     return response.data;
   }
 
-  async updateOrganizationalRole(id: number, data: { name?: string; description?: string; hierarchy_level?: number }): Promise<any> {
+  async updateOrganizationalRole(
+    id: number,
+    data: { name?: string; description?: string; hierarchy_level?: number }
+  ): Promise<any> {
     const response = await this.client.put(`/organizational-roles/${id}`, data);
     return response.data;
   }
@@ -1203,12 +1239,20 @@ class ApiService {
     return response.data;
   }
 
-  async createProduct(data: { product_code: string; name: string; description?: string; department_id: string }): Promise<any> {
+  async createProduct(data: {
+    product_code: string;
+    name: string;
+    description?: string;
+    department_id: string;
+  }): Promise<any> {
     const response = await this.client.post('/products', data);
     return response.data;
   }
 
-  async updateProduct(id: number, data: { product_code?: string; name?: string; description?: string }): Promise<any> {
+  async updateProduct(
+    id: number,
+    data: { product_code?: string; name?: string; description?: string }
+  ): Promise<any> {
     const response = await this.client.put(`/products/${id}`, data);
     return response.data;
   }

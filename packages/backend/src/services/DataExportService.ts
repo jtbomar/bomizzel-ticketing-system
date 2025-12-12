@@ -58,7 +58,7 @@ export class DataExportService {
 
       const exportId = `export_${companyId}_${Date.now()}`;
       const exportDir = path.join(process.cwd(), 'exports', exportId);
-      
+
       // Create export directory
       if (!fs.existsSync(exportDir)) {
         fs.mkdirSync(exportDir, { recursive: true });
@@ -71,16 +71,16 @@ export class DataExportService {
           companyName: company.name,
           exportedBy: userId,
           exportedAt: new Date().toISOString(),
-          options
+          options,
         },
-        data: {}
+        data: {},
       };
 
       let counts = {
         users: 0,
         tickets: 0,
         attachments: 0,
-        customFields: 0
+        customFields: 0,
       };
 
       // Export Users
@@ -119,7 +119,7 @@ export class DataExportService {
       // Create ZIP archive
       const zipFileName = `${company.name.replace(/[^a-z0-9]/gi, '_')}_export_${Date.now()}.zip`;
       const zipFilePath = path.join(exportDir, zipFileName);
-      
+
       await this.createZipArchive(exportDir, jsonFilePath, zipFilePath);
 
       const fileStats = fs.statSync(zipFilePath);
@@ -138,9 +138,8 @@ export class DataExportService {
         fileSize: fileStats.size,
         downloadUrl: `/api/data-export/download/${exportId}/${zipFileName}`,
         expiresAt,
-        includedData: counts
+        includedData: counts,
       };
-
     } catch (error) {
       logger.error('Data export failed', { error, companyId, userId });
       throw error;
@@ -181,7 +180,7 @@ export class DataExportService {
       emailVerified: user.email_verified,
       preferences: user.preferences,
       createdAt: user.created_at,
-      updatedAt: user.updated_at
+      updatedAt: user.updated_at,
     }));
   }
 
@@ -238,13 +237,15 @@ export class DataExportService {
           createdBy: {
             email: ticket.creator_email,
             firstName: ticket.creator_first_name,
-            lastName: ticket.creator_last_name
+            lastName: ticket.creator_last_name,
           },
-          assignedTo: ticket.assignee_email ? {
-            email: ticket.assignee_email,
-            firstName: ticket.assignee_first_name,
-            lastName: ticket.assignee_last_name
-          } : null,
+          assignedTo: ticket.assignee_email
+            ? {
+                email: ticket.assignee_email,
+                firstName: ticket.assignee_first_name,
+                lastName: ticket.assignee_last_name,
+              }
+            : null,
           notes: notes.map((note: any) => ({
             id: note.id,
             content: note.content,
@@ -252,13 +253,13 @@ export class DataExportService {
             author: {
               email: note.author_email,
               firstName: note.author_first_name,
-              lastName: note.author_last_name
+              lastName: note.author_last_name,
             },
-            createdAt: note.created_at
+            createdAt: note.created_at,
           })),
           createdAt: ticket.created_at,
           updatedAt: ticket.updated_at,
-          resolvedAt: ticket.resolved_at
+          resolvedAt: ticket.resolved_at,
         };
       })
     );
@@ -282,7 +283,7 @@ export class DataExportService {
       isRequired: field.is_required,
       isActive: field.is_active,
       displayOrder: field.display_order,
-      createdAt: field.created_at
+      createdAt: field.created_at,
     }));
   }
 
@@ -317,9 +318,9 @@ export class DataExportService {
       uploadedBy: {
         email: attachment.uploader_email,
         firstName: attachment.uploader_first_name,
-        lastName: attachment.uploader_last_name
+        lastName: attachment.uploader_last_name,
       },
-      uploadedAt: attachment.uploaded_at
+      uploadedAt: attachment.uploaded_at,
     }));
   }
 
@@ -359,7 +360,7 @@ export class DataExportService {
         user_id: userId,
         export_id: exportId,
         exported_data: JSON.stringify(counts),
-        created_at: new Date()
+        created_at: new Date(),
       });
     } catch (error) {
       logger.error('Failed to log export activity', { error });
@@ -393,8 +394,8 @@ export class DataExportService {
         exportedBy: {
           email: record.exported_by_email,
           firstName: record.first_name,
-          lastName: record.last_name
-        }
+          lastName: record.last_name,
+        },
       }));
     } catch (error) {
       logger.error('Failed to get export history', { error, companyId });
@@ -410,13 +411,13 @@ export class DataExportService {
       const exportsDir = path.join(process.cwd(), 'exports');
       if (!fs.existsSync(exportsDir)) return;
 
-      const cutoffTime = Date.now() - (olderThanHours * 60 * 60 * 1000);
+      const cutoffTime = Date.now() - olderThanHours * 60 * 60 * 1000;
       const directories = fs.readdirSync(exportsDir);
 
       for (const dir of directories) {
         const dirPath = path.join(exportsDir, dir);
         const stats = fs.statSync(dirPath);
-        
+
         if (stats.isDirectory() && stats.mtimeMs < cutoffTime) {
           fs.rmSync(dirPath, { recursive: true, force: true });
           logger.info('Cleaned up old export', { directory: dir });

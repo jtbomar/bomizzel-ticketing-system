@@ -60,7 +60,7 @@ const AgentCustomerDetail: React.FC = () => {
 
       if (customerData) {
         setCustomer(customerData);
-        
+
         // Initialize edit form
         setEditForm({
           firstName: customerData.firstName || '',
@@ -89,7 +89,7 @@ const AgentCustomerDetail: React.FC = () => {
     try {
       setSaving(true);
       await apiService.updateUser(customerId!, editForm);
-      
+
       // Reload customer details
       await loadCustomerDetails();
       setIsEditing(false);
@@ -390,7 +390,9 @@ const AgentCustomerDetail: React.FC = () => {
                   Tickets ({tickets.length})
                 </h2>
                 <button
-                  onClick={() => navigate(`/agent/tickets/create?tab=ticket&customerId=${customer.id}`)}
+                  onClick={() =>
+                    navigate(`/agent/tickets/create?tab=ticket&customerId=${customer.id}`)
+                  }
                   className="text-sm text-primary-600 hover:text-primary-700"
                 >
                   + Create Ticket
@@ -406,24 +408,29 @@ const AgentCustomerDetail: React.FC = () => {
                       className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer border border-gray-200 dark:border-gray-700"
                       onClick={() => {
                         // Store ticket data temporarily
-                        sessionStorage.setItem('openTicket', JSON.stringify({
-                          id: ticket.id,
-                          title: ticket.title,
-                          status: ticket.status,
-                          priority: ticket.priority || 'medium',
-                          customer: `${customer.firstName} ${customer.lastName}`,
-                          assigned: ticket.assignedTo ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}` : 'Unassigned',
-                          created: formatDate(ticket.createdAt),
-                          description: ticket.description || 'No description provided',
-                          order: 1,
-                          customerInfo: {
-                            name: `${customer.firstName} ${customer.lastName}`,
-                            email: customer.email,
-                            phone: '',
-                            company: customer.companies?.[0]?.company?.name || '',
-                            website: customer.companies?.[0]?.company?.domain || '',
-                          }
-                        }));
+                        sessionStorage.setItem(
+                          'openTicket',
+                          JSON.stringify({
+                            id: ticket.id,
+                            title: ticket.title,
+                            status: ticket.status,
+                            priority: ticket.priority || 'medium',
+                            customer: `${customer.firstName} ${customer.lastName}`,
+                            assigned: ticket.assignedTo
+                              ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}`
+                              : 'Unassigned',
+                            created: formatDate(ticket.createdAt),
+                            description: ticket.description || 'No description provided',
+                            order: 1,
+                            customerInfo: {
+                              name: `${customer.firstName} ${customer.lastName}`,
+                              email: customer.email,
+                              phone: '',
+                              company: customer.companies?.[0]?.company?.name || '',
+                              website: customer.companies?.[0]?.company?.domain || '',
+                            },
+                          })
+                        );
                         navigate('/agent');
                       }}
                     >

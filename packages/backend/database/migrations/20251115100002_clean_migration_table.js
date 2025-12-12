@@ -8,10 +8,10 @@ exports.up = async function (knex) {
   await knex('knex_migrations')
     .whereIn('name', [
       '20251115000000_rename_employee_role_to_agent.js',
-      '20251115000001_rename_employee_queue_type_to_agent.js'
+      '20251115000001_rename_employee_queue_type_to_agent.js',
     ])
     .del();
-  
+
   console.log('✅ Cleaned up orphaned migration records');
 };
 

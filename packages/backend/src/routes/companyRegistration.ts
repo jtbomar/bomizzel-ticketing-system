@@ -144,10 +144,10 @@ router.get('/test', (req, res) => {
  * Test endpoint with authentication
  */
 router.get('/test-auth', authenticate, (req, res) => {
-  res.json({ 
-    success: true, 
+  res.json({
+    success: true,
     message: 'Authenticated route working!',
-    user: req.user 
+    user: req.user,
   });
 });
 
@@ -158,41 +158,41 @@ router.get('/test-auth', authenticate, (req, res) => {
 router.post('/fix-association', authenticate, async (req, res): Promise<void> => {
   try {
     const { db } = require('../config/database');
-    
+
     // Get first company
     const firstCompany = await db('companies').orderBy('created_at').first();
-    
+
     if (!firstCompany) {
       res.status(404).json({ success: false, message: 'No companies found' });
       return;
     }
-    
+
     // Check if association exists
     const existing = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .where('company_id', firstCompany.id)
       .first();
-    
+
     if (existing) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Association already exists',
-        company: firstCompany.name 
+        company: firstCompany.name,
       });
       return;
     }
-    
+
     // Create association
     await db('user_company_associations').insert({
       user_id: req.user!.id,
       company_id: firstCompany.id,
-      role: 'admin'
+      role: 'admin',
     });
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'User associated with company',
-      company: firstCompany.name 
+      company: firstCompany.name,
     });
     return;
   } catch (error: any) {
@@ -210,10 +210,13 @@ router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
     console.log('🔍 GET /company-registration/profile - ROUTE HIT');
     console.log('🔍 User:', req.user);
     console.log('GET /company-registration/profile - User ID:', req.user!.id);
-    
+
     // Get user's primary company (first one they're associated with)
     const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
-    console.log('User companies:', userCompanies.map(c => ({ id: c.id, name: c.name })));
+    console.log(
+      'User companies:',
+      userCompanies.map((c) => ({ id: c.id, name: c.name }))
+    );
 
     if (userCompanies.length === 0) {
       res.status(404).json({
@@ -248,8 +251,11 @@ router.put(
     try {
       console.log('🔍 PUT /company-registration/profile - ROUTE HIT');
       console.log('🔍 User:', req.user);
-      console.log('PUT /company-registration/profile - Request body:', JSON.stringify(req.body, null, 2));
-      
+      console.log(
+        'PUT /company-registration/profile - Request body:',
+        JSON.stringify(req.body, null, 2)
+      );
+
       // Get user's primary company
       const userCompanies = await CompanyRegistrationService.getUserCompanies(req.user!.id);
 

@@ -35,7 +35,7 @@ const CustomerReports: React.FC = () => {
   const loadTemplates = async () => {
     try {
       const response = await axios.get(`${apiUrl}/api/customer-query-builder/templates`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setTemplates(response.data.data);
     } catch (err) {
@@ -93,7 +93,7 @@ const CustomerReports: React.FC = () => {
         { query, companyId },
         {
           headers: { Authorization: `Bearer ${token}` },
-          responseType: 'blob'
+          responseType: 'blob',
         }
       );
 
@@ -130,7 +130,12 @@ const CustomerReports: React.FC = () => {
                 className="inline-flex items-center text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Back to Dashboard
               </button>
@@ -145,7 +150,8 @@ const CustomerReports: React.FC = () => {
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-6">
           <p className="text-gray-600">
-            Run custom reports on your tickets, users, and activity. Select a template or write your own query.
+            Run custom reports on your tickets, users, and activity. Select a template or write your
+            own query.
           </p>
         </div>
 
@@ -226,8 +232,16 @@ const CustomerReports: React.FC = () => {
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-start">
-              <svg className="w-5 h-5 text-red-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              <svg
+                className="w-5 h-5 text-red-500 mr-2 mt-0.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
               </svg>
               <p className="text-red-800">{error}</p>
             </div>
@@ -248,8 +262,18 @@ const CustomerReports: React.FC = () => {
 
             {result.rowCount === 0 ? (
               <div className="text-center py-12">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <svg
+                  className="mx-auto h-12 w-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 <p className="mt-2 text-gray-500">No results found</p>
               </div>
@@ -272,7 +296,10 @@ const CustomerReports: React.FC = () => {
                     {result.rows.slice(0, 100).map((row, idx) => (
                       <tr key={idx} className="hover:bg-gray-50">
                         {result.columns.map((col) => (
-                          <td key={col} className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                          <td
+                            key={col}
+                            className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap"
+                          >
                             {row[col] === null ? (
                               <span className="text-gray-400 italic">null</span>
                             ) : typeof row[col] === 'object' ? (

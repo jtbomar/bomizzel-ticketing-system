@@ -189,7 +189,9 @@ const Gamification: React.FC = () => {
             </div>
             {!isEditing && (
               <button
-                onClick={() => activeTab === 'trophies' ? startEditingTrophy() : startEditingBadge()}
+                onClick={() =>
+                  activeTab === 'trophies' ? startEditingTrophy() : startEditingBadge()
+                }
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 New {activeTab === 'trophies' ? 'Trophy' : 'Badge'}
@@ -250,7 +252,9 @@ const Gamification: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trophy Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Trophy Name *
+                  </label>
                   <input
                     type="text"
                     value={trophyForm.name}
@@ -261,7 +265,9 @@ const Gamification: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
                   <input
                     type="text"
                     value={trophyForm.description}
@@ -286,7 +292,9 @@ const Gamification: React.FC = () => {
                     <input
                       type="number"
                       value={trophyForm.points}
-                      onChange={(e) => setTrophyForm({ ...trophyForm, points: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setTrophyForm({ ...trophyForm, points: parseInt(e.target.value) })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
@@ -310,10 +318,14 @@ const Gamification: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Criteria Type</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Criteria Type
+                    </label>
                     <select
                       value={trophyForm.criteria_type}
-                      onChange={(e) => setTrophyForm({ ...trophyForm, criteria_type: e.target.value })}
+                      onChange={(e) =>
+                        setTrophyForm({ ...trophyForm, criteria_type: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     >
                       <option value="time">Time</option>
@@ -407,7 +419,9 @@ const Gamification: React.FC = () => {
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Badge Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Badge Name *
+                  </label>
                   <input
                     type="text"
                     value={badgeForm.name}
@@ -418,7 +432,9 @@ const Gamification: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
                   <input
                     type="text"
                     value={badgeForm.description}
@@ -439,11 +455,15 @@ const Gamification: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Required Points</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Required Points
+                    </label>
                     <input
                       type="number"
                       value={badgeForm.required_points}
-                      onChange={(e) => setBadgeForm({ ...badgeForm, required_points: parseInt(e.target.value) })}
+                      onChange={(e) =>
+                        setBadgeForm({ ...badgeForm, required_points: parseInt(e.target.value) })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
@@ -471,9 +491,7 @@ const Gamification: React.FC = () => {
                 <div className="text-center py-12">
                   <div className="text-gray-400 text-6xl mb-4">🎖️</div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Badges Configured</h3>
-                  <p className="text-gray-600 mb-4">
-                    Create badges to recognize agent milestones.
-                  </p>
+                  <p className="text-gray-600 mb-4">Create badges to recognize agent milestones.</p>
                   <button
                     onClick={() => startEditingBadge()}
                     className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700"

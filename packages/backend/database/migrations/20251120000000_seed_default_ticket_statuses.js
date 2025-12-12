@@ -18,9 +18,30 @@ exports.up = async function (knex) {
   // Default statuses to create for each team
   const defaultStatuses = [
     { name: 'open', label: 'Open', color: '#EF4444', order: 1, is_default: true, is_closed: false },
-    { name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, is_default: false, is_closed: false },
-    { name: 'waiting', label: 'Waiting', color: '#3B82F6', order: 3, is_default: false, is_closed: false },
-    { name: 'resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false, is_closed: true },
+    {
+      name: 'in_progress',
+      label: 'In Progress',
+      color: '#F59E0B',
+      order: 2,
+      is_default: false,
+      is_closed: false,
+    },
+    {
+      name: 'waiting',
+      label: 'Waiting',
+      color: '#3B82F6',
+      order: 3,
+      is_default: false,
+      is_closed: false,
+    },
+    {
+      name: 'resolved',
+      label: 'Resolved',
+      color: '#10B981',
+      order: 4,
+      is_default: false,
+      is_closed: true,
+    },
   ];
 
   // Create statuses for each team

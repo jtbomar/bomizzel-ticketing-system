@@ -21,13 +21,13 @@ export interface ProvisionCustomerRequest {
   companyName: string;
   companyDomain?: string;
   companyDescription?: string;
-  
+
   // Primary contact/admin user
   adminEmail: string;
   adminFirstName: string;
   adminLastName: string;
   adminPhone?: string;
-  
+
   // Subscription details
   planId?: string; // Use existing plan or custom
   customLimits?: CustomSubscriptionLimits;
@@ -36,12 +36,12 @@ export interface ProvisionCustomerRequest {
     annualPrice?: number;
     setupFee?: number;
   };
-  
+
   // Billing
   billingCycle?: 'monthly' | 'annual';
   trialDays?: number;
   startDate?: Date;
-  
+
   // Additional settings
   notes?: string;
   metadata?: Record<string, any>;
@@ -79,7 +79,7 @@ export class AdminProvisioningService {
       logger.info('Starting customer provisioning', {
         companyName: request.companyName,
         adminEmail: request.adminEmail,
-        provisionedBy
+        provisionedBy,
       });
 
       // 1. Check if company already exists
@@ -99,7 +99,7 @@ export class AdminProvisioningService {
         name: request.companyName,
         domain: request.companyDomain,
         description: request.companyDescription,
-        is_active: true
+        is_active: true,
       });
 
       // 4. Generate temporary password for admin
@@ -129,7 +129,7 @@ export class AdminProvisioningService {
             defaultView: 'kanban',
             ticketsPerPage: 25,
           },
-        }
+        },
       });
 
       // 6. Associate admin with company
@@ -149,29 +149,28 @@ export class AdminProvisioningService {
       logger.info('Customer provisioning completed', {
         companyId: company.id,
         adminUserId: adminUser.id,
-        subscriptionId: subscription.id
+        subscriptionId: subscription.id,
       });
 
       return {
         success: true,
         company: {
           id: company.id,
-          name: company.name
+          name: company.name,
         },
         adminUser: {
           id: adminUser.id,
           email: adminUser.email,
-          temporaryPassword
+          temporaryPassword,
         },
         subscription: {
           id: subscription.id,
           planName: subscription.planName,
           limits: subscription.limits,
-          status: subscription.status
+          status: subscription.status,
         },
-        message: 'Customer provisioned successfully'
+        message: 'Customer provisioned successfully',
       };
-
     } catch (error) {
       logger.error('Customer provisioning failed', { error, request });
       throw error;
@@ -196,17 +195,22 @@ export class AdminProvisioningService {
       if (!plan) {
         throw new AppError('Subscription plan not found', 404);
       }
-      
+
       // Merge plan limits with custom limits
       limits = {
         maxUsers: request.customLimits?.maxUsers ?? plan.limits?.maxUsers ?? 100,
-        maxActiveTickets: request.customLimits?.maxActiveTickets ?? plan.limits?.maxActiveTickets ?? 1000,
-        maxCompletedTickets: request.customLimits?.maxCompletedTickets ?? plan.limits?.maxCompletedTickets ?? 5000,
-        maxTotalTickets: request.customLimits?.maxTotalTickets ?? plan.limits?.maxTotalTickets ?? 10000,
+        maxActiveTickets:
+          request.customLimits?.maxActiveTickets ?? plan.limits?.maxActiveTickets ?? 1000,
+        maxCompletedTickets:
+          request.customLimits?.maxCompletedTickets ?? plan.limits?.maxCompletedTickets ?? 5000,
+        maxTotalTickets:
+          request.customLimits?.maxTotalTickets ?? plan.limits?.maxTotalTickets ?? 10000,
         storageQuotaGB: request.customLimits?.storageQuotaGB ?? plan.limits?.storageQuotaGB ?? 100,
-        maxAttachmentSizeMB: request.customLimits?.maxAttachmentSizeMB ?? plan.limits?.maxAttachmentSizeMB ?? 25,
-        maxCustomFields: request.customLimits?.maxCustomFields ?? plan.limits?.maxCustomFields ?? 50,
-        maxQueues: request.customLimits?.maxQueues ?? plan.limits?.maxQueues ?? 20
+        maxAttachmentSizeMB:
+          request.customLimits?.maxAttachmentSizeMB ?? plan.limits?.maxAttachmentSizeMB ?? 25,
+        maxCustomFields:
+          request.customLimits?.maxCustomFields ?? plan.limits?.maxCustomFields ?? 50,
+        maxQueues: request.customLimits?.maxQueues ?? plan.limits?.maxQueues ?? 20,
       };
     } else {
       // Create fully custom subscription
@@ -218,17 +222,20 @@ export class AdminProvisioningService {
         storageQuotaGB: 100,
         maxAttachmentSizeMB: 25,
         maxCustomFields: 50,
-        maxQueues: 20
+        maxQueues: 20,
       };
     }
 
     const now = new Date();
     const startDate = request.startDate || now;
-    const trialEndDate = request.trialDays ? 
-      new Date(startDate.getTime() + request.trialDays * 24 * 60 * 60 * 1000) : null;
-    
+    const trialEndDate = request.trialDays
+      ? new Date(startDate.getTime() + request.trialDays * 24 * 60 * 60 * 1000)
+      : null;
+
     const currentPeriodEnd = new Date(startDate);
-    currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + (request.billingCycle === 'annual' ? 12 : 1));
+    currentPeriodEnd.setMonth(
+      currentPeriodEnd.getMonth() + (request.billingCycle === 'annual' ? 12 : 1)
+    );
 
     const subscription = await CustomerSubscription.create({
       user_id: userId,
@@ -245,14 +252,14 @@ export class AdminProvisioningService {
       is_custom: true,
       provisioned_by: provisionedBy,
       notes: request.notes,
-      metadata: request.metadata ? JSON.stringify(request.metadata) : null
+      metadata: request.metadata ? JSON.stringify(request.metadata) : null,
     });
 
     return {
       id: subscription.id,
       planName: plan?.name || 'Custom Plan',
       limits,
-      status: subscription.status
+      status: subscription.status,
     };
   }
 
@@ -277,7 +284,7 @@ export class AdminProvisioningService {
       await CustomerSubscription.update(subscriptionId, {
         limits: JSON.stringify(updatedLimits),
         updated_by: updatedBy,
-        updated_at: new Date()
+        updated_at: new Date(),
       });
 
       logger.info('Subscription limits updated', {
@@ -285,16 +292,15 @@ export class AdminProvisioningService {
         previousLimits: currentLimits,
         newLimits: updatedLimits,
         updatedBy,
-        reason
+        reason,
       });
 
       return {
         success: true,
         subscriptionId,
         limits: updatedLimits,
-        message: 'Subscription limits updated successfully'
+        message: 'Subscription limits updated successfully',
       };
-
     } catch (error) {
       logger.error('Failed to update subscription limits', { error, subscriptionId });
       throw error;
@@ -304,11 +310,13 @@ export class AdminProvisioningService {
   /**
    * Get all provisioned customers with their details
    */
-  static async getProvisionedCustomers(options: {
-    limit?: number;
-    offset?: number;
-    status?: string;
-  } = {}) {
+  static async getProvisionedCustomers(
+    options: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+    } = {}
+  ) {
     try {
       // Query the database for provisioned customers
       const customers = await CustomerSubscription.db('customer_subscriptions as cs')
@@ -337,25 +345,24 @@ export class AdminProvisioningService {
         limits: customer.limits || {},
         currentPeriod: {
           start: customer.current_period_start,
-          end: customer.current_period_end
+          end: customer.current_period_end,
         },
         company: {
           id: customer.company_id,
-          name: customer.company_name
+          name: customer.company_name,
         },
         admin: {
           id: customer.admin_id,
           email: customer.admin_email,
-          name: `${customer.first_name} ${customer.last_name}`
-        }
+          name: `${customer.first_name} ${customer.last_name}`,
+        },
       }));
-
     } catch (error) {
       console.error('Failed to get provisioned customers - DETAILED ERROR:', error);
-      logger.error('Failed to get provisioned customers', { 
+      logger.error('Failed to get provisioned customers', {
         error,
         errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined
+        errorStack: error instanceof Error ? error.stack : undefined,
       });
       throw error;
     }
@@ -380,7 +387,7 @@ export class AdminProvisioningService {
   private static async sendProvisioningEmail(user: any, company: any, temporaryPassword: string) {
     try {
       const EmailService = require('./EmailService').EmailService;
-      
+
       const htmlBody = `
         <h2>Welcome to Bomizzel Ticketing System!</h2>
         <p>Hi ${user.first_name},</p>
@@ -398,7 +405,7 @@ export class AdminProvisioningService {
         <p>If you have any questions, please contact our support team.</p>
         <p>Best regards,<br>The Bomizzel Team</p>
       `;
-      
+
       const textBody = `
         Welcome to Bomizzel Ticketing System!
         
@@ -420,7 +427,7 @@ export class AdminProvisioningService {
         Best regards,
         The Bomizzel Team
       `;
-      
+
       await EmailService.sendNotificationEmail(
         [user.email],
         'Welcome to Bomizzel - Your Account is Ready',
@@ -428,7 +435,6 @@ export class AdminProvisioningService {
         textBody,
         { type: 'customer_provisioning', userId: user.id, companyId: company.id }
       );
-      
     } catch (error) {
       logger.error('Failed to send provisioning email', { error, userId: user.id });
       // Don't throw - provisioning should succeed even if email fails
@@ -448,14 +454,14 @@ export class AdminProvisioningService {
       // Update subscription to suspended status
       await CustomerSubscription.update(subscriptionId, {
         status: 'suspended',
-        updated_at: new Date()
+        updated_at: new Date(),
       });
 
       // Deactivate the company
       if (subscription.company_id) {
         await Company.update(subscription.company_id, {
           is_active: false,
-          updated_at: new Date()
+          updated_at: new Date(),
         });
       }
 
@@ -471,15 +477,15 @@ export class AdminProvisioningService {
         subscriptionId,
         companyId: subscription.company_id,
         disabledBy,
-        reason
+        reason,
       });
 
       return {
         success: true,
-        message: 'Customer disabled successfully. All users have been blocked from accessing the system.',
-        subscriptionId
+        message:
+          'Customer disabled successfully. All users have been blocked from accessing the system.',
+        subscriptionId,
       };
-
     } catch (error) {
       logger.error('Failed to disable customer', { error, subscriptionId });
       throw error;
@@ -499,14 +505,14 @@ export class AdminProvisioningService {
       // Update subscription to active status
       await CustomerSubscription.update(subscriptionId, {
         status: 'active',
-        updated_at: new Date()
+        updated_at: new Date(),
       });
 
       // Reactivate the company
       if (subscription.company_id) {
         await Company.update(subscription.company_id, {
           is_active: true,
-          updated_at: new Date()
+          updated_at: new Date(),
         });
       }
 
@@ -522,15 +528,14 @@ export class AdminProvisioningService {
         subscriptionId,
         companyId: subscription.company_id,
         enabledBy,
-        reason
+        reason,
       });
 
       return {
         success: true,
         message: 'Customer enabled successfully. All users can now access the system.',
-        subscriptionId
+        subscriptionId,
       };
-
     } catch (error) {
       logger.error('Failed to enable customer', { error, subscriptionId });
       throw error;
@@ -561,15 +566,14 @@ export class AdminProvisioningService {
         subscriptionId,
         companyId,
         deletedBy,
-        reason
+        reason,
       });
 
       return {
         success: true,
         message: 'Customer deleted successfully. All data has been permanently removed.',
-        subscriptionId
+        subscriptionId,
       };
-
     } catch (error) {
       logger.error('Failed to delete customer', { error, subscriptionId });
       throw error;

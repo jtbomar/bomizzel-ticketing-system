@@ -9,10 +9,12 @@ if (!stripeSecretKey) {
   logger.warn('STRIPE_SECRET_KEY not set - Stripe features will be disabled');
 }
 
-export const stripe = stripeSecretKey ? new Stripe(stripeSecretKey, {
-  apiVersion: '2025-09-30.clover' as any, // Force type to bypass version mismatch
-  typescript: true,
-}) : null;
+export const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: '2025-09-30.clover' as any, // Force type to bypass version mismatch
+      typescript: true,
+    })
+  : null;
 
 export const STRIPE_CONFIG = {
   webhookSecret: stripeWebhookSecret,

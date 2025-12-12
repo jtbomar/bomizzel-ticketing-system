@@ -20,7 +20,7 @@ router.post('/execute', async (req: Request, res: Response): Promise<void> => {
     if (!query || typeof query !== 'string') {
       res.status(400).json({
         success: false,
-        message: 'Query is required'
+        message: 'Query is required',
       });
       return;
     }
@@ -28,7 +28,7 @@ router.post('/execute', async (req: Request, res: Response): Promise<void> => {
     if (!companyId) {
       res.status(400).json({
         success: false,
-        message: 'Company ID is required'
+        message: 'Company ID is required',
       });
       return;
     }
@@ -37,14 +37,13 @@ router.post('/execute', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      data: result
+      data: result,
     });
-
   } catch (error) {
     logger.error('Customer query execution failed', { error });
     res.status(400).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Query execution failed'
+      message: error instanceof Error ? error.message : 'Query execution failed',
     });
   }
 });
@@ -59,14 +58,13 @@ router.get('/schema', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      data: schema
+      data: schema,
     });
-
   } catch (error) {
     logger.error('Failed to get schema', { error });
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve database schema'
+      message: 'Failed to retrieve database schema',
     });
   }
 });
@@ -81,14 +79,13 @@ router.get('/templates', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      data: templates
+      data: templates,
     });
-
   } catch (error) {
     logger.error('Failed to get templates', { error });
     res.status(500).json({
       success: false,
-      message: 'Failed to retrieve query templates'
+      message: 'Failed to retrieve query templates',
     });
   }
 });
@@ -105,7 +102,7 @@ router.post('/export', async (req: Request, res: Response): Promise<void> => {
     if (!query || typeof query !== 'string') {
       res.status(400).json({
         success: false,
-        message: 'Query is required'
+        message: 'Query is required',
       });
       return;
     }
@@ -113,7 +110,7 @@ router.post('/export', async (req: Request, res: Response): Promise<void> => {
     if (!companyId) {
       res.status(400).json({
         success: false,
-        message: 'Company ID is required'
+        message: 'Company ID is required',
       });
       return;
     }
@@ -124,12 +121,11 @@ router.post('/export', async (req: Request, res: Response): Promise<void> => {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="report_${Date.now()}.csv"`);
     res.send(csv);
-
   } catch (error) {
     logger.error('Customer query export failed', { error });
     res.status(400).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Query export failed'
+      message: error instanceof Error ? error.message : 'Query export failed',
     });
   }
 });

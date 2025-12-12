@@ -3,7 +3,7 @@
  * This migration safely adds org_id columns and backfills data
  * Can be run multiple times safely (idempotent)
  */
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   console.log('🚀 Starting consolidated multi-tenancy setup');
 
   // Helper function to safely add column
@@ -107,7 +107,10 @@ exports.up = async function(knex) {
   console.log('✅ Set current_org_id for users');
 
   // Enhance user_company_associations
-  const hasLastAccessed = await knex.schema.hasColumn('user_company_associations', 'last_accessed_at');
+  const hasLastAccessed = await knex.schema.hasColumn(
+    'user_company_associations',
+    'last_accessed_at'
+  );
   if (!hasLastAccessed) {
     await knex.schema.alterTable('user_company_associations', (table) => {
       table.timestamp('last_accessed_at').defaultTo(knex.fn.now());
@@ -125,9 +128,7 @@ exports.up = async function(knex) {
     console.log('✅ Added is_default to user_company_associations');
 
     // Set first association as default for each user
-    const users = await knex('user_company_associations')
-      .select('user_id')
-      .groupBy('user_id');
+    const users = await knex('user_company_associations').select('user_id').groupBy('user_id');
 
     for (const user of users) {
       const firstAssociation = await knex('user_company_associations')
@@ -148,12 +149,20 @@ exports.up = async function(knex) {
   console.log('✅ Multi-tenancy setup completed successfully');
 };
 
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   console.log('⚠️  Rolling back multi-tenancy setup');
-  
+
   // Remove columns in reverse order
-  const tables = ['tickets', 'queues', 'teams', 'custom_fields', 'ticket_notes', 'files', 'departments'];
-  
+  const tables = [
+    'tickets',
+    'queues',
+    'teams',
+    'custom_fields',
+    'ticket_notes',
+    'files',
+    'departments',
+  ];
+
   for (const table of tables) {
     const exists = await knex.schema.hasTable(table);
     if (exists) {

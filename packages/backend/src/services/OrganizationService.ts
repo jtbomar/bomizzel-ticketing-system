@@ -47,23 +47,19 @@ export class OrganizationService {
     }
 
     // Remove default from all user's orgs
-    await db('user_company_associations')
-      .where('user_id', userId)
-      .update({ is_default: false });
+    await db('user_company_associations').where('user_id', userId).update({ is_default: false });
 
     // Set new default
     await db('user_company_associations')
       .where('user_id', userId)
       .where('company_id', orgId)
-      .update({ 
+      .update({
         is_default: true,
-        last_accessed_at: db.fn.now()
+        last_accessed_at: db.fn.now(),
       });
 
     // Update user's current_org_id
-    await db('users')
-      .where('id', userId)
-      .update({ current_org_id: orgId });
+    await db('users').where('id', userId).update({ current_org_id: orgId });
   }
 
   /**
@@ -111,10 +107,7 @@ export class OrganizationService {
    * Get organization details
    */
   static async getOrganization(orgId: string): Promise<any> {
-    const org = await db('companies')
-      .where('id', orgId)
-      .where('is_active', true)
-      .first();
+    const org = await db('companies').where('id', orgId).where('is_active', true).first();
 
     if (!org) {
       throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND');

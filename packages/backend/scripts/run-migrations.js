@@ -12,24 +12,24 @@ try {
   // Determine environment
   const env = process.env.NODE_ENV || (process.env.DATABASE_URL ? 'production' : 'development');
   console.log(`🎯 Using environment: ${env}`);
-  
+
   // Get the backend directory (where knexfile.js is)
-  const backendDir = __dirname.includes('packages/backend') 
+  const backendDir = __dirname.includes('packages/backend')
     ? path.resolve(__dirname, '..')
     : process.cwd();
-  
+
   console.log(`📂 Backend directory: ${backendDir}`);
-  
+
   // Run migrations from the backend directory
   const command = `cd ${backendDir} && npx knex migrate:latest --knexfile knexfile.js --env ${env}`;
   console.log(`⚙️  Running: ${command}`);
-  
-  const output = execSync(command, { 
+
+  const output = execSync(command, {
     encoding: 'utf-8',
     stdio: 'inherit',
-    shell: '/bin/bash'
+    shell: '/bin/bash',
   });
-  
+
   console.log('✅ Migrations completed successfully');
 } catch (error) {
   console.error('❌ Migration failed:', error.message);

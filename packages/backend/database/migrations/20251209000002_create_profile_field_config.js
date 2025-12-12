@@ -1,8 +1,8 @@
 /**
  * Create profile field configuration table
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('profile_field_config', function(table) {
+exports.up = function (knex) {
+  return knex.schema.createTable('profile_field_config', function (table) {
     table.increments('id').primary();
     table.uuid('org_id').references('id').inTable('organizations').onDelete('CASCADE');
     table.string('field_name').notNullable();
@@ -19,6 +19,6 @@ exports.up = function(knex) {
   });
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable('profile_field_config');
 };

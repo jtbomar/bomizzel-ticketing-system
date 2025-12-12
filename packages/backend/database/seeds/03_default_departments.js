@@ -1,11 +1,11 @@
 /**
  * @param { import("knex").Knex } knex
- * @returns { Promise<void> } 
+ * @returns { Promise<void> }
  */
-exports.seed = async function(knex) {
+exports.seed = async function (knex) {
   // Get all companies
   const companies = await knex('companies').select('id', 'name');
-  
+
   if (companies.length === 0) {
     console.log('No companies found, skipping departments seed');
     return;
@@ -14,7 +14,7 @@ exports.seed = async function(knex) {
   for (const company of companies) {
     // Check if company already has departments
     const existingDepts = await knex('departments').where('company_id', company.id);
-    
+
     if (existingDepts.length > 0) {
       console.log(`Company ${company.name} already has departments, skipping`);
       continue;
@@ -67,12 +67,22 @@ exports.seed = async function(knex) {
           template_fields: JSON.stringify({
             subject: { type: 'text', required: true, label: 'Subject' },
             description: { type: 'textarea', required: true, label: 'Description' },
-            priority: { type: 'select', required: true, label: 'Priority', options: ['low', 'medium', 'high', 'urgent'] },
-            category: { type: 'select', required: false, label: 'Category', options: ['question', 'request', 'complaint', 'other'] }
+            priority: {
+              type: 'select',
+              required: true,
+              label: 'Priority',
+              options: ['low', 'medium', 'high', 'urgent'],
+            },
+            category: {
+              type: 'select',
+              required: false,
+              label: 'Category',
+              options: ['question', 'request', 'complaint', 'other'],
+            },
           }),
           default_values: JSON.stringify({
             priority: 'medium',
-            category: 'question'
+            category: 'question',
           }),
           priority: 'medium',
           category: 'general',
@@ -90,12 +100,27 @@ exports.seed = async function(knex) {
             steps_to_reproduce: { type: 'textarea', required: true, label: 'Steps to Reproduce' },
             expected_behavior: { type: 'textarea', required: true, label: 'Expected Behavior' },
             actual_behavior: { type: 'textarea', required: true, label: 'Actual Behavior' },
-            browser: { type: 'select', required: false, label: 'Browser', options: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Other'] },
-            operating_system: { type: 'select', required: false, label: 'Operating System', options: ['Windows', 'macOS', 'Linux', 'iOS', 'Android', 'Other'] },
-            priority: { type: 'select', required: true, label: 'Priority', options: ['low', 'medium', 'high', 'urgent'] }
+            browser: {
+              type: 'select',
+              required: false,
+              label: 'Browser',
+              options: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Other'],
+            },
+            operating_system: {
+              type: 'select',
+              required: false,
+              label: 'Operating System',
+              options: ['Windows', 'macOS', 'Linux', 'iOS', 'Android', 'Other'],
+            },
+            priority: {
+              type: 'select',
+              required: true,
+              label: 'Priority',
+              options: ['low', 'medium', 'high', 'urgent'],
+            },
           }),
           default_values: JSON.stringify({
-            priority: 'high'
+            priority: 'high',
           }),
           priority: 'high',
           category: 'bug',
@@ -113,13 +138,34 @@ exports.seed = async function(knex) {
             contact_person: { type: 'text', required: true, label: 'Contact Person' },
             email: { type: 'email', required: true, label: 'Email' },
             phone: { type: 'tel', required: false, label: 'Phone Number' },
-            inquiry_type: { type: 'select', required: true, label: 'Inquiry Type', options: ['pricing', 'demo', 'features', 'partnership', 'other'] },
+            inquiry_type: {
+              type: 'select',
+              required: true,
+              label: 'Inquiry Type',
+              options: ['pricing', 'demo', 'features', 'partnership', 'other'],
+            },
             description: { type: 'textarea', required: true, label: 'Description' },
-            budget_range: { type: 'select', required: false, label: 'Budget Range', options: ['< $1,000', '$1,000 - $5,000', '$5,000 - $10,000', '$10,000+', 'Not specified'] },
-            timeline: { type: 'select', required: false, label: 'Timeline', options: ['Immediate', 'Within 1 month', '1-3 months', '3-6 months', '6+ months'] }
+            budget_range: {
+              type: 'select',
+              required: false,
+              label: 'Budget Range',
+              options: [
+                '< $1,000',
+                '$1,000 - $5,000',
+                '$5,000 - $10,000',
+                '$10,000+',
+                'Not specified',
+              ],
+            },
+            timeline: {
+              type: 'select',
+              required: false,
+              label: 'Timeline',
+              options: ['Immediate', 'Within 1 month', '1-3 months', '3-6 months', '6+ months'],
+            },
           }),
           default_values: JSON.stringify({
-            inquiry_type: 'pricing'
+            inquiry_type: 'pricing',
           }),
           priority: 'medium',
           category: 'sales',

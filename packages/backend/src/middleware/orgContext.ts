@@ -16,7 +16,7 @@ declare global {
 /**
  * Extract and validate organization ID from URL
  * Ensures user has access to the organization
- * 
+ *
  * Usage: router.use('/org/:orgId/tickets', authenticate, orgContext, ticketRoutes);
  */
 export const orgContext = async (
@@ -47,18 +47,11 @@ export const orgContext = async (
 
     if (!association) {
       console.log(`❌ Access denied - User ${req.user.email} not associated with org ${orgId}`);
-      throw new AppError(
-        'Access denied to this organization',
-        403,
-        'ORG_ACCESS_DENIED'
-      );
+      throw new AppError('Access denied to this organization', 403, 'ORG_ACCESS_DENIED');
     }
 
     // Verify organization exists and is active
-    const org = await db('companies')
-      .where('id', orgId)
-      .where('is_active', true)
-      .first();
+    const org = await db('companies').where('id', orgId).where('is_active', true).first();
 
     if (!org) {
       throw new AppError('Organization not found or inactive', 404, 'ORG_NOT_FOUND');
@@ -76,7 +69,7 @@ export const orgContext = async (
       .where('user_id', req.user.id)
       .where('company_id', orgId)
       .update({ last_accessed_at: db.fn.now() })
-      .catch(err => console.error('Failed to update last_accessed_at:', err));
+      .catch((err) => console.error('Failed to update last_accessed_at:', err));
 
     next();
   } catch (error) {
@@ -87,7 +80,7 @@ export const orgContext = async (
 /**
  * Require specific org role(s)
  * Must be used after orgContext middleware
- * 
+ *
  * Usage: router.delete('/ticket/:id', authenticate, orgContext, requireOrgRole(['admin', 'owner']), deleteTicket);
  */
 export const requireOrgRole = (allowedRoles: string[]) => {

@@ -79,63 +79,73 @@ router.get(
  * GET /reports/users
  * Generate user analytics report (admin only)
  */
-router.get('/users', authenticate, validateRequest({}), async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.id;
+router.get(
+  '/users',
+  authenticate,
+  validateRequest({}),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?.id;
 
-    if (!userId) {
-      return res.status(401).json({
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
+        });
+      }
+
+      const report = await ReportingService.generateUserReport(userId);
+
+      res.json({ report });
+    } catch (error) {
+      res.status(500).json({
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'User not authenticated',
+          code: 'GENERATE_USER_REPORT_FAILED',
+          message: 'Failed to generate user report',
+          details: error instanceof Error ? error.message : 'Unknown error',
         },
       });
     }
-
-    const report = await ReportingService.generateUserReport(userId);
-
-    res.json({ report });
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'GENERATE_USER_REPORT_FAILED',
-        message: 'Failed to generate user report',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
   }
-});
+);
 
 /**
  * GET /reports/teams
  * Generate team analytics report
  */
-router.get('/teams', authenticate, requireEmployee, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user?.id;
+router.get(
+  '/teams',
+  authenticate,
+  requireEmployee,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user?.id;
 
-    if (!userId) {
-      return res.status(401).json({
+      if (!userId) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'User not authenticated',
+          },
+        });
+      }
+
+      const report = await ReportingService.generateTeamReport(userId);
+
+      res.json({ report });
+    } catch (error) {
+      res.status(500).json({
         error: {
-          code: 'UNAUTHORIZED',
-          message: 'User not authenticated',
+          code: 'GENERATE_TEAM_REPORT_FAILED',
+          message: 'Failed to generate team report',
+          details: error instanceof Error ? error.message : 'Unknown error',
         },
       });
     }
-
-    const report = await ReportingService.generateTeamReport(userId);
-
-    res.json({ report });
-  } catch (error) {
-    res.status(500).json({
-      error: {
-        code: 'GENERATE_TEAM_REPORT_FAILED',
-        message: 'Failed to generate team report',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-    });
   }
-});
+);
 
 /**
  * GET /reports/export/:dataType

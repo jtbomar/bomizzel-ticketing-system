@@ -50,7 +50,7 @@ const Agents: React.FC = () => {
       const response = await apiService.getDepartments();
       console.log('Departments API response:', response);
       // The API returns the array directly, not wrapped in an object
-      const depts = Array.isArray(response) ? response : (response.departments || []);
+      const depts = Array.isArray(response) ? response : response.departments || [];
       console.log('Departments array:', depts);
       setDepartments(depts);
       console.log('Departments state set to:', depts.length, 'items');
@@ -84,7 +84,7 @@ const Agents: React.FC = () => {
       const response = await apiService.getUsers();
       console.log('Users API response:', response);
       // Handle both formats: direct array or wrapped in object
-      const usersList = Array.isArray(response) ? response : (response.users || response.data || []);
+      const usersList = Array.isArray(response) ? response : response.users || response.data || [];
       console.log('Users list:', usersList);
       setUsers(usersList);
     } catch (error: any) {
@@ -117,9 +117,11 @@ const Agents: React.FC = () => {
       if (newUser.mobilePhone) userData.mobilePhone = newUser.mobilePhone;
       if (newUser.extension) userData.extension = newUser.extension;
       if (newUser.about) userData.about = newUser.about;
-      if (newUser.organizationalRoleId) userData.organizationalRoleId = newUser.organizationalRoleId;
+      if (newUser.organizationalRoleId)
+        userData.organizationalRoleId = newUser.organizationalRoleId;
       if (newUser.userProfileId) userData.userProfileId = newUser.userProfileId;
-      if (newUser.departmentIds && newUser.departmentIds.length > 0) userData.departmentIds = newUser.departmentIds;
+      if (newUser.departmentIds && newUser.departmentIds.length > 0)
+        userData.departmentIds = newUser.departmentIds;
 
       console.log('Creating user with data:', userData);
       await apiService.createUser(userData);
@@ -144,10 +146,11 @@ const Agents: React.FC = () => {
     } catch (error: any) {
       console.error('Error creating user:', error);
       console.error('Error response:', error.response);
-      const errorMessage = error.response?.data?.error?.message 
-        || error.response?.data?.message 
-        || error.message 
-        || 'Failed to create agent';
+      const errorMessage =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to create agent';
       alert(`Failed to create agent: ${errorMessage}`);
     }
   };
@@ -196,9 +199,11 @@ const Agents: React.FC = () => {
     // Check for assigned tickets first
     try {
       const ticketCheck = await apiService.checkUserTickets(userId);
-      
+
       if (ticketCheck.hasTickets) {
-        alert(`This agent has ${ticketCheck.ticketCount} assigned tickets. Please reassign them before deactivating.\n\n(Full reassignment feature coming soon - for now, reassign tickets manually in the Tickets section)`);
+        alert(
+          `This agent has ${ticketCheck.ticketCount} assigned tickets. Please reassign them before deactivating.\n\n(Full reassignment feature coming soon - for now, reassign tickets manually in the Tickets section)`
+        );
         return;
       }
     } catch (error) {
@@ -221,8 +226,8 @@ const Agents: React.FC = () => {
   const permanentlyDeleteUser = async (userId: string, userName: string) => {
     const confirmation = prompt(
       `⚠️ WARNING: This will PERMANENTLY delete ${userName}.\n\n` +
-      `This action CANNOT be undone!\n\n` +
-      `Type "DELETE" to confirm:`
+        `This action CANNOT be undone!\n\n` +
+        `Type "DELETE" to confirm:`
     );
 
     if (confirmation !== 'DELETE') {
@@ -250,7 +255,7 @@ const Agents: React.FC = () => {
   }
 
   // Show all users except customers, and optionally show inactive users
-  const agents = users.filter(u => u.role !== 'customer');
+  const agents = users.filter((u) => u.role !== 'customer');
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -263,7 +268,12 @@ const Agents: React.FC = () => {
                 className="flex items-center text-gray-600 hover:text-gray-900"
               >
                 <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
                 Back to Settings
               </button>
@@ -290,13 +300,13 @@ const Agents: React.FC = () => {
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {agents.filter(a => a.isActive).length}
+                {agents.filter((a) => a.isActive).length}
               </div>
               <div className="text-sm text-green-800">Active Agents</div>
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-gray-600">
-                {agents.filter(a => !a.isActive).length}
+                {agents.filter((a) => !a.isActive).length}
               </div>
               <div className="text-sm text-gray-800">Inactive Agents</div>
             </div>
@@ -307,11 +317,21 @@ const Agents: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Name
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -352,8 +372,18 @@ const Agents: React.FC = () => {
                           className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 flex items-center"
                           title="Edit agent"
                         >
-                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          <svg
+                            className="w-3 h-3 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
                           </svg>
                           Edit
                         </button>
@@ -376,7 +406,12 @@ const Agents: React.FC = () => {
                           </button>
                         ) : (
                           <button
-                            onClick={() => permanentlyDeleteUser(agent.id, `${agent.firstName} ${agent.lastName}`)}
+                            onClick={() =>
+                              permanentlyDeleteUser(
+                                agent.id,
+                                `${agent.firstName} ${agent.lastName}`
+                              )
+                            }
                             className="px-3 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
                             title="Permanently delete this user"
                           >
@@ -404,7 +439,7 @@ const Agents: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Agent</h3>
-            
+
             <div className="space-y-4">
               {/* Basic Information */}
               <div className="border-b pb-4">
@@ -482,7 +517,9 @@ const Agents: React.FC = () => {
               <div className="border-b pb-4">
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Password Settings</h4>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Starting Password *</label>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Starting Password *
+                  </label>
                   <input
                     type="text"
                     value={newUser.password}
@@ -496,17 +533,23 @@ const Agents: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={newUser.mustChangePassword}
-                      onChange={(e) => setNewUser({ ...newUser, mustChangePassword: e.target.checked })}
+                      onChange={(e) =>
+                        setNewUser({ ...newUser, mustChangePassword: e.target.checked })
+                      }
                       className="rounded border-gray-300 text-blue-600"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Require password change on first login</span>
+                    <span className="ml-2 text-sm text-gray-700">
+                      Require password change on first login
+                    </span>
                   </label>
                 </div>
               </div>
 
               {/* Organizational Structure */}
               <div className="border-b pb-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Organizational Structure</h4>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Organizational Structure
+                </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">System Role *</label>
@@ -522,15 +565,24 @@ const Agents: React.FC = () => {
                     <p className="text-xs text-gray-500 mt-1">System access level</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Organizational Role</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Organizational Role
+                    </label>
                     <select
                       value={newUser.organizationalRoleId || ''}
-                      onChange={(e) => setNewUser({ ...newUser, organizationalRoleId: e.target.value ? parseInt(e.target.value) : null })}
+                      onChange={(e) =>
+                        setNewUser({
+                          ...newUser,
+                          organizationalRoleId: e.target.value ? parseInt(e.target.value) : null,
+                        })
+                      }
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                     >
                       <option value="">Select role...</option>
                       {organizationalRoles.map((role) => (
-                        <option key={role.id} value={role.id}>{role.name}</option>
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
                       ))}
                     </select>
                     <p className="text-xs text-gray-500 mt-1">Company hierarchy position</p>
@@ -541,12 +593,19 @@ const Agents: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700">User Profile</label>
                   <select
                     value={newUser.userProfileId || ''}
-                    onChange={(e) => setNewUser({ ...newUser, userProfileId: e.target.value ? parseInt(e.target.value) : null })}
+                    onChange={(e) =>
+                      setNewUser({
+                        ...newUser,
+                        userProfileId: e.target.value ? parseInt(e.target.value) : null,
+                      })
+                    }
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                   >
                     <option value="">Select profile...</option>
                     {userProfiles.map((profile) => (
-                      <option key={profile.id} value={profile.id}>{profile.name}</option>
+                      <option key={profile.id} value={profile.id}>
+                        {profile.name}
+                      </option>
                     ))}
                   </select>
                   <p className="text-xs text-gray-500 mt-1">Functional role and permissions</p>
@@ -566,9 +625,15 @@ const Agents: React.FC = () => {
                         checked={newUser.departmentIds.includes(dept.id)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setNewUser({ ...newUser, departmentIds: [...newUser.departmentIds, dept.id] });
+                            setNewUser({
+                              ...newUser,
+                              departmentIds: [...newUser.departmentIds, dept.id],
+                            });
                           } else {
-                            setNewUser({ ...newUser, departmentIds: newUser.departmentIds.filter(id => id !== dept.id) });
+                            setNewUser({
+                              ...newUser,
+                              departmentIds: newUser.departmentIds.filter((id) => id !== dept.id),
+                            });
                           }
                         }}
                         className="rounded border-gray-300 text-blue-600"
@@ -636,7 +701,7 @@ const Agents: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Agent</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -684,7 +749,9 @@ const Agents: React.FC = () => {
 
               <div className="bg-blue-50 p-3 rounded">
                 <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> Full edit functionality with all fields (departments, roles, contact info) will be available soon. For now, you can edit basic information.
+                  <strong>Note:</strong> Full edit functionality with all fields (departments,
+                  roles, contact info) will be available soon. For now, you can edit basic
+                  information.
                 </p>
               </div>
             </div>

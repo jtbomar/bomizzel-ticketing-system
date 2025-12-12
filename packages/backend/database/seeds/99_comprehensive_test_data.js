@@ -89,9 +89,30 @@ exports.seed = async function (knex) {
   // Create default ticket statuses for both teams
   const defaultStatuses = [
     { name: 'open', label: 'Open', color: '#EF4444', order: 1, is_default: true, is_closed: false },
-    { name: 'in_progress', label: 'In Progress', color: '#F59E0B', order: 2, is_default: false, is_closed: false },
-    { name: 'waiting', label: 'Waiting', color: '#3B82F6', order: 3, is_default: false, is_closed: false },
-    { name: 'resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false, is_closed: true },
+    {
+      name: 'in_progress',
+      label: 'In Progress',
+      color: '#F59E0B',
+      order: 2,
+      is_default: false,
+      is_closed: false,
+    },
+    {
+      name: 'waiting',
+      label: 'Waiting',
+      color: '#3B82F6',
+      order: 3,
+      is_default: false,
+      is_closed: false,
+    },
+    {
+      name: 'resolved',
+      label: 'Resolved',
+      color: '#10B981',
+      order: 4,
+      is_default: false,
+      is_closed: true,
+    },
   ];
 
   for (const teamId of [supportTeamId, techTeamId]) {
@@ -142,8 +163,16 @@ exports.seed = async function (knex) {
     { name: 'Acme Corporation', domain: 'acme.com', description: 'Enterprise software solutions' },
     { name: 'TechStart Inc', domain: 'techstart.com', description: 'Innovative startup' },
     { name: 'Global Industries', domain: 'globalind.com', description: 'Manufacturing company' },
-    { name: 'Digital Solutions LLC', domain: 'digitalsol.com', description: 'Digital marketing agency' },
-    { name: 'Healthcare Plus', domain: 'healthplus.com', description: 'Healthcare services provider' },
+    {
+      name: 'Digital Solutions LLC',
+      domain: 'digitalsol.com',
+      description: 'Digital marketing agency',
+    },
+    {
+      name: 'Healthcare Plus',
+      domain: 'healthplus.com',
+      description: 'Healthcare services provider',
+    },
   ];
 
   const companyIds = [];
@@ -195,7 +224,11 @@ exports.seed = async function (knex) {
         updated_at: knex.fn.now(),
       });
 
-      customers.push({ id: customerId, companyId: companyIds[i], name: `${firstName} ${lastName}` });
+      customers.push({
+        id: customerId,
+        companyId: companyIds[i],
+        name: `${firstName} ${lastName}`,
+      });
     }
   }
 
@@ -205,7 +238,13 @@ exports.seed = async function (knex) {
       teamId: supportTeamId,
       name: 'Bug Report',
       fields: [
-        { name: 'severity', label: 'Severity', type: 'picklist', options: ['Low', 'Medium', 'High', 'Critical'], required: true },
+        {
+          name: 'severity',
+          label: 'Severity',
+          type: 'picklist',
+          options: ['Low', 'Medium', 'High', 'Critical'],
+          required: true,
+        },
         { name: 'browser', label: 'Browser', type: 'string', required: false },
         { name: 'steps_to_reproduce', label: 'Steps to Reproduce', type: 'string', required: true },
       ],
@@ -214,7 +253,13 @@ exports.seed = async function (knex) {
       teamId: supportTeamId,
       name: 'Feature Request',
       fields: [
-        { name: 'priority', label: 'Priority', type: 'picklist', options: ['Low', 'Medium', 'High'], required: true },
+        {
+          name: 'priority',
+          label: 'Priority',
+          type: 'picklist',
+          options: ['Low', 'Medium', 'High'],
+          required: true,
+        },
         { name: 'use_case', label: 'Use Case', type: 'string', required: true },
         { name: 'expected_users', label: 'Expected Users', type: 'integer', required: false },
       ],
@@ -225,15 +270,33 @@ exports.seed = async function (knex) {
       fields: [
         { name: 'error_code', label: 'Error Code', type: 'string', required: false },
         { name: 'system_version', label: 'System Version', type: 'string', required: true },
-        { name: 'impact_level', label: 'Impact Level', type: 'picklist', options: ['Minor', 'Moderate', 'Major', 'Critical'], required: true },
+        {
+          name: 'impact_level',
+          label: 'Impact Level',
+          type: 'picklist',
+          options: ['Minor', 'Moderate', 'Major', 'Critical'],
+          required: true,
+        },
       ],
     },
     {
       teamId: techTeamId,
       name: 'Account Support',
       fields: [
-        { name: 'account_type', label: 'Account Type', type: 'picklist', options: ['Free', 'Pro', 'Enterprise'], required: true },
-        { name: 'issue_category', label: 'Issue Category', type: 'picklist', options: ['Billing', 'Access', 'Settings', 'Other'], required: true },
+        {
+          name: 'account_type',
+          label: 'Account Type',
+          type: 'picklist',
+          options: ['Free', 'Pro', 'Enterprise'],
+          required: true,
+        },
+        {
+          name: 'issue_category',
+          label: 'Issue Category',
+          type: 'picklist',
+          options: ['Billing', 'Access', 'Settings', 'Other'],
+          required: true,
+        },
         { name: 'account_age_days', label: 'Account Age (days)', type: 'integer', required: false },
       ],
     },
@@ -275,8 +338,8 @@ exports.seed = async function (knex) {
   let ticketIndex = 0;
 
   for (let companyIndex = 0; companyIndex < companyIds.length; companyIndex++) {
-    const companyCustomers = customers.filter(c => c.companyId === companyIds[companyIndex]);
-    
+    const companyCustomers = customers.filter((c) => c.companyId === companyIds[companyIndex]);
+
     for (let i = 0; i < 10; i++) {
       const ticketId = uuidv4();
       const customer = companyCustomers[i % companyCustomers.length];
@@ -316,6 +379,8 @@ exports.seed = async function (knex) {
   console.log('');
   console.log('📧 Login credentials:');
   console.log('   Admin: admin@bomizzel.com / password123');
-  console.log('   Agents: sarah@bomizzel.com, mike@bomizzel.com, emily@bomizzel.com, david@bomizzel.com / password123');
+  console.log(
+    '   Agents: sarah@bomizzel.com, mike@bomizzel.com, emily@bomizzel.com, david@bomizzel.com / password123'
+  );
   console.log('   Customers: Use any customer email / password123');
 };

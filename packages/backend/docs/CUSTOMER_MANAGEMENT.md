@@ -1,10 +1,13 @@
 # Customer Management API
 
 ## Overview
+
 The Admin Provisioning API provides endpoints to manage provisioned customers, including the ability to enable, disable, and delete customers.
 
 ## Authentication
+
 All endpoints require admin authentication. Include the JWT token in the Authorization header:
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
@@ -12,11 +15,13 @@ Authorization: Bearer <your-jwt-token>
 ## Endpoints
 
 ### 1. Disable Customer
+
 **POST** `/api/admin/provisioning/subscriptions/:subscriptionId/disable`
 
 Disables a customer account, blocking all users from accessing the system.
 
 **Request Body:**
+
 ```json
 {
   "reason": "Payment overdue"
@@ -24,6 +29,7 @@ Disables a customer account, blocking all users from accessing the system.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -37,6 +43,7 @@ Disables a customer account, blocking all users from accessing the system.
 ```
 
 **What happens:**
+
 - Subscription status changed to `suspended`
 - Company `is_active` set to `false`
 - All users in the company `is_active` set to `false`
@@ -45,11 +52,13 @@ Disables a customer account, blocking all users from accessing the system.
 ---
 
 ### 2. Enable Customer
+
 **POST** `/api/admin/provisioning/subscriptions/:subscriptionId/enable`
 
 Re-enables a disabled customer account, allowing users to access the system again.
 
 **Request Body:**
+
 ```json
 {
   "reason": "Payment received"
@@ -57,6 +66,7 @@ Re-enables a disabled customer account, allowing users to access the system agai
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -70,6 +80,7 @@ Re-enables a disabled customer account, allowing users to access the system agai
 ```
 
 **What happens:**
+
 - Subscription status changed to `active`
 - Company `is_active` set to `true`
 - All users in the company `is_active` set to `true`
@@ -78,11 +89,13 @@ Re-enables a disabled customer account, allowing users to access the system agai
 ---
 
 ### 3. Delete Customer
+
 **DELETE** `/api/admin/provisioning/subscriptions/:subscriptionId`
 
 Permanently deletes a customer and all associated data. **This action cannot be undone.**
 
 **Request Body:**
+
 ```json
 {
   "reason": "Customer requested account deletion"
@@ -90,6 +103,7 @@ Permanently deletes a customer and all associated data. **This action cannot be 
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -103,6 +117,7 @@ Permanently deletes a customer and all associated data. **This action cannot be 
 ```
 
 **What happens:**
+
 - Subscription record deleted
 - Company record deleted (cascade deletes user associations)
 - All tickets and related data deleted (via database cascade)
@@ -115,17 +130,20 @@ Permanently deletes a customer and all associated data. **This action cannot be 
 The `ProvisionedCustomersList` component provides UI buttons for these actions:
 
 ### Disable Button
+
 - Shows for customers with `status: 'active'` or `status: 'trial'`
 - Prompts for reason
 - Confirms action
 - Calls disable endpoint
 
 ### Enable Button
+
 - Shows for customers with `status: 'suspended'`
 - Prompts for reason
 - Calls enable endpoint
 
 ### Delete Button
+
 - Always visible (use with caution!)
 - Prompts for reason
 - Requires double confirmation
@@ -163,7 +181,7 @@ const response = await axios.delete(
     headers: {
       Authorization: `Bearer ${token}`,
     },
-    data: { reason: 'Customer requested deletion' }
+    data: { reason: 'Customer requested deletion' },
   }
 );
 ```
@@ -192,7 +210,7 @@ const response = await axios.delete(
 
 To test these endpoints, you can:
 
-1. **Via Frontend**: 
+1. **Via Frontend**:
    - Log in as Jeff Bomar (admin@bomizzel.com)
    - Navigate to Super Admin Dashboard
    - Use the Provisioned Customers List
@@ -206,6 +224,7 @@ To test these endpoints, you can:
 ## Database Impact
 
 ### Disable Customer
+
 ```sql
 -- Subscription
 UPDATE customer_subscriptions SET status = 'suspended' WHERE id = ?;
@@ -214,13 +233,14 @@ UPDATE customer_subscriptions SET status = 'suspended' WHERE id = ?;
 UPDATE companies SET is_active = false WHERE id = ?;
 
 -- Users
-UPDATE users SET is_active = false 
+UPDATE users SET is_active = false
 WHERE id IN (
   SELECT user_id FROM user_company_associations WHERE company_id = ?
 );
 ```
 
 ### Enable Customer
+
 ```sql
 -- Subscription
 UPDATE customer_subscriptions SET status = 'active' WHERE id = ?;
@@ -229,13 +249,14 @@ UPDATE customer_subscriptions SET status = 'active' WHERE id = ?;
 UPDATE companies SET is_active = true WHERE id = ?;
 
 -- Users
-UPDATE users SET is_active = true 
+UPDATE users SET is_active = true
 WHERE id IN (
   SELECT user_id FROM user_company_associations WHERE company_id = ?
 );
 ```
 
 ### Delete Customer
+
 ```sql
 -- Subscription
 DELETE FROM customer_subscriptions WHERE id = ?;

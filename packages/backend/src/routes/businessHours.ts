@@ -9,24 +9,22 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const userRole = req.user!.role;
-    
+
     // For admin/employee/team_lead, get all business hours across all companies
     if (['admin', 'employee', 'team_lead'].includes(userRole)) {
-      const allBusinessHours = await db('business_hours')
-        .select('*')
-        .orderBy('company_id');
+      const allBusinessHours = await db('business_hours').select('*').orderBy('company_id');
       return res.json(allBusinessHours);
     }
-    
+
     // For customers, get business hours for their associated company
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
     const businessHours = await BusinessHoursService.getBusinessHours(companyId);
     return res.json(businessHours);
@@ -40,20 +38,20 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const businessHours = await BusinessHoursService.getBusinessHoursById(parseInt(id), companyId);
-    
+
     if (!businessHours) {
       return res.status(404).json({ error: 'Business hours not found' });
     }
@@ -72,11 +70,11 @@ router.post('/', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     // Get user's current org
@@ -88,7 +86,7 @@ router.post('/', authenticate, async (req, res) => {
       const userOrg = await db('user_organization_associations')
         .where('user_id', req.user!.id)
         .first();
-      
+
       if (userOrg) {
         orgId = userOrg.org_id;
       } else {
@@ -109,7 +107,7 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     // Validate day_of_week values
-    const dayNumbers = schedule.map(s => s.day_of_week).sort();
+    const dayNumbers = schedule.map((s) => s.day_of_week).sort();
     const expectedDays = [0, 1, 2, 3, 4, 5, 6];
     if (JSON.stringify(dayNumbers) !== JSON.stringify(expectedDays)) {
       return res.status(400).json({ error: 'Schedule must contain days 0-6 (Sunday-Saturday)' });
@@ -130,7 +128,9 @@ router.post('/', authenticate, async (req, res) => {
     return res.status(201).json(result);
   } catch (error: any) {
     console.error('Error creating business hours:', error);
-    return res.status(500).json({ error: 'Failed to create business hours', details: error.message });
+    return res
+      .status(500)
+      .json({ error: 'Failed to create business hours', details: error.message });
   }
 });
 
@@ -138,16 +138,16 @@ router.post('/', authenticate, async (req, res) => {
 router.put('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const { businessHours, schedule } = req.body;
@@ -162,7 +162,7 @@ router.put('/:id', authenticate, async (req, res) => {
         return res.status(400).json({ error: 'Schedule must contain all 7 days of the week' });
       }
 
-      const dayNumbers = schedule.map(s => s.day_of_week).sort();
+      const dayNumbers = schedule.map((s) => s.day_of_week).sort();
       const expectedDays = [0, 1, 2, 3, 4, 5, 6];
       if (JSON.stringify(dayNumbers) !== JSON.stringify(expectedDays)) {
         return res.status(400).json({ error: 'Schedule must contain days 0-6 (Sunday-Saturday)' });
@@ -170,9 +170,9 @@ router.put('/:id', authenticate, async (req, res) => {
     }
 
     const result = await BusinessHoursService.updateBusinessHours(
-      parseInt(id), 
-      companyId, 
-      businessHours, 
+      parseInt(id),
+      companyId,
+      businessHours,
       schedule
     );
 
@@ -191,16 +191,16 @@ router.put('/:id', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Get user's company ID from user_company_associations
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const success = await BusinessHoursService.deleteBusinessHours(parseInt(id), companyId);
@@ -226,15 +226,15 @@ router.get('/default/current', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const businessHours = await BusinessHoursService.getDefaultBusinessHours(companyId);
-    
+
     if (!businessHours) {
       // Create default business hours if none exist
       const defaultBusinessHours = await BusinessHoursService.createDefaultBusinessHours(companyId);
@@ -255,26 +255,26 @@ router.get('/check/current-status', authenticate, async (req, res) => {
     const userCompany = await db('user_company_associations')
       .where('user_id', req.user!.id)
       .first();
-    
+
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
-    
+
     const companyId = userCompany.company_id;
 
     const businessHours = await BusinessHoursService.getDefaultBusinessHours(companyId);
-    
+
     if (!businessHours) {
-      return res.json({ 
-        isWithinBusinessHours: false, 
-        message: 'No business hours configured' 
+      return res.json({
+        isWithinBusinessHours: false,
+        message: 'No business hours configured',
       });
     }
 
     const currentTime = new Date();
     const isWithinHours = BusinessHoursService.isWithinBusinessHours(
-      businessHours.schedule, 
-      currentTime, 
+      businessHours.schedule,
+      currentTime,
       businessHours.timezone
     );
 
@@ -282,7 +282,7 @@ router.get('/check/current-status', authenticate, async (req, res) => {
       isWithinBusinessHours: isWithinHours,
       currentTime: currentTime.toISOString(),
       timezone: businessHours.timezone,
-      businessHoursTitle: businessHours.title
+      businessHoursTitle: businessHours.title,
     });
   } catch (error) {
     console.error('Error checking business hours status:', error);

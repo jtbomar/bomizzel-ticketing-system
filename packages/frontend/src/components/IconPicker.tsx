@@ -7,17 +7,89 @@ interface IconPickerProps {
 }
 
 const TROPHY_ICONS = [
-  '🏆', '🥇', '🥈', '🥉', '🎖️', '🏅', '⭐', '🌟', '✨', '💫',
-  '⚡', '🚀', '🔥', '💥', '✅', '✔️', '🎯', '🎪', '🎨', '🎭',
-  '💬', '📝', '📋', '📊', '📈', '🧩', '🔧', '⚙️', '🛠️', '🔨',
-  '💡', '🌈', '🎁', '🎉', '🎊', '🏁', '🚩', '⛳', '🎲', '🎰',
+  '🏆',
+  '🥇',
+  '🥈',
+  '🥉',
+  '🎖️',
+  '🏅',
+  '⭐',
+  '🌟',
+  '✨',
+  '💫',
+  '⚡',
+  '🚀',
+  '🔥',
+  '💥',
+  '✅',
+  '✔️',
+  '🎯',
+  '🎪',
+  '🎨',
+  '🎭',
+  '💬',
+  '📝',
+  '📋',
+  '📊',
+  '📈',
+  '🧩',
+  '🔧',
+  '⚙️',
+  '🛠️',
+  '🔨',
+  '💡',
+  '🌈',
+  '🎁',
+  '🎉',
+  '🎊',
+  '🏁',
+  '🚩',
+  '⛳',
+  '🎲',
+  '🎰',
 ];
 
 const BADGE_ICONS = [
-  '🎖️', '🏅', '🥇', '🥈', '🥉', '💎', '💠', '🔷', '🔶', '🔸',
-  '🔹', '⭐', '🌟', '✨', '💫', '🌠', '👑', '🦁', '🦅', '🐝',
-  '🌱', '🌿', '🍀', '🌺', '🌸', '🌼', '🌻', '🏵️', '🎗️', '🎀',
-  '🔰', '⚜️', '🛡️', '🗡️', '🏹', '🎯', '🎪', '🎨', '🎭', '🎬',
+  '🎖️',
+  '🏅',
+  '🥇',
+  '🥈',
+  '🥉',
+  '💎',
+  '💠',
+  '🔷',
+  '🔶',
+  '🔸',
+  '🔹',
+  '⭐',
+  '🌟',
+  '✨',
+  '💫',
+  '🌠',
+  '👑',
+  '🦁',
+  '🦅',
+  '🐝',
+  '🌱',
+  '🌿',
+  '🍀',
+  '🌺',
+  '🌸',
+  '🌼',
+  '🌻',
+  '🏵️',
+  '🎗️',
+  '🎀',
+  '🔰',
+  '⚜️',
+  '🛡️',
+  '🗡️',
+  '🏹',
+  '🎯',
+  '🎪',
+  '🎨',
+  '🎭',
+  '🎬',
 ];
 
 const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, type = 'trophy' }) => {
@@ -45,15 +117,10 @@ const IconPicker: React.FC<IconPickerProps> = ({ value, onChange, type = 'trophy
 
       {isOpen && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setIsOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute z-20 mt-2 w-80 bg-white border border-gray-300 rounded-lg shadow-lg p-4">
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-medium text-gray-900">
-                Choose an icon
-              </h4>
+              <h4 className="text-sm font-medium text-gray-900">Choose an icon</h4>
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-gray-400 hover:text-gray-600"

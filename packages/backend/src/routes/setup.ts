@@ -9,12 +9,16 @@ const router = Router();
 router.post('/migrate', async (_req: Request, res: Response) => {
   try {
     console.log('Running migrations...');
-    const { stdout: migrateOut, stderr: migrateErr } = await execAsync('npx knex migrate:latest --knexfile knexfile.js');
+    const { stdout: migrateOut, stderr: migrateErr } = await execAsync(
+      'npx knex migrate:latest --knexfile knexfile.js'
+    );
     console.log('Migration output:', migrateOut);
     if (migrateErr) console.error('Migration errors:', migrateErr);
 
     console.log('Running seeds...');
-    const { stdout: seedOut, stderr: seedErr } = await execAsync('npx knex seed:run --knexfile knexfile.js');
+    const { stdout: seedOut, stderr: seedErr } = await execAsync(
+      'npx knex seed:run --knexfile knexfile.js'
+    );
     console.log('Seed output:', seedOut);
     if (seedErr) console.error('Seed errors:', seedErr);
 
@@ -22,7 +26,7 @@ router.post('/migrate', async (_req: Request, res: Response) => {
       success: true,
       message: 'Database initialized successfully',
       migration: migrateOut,
-      seed: seedOut
+      seed: seedOut,
     });
   } catch (error: any) {
     console.error('Setup error:', error);
@@ -30,7 +34,7 @@ router.post('/migrate', async (_req: Request, res: Response) => {
       success: false,
       error: error.message,
       stdout: error.stdout,
-      stderr: error.stderr
+      stderr: error.stderr,
     });
   }
 });

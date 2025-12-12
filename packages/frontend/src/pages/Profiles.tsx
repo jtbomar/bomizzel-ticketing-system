@@ -28,7 +28,7 @@ const Profiles: React.FC = () => {
       setLoading(true);
       const response = await apiService.getProfileFields();
       const fields = response.fields || [];
-      
+
       // Convert backend format to frontend format
       const formattedFields = fields.map((field: any, index: number) => ({
         id: index + 1,
@@ -52,13 +52,13 @@ const Profiles: React.FC = () => {
   const formatFieldName = (fieldName: string) => {
     return fieldName
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
   const toggleFieldEnabled = (fieldId: number) => {
-    setProfileFields(fields =>
-      fields.map(field => {
+    setProfileFields((fields) =>
+      fields.map((field) => {
         if (field.id === fieldId && !field.required) {
           return { ...field, enabled: !field.enabled };
         }
@@ -70,9 +70,9 @@ const Profiles: React.FC = () => {
   const saveProfileFields = async () => {
     try {
       setSaving(true);
-      
+
       // Convert back to backend format
-      const fieldsToSave = profileFields.map(field => ({
+      const fieldsToSave = profileFields.map((field) => ({
         field_name: field.field_name,
         is_enabled: field.enabled,
         is_required: field.required,
@@ -167,8 +167,18 @@ const Profiles: React.FC = () => {
                     >
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                          <svg
+                            className="w-5 h-5 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 6h16M4 12h16M4 18h16"
+                            />
                           </svg>
                         </div>
                         <div>
@@ -202,14 +212,26 @@ const Profiles: React.FC = () => {
 
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg
+                      className="w-5 h-5 text-blue-600 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
                     <div>
-                      <h4 className="text-sm font-medium text-blue-900">Profile Field Management</h4>
+                      <h4 className="text-sm font-medium text-blue-900">
+                        Profile Field Management
+                      </h4>
                       <p className="text-sm text-blue-700 mt-1">
-                        Enable or disable fields to customize what information is collected in user profiles. 
-                        Required fields cannot be disabled.
+                        Enable or disable fields to customize what information is collected in user
+                        profiles. Required fields cannot be disabled.
                       </p>
                     </div>
                   </div>
@@ -228,7 +250,9 @@ const Profiles: React.FC = () => {
                   <div className="p-6 border-2 border-blue-500 rounded-lg bg-blue-50">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="font-medium text-gray-900">Standard Layout</h4>
-                      <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">Active</span>
+                      <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                        Active
+                      </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-4">
                       Default profile layout with all standard fields

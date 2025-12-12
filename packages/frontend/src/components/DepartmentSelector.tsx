@@ -41,12 +41,10 @@ const DepartmentSelector: React.FC<DepartmentSelectorProps> = ({
     }
   };
 
-  const selectedDepartment = departments.find(dept => dept.id === selectedDepartmentId);
+  const selectedDepartment = departments.find((dept) => dept.id === selectedDepartmentId);
 
   if (loading) {
-    return (
-      <div className={`animate-pulse bg-gray-200 h-10 rounded-md ${className}`}></div>
-    );
+    return <div className={`animate-pulse bg-gray-200 h-10 rounded-md ${className}`}></div>;
   }
 
   return (
@@ -59,16 +57,14 @@ const DepartmentSelector: React.FC<DepartmentSelectorProps> = ({
         }}
         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
       >
-        {showAllOption && (
-          <option value="">All Departments</option>
-        )}
+        {showAllOption && <option value="">All Departments</option>}
         {departments.map((department) => (
           <option key={department.id} value={department.id}>
             {department.name}
           </option>
         ))}
       </select>
-      
+
       {/* Department icon/logo */}
       <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
         {selectedDepartment ? (

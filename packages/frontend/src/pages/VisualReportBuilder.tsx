@@ -53,14 +53,10 @@ const VisualReportBuilder: React.FC = () => {
   const tableRelationships: Record<string, Array<{ table: string; from: string; to: string }>> = {
     tickets: [
       { table: 'ticket_notes', from: 'id', to: 'ticket_id' },
-      { table: 'ticket_attachments', from: 'id', to: 'ticket_id' }
+      { table: 'ticket_attachments', from: 'id', to: 'ticket_id' },
     ],
-    ticket_notes: [
-      { table: 'tickets', from: 'ticket_id', to: 'id' }
-    ],
-    ticket_attachments: [
-      { table: 'tickets', from: 'ticket_id', to: 'id' }
-    ]
+    ticket_notes: [{ table: 'tickets', from: 'ticket_id', to: 'id' }],
+    ticket_attachments: [{ table: 'tickets', from: 'ticket_id', to: 'id' }],
   };
 
   useEffect(() => {
@@ -71,7 +67,7 @@ const VisualReportBuilder: React.FC = () => {
     try {
       console.log('Loading schema from:', `${apiUrl}/api/customer-query-builder/schema`);
       const response = await axios.get(`${apiUrl}/api/customer-query-builder/schema`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       console.log('Schema response:', response.data);
       if (response.data.success && response.data.data) {
@@ -104,8 +100,8 @@ const VisualReportBuilder: React.FC = () => {
           { columnName: 'category', dataType: 'text', isNullable: true },
           { columnName: 'created_at', dataType: 'timestamp', isNullable: false },
           { columnName: 'updated_at', dataType: 'timestamp', isNullable: false },
-          { columnName: 'resolved_at', dataType: 'timestamp', isNullable: true }
-        ]
+          { columnName: 'resolved_at', dataType: 'timestamp', isNullable: true },
+        ],
       },
       {
         tableName: 'ticket_notes',
@@ -115,8 +111,8 @@ const VisualReportBuilder: React.FC = () => {
           { columnName: 'content', dataType: 'text', isNullable: false },
           { columnName: 'is_internal', dataType: 'boolean', isNullable: false },
           { columnName: 'created_by', dataType: 'uuid', isNullable: false },
-          { columnName: 'created_at', dataType: 'timestamp', isNullable: false }
-        ]
+          { columnName: 'created_at', dataType: 'timestamp', isNullable: false },
+        ],
       },
       {
         tableName: 'ticket_attachments',
@@ -126,8 +122,8 @@ const VisualReportBuilder: React.FC = () => {
           { columnName: 'file_name', dataType: 'text', isNullable: false },
           { columnName: 'file_size', dataType: 'integer', isNullable: false },
           { columnName: 'file_type', dataType: 'text', isNullable: false },
-          { columnName: 'uploaded_at', dataType: 'timestamp', isNullable: false }
-        ]
+          { columnName: 'uploaded_at', dataType: 'timestamp', isNullable: false },
+        ],
       },
       {
         tableName: 'users',
@@ -138,8 +134,8 @@ const VisualReportBuilder: React.FC = () => {
           { columnName: 'last_name', dataType: 'text', isNullable: false },
           { columnName: 'role', dataType: 'text', isNullable: false },
           { columnName: 'is_active', dataType: 'boolean', isNullable: false },
-          { columnName: 'created_at', dataType: 'timestamp', isNullable: false }
-        ]
+          { columnName: 'created_at', dataType: 'timestamp', isNullable: false },
+        ],
       },
       {
         tableName: 'custom_fields',
@@ -149,60 +145,68 @@ const VisualReportBuilder: React.FC = () => {
           { columnName: 'name', dataType: 'text', isNullable: false },
           { columnName: 'field_type', dataType: 'text', isNullable: false },
           { columnName: 'is_required', dataType: 'boolean', isNullable: false },
-          { columnName: 'is_active', dataType: 'boolean', isNullable: false }
-        ]
-      }
+          { columnName: 'is_active', dataType: 'boolean', isNullable: false },
+        ],
+      },
     ]);
     console.log('Loaded fallback schema');
   };
 
   const addTable = (tableName: string) => {
-    if (selectedTables.find(t => t.table === tableName)) {
+    if (selectedTables.find((t) => t.table === tableName)) {
       setError('Table already added');
       return;
     }
 
-    const tableInfo = schema.find(t => t.tableName === tableName);
+    const tableInfo = schema.find((t) => t.tableName === tableName);
     if (!tableInfo) return;
 
     const alias = tableName.substring(0, 1);
-    setSelectedTables([...selectedTables, {
-      table: tableName,
-      alias,
-      columns: []
-    }]);
+    setSelectedTables([
+      ...selectedTables,
+      {
+        table: tableName,
+        alias,
+        columns: [],
+      },
+    ]);
     setError(null);
   };
 
   const removeTable = (tableName: string) => {
-    setSelectedTables(selectedTables.filter(t => t.table !== tableName));
-    setJoins(joins.filter(j => j.fromTable !== tableName && j.toTable !== tableName));
+    setSelectedTables(selectedTables.filter((t) => t.table !== tableName));
+    setJoins(joins.filter((j) => j.fromTable !== tableName && j.toTable !== tableName));
   };
 
   const toggleColumn = (tableName: string, columnName: string) => {
-    setSelectedTables(selectedTables.map(t => {
-      if (t.table === tableName) {
-        const columns = t.columns.includes(columnName)
-          ? t.columns.filter(c => c !== columnName)
-          : [...t.columns, columnName];
-        return { ...t, columns };
-      }
-      return t;
-    }));
+    setSelectedTables(
+      selectedTables.map((t) => {
+        if (t.table === tableName) {
+          const columns = t.columns.includes(columnName)
+            ? t.columns.filter((c) => c !== columnName)
+            : [...t.columns, columnName];
+          return { ...t, columns };
+        }
+        return t;
+      })
+    );
   };
 
   const addJoin = (fromTable: string, toTable: string) => {
     const relationships = tableRelationships[fromTable];
-    const relationship = relationships?.find(r => r.table === toTable);
+    const relationship = relationships?.find((r) => r.table === toTable);
 
     if (relationship) {
-      setJoins([...joins, {
-        fromTable,
-        fromColumn: relationship.from,
-        toTable,
-        toColumn: relationship.to,
-        type: 'LEFT'
-      }]);
+      setJoins([
+        ...joins,
+        {
+          fromTable,
+          fromColumn: relationship.from,
+          toTable,
+          toColumn: relationship.to,
+          type: 'LEFT',
+        },
+      ]);
     } else {
       setError('No automatic relationship found. Please add join manually.');
     }
@@ -219,11 +223,11 @@ const VisualReportBuilder: React.FC = () => {
 
     // Build column list
     const allColumns: string[] = [];
-    selectedTables.forEach(t => {
+    selectedTables.forEach((t) => {
       if (t.columns.length === 0) {
         allColumns.push(`${t.alias}.*`);
       } else {
-        t.columns.forEach(col => {
+        t.columns.forEach((col) => {
           allColumns.push(`${t.alias}.${col}`);
         });
       }
@@ -234,8 +238,9 @@ const VisualReportBuilder: React.FC = () => {
     query += `\nFROM ${mainTable.table} ${mainTable.alias}`;
 
     // JOIN clauses
-    joins.forEach(join => {
-      const toTableAlias = selectedTables.find(t => t.table === join.toTable)?.alias || join.toTable;
+    joins.forEach((join) => {
+      const toTableAlias =
+        selectedTables.find((t) => t.table === join.toTable)?.alias || join.toTable;
       query += `\n${join.type} JOIN ${join.toTable} ${toTableAlias} ON ${mainTable.alias}.${join.fromColumn} = ${toTableAlias}.${join.toColumn}`;
     });
 
@@ -290,7 +295,7 @@ const VisualReportBuilder: React.FC = () => {
         { query, companyId },
         {
           headers: { Authorization: `Bearer ${token}` },
-          responseType: 'blob'
+          responseType: 'blob',
         }
       );
 
@@ -317,9 +322,7 @@ const VisualReportBuilder: React.FC = () => {
           >
             {s}
           </div>
-          {s < 4 && (
-            <div className={`w-16 h-1 ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`} />
-          )}
+          {s < 4 && <div className={`w-16 h-1 ${step > s ? 'bg-blue-600' : 'bg-gray-200'}`} />}
         </React.Fragment>
       ))}
     </div>
@@ -336,7 +339,12 @@ const VisualReportBuilder: React.FC = () => {
               className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
               Back to Dashboard
             </button>
@@ -428,9 +436,10 @@ const VisualReportBuilder: React.FC = () => {
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-lg font-semibold mb-4">SQL Query Editor</h2>
               <p className="text-gray-600 mb-4">
-                Write your own SQL query. Only SELECT queries are allowed, and results are automatically scoped to your company.
+                Write your own SQL query. Only SELECT queries are allowed, and results are
+                automatically scoped to your company.
               </p>
-              
+
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   SQL Query (SELECT only)
@@ -447,7 +456,8 @@ const VisualReportBuilder: React.FC = () => {
                     💡 Tip: Click "Show Tables" above to see available tables and columns
                   </p>
                   <p className="text-xs text-gray-500">
-                    📋 Available tables: tickets, ticket_notes, ticket_attachments, users, custom_fields, teams, queues
+                    📋 Available tables: tickets, ticket_notes, ticket_attachments, users,
+                    custom_fields, teams, queues
                   </p>
                 </div>
               </div>
@@ -486,7 +496,10 @@ const VisualReportBuilder: React.FC = () => {
                       <thead className="bg-gray-50">
                         <tr>
                           {result.columns.map((col) => (
-                            <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th
+                              key={col}
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                            >
                               {col}
                             </th>
                           ))}
@@ -496,7 +509,10 @@ const VisualReportBuilder: React.FC = () => {
                         {result.rows.slice(0, 100).map((row, idx) => (
                           <tr key={idx} className="hover:bg-gray-50">
                             {result.columns.map((col) => (
-                              <td key={col} className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                              <td
+                                key={col}
+                                className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap"
+                              >
                                 {row[col] === null ? (
                                   <span className="text-gray-400 italic">null</span>
                                 ) : (
@@ -524,7 +540,9 @@ const VisualReportBuilder: React.FC = () => {
         {mode === 'wizard' && step === 1 && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Step 1: Select Tables</h2>
-            <p className="text-gray-600 mb-6">Choose the tables you want to include in your report</p>
+            <p className="text-gray-600 mb-6">
+              Choose the tables you want to include in your report
+            </p>
 
             <div className="grid grid-cols-2 gap-6">
               <div>
@@ -534,7 +552,7 @@ const VisualReportBuilder: React.FC = () => {
                     <button
                       key={table.tableName}
                       onClick={() => addTable(table.tableName)}
-                      disabled={selectedTables.some(t => t.table === table.tableName)}
+                      disabled={selectedTables.some((t) => t.table === table.tableName)}
                       className="w-full text-left p-3 border border-gray-200 rounded hover:bg-blue-50 hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <div className="font-medium">{table.tableName}</div>
@@ -551,7 +569,10 @@ const VisualReportBuilder: React.FC = () => {
                 ) : (
                   <div className="space-y-2">
                     {selectedTables.map((table) => (
-                      <div key={table.table} className="p-3 border border-blue-200 bg-blue-50 rounded flex items-center justify-between">
+                      <div
+                        key={table.table}
+                        className="p-3 border border-blue-200 bg-blue-50 rounded flex items-center justify-between"
+                      >
                         <div>
                           <div className="font-medium">{table.table}</div>
                           <div className="text-sm text-gray-600">Alias: {table.alias}</div>
@@ -585,11 +606,13 @@ const VisualReportBuilder: React.FC = () => {
         {mode === 'wizard' && step === 2 && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Step 2: Select Columns</h2>
-            <p className="text-gray-600 mb-6">Choose which columns to include (leave empty for all)</p>
+            <p className="text-gray-600 mb-6">
+              Choose which columns to include (leave empty for all)
+            </p>
 
             <div className="space-y-6">
               {selectedTables.map((table) => {
-                const tableInfo = schema.find(t => t.tableName === table.table);
+                const tableInfo = schema.find((t) => t.tableName === table.table);
                 return (
                   <div key={table.table} className="border border-gray-200 rounded-lg p-4">
                     <h3 className="font-medium mb-3">{table.table}</h3>
@@ -661,9 +684,7 @@ const VisualReportBuilder: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  LIMIT
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">LIMIT</label>
                 <input
                   type="number"
                   value={limit}
@@ -740,7 +761,10 @@ const VisualReportBuilder: React.FC = () => {
                       <thead className="bg-gray-50">
                         <tr>
                           {result.columns.map((col) => (
-                            <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            <th
+                              key={col}
+                              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                            >
                               {col}
                             </th>
                           ))}
@@ -750,7 +774,10 @@ const VisualReportBuilder: React.FC = () => {
                         {result.rows.slice(0, 50).map((row, idx) => (
                           <tr key={idx} className="hover:bg-gray-50">
                             {result.columns.map((col) => (
-                              <td key={col} className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+                              <td
+                                key={col}
+                                className="px-4 py-3 text-sm text-gray-900 whitespace-nowrap"
+                              >
                                 {row[col] === null ? (
                                   <span className="text-gray-400 italic">null</span>
                                 ) : (

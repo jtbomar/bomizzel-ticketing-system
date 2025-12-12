@@ -340,9 +340,9 @@ export class CompanyRegistrationService {
     console.log('CompanyRegistrationService.updateCompanyProfile called with:', {
       companyId,
       updates,
-      userId
+      userId,
     });
-    
+
     // Verify user has permission to update company
     const isOwnerOrAdmin = await this.verifyCompanyPermission(userId, companyId, [
       'owner',
@@ -367,9 +367,12 @@ export class CompanyRegistrationService {
     if (updates.secondaryColor !== undefined) updateData.secondary_color = updates.secondaryColor;
 
     // Contact info
-    if (updates.primaryContactName !== undefined) updateData.primary_contact_name = updates.primaryContactName;
-    if (updates.primaryContactEmail !== undefined) updateData.primary_contact_email = updates.primaryContactEmail;
-    if (updates.primaryContactPhone !== undefined) updateData.primary_contact_phone = updates.primaryContactPhone;
+    if (updates.primaryContactName !== undefined)
+      updateData.primary_contact_name = updates.primaryContactName;
+    if (updates.primaryContactEmail !== undefined)
+      updateData.primary_contact_email = updates.primaryContactEmail;
+    if (updates.primaryContactPhone !== undefined)
+      updateData.primary_contact_phone = updates.primaryContactPhone;
     if (updates.mobilePhone !== undefined) updateData.mobile_phone = updates.mobilePhone;
     if (updates.websiteUrl !== undefined) updateData.website_url = updates.websiteUrl;
 
@@ -401,18 +404,18 @@ export class CompanyRegistrationService {
 
     console.log('Database update data:', updateData);
     console.log('Updating company with ID:', companyId);
-    
+
     const [updatedCompany] = await db('companies')
       .where('id', companyId)
       .update(updateData)
       .returning('*');
 
     console.log('Updated company from DB:', updatedCompany);
-    
+
     // Verify the update by fetching again
     const verifyCompany = await db('companies').where('id', companyId).first();
     console.log('Verification query - company name:', verifyCompany?.name);
-    
+
     return this.formatCompanyProfile(updatedCompany);
   }
 
@@ -434,7 +437,10 @@ export class CompanyRegistrationService {
   static async getCompanyProfile(companyId: string): Promise<CompanyProfile> {
     console.log('getCompanyProfile - Fetching company ID:', companyId);
     const company = await db('companies').where('id', companyId).first();
-    console.log('getCompanyProfile - Raw company from DB:', { id: company?.id, name: company?.name });
+    console.log('getCompanyProfile - Raw company from DB:', {
+      id: company?.id,
+      name: company?.name,
+    });
 
     if (!company) {
       throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');

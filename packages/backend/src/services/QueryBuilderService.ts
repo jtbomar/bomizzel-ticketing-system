@@ -35,7 +35,7 @@ export class QueryBuilderService {
     'teams',
     'queues',
     'data_export_logs',
-    'data_import_logs'
+    'data_import_logs',
   ];
 
   // Dangerous SQL keywords that should be blocked
@@ -48,7 +48,7 @@ export class QueryBuilderService {
     'INSERT',
     'UPDATE',
     'GRANT',
-    'REVOKE'
+    'REVOKE',
   ];
 
   /**
@@ -65,7 +65,7 @@ export class QueryBuilderService {
 
       // Execute query
       const result = await db.raw(query);
-      
+
       const executionTime = Date.now() - startTime;
 
       // Extract columns and rows
@@ -79,9 +79,8 @@ export class QueryBuilderService {
         columns,
         rows,
         rowCount: rows.length,
-        executionTime
+        executionTime,
       };
-
     } catch (error) {
       logger.error('Query execution failed', { error, userId });
       throw new AppError(
@@ -123,7 +122,8 @@ export class QueryBuilderService {
       const tables: TableInfo[] = [];
 
       for (const tableName of this.ALLOWED_TABLES) {
-        const columns = await db.raw(`
+        const columns = await db.raw(
+          `
           SELECT 
             column_name,
             data_type,
@@ -131,20 +131,21 @@ export class QueryBuilderService {
           FROM information_schema.columns
           WHERE table_name = ?
           ORDER BY ordinal_position
-        `, [tableName]);
+        `,
+          [tableName]
+        );
 
         tables.push({
           tableName,
           columns: columns.rows.map((col: any) => ({
             columnName: col.column_name,
             dataType: col.data_type,
-            isNullable: col.is_nullable === 'YES'
-          }))
+            isNullable: col.is_nullable === 'YES',
+          })),
         });
       }
 
       return tables;
-
     } catch (error) {
       logger.error('Failed to get table schema', { error });
       throw new AppError('Failed to retrieve database schema', 500);
@@ -168,10 +169,8 @@ export class QueryBuilderService {
     }
 
     // Build SELECT clause
-    const columns = params.columns.length > 0 
-      ? params.columns.join(', ') 
-      : '*';
-    
+    const columns = params.columns.length > 0 ? params.columns.join(', ') : '*';
+
     let query = `SELECT ${columns} FROM ${params.table}`;
 
     // Add JOINs
@@ -214,7 +213,6 @@ export class QueryBuilderService {
         .select('*');
 
       return history;
-
     } catch (error) {
       logger.error('Failed to get query history', { error, userId });
       return [];
@@ -236,7 +234,7 @@ export class QueryBuilderService {
         query: query.substring(0, 5000), // Limit stored query length
         row_count: rowCount,
         execution_time_ms: executionTime,
-        executed_at: new Date()
+        executed_at: new Date(),
       });
     } catch (error) {
       logger.error('Failed to log query execution', { error });
@@ -254,17 +252,23 @@ export class QueryBuilderService {
     const header = columns.join(',');
 
     // Create CSV rows
-    const csvRows = rows.map(row => {
-      return columns.map(col => {
-        const value = row[col];
-        // Escape quotes and wrap in quotes if contains comma or quote
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
-        }
-        return stringValue;
-      }).join(',');
+    const csvRows = rows.map((row) => {
+      return columns
+        .map((col) => {
+          const value = row[col];
+          // Escape quotes and wrap in quotes if contains comma or quote
+          if (value === null || value === undefined) return '';
+          const stringValue = String(value);
+          if (
+            stringValue.includes(',') ||
+            stringValue.includes('"') ||
+            stringValue.includes('\n')
+          ) {
+            return `"${stringValue.replace(/"/g, '""')}"`;
+          }
+          return stringValue;
+        })
+        .join(',');
     });
 
     return [header, ...csvRows].join('\n');
@@ -284,7 +288,7 @@ LEFT JOIN user_company_associations uca ON u.id = uca.user_id
 LEFT JOIN companies c ON uca.company_id = c.id
 WHERE u.is_active = true
 ORDER BY u.created_at DESC
-LIMIT 100`
+LIMIT 100`,
       },
       {
         name: 'Provisioned Customers',
@@ -300,7 +304,7 @@ FROM customer_subscriptions cs
 JOIN companies c ON cs.company_id = c.id
 JOIN users u ON cs.user_id = u.id
 WHERE cs.is_custom = true
-ORDER BY cs.created_at DESC`
+ORDER BY cs.created_at DESC`,
       },
       {
         name: 'Recent Tickets',
@@ -319,7 +323,7 @@ JOIN companies c ON t.company_id = c.id
 LEFT JOIN users creator ON t.created_by = creator.id
 LEFT JOIN users assignee ON t.assigned_to = assignee.id
 ORDER BY t.created_at DESC
-LIMIT 50`
+LIMIT 50`,
       },
       {
         name: 'Company Statistics',
@@ -334,7 +338,7 @@ LEFT JOIN user_company_associations uca ON c.id = uca.company_id
 LEFT JOIN tickets t ON c.id = t.company_id
 WHERE c.is_active = true
 GROUP BY c.id, c.name, c.created_at
-ORDER BY user_count DESC`
+ORDER BY user_count DESC`,
       },
       {
         name: 'Data Export Activity',
@@ -349,8 +353,8 @@ FROM data_export_logs del
 JOIN companies c ON del.company_id = c.id
 JOIN users u ON del.user_id = u.id
 ORDER BY del.created_at DESC
-LIMIT 50`
-      }
+LIMIT 50`,
+      },
     ];
   }
 }

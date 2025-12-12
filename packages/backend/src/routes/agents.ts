@@ -44,9 +44,7 @@ router.get('/', authenticate, async (req, res, next) => {
     // Filter by status (active/inactive) if specified
     if (status && typeof status === 'string') {
       const isActive = status === 'active';
-      filteredAgents = filteredAgents.filter(
-        (agent: UserTable) => agent.is_active === isActive
-      );
+      filteredAgents = filteredAgents.filter((agent: UserTable) => agent.is_active === isActive);
     }
 
     // Convert to model format
@@ -88,7 +86,7 @@ router.get('/customers', authenticate, async (req, res, next) => {
 router.get('/accounts', authenticate, async (req, res, next) => {
   try {
     const { status } = req.query;
-    
+
     const companies = await UserService.getAllCompanies(
       status === 'active' ? true : status === 'inactive' ? false : undefined
     );

@@ -65,9 +65,11 @@ const AgentGlobalSearch: React.FC = () => {
     try {
       // Ensure search query is at least 2 characters for searchUsers
       const customerSearchQuery = searchQuery.length >= 2 ? searchQuery : 'aa';
-      
+
       const [customersRes, accountsRes, ticketsRes] = await Promise.all([
-        apiService.searchUsers(customerSearchQuery, { limit: 5, role: 'customer' }).catch(() => ({ users: [] })),
+        apiService
+          .searchUsers(customerSearchQuery, { limit: 5, role: 'customer' })
+          .catch(() => ({ users: [] })),
         apiService.searchCompanies(searchQuery, { limit: 5 }).catch(() => ({ companies: [] })),
         apiService.getTickets({ search: searchQuery, limit: 5 }).catch(() => ({ data: [] })),
       ]);

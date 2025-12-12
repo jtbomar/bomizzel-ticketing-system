@@ -72,7 +72,7 @@ export class UserRoleService {
             ...User.toModel(user),
             teamCount: teams.length,
           };
-          
+
           // Add company associations for customers
           if (user.role === 'customer') {
             const companies = await User.getUserCompanies(user.id);
@@ -81,7 +81,7 @@ export class UserRoleService {
               companies,
             };
           }
-          
+
           return baseModel;
         })
       );
@@ -356,9 +356,11 @@ export class UserRoleService {
       if (userData.mobilePhone) updateFields.mobile_phone = userData.mobilePhone;
       if (userData.extension) updateFields.extension = userData.extension;
       if (userData.about) updateFields.about = userData.about;
-      if (userData.organizationalRoleId) updateFields.organizational_role_id = userData.organizationalRoleId;
+      if (userData.organizationalRoleId)
+        updateFields.organizational_role_id = userData.organizationalRoleId;
       if (userData.userProfileId) updateFields.user_profile_id = userData.userProfileId;
-      if (userData.mustChangePassword !== undefined) updateFields.must_change_password = userData.mustChangePassword;
+      if (userData.mustChangePassword !== undefined)
+        updateFields.must_change_password = userData.mustChangePassword;
 
       if (Object.keys(updateFields).length > 0) {
         await db('users').where({ id: newUser.id }).update(updateFields);

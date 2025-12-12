@@ -27,17 +27,14 @@ const SuperAdminDashboard: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      
+
       // Fetch customer list to calculate stats
-      const response = await axios.get(
-        `${apiUrl}/api/admin/provisioning/customers`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.get(`${apiUrl}/api/admin/provisioning/customers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       const customers = response.data.data.customers;
-      
+
       setStats({
         totalCustomers: customers.length,
         activeSubscriptions: customers.filter((c: any) => c.status === 'active').length,
@@ -69,12 +66,7 @@ const SuperAdminDashboard: React.FC = () => {
               onClick={() => navigate('/bsi/provisioning')}
               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <svg
-                className="h-5 w-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -88,12 +80,7 @@ const SuperAdminDashboard: React.FC = () => {
               onClick={() => navigate('/bsi/query-builder')}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <svg
-                className="h-5 w-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -131,9 +118,7 @@ const SuperAdminDashboard: React.FC = () => {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Total Customers
-                    </dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Customers</dt>
                     <dd className="text-3xl font-semibold text-gray-900">
                       {loading ? '...' : stats.totalCustomers}
                     </dd>
@@ -230,9 +215,7 @@ const SuperAdminDashboard: React.FC = () => {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Monthly Revenue
-                    </dt>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Monthly Revenue</dt>
                     <dd className="text-3xl font-semibold text-gray-900">
                       ${loading ? '...' : stats.totalRevenue.toLocaleString()}
                     </dd>
@@ -331,21 +314,20 @@ const SuperAdminDashboard: React.FC = () => {
           </h2>
           <div className="space-y-3 text-sm text-blue-800">
             <p>
-              <strong>Welcome to your Bomizzel admin dashboard!</strong> Here's how to get
-              started:
+              <strong>Welcome to your Bomizzel admin dashboard!</strong> Here's how to get started:
             </p>
             <ol className="list-decimal list-inside space-y-2 ml-4">
               <li>
-                <strong>Provision your first customer:</strong> Click "Provision New Customer"
-                to set up a customer account with custom limits and pricing.
+                <strong>Provision your first customer:</strong> Click "Provision New Customer" to
+                set up a customer account with custom limits and pricing.
               </li>
               <li>
-                <strong>Set custom limits:</strong> Define how many users, tickets, and storage
-                each customer gets.
+                <strong>Set custom limits:</strong> Define how many users, tickets, and storage each
+                customer gets.
               </li>
               <li>
-                <strong>Manage subscriptions:</strong> View all customers and update their limits
-                as needed.
+                <strong>Manage subscriptions:</strong> View all customers and update their limits as
+                needed.
               </li>
               <li>
                 <strong>Support your customers:</strong> Each customer gets their own ticketing

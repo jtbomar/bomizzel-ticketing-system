@@ -67,10 +67,10 @@ const CompanyProfile: React.FC = () => {
   const formatPhoneNumber = (value: string): string => {
     // Remove all non-numeric characters
     const numbers = value.replace(/\D/g, '');
-    
+
     // Limit to 10 digits
     const limited = numbers.slice(0, 10);
-    
+
     // Format based on length
     if (limited.length <= 3) {
       return limited;
@@ -84,12 +84,12 @@ const CompanyProfile: React.FC = () => {
   // Validate phone number (must be 10 digits)
   const validatePhoneNumber = (value: string, fieldName: string): boolean => {
     const numbers = value.replace(/\D/g, '');
-    
+
     if (numbers.length === 0) {
       setPhoneErrors((prev) => ({ ...prev, [fieldName]: '' }));
       return true;
     }
-    
+
     if (numbers.length !== 10) {
       setPhoneErrors((prev) => ({
         ...prev,
@@ -97,7 +97,7 @@ const CompanyProfile: React.FC = () => {
       }));
       return false;
     }
-    
+
     setPhoneErrors((prev) => ({ ...prev, [fieldName]: '' }));
     return true;
   };
@@ -108,14 +108,14 @@ const CompanyProfile: React.FC = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
         // Set max dimensions (smaller for better compression)
         const maxWidth = 300;
         const maxHeight = 300;
-        
+
         let { width, height } = img;
-        
+
         // Calculate new dimensions
         if (width > height) {
           if (width > maxWidth) {
@@ -128,16 +128,16 @@ const CompanyProfile: React.FC = () => {
             height = maxHeight;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         // Draw and compress (higher compression)
         ctx?.drawImage(img, 0, 0, width, height);
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
         resolve(compressedDataUrl);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
@@ -157,7 +157,7 @@ const CompanyProfile: React.FC = () => {
     }
 
     setLogoFile(file);
-    
+
     try {
       // Compress the image
       const compressedImage = await compressImage(file);
@@ -183,7 +183,7 @@ const CompanyProfile: React.FC = () => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleFileUpload(files[0]);
@@ -201,7 +201,7 @@ const CompanyProfile: React.FC = () => {
   const loadCompanyData = async () => {
     try {
       setLoading(true);
-      
+
       const response = await apiService.getCompanyProfile();
 
       if (response.success && response.data) {
@@ -299,9 +299,7 @@ const CompanyProfile: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error saving company data:', err);
-      setError(
-        err.response?.data?.message || 'Failed to save company profile. Please try again.'
-      );
+      setError(err.response?.data?.message || 'Failed to save company profile. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -394,9 +392,7 @@ const CompanyProfile: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div
           className={`rounded-lg border transition-colors ${
-            theme === 'dark'
-              ? 'bg-white/5 border-white/10'
-              : 'bg-white border-gray-200 shadow-sm'
+            theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'
           }`}
         >
           {/* Success/Error Messages */}
@@ -509,62 +505,95 @@ const CompanyProfile: React.FC = () => {
             </div>
           ) : (
             <div className="p-6 space-y-8">
-            {/* Logo Section */}
-            <div>
-              <h3
-                className={`text-lg font-semibold mb-4 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}
-              >
-                Brand Identity
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Company Logo
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="file"
-                        id="logo-upload"
-                        accept="image/*"
-                        onChange={handleFileInputChange}
-                        className="hidden"
-                      />
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        onClick={() => document.getElementById('logo-upload')?.click()}
-                        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                          isDragging
-                            ? theme === 'dark'
-                              ? 'border-blue-400 bg-blue-400/10'
-                              : 'border-blue-500 bg-blue-50'
-                            : theme === 'dark'
-                              ? 'border-white/20 bg-white/5 hover:border-white/30'
-                              : 'border-gray-300 bg-gray-50 hover:border-gray-400'
-                        }`}
-                      >
-                        {logoPreview || editData.logo ? (
-                          <div className="space-y-4">
-                            <img
-                              src={logoPreview || editData.logo}
-                              alt="Logo preview"
-                              className="mx-auto h-32 w-32 object-contain rounded-lg border border-gray-200"
-                            />
+              {/* Logo Section */}
+              <div>
+                <h3
+                  className={`text-lg font-semibold mb-4 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
+                  Brand Identity
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Company Logo
+                    </label>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="file"
+                          id="logo-upload"
+                          accept="image/*"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                        />
+                        <div
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          onClick={() => document.getElementById('logo-upload')?.click()}
+                          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                            isDragging
+                              ? theme === 'dark'
+                                ? 'border-blue-400 bg-blue-400/10'
+                                : 'border-blue-500 bg-blue-50'
+                              : theme === 'dark'
+                                ? 'border-white/20 bg-white/5 hover:border-white/30'
+                                : 'border-gray-300 bg-gray-50 hover:border-gray-400'
+                          }`}
+                        >
+                          {logoPreview || editData.logo ? (
+                            <div className="space-y-4">
+                              <img
+                                src={logoPreview || editData.logo}
+                                alt="Logo preview"
+                                className="mx-auto h-32 w-32 object-contain rounded-lg border border-gray-200"
+                              />
+                              <div>
+                                <p
+                                  className={`text-sm ${
+                                    theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+                                  }`}
+                                >
+                                  Click to change or drag and drop a new image
+                                </p>
+                                <p
+                                  className={`text-xs ${
+                                    theme === 'dark' ? 'text-white/40' : 'text-gray-500'
+                                  }`}
+                                >
+                                  PNG, JPG up to 2MB
+                                </p>
+                              </div>
+                            </div>
+                          ) : (
                             <div>
+                              <svg
+                                className={`mx-auto h-12 w-12 ${
+                                  theme === 'dark' ? 'text-white/40' : 'text-gray-400'
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
                               <p
-                                className={`text-sm ${
+                                className={`mt-2 text-sm ${
                                   theme === 'dark' ? 'text-white/60' : 'text-gray-600'
                                 }`}
                               >
-                                Click to change or drag and drop a new image
+                                Click to upload or drag and drop
                               </p>
                               <p
                                 className={`text-xs ${
@@ -574,510 +603,482 @@ const CompanyProfile: React.FC = () => {
                                 PNG, JPG up to 2MB
                               </p>
                             </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <svg
-                              className={`mx-auto h-12 w-12 ${
-                                theme === 'dark' ? 'text-white/40' : 'text-gray-400'
-                              }`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className={`border rounded-lg p-8 text-center ${
+                          theme === 'dark'
+                            ? 'border-white/20 bg-white/5'
+                            : 'border-gray-200 bg-gray-50'
+                        }`}
+                      >
+                        {companyData.logo ? (
+                          <div className="space-y-2">
+                            <img
+                              src={companyData.logo}
+                              alt="Company logo"
+                              className="mx-auto h-32 w-32 object-contain rounded-lg border border-gray-200"
+                            />
                             <p
-                              className={`mt-2 text-sm ${
+                              className={`text-sm ${
                                 theme === 'dark' ? 'text-white/60' : 'text-gray-600'
                               }`}
                             >
-                              Click to upload or drag and drop
+                              Company Logo
                             </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="text-6xl mb-2">🏢</div>
                             <p
-                              className={`text-xs ${
-                                theme === 'dark' ? 'text-white/40' : 'text-gray-500'
+                              className={`text-sm ${
+                                theme === 'dark' ? 'text-white/60' : 'text-gray-600'
                               }`}
                             >
-                              PNG, JPG up to 2MB
+                              No logo uploaded
                             </p>
                           </div>
                         )}
                       </div>
-                    </div>
-                  ) : (
-                    <div
-                      className={`border rounded-lg p-8 text-center ${
-                        theme === 'dark'
-                          ? 'border-white/20 bg-white/5'
-                          : 'border-gray-200 bg-gray-50'
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
                       }`}
                     >
-                      {companyData.logo ? (
-                        <div className="space-y-2">
-                          <img
-                            src={companyData.logo}
-                            alt="Company logo"
-                            className="mx-auto h-32 w-32 object-contain rounded-lg border border-gray-200"
+                      Company Name
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.companyName}
+                        onChange={(e) => handleChange('companyName', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p
+                        className={`text-lg font-semibold ${
+                          theme === 'dark' ? 'text-white' : 'text-gray-900'
+                        }`}
+                      >
+                        {companyData.companyName}
+                      </p>
+                    )}
+
+                    <label
+                      className={`block text-sm font-medium mb-2 mt-4 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Website
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="url"
+                        value={editData.website}
+                        onChange={(e) => handleChange('website', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <a
+                        href={companyData.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                      >
+                        <span>{companyData.website}</span>
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                           />
-                          <p
-                            className={`text-sm ${
-                              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-                            }`}
-                          >
-                            Company Logo
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="text-6xl mb-2">🏢</div>
-                          <p
-                            className={`text-sm ${
-                              theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-                            }`}
-                          >
-                            No logo uploaded
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Company Name
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.companyName}
-                      onChange={(e) => handleChange('companyName', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p
-                      className={`text-lg font-semibold ${
-                        theme === 'dark' ? 'text-white' : 'text-gray-900'
+              {/* Primary Contact */}
+              <div>
+                <h3
+                  className={`text-lg font-semibold mb-4 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
+                  Primary Contact
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
                       }`}
                     >
-                      {companyData.companyName}
-                    </p>
-                  )}
+                      Contact Name
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.primaryContact}
+                        onChange={(e) => handleChange('primaryContact', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.primaryContact}
+                      </p>
+                    )}
+                  </div>
 
-                  <label
-                    className={`block text-sm font-medium mb-2 mt-4 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Website
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="url"
-                      value={editData.website}
-                      onChange={(e) => handleChange('website', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <a
-                      href={companyData.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
                     >
-                      <span>{companyData.website}</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                      Email Address
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="email"
+                        value={editData.primaryEmail}
+                        onChange={(e) => handleChange('primaryEmail', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.primaryEmail}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Phone Number
+                    </label>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="tel"
+                          value={editData.primaryPhone}
+                          onChange={(e) => handleChange('primaryPhone', e.target.value)}
+                          placeholder="(555) 123-4567"
+                          className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                            phoneErrors.primaryPhone
+                              ? 'border-red-500 focus:ring-red-500'
+                              : theme === 'dark'
+                                ? 'bg-white/10 border-white/20 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         />
-                      </svg>
-                    </a>
-                  )}
+                        {phoneErrors.primaryPhone && (
+                          <p className="text-red-500 text-xs mt-1">{phoneErrors.primaryPhone}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.primaryPhone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div>
+                <h3
+                  className={`text-lg font-semibold mb-4 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
+                  Address Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Street Address
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.address.street}
+                        onChange={(e) => handleAddressChange('street', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.address.street}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      City
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.address.city}
+                        onChange={(e) => handleAddressChange('city', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.address.city}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      State/Province
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.address.state}
+                        onChange={(e) => handleAddressChange('state', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.address.state}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      ZIP/Postal Code
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.address.zipCode}
+                        onChange={(e) => handleAddressChange('zipCode', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.address.zipCode}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Country
+                    </label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.address.country}
+                        onChange={(e) => handleAddressChange('country', e.target.value)}
+                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                          theme === 'dark'
+                            ? 'bg-white/10 border-white/20 text-white'
+                            : 'bg-white border-gray-300 text-gray-900'
+                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.address.country}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Company Phone Numbers */}
+              <div>
+                <h3
+                  className={`text-lg font-semibold mb-4 ${
+                    theme === 'dark' ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
+                  Company Phone Numbers
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Main Phone
+                    </label>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="tel"
+                          value={editData.phoneNumbers.main}
+                          onChange={(e) => handlePhoneChange('main', e.target.value)}
+                          placeholder="(555) 123-4567"
+                          className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                            phoneErrors['phoneNumbers.main']
+                              ? 'border-red-500 focus:ring-red-500'
+                              : theme === 'dark'
+                                ? 'bg-white/10 border-white/20 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        />
+                        {phoneErrors['phoneNumbers.main'] && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {phoneErrors['phoneNumbers.main']}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.phoneNumbers.main}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Fax Number
+                    </label>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="tel"
+                          value={editData.phoneNumbers.fax}
+                          onChange={(e) => handlePhoneChange('fax', e.target.value)}
+                          placeholder="(555) 123-4567"
+                          className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                            phoneErrors['phoneNumbers.fax']
+                              ? 'border-red-500 focus:ring-red-500'
+                              : theme === 'dark'
+                                ? 'bg-white/10 border-white/20 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        />
+                        {phoneErrors['phoneNumbers.fax'] && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {phoneErrors['phoneNumbers.fax']}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.phoneNumbers.fax}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-2 ${
+                        theme === 'dark' ? 'text-white/80' : 'text-gray-700'
+                      }`}
+                    >
+                      Support Phone
+                    </label>
+                    {isEditing ? (
+                      <div>
+                        <input
+                          type="tel"
+                          value={editData.phoneNumbers.support}
+                          onChange={(e) => handlePhoneChange('support', e.target.value)}
+                          placeholder="(555) 123-4567"
+                          className={`w-full px-4 py-2 rounded-lg border transition-colors ${
+                            phoneErrors['phoneNumbers.support']
+                              ? 'border-red-500 focus:ring-red-500'
+                              : theme === 'dark'
+                                ? 'bg-white/10 border-white/20 text-white'
+                                : 'bg-white border-gray-300 text-gray-900'
+                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                        />
+                        {phoneErrors['phoneNumbers.support'] && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {phoneErrors['phoneNumbers.support']}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {companyData.phoneNumbers.support}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Primary Contact */}
-            <div>
-              <h3
-                className={`text-lg font-semibold mb-4 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}
-              >
-                Primary Contact
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Contact Name
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.primaryContact}
-                      onChange={(e) => handleChange('primaryContact', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.primaryContact}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Email Address
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={editData.primaryEmail}
-                      onChange={(e) => handleChange('primaryEmail', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.primaryEmail}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Phone Number
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="tel"
-                        value={editData.primaryPhone}
-                        onChange={(e) => handleChange('primaryPhone', e.target.value)}
-                        placeholder="(555) 123-4567"
-                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                          phoneErrors.primaryPhone
-                            ? 'border-red-500 focus:ring-red-500'
-                            : theme === 'dark'
-                              ? 'bg-white/10 border-white/20 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      />
-                      {phoneErrors.primaryPhone && (
-                        <p className="text-red-500 text-xs mt-1">{phoneErrors.primaryPhone}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.primaryPhone}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Address Information */}
-            <div>
-              <h3
-                className={`text-lg font-semibold mb-4 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}
-              >
-                Address Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Street Address
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.address.street}
-                      onChange={(e) => handleAddressChange('street', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.address.street}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    City
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.address.city}
-                      onChange={(e) => handleAddressChange('city', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.address.city}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    State/Province
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.address.state}
-                      onChange={(e) => handleAddressChange('state', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.address.state}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    ZIP/Postal Code
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.address.zipCode}
-                      onChange={(e) => handleAddressChange('zipCode', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.address.zipCode}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Country
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editData.address.country}
-                      onChange={(e) => handleAddressChange('country', e.target.value)}
-                      className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-white/10 border-white/20 text-white'
-                          : 'bg-white border-gray-300 text-gray-900'
-                      } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.address.country}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Company Phone Numbers */}
-            <div>
-              <h3
-                className={`text-lg font-semibold mb-4 ${
-                  theme === 'dark' ? 'text-white' : 'text-gray-900'
-                }`}
-              >
-                Company Phone Numbers
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Main Phone
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="tel"
-                        value={editData.phoneNumbers.main}
-                        onChange={(e) => handlePhoneChange('main', e.target.value)}
-                        placeholder="(555) 123-4567"
-                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                          phoneErrors['phoneNumbers.main']
-                            ? 'border-red-500 focus:ring-red-500'
-                            : theme === 'dark'
-                              ? 'bg-white/10 border-white/20 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      />
-                      {phoneErrors['phoneNumbers.main'] && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {phoneErrors['phoneNumbers.main']}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.phoneNumbers.main}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Fax Number
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="tel"
-                        value={editData.phoneNumbers.fax}
-                        onChange={(e) => handlePhoneChange('fax', e.target.value)}
-                        placeholder="(555) 123-4567"
-                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                          phoneErrors['phoneNumbers.fax']
-                            ? 'border-red-500 focus:ring-red-500'
-                            : theme === 'dark'
-                              ? 'bg-white/10 border-white/20 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      />
-                      {phoneErrors['phoneNumbers.fax'] && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {phoneErrors['phoneNumbers.fax']}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.phoneNumbers.fax}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label
-                    className={`block text-sm font-medium mb-2 ${
-                      theme === 'dark' ? 'text-white/80' : 'text-gray-700'
-                    }`}
-                  >
-                    Support Phone
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="tel"
-                        value={editData.phoneNumbers.support}
-                        onChange={(e) => handlePhoneChange('support', e.target.value)}
-                        placeholder="(555) 123-4567"
-                        className={`w-full px-4 py-2 rounded-lg border transition-colors ${
-                          phoneErrors['phoneNumbers.support']
-                            ? 'border-red-500 focus:ring-red-500'
-                            : theme === 'dark'
-                              ? 'bg-white/10 border-white/20 text-white'
-                              : 'bg-white border-gray-300 text-gray-900'
-                        } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                      />
-                      {phoneErrors['phoneNumbers.support'] && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {phoneErrors['phoneNumbers.support']}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                      {companyData.phoneNumbers.support}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
           )}
         </div>
       </div>

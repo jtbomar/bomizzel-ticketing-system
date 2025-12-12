@@ -51,7 +51,7 @@ export class DataImportService {
         ticketsImported: 0,
         ticketsSkipped: 0,
         customFieldsImported: 0,
-        errors: [] as string[]
+        errors: [] as string[],
       };
 
       // Validate import data structure
@@ -62,7 +62,7 @@ export class DataImportService {
             success: false,
             importId,
             summary,
-            validationErrors
+            validationErrors,
           };
         }
         throw new AppError(`Invalid import data: ${validationErrors.join(', ')}`, 400);
@@ -73,17 +73,13 @@ export class DataImportService {
           success: true,
           importId,
           summary,
-          validationErrors: []
+          validationErrors: [],
         };
       }
 
       // Import Users
       if (importData.data?.users) {
-        const userResult = await this.importUsers(
-          companyId,
-          importData.data.users,
-          options
-        );
+        const userResult = await this.importUsers(companyId, importData.data.users, options);
         summary.usersImported = userResult.imported;
         summary.usersSkipped = userResult.skipped;
         summary.errors.push(...userResult.errors);
@@ -102,11 +98,7 @@ export class DataImportService {
 
       // Import Tickets
       if (importData.data?.tickets) {
-        const ticketResult = await this.importTickets(
-          companyId,
-          importData.data.tickets,
-          options
-        );
+        const ticketResult = await this.importTickets(companyId, importData.data.tickets, options);
         summary.ticketsImported = ticketResult.imported;
         summary.ticketsSkipped = ticketResult.skipped;
         summary.errors.push(...ticketResult.errors);
@@ -120,9 +112,8 @@ export class DataImportService {
       return {
         success: true,
         importId,
-        summary
+        summary,
       };
-
     } catch (error) {
       logger.error('Data import failed', { error, companyId, userId });
       throw error;
@@ -196,13 +187,17 @@ export class DataImportService {
               first_name: userData.firstName,
               last_name: userData.lastName,
               phone: userData.phone,
-              preferences: userData.preferences
+              preferences: userData.preferences,
             });
 
             // Ensure user is associated with company
             const isInCompany = await Company.isUserInCompany(existingUser.id, companyId);
             if (!isInCompany) {
-              await Company.addUserToCompany(existingUser.id, companyId, userData.companyRole || 'member');
+              await Company.addUserToCompany(
+                existingUser.id,
+                companyId,
+                userData.companyRole || 'member'
+              );
             }
 
             imported++;
@@ -220,7 +215,7 @@ export class DataImportService {
             role: userData.role || 'user',
             is_active: userData.isActive !== false,
             email_verified: false, // Require email verification
-            preferences: userData.preferences || {}
+            preferences: userData.preferences || {},
           });
 
           // Associate with company
@@ -228,7 +223,9 @@ export class DataImportService {
           imported++;
         }
       } catch (error) {
-        errors.push(`Failed to import user ${userData.email}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(
+          `Failed to import user ${userData.email}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -273,7 +270,7 @@ export class DataImportService {
           category: ticketData.category,
           custom_fields: ticketData.customFields,
           created_by: creatorId,
-          assigned_to: assigneeId
+          assigned_to: assigneeId,
         });
 
         // Import notes
@@ -291,17 +288,21 @@ export class DataImportService {
                 content: noteData.content,
                 is_internal: noteData.isInternal || false,
                 created_by: noteAuthorId,
-                created_at: noteData.createdAt || new Date()
+                created_at: noteData.createdAt || new Date(),
               });
             } catch (error) {
-              errors.push(`Failed to import note for ticket ${ticketData.title}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              errors.push(
+                `Failed to import note for ticket ${ticketData.title}: ${error instanceof Error ? error.message : 'Unknown error'}`
+              );
             }
           }
         }
 
         imported++;
       } catch (error) {
-        errors.push(`Failed to import ticket ${ticketData.title}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(
+          `Failed to import ticket ${ticketData.title}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -329,15 +330,13 @@ export class DataImportService {
 
         if (existing) {
           if (options.overwriteExisting) {
-            await Ticket.db('custom_fields')
-              .where('id', existing.id)
-              .update({
-                field_type: fieldData.fieldType,
-                options: fieldData.options,
-                is_required: fieldData.isRequired,
-                is_active: fieldData.isActive,
-                display_order: fieldData.displayOrder
-              });
+            await Ticket.db('custom_fields').where('id', existing.id).update({
+              field_type: fieldData.fieldType,
+              options: fieldData.options,
+              is_required: fieldData.isRequired,
+              is_active: fieldData.isActive,
+              display_order: fieldData.displayOrder,
+            });
             imported++;
           }
         } else {
@@ -348,12 +347,14 @@ export class DataImportService {
             options: fieldData.options,
             is_required: fieldData.isRequired || false,
             is_active: fieldData.isActive !== false,
-            display_order: fieldData.displayOrder || 0
+            display_order: fieldData.displayOrder || 0,
           });
           imported++;
         }
       } catch (error) {
-        errors.push(`Failed to import custom field ${fieldData.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        errors.push(
+          `Failed to import custom field ${fieldData.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 
@@ -375,7 +376,7 @@ export class DataImportService {
         user_id: userId,
         import_id: importId,
         imported_data: JSON.stringify(summary),
-        created_at: new Date()
+        created_at: new Date(),
       });
     } catch (error) {
       logger.error('Failed to log import activity', { error });
@@ -408,8 +409,8 @@ export class DataImportService {
         importedBy: {
           email: record.imported_by_email,
           firstName: record.first_name,
-          lastName: record.last_name
-        }
+          lastName: record.last_name,
+        },
       }));
     } catch (error) {
       logger.error('Failed to get import history', { error, companyId });

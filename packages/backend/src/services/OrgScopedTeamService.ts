@@ -22,10 +22,7 @@ export class OrgScopedTeamService {
    * Get single team (with org verification)
    */
   static async getTeam(orgId: string, teamId: string) {
-    const team = await db('teams')
-      .where('id', teamId)
-      .where('org_id', orgId)
-      .first();
+    const team = await db('teams').where('id', teamId).where('org_id', orgId).first();
 
     if (!team) {
       throw new AppError('Team not found', 404, 'TEAM_NOT_FOUND');
@@ -74,10 +71,7 @@ export class OrgScopedTeamService {
    * Delete team (with org verification)
    */
   static async deleteTeam(orgId: string, teamId: string) {
-    const deleted = await db('teams')
-      .where('id', teamId)
-      .where('org_id', orgId)
-      .del();
+    const deleted = await db('teams').where('id', teamId).where('org_id', orgId).del();
 
     if (deleted === 0) {
       throw new AppError('Team not found', 404, 'TEAM_NOT_FOUND');
@@ -112,7 +106,12 @@ export class OrgScopedTeamService {
   /**
    * Add team member
    */
-  static async addTeamMember(orgId: string, teamId: string, userId: string, role: string = 'member') {
+  static async addTeamMember(
+    orgId: string,
+    teamId: string,
+    userId: string,
+    role: string = 'member'
+  ) {
     // Verify team belongs to org
     await this.getTeam(orgId, teamId);
 
@@ -123,7 +122,11 @@ export class OrgScopedTeamService {
       .first();
 
     if (!userAccess) {
-      throw new AppError('User does not have access to this organization', 403, 'USER_NO_ORG_ACCESS');
+      throw new AppError(
+        'User does not have access to this organization',
+        403,
+        'USER_NO_ORG_ACCESS'
+      );
     }
 
     // Check if already a member

@@ -21,7 +21,7 @@ const Rebranding: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   const [brandingData, setBrandingData] = useState<BrandingData>({
     logo: '',
     favicon: '',
@@ -79,10 +79,10 @@ const Rebranding: React.FC = () => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const img = new Image();
-      
+
       img.onload = () => {
         let { width, height } = img;
-        
+
         // Calculate new dimensions
         if (width > height) {
           if (width > maxSize) {
@@ -95,14 +95,14 @@ const Rebranding: React.FC = () => {
             height = maxSize;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
         ctx?.drawImage(img, 0, 0, width, height);
         const compressedDataUrl = canvas.toDataURL('image/png', 0.8);
         resolve(compressedDataUrl);
       };
-      
+
       img.src = URL.createObjectURL(file);
     });
   };
@@ -122,7 +122,7 @@ const Rebranding: React.FC = () => {
     try {
       const maxSize = type === 'favicon' ? 64 : 300;
       const compressedImage = await compressImage(file, maxSize);
-      
+
       if (type === 'logo') {
         setLogoPreview(compressedImage);
         setEditData((prev) => ({ ...prev, logo: compressedImage }));
@@ -150,14 +150,17 @@ const Rebranding: React.FC = () => {
   const handleDrop = (e: React.DragEvent, type: 'logo' | 'favicon') => {
     e.preventDefault();
     setIsDragging((prev) => ({ ...prev, [type]: false }));
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       handleFileUpload(files[0], type);
     }
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'favicon') => {
+  const handleFileInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'logo' | 'favicon'
+  ) => {
     const files = e.target.files;
     if (files && files.length > 0) {
       handleFileUpload(files[0], type);
@@ -193,9 +196,7 @@ const Rebranding: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error saving branding data:', err);
-      setError(
-        err.response?.data?.message || 'Failed to save branding. Please try again.'
-      );
+      setError(err.response?.data?.message || 'Failed to save branding. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -203,8 +204,8 @@ const Rebranding: React.FC = () => {
 
   const handleChange = (field: string, value: string) => {
     setEditData((prev) => ({ ...prev, [field]: value }));
-  };  
-return (
+  };
+  return (
     <div
       className={`min-h-screen transition-colors ${
         theme === 'dark'
@@ -233,8 +234,8 @@ return (
                   theme === 'dark' ? 'text-white/60' : 'text-gray-600'
                 }`}
               >
-                Customize your brand identity including logos, colors, and visual elements. 
-                Upload your favicon for website tabs, search bars, and bookmarks.
+                Customize your brand identity including logos, colors, and visual elements. Upload
+                your favicon for website tabs, search bars, and bookmarks.
               </p>
             </div>
             <Link
@@ -255,9 +256,7 @@ return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div
           className={`rounded-lg border transition-colors ${
-            theme === 'dark'
-              ? 'bg-white/5 border-white/10'
-              : 'bg-white border-gray-200 shadow-sm'
+            theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200 shadow-sm'
           }`}
         >
           {/* Success/Error Messages */}
@@ -358,8 +357,8 @@ return (
                 </button>
               </div>
             )}
-          </div>  
-        {/* Content */}
+          </div>
+          {/* Content */}
           {loading ? (
             <div className="p-12 text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -630,8 +629,8 @@ return (
                     )}
                   </div>
                 </div>
-              </div>  
-            {/* Company Information */}
+              </div>
+              {/* Company Information */}
               <div>
                 <h3
                   className={`text-lg font-semibold mb-4 ${
@@ -733,7 +732,12 @@ return (
                         className="text-blue-600 hover:text-blue-700 flex items-center space-x-1"
                       >
                         <span>{brandingData.linkbackUrl}</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
                           <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
