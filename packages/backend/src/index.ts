@@ -494,15 +494,63 @@ app.get('/api/health', async (req: Request, res: Response) => {
       console.log('📂 Working directory:', workingDir);
       console.log('🌍 Environment:', env);
       
-      // Run seeds
-      console.log('🌱 Running emergency seeds...');
-      const seedCommand = `npx knex seed:run --knexfile knexfile.js --env ${env}`;
-      execSync(seedCommand, { 
-        stdio: 'inherit',
-        cwd: workingDir 
-      });
+      // Create users directly using database connection
+      console.log('🌱 Creating emergency users directly...');
       
-      console.log('✅ Emergency reseed completed via health endpoint');
+      const bcrypt = require('bcryptjs');
+      const { v4: uuidv4 } = require('uuid');
+      
+      // Import database connection
+      const { db } = require('./config/database');
+      
+      const passwordHash = await bcrypt.hash('password123', 10);
+      
+      // Create Jeff (Super Admin)
+      const jeffId = uuidv4();
+      await db('users').insert({
+        id: jeffId,
+        email: 'jeff@bomar.com',
+        password_hash: passwordHash,
+        first_name: 'Jeff',
+        last_name: 'Bomar',
+        role: 'admin',
+        is_active: true,
+        email_verified: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).onConflict('email').ignore();
+      
+      // Create Elena (Admin)
+      const elenaId = uuidv4();
+      await db('users').insert({
+        id: elenaId,
+        email: 'elena@bomar.com',
+        password_hash: passwordHash,
+        first_name: 'Elena',
+        last_name: 'Bomar',
+        role: 'admin',
+        is_active: true,
+        email_verified: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).onConflict('email').ignore();
+      
+      // Create Jeremy (Agent)
+      const jeremyId = uuidv4();
+      await db('users').insert({
+        id: jeremyId,
+        email: 'jeremy@bomar.com',
+        password_hash: passwordHash,
+        first_name: 'Jeremy',
+        last_name: 'Bomar',
+        role: 'employee',
+        is_active: true,
+        email_verified: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).onConflict('email').ignore();
+      
+      console.log('✅ Emergency users created directly via database');
       
       return res.json({
         status: 'ok',
