@@ -1292,30 +1292,55 @@ const AgentDashboard: React.FC = () => {
   };
 
   const moveTicketInColumn = (ticketId: number, direction: 'up' | 'down') => {
+    console.log(`[AgentDashboard] moveTicketInColumn called - ticketId: ${ticketId}, direction: ${direction}`);
+    
     const ticket = tickets.find((t) => t.id === ticketId);
-    if (!ticket) return;
+    if (!ticket) {
+      console.log(`[AgentDashboard] Ticket ${ticketId} not found`);
+      return;
+    }
 
     const statusTickets = getStatusTickets(ticket.status);
     const currentIndex = statusTickets.findIndex((t) => t.id === ticketId);
+    
+    console.log(`[AgentDashboard] Current ticket:`, ticket);
+    console.log(`[AgentDashboard] Status tickets:`, statusTickets.map(t => ({id: t.id, title: t.title, order: t.order})));
+    console.log(`[AgentDashboard] Current index: ${currentIndex} of ${statusTickets.length}`);
 
     if (direction === 'up' && currentIndex > 0) {
       const otherTicket = statusTickets[currentIndex - 1];
+      console.log(`[AgentDashboard] Moving up - swapping with:`, otherTicket);
+      
+      // Use a more robust reordering system
+      const newOrder = otherTicket.order - 0.1; // Place slightly before the other ticket
+      
       setTickets((prev) =>
         prev.map((t) => {
-          if (t.id === ticketId) return { ...t, order: otherTicket.order };
-          if (t.id === otherTicket.id) return { ...t, order: ticket.order };
+          if (t.id === ticketId) {
+            console.log(`[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`);
+            return { ...t, order: newOrder };
+          }
           return t;
         })
       );
     } else if (direction === 'down' && currentIndex < statusTickets.length - 1) {
       const otherTicket = statusTickets[currentIndex + 1];
+      console.log(`[AgentDashboard] Moving down - swapping with:`, otherTicket);
+      
+      // Use a more robust reordering system
+      const newOrder = otherTicket.order + 0.1; // Place slightly after the other ticket
+      
       setTickets((prev) =>
         prev.map((t) => {
-          if (t.id === ticketId) return { ...t, order: otherTicket.order };
-          if (t.id === otherTicket.id) return { ...t, order: ticket.order };
+          if (t.id === ticketId) {
+            console.log(`[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`);
+            return { ...t, order: newOrder };
+          }
           return t;
         })
       );
+    } else {
+      console.log(`[AgentDashboard] Cannot move ${direction} - at boundary (index: ${currentIndex}, length: ${statusTickets.length})`);
     }
   };
 
