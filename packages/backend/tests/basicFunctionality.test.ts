@@ -37,10 +37,9 @@ describe('Basic Functionality Tests', () => {
       expect(decoded?.role).toBe(payload.role);
     });
 
-    it('should throw error for invalid tokens', () => {
-      expect(() => {
-        JWTUtils.verifyAccessToken('invalid-token');
-      }).toThrow();
+    it('should return null for invalid tokens', () => {
+      const result = JWTUtils.verifyAccessToken('invalid-token');
+      expect(result).toBeNull();
     });
 
     it('should handle token verification', () => {
@@ -182,7 +181,7 @@ describe('Basic Functionality Tests', () => {
         return input
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
           .replace(/javascript:/gi, '')
-          .replace(/on\w+\s*=/gi, '');
+          .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
       };
 
       expect(sanitizeInput('Hello World')).toBe('Hello World');

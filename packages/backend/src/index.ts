@@ -135,14 +135,15 @@ try {
     const agentsRoutes = require('./routes/agents').default;
     const usersRoutes = require('./routes/users').default;
 
-    // Try to load tickets, custom fields, and teams routes
-    let ticketsRoutes, customFieldsRoutes, teamsRoutes;
+    // Try to load tickets, custom fields, teams, and files routes
+    let ticketsRoutes, customFieldsRoutes, teamsRoutes, filesRoutes;
     try {
       ticketsRoutes = require('./routes/tickets').default;
       customFieldsRoutes = require('./routes/customFields').default;
       teamsRoutes = require('./routes/teams').default;
+      filesRoutes = require('./routes/files').default;
     } catch (err) {
-      console.warn('⚠️ Could not load tickets/custom-fields/teams routes:', err);
+      console.warn('⚠️ Could not load tickets/custom-fields/teams/files routes:', err);
     }
 
     app.use('/api/auth', authRoutes);
@@ -170,6 +171,10 @@ try {
     if (teamsRoutes) {
       app.use('/api/teams', teamsRoutes);
       console.log('✅ Teams routes registered');
+    }
+    if (filesRoutes) {
+      app.use('/api/files', filesRoutes);
+      console.log('✅ Files routes registered');
     }
 
     console.log(
