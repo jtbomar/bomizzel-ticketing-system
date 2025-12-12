@@ -147,6 +147,15 @@ try {
 
     app.use('/api/auth', authRoutes);
     app.use('/api/auth', enhancedRegistrationRoutes);
+    
+    // Direct auth routes (bypass User model issues)
+    try {
+      const directAuthRoutes = require('./routes/directAuth').default;
+      app.use('/api/direct-auth', directAuthRoutes);
+      console.log('🔐 Direct auth routes registered');
+    } catch (error) {
+      console.warn('⚠️ Could not load direct auth routes:', error);
+    }
     app.use('/api/admin', adminRoutes);
     app.use('/api/admin/provisioning', adminProvisioningRoutes);
     
