@@ -23,6 +23,7 @@ const API_BASE_URL = getApiBaseUrl();
 console.log('[ApiService] API_BASE_URL:', API_BASE_URL);
 console.log('[ApiService] VITE_API_URL:', import.meta.env.VITE_API_URL);
 console.log('[ApiService] window.location:', window.location.href);
+console.log('[ApiService] hostname:', window.location.hostname);
 
 class ApiService {
   public client: AxiosInstance;
