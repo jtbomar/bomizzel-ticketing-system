@@ -671,10 +671,10 @@ const AgentDashboard: React.FC = () => {
 
   // Get filtered tickets
   const getFilteredTickets = () => {
-    console.log('[AgentDashboard] Filtering tickets - total:', tickets.length, 'showOnlyMyTickets:', showOnlyMyTickets, 'user:', user?.email);
+    console.log('[AgentDashboard] Filtering tickets - total:', tickets.length, 'activeViewFilter:', activeViewFilter, 'showOnlyMyTickets:', showOnlyMyTickets, 'user:', user?.email);
     
-    // Simple filter based on showOnlyMyTickets toggle
-    if (showOnlyMyTickets) {
+    // Use activeViewFilter (sidebar) as primary filter
+    if (activeViewFilter === 'my-queue') {
       // Check for tickets assigned to current user - handle multiple formats
       const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
       const myTickets = tickets.filter((ticket) => {
@@ -683,13 +683,37 @@ const AgentDashboard: React.FC = () => {
                               (user && ticket.assigned === user.email);
         return isAssignedToMe;
       });
-      console.log('[AgentDashboard] My tickets filter - found:', myTickets.length, 'tickets');
+      console.log('[AgentDashboard] My Queue filter - found:', myTickets.length, 'tickets');
       console.log('[AgentDashboard] Looking for assignments to:', ['You', currentUserName, user?.email]);
       console.log('[AgentDashboard] Sample ticket assignments:', tickets.slice(0, 5).map(t => t.assigned));
       return myTickets;
-    } else {
+    } else if (activeViewFilter === 'all-tickets') {
       console.log('[AgentDashboard] All tickets filter - showing all:', tickets.length, 'tickets');
       return tickets;
+    } else if (activeViewFilter === 'unassigned') {
+      const unassignedTickets = tickets.filter((ticket) => ticket.assigned === 'Unassigned');
+      console.log('[AgentDashboard] Unassigned filter - found:', unassignedTickets.length, 'tickets');
+      return unassignedTickets;
+    } else if (activeViewFilter === 'all-open') {
+      const openTickets = tickets.filter((ticket) => ticket.status === 'open');
+      console.log('[AgentDashboard] All Open filter - found:', openTickets.length, 'tickets');
+      return openTickets;
+    } else {
+      // Fallback to showOnlyMyTickets for backward compatibility
+      if (showOnlyMyTickets) {
+        const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
+        const myTickets = tickets.filter((ticket) => {
+          const isAssignedToMe = ticket.assigned === 'You' || 
+                                ticket.assigned === currentUserName ||
+                                (user && ticket.assigned === user.email);
+          return isAssignedToMe;
+        });
+        console.log('[AgentDashboard] Fallback My tickets filter - found:', myTickets.length, 'tickets');
+        return myTickets;
+      } else {
+        console.log('[AgentDashboard] Fallback All tickets filter - showing all:', tickets.length, 'tickets');
+        return tickets;
+      }
     }
   };
 
@@ -3554,20 +3578,23 @@ const AgentDashboard: React.FC = () => {
                 🔄 Refresh
               </button>
 
-              {/* Ticket Filter Toggle */}
+              {/* Ticket Filter Toggle - Sync with Sidebar */}
               <button
                 onClick={() => {
-                  console.log('[AgentDashboard] Filter toggle clicked - current:', showOnlyMyTickets, 'switching to:', !showOnlyMyTickets);
-                  setShowOnlyMyTickets(!showOnlyMyTickets);
+                  const newFilter = activeViewFilter === 'my-queue' ? 'all-tickets' : 'my-queue';
+                  console.log('[AgentDashboard] Filter toggle clicked - current:', activeViewFilter, 'switching to:', newFilter);
+                  setActiveViewFilter(newFilter);
+                  // Keep showOnlyMyTickets in sync for backward compatibility
+                  setShowOnlyMyTickets(newFilter === 'my-queue');
                 }}
                 className={`px-3 py-2 text-sm font-medium rounded-md border transition-colors ${
-                  showOnlyMyTickets
+                  activeViewFilter === 'my-queue'
                     ? 'bg-green-600 text-white border-green-600'
                     : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
-                title={showOnlyMyTickets ? 'Show all tickets' : 'Show only my tickets'}
+                title={activeViewFilter === 'my-queue' ? 'Show all tickets' : 'Show only my tickets'}
               >
-                {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}
+                {activeViewFilter === 'my-queue' ? 'My Queue' : 'All Tickets'}
               </button>
 
               {/* View Toggle */}
