@@ -52,28 +52,28 @@ describe('Ticket Notes API', () => {
     const company = await CompanyService.createCompany({
       name: 'Test Company',
       domain: 'test.com',
-    });
+    }, employeeId);
     companyId = company.id;
 
     // Associate customer with company
-    await CompanyService.addUserToCompany(companyId, customerId, 'member');
+    await CompanyService.addUserToCompany(companyId, customerId, 'member', employeeId);
 
     // Create test team
     const team = await TeamService.createTeam({
       name: 'Test Team',
       description: 'Test team for notes',
-    });
+    }, employeeId);
     teamId = team.id;
 
     // Add employee to team
-    await TeamService.addMember(teamId, employeeId, 'member');
+    await TeamService.addUserToTeam(teamId, employeeId, 'member', employeeId);
 
     // Create test queue
     const queue = await QueueService.createQueue({
       name: 'Test Queue',
       type: 'unassigned',
       teamId,
-    });
+    }, employeeId, 'employee');
     queueId = queue.id;
 
     // Create test ticket

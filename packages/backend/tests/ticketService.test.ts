@@ -81,7 +81,7 @@ describe('TicketService', () => {
         },
       };
 
-      const ticket = await TicketService.createTicket(ticketData);
+      const ticket = await TicketService.createTicket(ticketData, customerId);
 
       expect(ticket).toHaveProperty('id');
       expect(ticket.title).toBe(ticketData.title);
@@ -102,7 +102,7 @@ describe('TicketService', () => {
         },
       };
 
-      await expect(TicketService.createTicket(ticketData)).rejects.toThrow(
+      await expect(TicketService.createTicket(ticketData, customerId)).rejects.toThrow(
         'Invalid value for custom field'
       );
     });
@@ -117,7 +117,7 @@ describe('TicketService', () => {
         customFieldValues: {},
       };
 
-      await expect(TicketService.createTicket(ticketData)).rejects.toThrow(
+      await expect(TicketService.createTicket(ticketData, customerId)).rejects.toThrow(
         'Required custom field missing'
       );
     });
@@ -130,24 +130,23 @@ describe('TicketService', () => {
       const ticket = await TicketService.createTicket({
         title: 'Test Ticket for Assignment',
         description: 'Test description',
-        submitterId: customerId,
         companyId: companyId,
         teamId: teamId,
         customFieldValues: {
           priority_level: 'Medium',
         },
-      });
+      }, customerId);
       ticketId = ticket.id;
     });
 
     it('should assign ticket to employee', async () => {
-      const updatedTicket = await TicketService.assignTicket(ticketId, employeeId);
+      const updatedTicket = await TicketService.assignTicket(ticketId, employeeId, employeeId, 'employee');
 
       expect(updatedTicket.assignedToId).toBe(employeeId);
     });
 
     it('should create employee queue when assigning', async () => {
-      await TicketService.assignTicket(ticketId, employeeId);
+      await TicketService.assignTicket(ticketId, employeeId, employeeId, 'employee');
 
       const employeeQueue = await Queue.findByEmployeeId(employeeId);
       expect(employeeQueue).toBeDefined();
@@ -155,7 +154,7 @@ describe('TicketService', () => {
     });
 
     it('should reject assignment to non-existent employee', async () => {
-      await expect(TicketService.assignTicket(ticketId, 'non-existent-id')).rejects.toThrow(
+      await expect(TicketService.assignTicket(ticketId, 'non-existent-id', employeeId, 'employee')).rejects.toThrow(
         'Employee not found'
       );
     });
@@ -168,24 +167,23 @@ describe('TicketService', () => {
       const ticket = await TicketService.createTicket({
         title: 'Test Ticket for Status Update',
         description: 'Test description',
-        submitterId: customerId,
         companyId: companyId,
         teamId: teamId,
         customFieldValues: {
           priority_level: 'Low',
         },
-      });
+      }, customerId);
       ticketId = ticket.id;
     });
 
     it('should update ticket status', async () => {
-      const updatedTicket = await TicketService.updateTicketStatus(ticketId, 'in_progress');
+      const updatedTicket = await TicketService.updateTicketStatus(ticketId, 'in_progress', employeeId, 'employee');
 
       expect(updatedTicket.status).toBe('in_progress');
     });
 
     it('should track status change history', async () => {
-      await TicketService.updateTicketStatus(ticketId, 'in_progress');
+      await TicketService.updateTicketStatus(ticketId, 'in_progress', employeeId, 'employee');
 
       const history = await TicketService.getTicketHistory(ticketId);
       expect(history).toHaveLength(1);
