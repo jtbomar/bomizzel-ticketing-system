@@ -481,6 +481,87 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/api/health', async (req: Request, res: Response) => {
   const { emergency_reseed } = req.query;
   
+  // Direct login test
+  if (emergency_reseed === 'direct_login') {
+    try {
+      const { email, password } = req.query;
+      
+      if (!email || !password) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Email and password required as query parameters'
+        });
+      }
+      
+      console.log('🔐 DIRECT LOGIN TEST');
+      
+      const { db } = require('./config/database');
+      const bcrypt = require('bcryptjs');
+      const jwt = require('jsonwebtoken');
+      
+      // Find user directly
+      const user = await db('users').where('email', email).first();
+      
+      if (!user) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'User not found'
+        });
+      }
+      
+      if (!user.is_active) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Account deactivated'
+        });
+      }
+      
+      // Verify password directly
+      const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          status: 'error',
+          message: 'Invalid password'
+        });
+      }
+      
+      // Generate JWT token directly
+      const token = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+        },
+        process.env.JWT_SECRET || 'fallback-secret',
+        { expiresIn: '24h' }
+      );
+      
+      console.log('✅ Direct login successful');
+      
+      return res.json({
+        status: 'success',
+        message: 'Direct login successful',
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role
+        },
+        token: token
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Direct login failed:', error);
+      return res.status(500).json({
+        status: 'error',
+        message: 'Direct login failed',
+        error: error.message
+      });
+    }
+  }
+  
   // Fix passwords capability
   if (emergency_reseed === 'fix_passwords') {
     try {
