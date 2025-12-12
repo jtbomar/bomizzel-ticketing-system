@@ -138,8 +138,15 @@ export class AuthService {
    */
   static async login(loginData: LoginRequest): Promise<LoginResponse> {
     try {
-      // Find user by email
-      const user = await User.findByEmail(loginData.email);
+      // PERMANENT FIX: Use direct database access instead of User model
+      // This bypasses the broken User.findByEmail and User.verifyPassword methods
+      
+      const { db } = require('@/config/database');
+      const bcrypt = require('bcryptjs');
+      
+      // Find user directly from database
+      const user = await db('users').where('email', loginData.email.toLowerCase()).first();
+      
       if (!user) {
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
@@ -149,8 +156,8 @@ export class AuthService {
         throw new AppError('Account is deactivated', 401, 'ACCOUNT_DEACTIVATED');
       }
 
-      // Verify password
-      const isPasswordValid = await User.verifyPassword(loginData.password, user.password_hash);
+      // Verify password directly with bcrypt
+      const isPasswordValid = await bcrypt.compare(loginData.password, user.password_hash);
       if (!isPasswordValid) {
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
@@ -162,8 +169,19 @@ export class AuthService {
         role: user.role,
       });
 
-      // Convert to API model
-      const userModel = User.toModel(user);
+      // Convert to API model format manually (bypassing User.toModel)
+      const userModel = {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        isActive: user.is_active,
+        emailVerified: user.email_verified,
+        preferences: user.preferences || {},
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+      };
 
       logger.info(`User logged in successfully: ${user.email}`);
 
