@@ -8,6 +8,8 @@ import { logger } from '@/utils/logger';
 import { CreateUserRequest, LoginRequest, LoginResponse, User as UserModel } from '@/types/models';
 import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
+import { db } from '@/config/database';
+import bcrypt from 'bcryptjs';
 
 export class AuthService {
   /**
@@ -140,9 +142,6 @@ export class AuthService {
     try {
       // PERMANENT FIX: Use direct database access instead of User model
       // This bypasses the broken User.findByEmail and User.verifyPassword methods
-      
-      const { db } = require('../config/database');
-      const bcrypt = require('bcryptjs');
       
       // Find user directly from database
       const user = await db('users').where('email', loginData.email.toLowerCase()).first();
