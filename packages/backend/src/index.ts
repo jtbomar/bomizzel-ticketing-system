@@ -527,7 +527,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
   }
   
   // Normal health check
-  res.json({
+  return res.json({
     status: 'ok',
     message: 'Bomizzel API is running',
     timestamp: new Date().toISOString(),
