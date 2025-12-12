@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ChartBarIcon,
+  // ChartBarIcon, // TODO: Implement chart functionality
   CurrencyDollarIcon,
   UsersIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   ExclamationTriangleIcon,
   ArrowUpIcon,
   ArrowDownIcon,
@@ -280,7 +280,7 @@ const SubscriptionAnalytics: React.FC = () => {
                   {formatPercentage(conversionRates.overallConversionRate)}
                 </p>
               </div>
-              <TrendingUpIcon className="h-8 w-8 text-purple-400" />
+              <ArrowTrendingUpIcon className="h-8 w-8 text-purple-400" />
             </div>
             <div className="mt-4">
               <span className="text-sm text-white/60">
@@ -300,7 +300,7 @@ const SubscriptionAnalytics: React.FC = () => {
                   {formatPercentage(churnAnalysis.churnRate)}
                 </p>
               </div>
-              <TrendingDownIcon className="h-8 w-8 text-red-400" />
+              <ArrowTrendingDownIcon className="h-8 w-8 text-red-400" />
             </div>
             <div className="mt-4">
               <span className="text-sm text-white/60">

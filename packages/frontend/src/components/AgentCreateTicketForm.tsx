@@ -40,14 +40,14 @@ const AgentCreateTicketForm: React.FC = () => {
   const [searchResults, setSearchResults] = useState<CustomerSearchResult[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Account search for new customer
   const [accountSearch, setAccountSearch] = useState('');
   const [accountResults, setAccountResults] = useState<any[]>([]);
   const [showAccountResults, setShowAccountResults] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
-  const accountSearchTimeoutRef = useRef<NodeJS.Timeout>();
+  const accountSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Form data
   const [formData, setFormData] = useState({

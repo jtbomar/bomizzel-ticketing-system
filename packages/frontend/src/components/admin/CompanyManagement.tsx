@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { apiService as api } from '../../services/api';
+// import { apiService as api } from '../../services/api'; // TODO: Implement API calls
 import {
   MagnifyingGlassIcon,
   PlusIcon,
   PencilIcon,
-  TrashIcon,
+  // TrashIcon, // TODO: Implement delete functionality
   XMarkIcon,
   BuildingOfficeIcon,
 } from '@heroicons/react/24/outline';

@@ -2,7 +2,7 @@ import axios, { AxiosInstance } from 'axios';
 
 // Determine API base URL
 const getApiBaseUrl = () => {
-  // If explicitly set, use it
+  // If explicitly set, use it as-is (it should already include /api)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
@@ -25,7 +25,7 @@ console.log('[ApiService] VITE_API_URL:', import.meta.env.VITE_API_URL);
 console.log('[ApiService] window.location:', window.location.href);
 
 class ApiService {
-  private client: AxiosInstance;
+  public client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
