@@ -89,11 +89,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     }
 
     if (!survey_config || !trigger_conditions || !email_template) {
-      return res
-        .status(400)
-        .json({
-          error: 'Survey configuration, trigger conditions, and email template are required',
-        });
+      return res.status(400).json({
+        error: 'Survey configuration, trigger conditions, and email template are required',
+      });
     }
 
     const setting = await CustomerHappinessService.createHappinessSetting(companyId, {

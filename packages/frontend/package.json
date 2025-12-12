@@ -23,7 +23,7 @@
     "@heroicons/react": "^2.0.18",
     "axios": "^1.4.0",
     "clsx": "^2.0.0",
-    "nodemailer": "7.0.10",
+    "nodemailer": "^7.0.11",
     "react": "^18.2.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-dom": "^18.2.0",
