@@ -481,6 +481,49 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/api/health', async (req: Request, res: Response) => {
   const { emergency_reseed } = req.query;
   
+  // Debug login capability
+  if (emergency_reseed === 'debug_login') {
+    try {
+      console.log('🔍 DEBUG LOGIN PROCESS');
+      
+      const { db } = require('./config/database');
+      const bcrypt = require('bcryptjs');
+      
+      // Check if user exists
+      const user = await db('users').where('email', 'elisa@bomar.com').first();
+      console.log('👤 User found:', user ? 'YES' : 'NO');
+      
+      if (user) {
+        console.log('📧 Email:', user.email);
+        console.log('🔑 Has password_hash:', !!user.password_hash);
+        console.log('✅ Is active:', user.is_active);
+        console.log('📧 Email verified:', user.email_verified);
+        
+        // Test password verification
+        const isValid = await bcrypt.compare('password123', user.password_hash);
+        console.log('🔐 Password valid:', isValid);
+      }
+      
+      return res.json({
+        status: 'debug',
+        userExists: !!user,
+        userDetails: user ? {
+          email: user.email,
+          role: user.role,
+          is_active: user.is_active,
+          email_verified: user.email_verified,
+          has_password_hash: !!user.password_hash
+        } : null
+      });
+      
+    } catch (error: any) {
+      return res.status(500).json({
+        status: 'debug_error',
+        error: error.message
+      });
+    }
+  }
+  
   // Emergency database reseed capability
   if (emergency_reseed === 'bomizzel_emergency_2024') {
     try {
