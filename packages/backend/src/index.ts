@@ -149,6 +149,15 @@ try {
     app.use('/api/auth', enhancedRegistrationRoutes);
     app.use('/api/admin', adminRoutes);
     app.use('/api/admin/provisioning', adminProvisioningRoutes);
+    
+    // Emergency admin routes for database issues
+    try {
+      const emergencyAdminRoutes = require('./routes/admin').default;
+      app.use('/api/emergency', emergencyAdminRoutes);
+      console.log('🚨 Emergency admin routes registered');
+    } catch (error) {
+      console.warn('⚠️ Could not load emergency admin routes:', error);
+    }
     app.use('/api/business-hours', businessHoursRoutes);
     app.use('/api/holiday-lists', holidayListRoutes);
     app.use('/api/departments', departmentRoutes);
