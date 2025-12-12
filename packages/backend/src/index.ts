@@ -499,25 +499,16 @@ app.get('/api/health', async (req: Request, res: Response) => {
         console.log('✅ Is active:', user.is_active);
         console.log('📧 Email verified:', user.email_verified);
         
-        // Test password verification
-        const isValid = await bcrypt.compare('password123', user.password_hash);
-        console.log('🔐 Password valid:', isValid);
-        
-        // Also test with User model method
-        let userModelResult = null;
-        let modelPasswordValid = false;
+        // Test password verification step by step
+        let bcryptResult = false;
+        let bcryptError = null;
         
         try {
-          const { User } = require('./models/User');
-          userModelResult = await User.findByEmail('elisa@bomar.com');
-          console.log('👤 User model found:', !!userModelResult);
-          
-          if (userModelResult) {
-            modelPasswordValid = await User.verifyPassword('password123', userModelResult.password_hash);
-            console.log('🔐 Model password valid:', modelPasswordValid);
-          }
-        } catch (modelError) {
-          console.error('❌ User model error:', modelError);
+          bcryptResult = await bcrypt.compare('password123', user.password_hash);
+          console.log('🔐 Direct bcrypt result:', bcryptResult);
+        } catch (err) {
+          bcryptError = err.message;
+          console.error('❌ Bcrypt error:', err);
         }
       }
       
@@ -531,10 +522,12 @@ app.get('/api/health', async (req: Request, res: Response) => {
           email_verified: user.email_verified,
           has_password_hash: !!user.password_hash,
           password_hash_length: user.password_hash ? user.password_hash.length : 0,
-          direct_bcrypt_valid: user ? await bcrypt.compare('password123', user.password_hash) : false,
-          user_model_found: !!userModelResult,
-          model_password_valid: modelPasswordValid
-        } : null
+          password_hash_preview: user.password_hash ? user.password_hash.substring(0, 10) + '...' : null
+        } : null,
+        passwordTest: {
+          bcrypt_result: bcryptResult,
+          bcrypt_error: bcryptError
+        }
       });
       
     } catch (error: any) {
