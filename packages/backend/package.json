@@ -23,6 +23,7 @@
     "migrate:rollback": "knex migrate:rollback --knexfile knexfile.js",
     "migrate:make": "knex migrate:make --knexfile knexfile.js",
     "seed": "knex seed:run --knexfile knexfile.js",
+    "force-reseed": "node scripts/force-reseed.js",
     "db:setup": "npm run migrate && npm run seed",
     "db:reset": "knex migrate:rollback --all --knexfile knexfile.js && npm run db:setup",
     "db:nuclear": "bash scripts/nuclear-reset.sh"
