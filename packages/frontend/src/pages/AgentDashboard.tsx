@@ -616,7 +616,7 @@ const AgentDashboard: React.FC = () => {
     }
   }, [customViews, user]);
 
-  // Default views for filtering
+  // Default views for filtering - use same logic as main filtering
   const defaultViews = [
     {
       id: 'all-tickets',
@@ -629,7 +629,13 @@ const AgentDashboard: React.FC = () => {
       id: 'my-queue',
       name: 'My Queue',
       icon: '👤',
-      filter: (ticket: Ticket) => ticket.assigned === 'You',
+      filter: (ticket: Ticket) => {
+        // Use same logic as main filtering
+        const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
+        return ticket.assigned === 'You' || 
+               ticket.assigned === currentUserName ||
+               (user && ticket.assigned === user.email);
+      },
       isDefault: true,
     },
     {
