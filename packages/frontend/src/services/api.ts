@@ -80,13 +80,13 @@ class ApiService {
       console.log('[ApiService] Direct login response:', response.data);
       
       // Check if login was successful
-      if (response.data.status === 'success' && response.data.token) {
+      if (response.data.message === 'Login successful' && response.data.token) {
         console.log('[ApiService] Direct login successful');
         return {
           message: response.data.message,
           user: response.data.user,
           token: response.data.token,
-          refreshToken: response.data.token // Using same token for now
+          refreshToken: response.data.refreshToken || response.data.token
         };
       } else {
         console.error('[ApiService] Direct login failed:', response.data);
