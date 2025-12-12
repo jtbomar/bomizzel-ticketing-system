@@ -141,7 +141,7 @@ export class AuthService {
       // PERMANENT FIX: Use direct database access instead of User model
       // This bypasses the broken User.findByEmail and User.verifyPassword methods
       
-      const { db } = require('@/config/database');
+      const { db } = require('../config/database');
       const bcrypt = require('bcryptjs');
       
       // Find user directly from database
