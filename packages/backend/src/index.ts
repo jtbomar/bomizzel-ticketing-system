@@ -490,8 +490,8 @@ app.get('/health', (_req: Request, res: Response) => {
 app.get('/api/health', async (req: Request, res: Response) => {
   const { emergency_reseed } = req.query;
   
-  // Direct login test
-  if (emergency_reseed === 'direct_login') {
+  // PERMANENT LOGIN ENDPOINT (temporary location)
+  if (emergency_reseed === 'login') {
     try {
       const { email, password } = req.query;
       
@@ -549,16 +549,21 @@ app.get('/api/health', async (req: Request, res: Response) => {
       console.log('✅ Direct login successful');
       
       return res.json({
-        status: 'success',
-        message: 'Direct login successful',
+        message: 'Login successful',
         user: {
           id: user.id,
           email: user.email,
           firstName: user.first_name,
           lastName: user.last_name,
-          role: user.role
+          role: user.role,
+          isActive: user.is_active,
+          emailVerified: user.email_verified,
+          preferences: user.preferences || {},
+          createdAt: user.created_at,
+          updatedAt: user.updated_at
         },
-        token: token
+        token: token,
+        refreshToken: token // Using same token for now
       });
       
     } catch (error: any) {
