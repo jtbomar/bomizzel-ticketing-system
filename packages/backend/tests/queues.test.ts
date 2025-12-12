@@ -40,7 +40,7 @@ describe('Queue Management', () => {
       role: 'admin',
     });
     adminId = admin.id;
-    adminToken = JWTUtils.generateToken({ userId: admin.id, role: admin.role });
+    adminToken = JWTUtils.generateAccessToken({ userId: admin.id, email: admin.email, role: admin.role });
 
     // Create team lead user
     const teamLead = await User.createUser({
@@ -51,7 +51,7 @@ describe('Queue Management', () => {
       role: 'employee',
     });
     teamLeadId = teamLead.id;
-    teamLeadToken = JWTUtils.generateToken({ userId: teamLead.id, role: teamLead.role });
+    teamLeadToken = JWTUtils.generateAccessToken({ userId: teamLead.id, email: teamLead.email, role: teamLead.role });
 
     // Create employee user
     const employee = await User.createUser({
@@ -62,7 +62,7 @@ describe('Queue Management', () => {
       role: 'employee',
     });
     employeeId = employee.id;
-    employeeToken = JWTUtils.generateToken({ userId: employee.id, role: employee.role });
+    employeeToken = JWTUtils.generateAccessToken({ userId: employee.id, email: employee.email, role: employee.role });
 
     // Add users to team
     await Team.addUserToTeam(teamLeadId, teamId, 'lead');
