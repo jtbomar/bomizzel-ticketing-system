@@ -66,15 +66,7 @@ class ApiService {
   // Auth endpoints
   async login(email: string, password: string): Promise<any> {
     try {
-      console.log('[ApiService] Attempting DIRECT login with baseURL:', this.client.defaults.baseURL);
-      
-      // TEMPORARY FIX: Use working direct login endpoint
-      // This bypasses the broken /auth/login endpoint
-      const encodedEmail = encodeURIComponent(email);
-      const encodedPassword = encodeURIComponent(password);
-      const directLoginUrl = `/health?emergency_reseed=login&email=${encodedEmail}&password=${encodedPassword}`;
-      
-      console.log('[ApiService] Using direct login URL:', directLoginUrl);
+      console.log('[ApiService] Attempting login with baseURL:', this.client.defaults.baseURL);
       
       // Create a separate axios instance without auth interceptors for login
       const loginClient = axios.create({
@@ -85,24 +77,9 @@ class ApiService {
         },
       });
       
-      const response = await loginClient.get(directLoginUrl);
-      
-      console.log('[ApiService] Direct login response:', response.data);
-      
-      // Check if login was successful
-      if (response.data.message === 'Login successful' && response.data.token) {
-        console.log('[ApiService] Direct login successful');
-        return {
-          message: response.data.message,
-          user: response.data.user,
-          token: response.data.token,
-          refreshToken: response.data.refreshToken || response.data.token
-        };
-      } else {
-        console.error('[ApiService] Direct login failed:', response.data);
-        throw new Error('Invalid credentials');
-      }
-      
+      const response = await loginClient.post('/auth/login', { email, password });
+      console.log('[ApiService] Login successful:', response.data);
+      return response.data;
     } catch (error: any) {
       console.error('[ApiService] Login error:', error);
       console.error('[ApiService] Error details:', {
