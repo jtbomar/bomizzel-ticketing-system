@@ -49,11 +49,9 @@ const Teams: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiService.getTeams();
-      console.log('[Teams] API Response:', response);
 
       // Handle different response structures
       const teamsData = response.data?.data || response.data || response;
-      console.log('[Teams] Teams data:', teamsData);
 
       setTeams(Array.isArray(teamsData) ? teamsData : []);
     } catch (error: any) {
@@ -90,14 +88,11 @@ const Teams: React.FC = () => {
 
     try {
       setSaving(true);
-      console.log('[Teams] Saving team:', formData, 'Editing:', editingTeam?.id);
 
       if (editingTeam) {
-        const response = await apiService.updateTeam(editingTeam.id, formData);
-        console.log('[Teams] Update response:', response);
+        await apiService.updateTeam(editingTeam.id, formData);
       } else {
-        const response = await apiService.createTeam(formData);
-        console.log('[Teams] Create response:', response);
+        await apiService.createTeam(formData);
       }
 
       await fetchTeams();
@@ -116,16 +111,7 @@ const Teams: React.FC = () => {
 
   const toggleTeamStatus = async (team: Team) => {
     try {
-      console.log(
-        '[Teams] Toggling team status:',
-        team.id,
-        'from',
-        team.isActive,
-        'to',
-        !team.isActive
-      );
-      const response = await apiService.updateTeam(team.id, { isActive: !team.isActive });
-      console.log('[Teams] Toggle response:', response);
+      await apiService.updateTeam(team.id, { isActive: !team.isActive });
       await fetchTeams();
     } catch (error: any) {
       console.error('[Teams] Toggle error:', error);

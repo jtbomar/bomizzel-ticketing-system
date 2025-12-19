@@ -58,12 +58,33 @@ export class CompanyService {
       limit?: number;
       search?: string;
       isActive?: boolean;
+      requestingUser?: {
+        id: string;
+        role: string;
+        organizationId?: string;
+        companies?: string[];
+      };
     } = {}
   ): Promise<PaginatedResponse<CompanyModel>> {
     try {
-      const { page = 1, limit = 25, search, isActive } = options;
+      const { page = 1, limit = 25, search, isActive, requestingUser } = options;
       const offset = (page - 1) * limit;
 
+      // CRITICAL: Implement tenant isolation for companies
+      if (requestingUser?.organizationId) {
+        // Organization users should not see companies - they manage their own organization
+        return {
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+
+      // For customer users or fallback, use existing logic
       const companies = await Company.findActiveCompanies({
         limit,
         offset,
@@ -88,7 +109,7 @@ export class CompanyService {
 
       // Enrich with ticket and contact counts
       const enrichedCompanies = await Promise.all(
-        companies.map(async (company) => {
+        companies.map(async (company: any) => {
           // Get ticket count
           const ticketCount = await Company.db('tickets')
             .where('company_id', company.id)

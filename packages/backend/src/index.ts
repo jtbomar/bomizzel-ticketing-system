@@ -58,10 +58,13 @@ console.log('🔧 Using PORT:', PORT);
 // Basic middleware
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3002',
   'http://127.0.0.1:3000',
+  'http://127.0.0.1:3002',
   'http://192.168.0.133:3000',
   'http://192.168.0.117:3000',
   /^http:\/\/192\.168\.0\.\d+:3000$/,
+  /^http:\/\/192\.168\.0\.\d+:3002$/,
   'https://www.bomizzel.com',
   'https://bomizzel.com',
   'https://bomizzel-ticketing-system-frontend.vercel.app',

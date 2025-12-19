@@ -123,8 +123,10 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
       token: accessToken,
       refreshToken: refreshToken,
     });
+    return;
   } catch (error) {
     next(error);
+    return;
   }
 });
 
@@ -331,6 +333,22 @@ router.post('/associate-company', authenticate, async (req, res, next) => {
 
     res.json({
       message: 'Successfully associated with company',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /auth/debug
+ * Debug authentication - test if middleware works
+ */
+router.get('/debug', authenticate, async (req, res, next) => {
+  try {
+    res.json({
+      message: 'Authentication working!',
+      user: req.user,
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     next(error);

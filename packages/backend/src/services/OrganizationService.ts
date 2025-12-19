@@ -104,10 +104,29 @@ export class OrganizationService {
   }
 
   /**
-   * Get organization details
+   * Get organization details (checks both organizations and companies tables)
    */
   static async getOrganization(orgId: string): Promise<any> {
-    const org = await db('companies').where('id', orgId).where('is_active', true).first();
+    // First try organizations table
+    let org = await db('organizations').where('id', orgId).where('is_active', true).first();
+    
+    if (org) {
+      const settings = org.settings || {};
+      return {
+        id: org.id,
+        name: org.name,
+        logoUrl: org.logo_url,
+        description: org.description,
+        websiteUrl: settings.websiteUrl,
+        domain: org.domain,
+        settings: settings,
+        createdAt: org.created_at,
+        updatedAt: org.updated_at,
+      };
+    }
+
+    // Fallback to companies table for backward compatibility
+    org = await db('companies').where('id', orgId).where('is_active', true).first();
 
     if (!org) {
       throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND');
@@ -119,12 +138,73 @@ export class OrganizationService {
       logoUrl: org.logo_url,
       description: org.description,
       websiteUrl: org.website_url,
+      domain: org.domain,
       timezone: org.timezone,
       dateFormat: org.date_format,
       timeFormat: org.time_format,
       currency: org.currency,
       language: org.language,
     };
+  }
+
+  /**
+   * Update organization details
+   */
+  static async updateOrganization(orgId: string, updateData: any): Promise<any> {
+    // First try organizations table
+    const orgExists = await db('organizations').where('id', orgId).first();
+    
+    if (orgExists) {
+      const updateFields: any = {
+        updated_at: db.fn.now(),
+      };
+
+      if (updateData.name) updateFields.name = updateData.name;
+      if (updateData.description) updateFields.description = updateData.description;
+      if (updateData.domain) updateFields.domain = updateData.domain;
+      if (updateData.logoUrl) updateFields.logo_url = updateData.logoUrl;
+      
+      // Handle settings (including websiteUrl)
+      if (updateData.websiteUrl || updateData.settings) {
+        const currentSettings = orgExists.settings || {};
+        const newSettings = { ...currentSettings };
+        
+        if (updateData.websiteUrl) {
+          newSettings.websiteUrl = updateData.websiteUrl;
+        }
+        
+        if (updateData.settings) {
+          Object.assign(newSettings, updateData.settings);
+        }
+        
+        updateFields.settings = newSettings;
+      }
+
+      await db('organizations').where('id', orgId).update(updateFields);
+      
+      return this.getOrganization(orgId);
+    }
+
+    // Fallback to companies table
+    const companyExists = await db('companies').where('id', orgId).first();
+    
+    if (!companyExists) {
+      throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND');
+    }
+
+    const updateFields: any = {
+      updated_at: db.fn.now(),
+    };
+
+    if (updateData.name) updateFields.name = updateData.name;
+    if (updateData.description) updateFields.description = updateData.description;
+    if (updateData.websiteUrl) updateFields.website_url = updateData.websiteUrl;
+    if (updateData.domain) updateFields.domain = updateData.domain;
+    if (updateData.logoUrl) updateFields.logo_url = updateData.logoUrl;
+
+    await db('companies').where('id', orgId).update(updateFields);
+    
+    return this.getOrganization(orgId);
   }
 
   /**

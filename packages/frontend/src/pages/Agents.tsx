@@ -46,14 +46,10 @@ const Agents: React.FC = () => {
 
   const fetchDepartments = async () => {
     try {
-      console.log('Fetching departments...');
       const response = await apiService.getDepartments();
-      console.log('Departments API response:', response);
       // The API returns the array directly, not wrapped in an object
       const depts = Array.isArray(response) ? response : response.departments || [];
-      console.log('Departments array:', depts);
       setDepartments(depts);
-      console.log('Departments state set to:', depts.length, 'items');
     } catch (error) {
       console.error('Error fetching departments:', error);
     }
@@ -80,12 +76,9 @@ const Agents: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching users...');
       const response = await apiService.getUsers();
-      console.log('Users API response:', response);
       // Handle both formats: direct array or wrapped in object
       const usersList = Array.isArray(response) ? response : response.users || response.data || [];
-      console.log('Users list:', usersList);
       setUsers(usersList);
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -123,7 +116,6 @@ const Agents: React.FC = () => {
       if (newUser.departmentIds && newUser.departmentIds.length > 0)
         userData.departmentIds = newUser.departmentIds;
 
-      console.log('Creating user with data:', userData);
       await apiService.createUser(userData);
       setNewUser({
         firstName: '',
@@ -173,7 +165,6 @@ const Agents: React.FC = () => {
         role: editingUser.role,
       };
 
-      console.log('Updating user:', editingUser.id, updateData);
       await apiService.updateUser(editingUser.id, updateData);
       setShowEditModal(false);
       setEditingUser(null);

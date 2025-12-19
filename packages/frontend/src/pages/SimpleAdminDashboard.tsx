@@ -32,9 +32,7 @@ const SimpleAdminDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('SimpleAdminDashboard mounted, activeTab:', activeTab);
     if (activeTab === 'users') {
-      console.log('Fetching users because activeTab is users');
       fetchUsers();
     }
   }, [activeTab]);
@@ -53,11 +51,8 @@ const SimpleAdminDashboard: React.FC = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching users from API...');
       const response = await apiService.getUsers();
-      console.log('API response:', response);
       setUsers(response.users || []);
-      console.log('Users set:', response.users?.length || 0);
     } catch (error: any) {
       console.error('Error fetching users:', error);
       console.error('Error details:', error.response?.data);
@@ -72,9 +67,7 @@ const SimpleAdminDashboard: React.FC = () => {
   const addUser = async () => {
     if (newUser.firstName && newUser.lastName && newUser.email && newUser.password) {
       try {
-        console.log('Creating user:', newUser.email, 'with role:', newUser.role);
         await apiService.createUser(newUser);
-        console.log('User created successfully');
         setNewUser({
           firstName: '',
           lastName: '',
@@ -102,9 +95,7 @@ const SimpleAdminDashboard: React.FC = () => {
 
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
-      console.log('Toggling user status:', userId, 'from', currentStatus, 'to', !currentStatus);
       await apiService.updateUser(userId, { isActive: !currentStatus });
-      console.log('User status updated successfully');
       fetchUsers(); // Refresh the list
     } catch (error: any) {
       console.error('Error updating user status:', error);

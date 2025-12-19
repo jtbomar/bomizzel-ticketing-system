@@ -28,6 +28,13 @@ router.get(
         search,
         role,
         isActive: isActive !== undefined ? isActive === 'true' : undefined,
+        requestingUser: {
+          id: req.user!.id,
+          role: req.user!.role,
+          organizationId: req.user!.organizationId,
+          companyId: req.user!.companyId,
+          companies: req.user!.companies,
+        },
       });
 
       res.json(users);
@@ -104,7 +111,13 @@ router.get(
   async (req, res, next) => {
     try {
       const { userId } = req.params;
-      const user = await UserService.getUserById(userId);
+      const user = await UserService.getUserById(userId, {
+        id: req.user!.id,
+        role: req.user!.role,
+        organizationId: req.user!.organizationId,
+        companyId: req.user!.companyId,
+        companies: req.user!.companies,
+      });
       res.json({ user });
     } catch (error) {
       next(error);

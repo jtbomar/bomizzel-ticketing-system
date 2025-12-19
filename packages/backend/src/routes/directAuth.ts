@@ -93,10 +93,12 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
       token: accessToken,
       refreshToken: refreshToken,
     });
+    return;
 
   } catch (error) {
     logger.error('Direct auth login error:', error);
     next(error);
+    return;
   }
 });
 

@@ -1,5 +1,5 @@
 import { createClient } from 'redis';
-import { logger } from '@/utils/logger';
+import { logger } from '../utils/logger';
 
 const redisUrl = process.env['REDIS_URL'] || 'redis://localhost:6379';
 let isRedisConnected = false;

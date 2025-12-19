@@ -135,8 +135,9 @@ exports.seed = async function (knex) {
 
   // 4. Create Queue
   let queue = await knex('queues').where('name', 'General Queue').first();
+  let queueId;
   if (!queue) {
-    const queueId = uuidv4();
+    queueId = uuidv4();
     await knex('queues').insert({
       id: queueId,
       name: 'General Queue',
@@ -149,6 +150,7 @@ exports.seed = async function (knex) {
     queue = await knex('queues').where('name', 'General Queue').first();
     console.log('✅ Created General Queue');
   } else {
+    queueId = queue.id;
     console.log('⏭️  General Queue already exists');
   }
 

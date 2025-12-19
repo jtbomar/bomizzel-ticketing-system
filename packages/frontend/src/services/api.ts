@@ -9,7 +9,7 @@ const getApiBaseUrl = () => {
 
   // For local development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    return 'http://localhost:5000/api';
+    return 'http://localhost:3001/api';
   }
 
   // For production, construct from current protocol and hostname
@@ -947,7 +947,7 @@ class ApiService {
 
   // Company Profile endpoints
   async getCompanyProfile(): Promise<any> {
-    const response = await this.client.get('/company-registration/profile');
+    const response = await this.client.get('/orgs/profile');
     return response.data;
   }
 
@@ -966,7 +966,7 @@ class ApiService {
     postalCode?: string;
     country?: string;
   }): Promise<any> {
-    const response = await this.client.put('/company-registration/profile', data);
+    const response = await this.client.put('/orgs/profile', data);
     return response.data;
   }
 

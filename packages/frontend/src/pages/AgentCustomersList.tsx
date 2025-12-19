@@ -61,15 +61,7 @@ const AgentCustomersList: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiService.getUsers({ role: 'customer', limit: 100, page: 1 });
-      console.log('API Response:', response);
       const customersList = response.data || [];
-      console.log('Customers from API:', customersList.length, customersList);
-
-      // Check if customers have company associations
-      if (customersList.length > 0) {
-        console.log('First customer:', customersList[0]);
-        console.log('Has companies?', customersList[0].companies);
-      }
 
       setCustomers(customersList);
       setFilteredCustomers(customersList);

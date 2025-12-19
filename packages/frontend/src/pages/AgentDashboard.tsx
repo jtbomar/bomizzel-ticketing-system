@@ -80,8 +80,6 @@ const AgentDashboard: React.FC = () => {
 
   // FORCE default statuses - bypass localStorage corruption
   const getStatuses = (): StatusOption[] => {
-    console.log('[AgentDashboard] getStatuses called');
-
     // ALWAYS return default statuses to fix Shane's issue
     const defaultStatuses = [
       {
@@ -122,7 +120,6 @@ const AgentDashboard: React.FC = () => {
       },
     ];
 
-    console.log('[AgentDashboard] Returning default statuses:', defaultStatuses.length);
     return defaultStatuses;
   };
 
@@ -178,7 +175,6 @@ const AgentDashboard: React.FC = () => {
 
   const [statuses, setStatuses] = useState<StatusOption[]>(() => {
     const defaultStatuses = getStatuses();
-    console.log('[AgentDashboard] Initializing with default statuses:', defaultStatuses.length);
     return defaultStatuses;
   });
   const [priorities] = useState<PriorityOption[]>(getPriorities());
@@ -318,9 +314,7 @@ const AgentDashboard: React.FC = () => {
       // If no mapping found, assign to first available status
       const firstStatus = statuses[0];
       if (firstStatus) {
-        console.log(
-          `Migrating ticket ${ticketWithNotes.id} from status "${ticketWithNotes.status}" to "${firstStatus.value}"`
-        );
+
         return { ...ticketWithNotes, status: firstStatus.value };
       }
 
@@ -336,13 +330,8 @@ const AgentDashboard: React.FC = () => {
 
   // Load initial tickets when user is available
   useEffect(() => {
-    console.log(
-      '[AgentDashboard] User state changed:',
-      user ? `${user.email} (${user.role})` : 'null'
-    );
     if (user) {
       const initialTickets = migrateTickets(getInitialTickets(), statuses);
-      console.log('[AgentDashboard] Initial tickets loaded:', initialTickets.length);
       setTickets(initialTickets);
 
       // Load ticket ID mapping from localStorage
@@ -353,7 +342,7 @@ const AgentDashboard: React.FC = () => {
           const idMapArray = JSON.parse(savedIdMap);
           const idMapping = new Map<number, string>(idMapArray);
           setTicketIdMap(idMapping);
-          console.log('Loaded ticket ID mapping from localStorage:', idMapping.size, 'entries');
+
         } catch (error) {
           console.error('Failed to load ticket ID mapping:', error);
         }
@@ -366,7 +355,6 @@ const AgentDashboard: React.FC = () => {
     const fetchTickets = async () => {
       // Only fetch if user is authenticated
       if (!user) {
-        console.log('User not authenticated, skipping ticket fetch');
         return;
       }
 
@@ -379,30 +367,20 @@ const AgentDashboard: React.FC = () => {
       // Only fetch from API if no local tickets exist OR filter has changed
       const filterChanged = lastFilter !== showOnlyMyTickets.toString();
       if (existingTickets && JSON.parse(existingTickets).length > 0 && !filterChanged) {
-        console.log('[AgentDashboard] Using existing tickets from localStorage');
         return;
       }
 
-      if (filterChanged) {
-        console.log('[AgentDashboard] Filter changed, fetching fresh tickets');
-        localStorage.setItem(filterKey, showOnlyMyTickets.toString());
-      }
+      localStorage.setItem(filterKey, showOnlyMyTickets.toString());
 
       try {
-        console.log('[AgentDashboard] Fetching fresh tickets from API');
-
         // Get tickets based on filter preference
         const ticketParams: any = { limit: 100 };
         if (showOnlyMyTickets && user) {
           ticketParams.assignedToId = user.id;
-          console.log('[AgentDashboard] Fetching tickets assigned to user:', user.id, user.email);
-        } else {
-          console.log('[AgentDashboard] Fetching all tickets');
         }
 
         const response = await apiService.getTickets(ticketParams);
         const apiTickets = response.data || response.tickets || [];
-        console.log('[AgentDashboard] Received', apiTickets.length, 'tickets from API');
 
         // Create ID mapping from numeric to UUID
         const idMapping = new Map<number, string>();
@@ -464,16 +442,6 @@ const AgentDashboard: React.FC = () => {
           const idMapKey = `agent-ticket-ids-${user.id}`;
           localStorage.setItem(idMapKey, JSON.stringify(Array.from(idMapping.entries())));
 
-          console.log(
-            '[AgentDashboard] Loaded',
-            transformedTickets.length,
-            'tickets from API, migrated to:',
-            migratedTickets.length
-          );
-        } else {
-          console.log('[AgentDashboard] No tickets received from API');
-          console.log('[AgentDashboard] API response:', response);
-          console.log('[AgentDashboard] Raw API tickets:', apiTickets);
         }
       } catch (error) {
         console.error('Failed to fetch tickets:', error);
@@ -494,13 +462,13 @@ const AgentDashboard: React.FC = () => {
 
       // Always ensure we have default statuses first
       const defaultStatuses = getStatuses();
-      console.log('[AgentDashboard] Setting default statuses:', defaultStatuses.length);
+
       setStatuses(defaultStatuses);
 
       // If we have a teamId, try to fetch team-specific statuses
       if (teamId) {
         try {
-          console.log('[AgentDashboard] Fetching statuses for team:', teamId);
+
           const response = await apiService.getTeamStatuses(teamId);
           const apiStatuses = response.statuses || [];
 
@@ -522,16 +490,10 @@ const AgentDashboard: React.FC = () => {
             // Save to localStorage and update state
             localStorage.setItem('admin-statuses', JSON.stringify(transformedStatuses));
             setStatuses(transformedStatuses);
-            console.log('[AgentDashboard] Loaded', transformedStatuses.length, 'statuses from API');
-          } else {
-            console.log('[AgentDashboard] No statuses from API, keeping defaults');
           }
         } catch (error) {
           console.error('[AgentDashboard] Failed to fetch team statuses:', error);
-          console.log('[AgentDashboard] Keeping default statuses due to API error');
         }
-      } else {
-        console.log('[AgentDashboard] No teamId, using default statuses');
       }
 
       setLoadingStatuses(false);
@@ -557,7 +519,7 @@ const AgentDashboard: React.FC = () => {
 
         // Fallback: get from user profile or teams endpoint
         // For now, we'll use a default team if available
-        console.log('[AgentDashboard] No team found, using default statuses');
+
       } catch (error) {
         console.error('[AgentDashboard] Failed to get user team:', error);
       }
@@ -691,16 +653,7 @@ const AgentDashboard: React.FC = () => {
 
   // Memoized filtered tickets to prevent excessive re-renders during drag operations
   const filteredTickets = useMemo(() => {
-    console.log(
-      '[AgentDashboard] Filtering tickets - total:',
-      tickets.length,
-      'activeViewFilter:',
-      activeViewFilter,
-      'showOnlyMyTickets:',
-      showOnlyMyTickets,
-      'user:',
-      user?.email
-    );
+
 
     // Use activeViewFilter (sidebar) as primary filter
     if (activeViewFilter === 'my-queue') {
@@ -713,31 +666,18 @@ const AgentDashboard: React.FC = () => {
           (user && ticket.assigned === user.email);
         return isAssignedToMe;
       });
-      console.log('[AgentDashboard] My Queue filter - found:', myTickets.length, 'tickets');
-      console.log('[AgentDashboard] Looking for assignments to:', [
-        'You',
-        currentUserName,
-        user?.email,
-      ]);
-      console.log(
-        '[AgentDashboard] Sample ticket assignments:',
-        tickets.slice(0, 5).map((t) => t.assigned)
-      );
+
       return myTickets;
     } else if (activeViewFilter === 'all-tickets') {
-      console.log('[AgentDashboard] All tickets filter - showing all:', tickets.length, 'tickets');
+
       return tickets;
     } else if (activeViewFilter === 'unassigned') {
       const unassignedTickets = tickets.filter((ticket) => ticket.assigned === 'Unassigned');
-      console.log(
-        '[AgentDashboard] Unassigned filter - found:',
-        unassignedTickets.length,
-        'tickets'
-      );
+
       return unassignedTickets;
     } else if (activeViewFilter === 'all-open') {
       const openTickets = tickets.filter((ticket) => ticket.status === 'open');
-      console.log('[AgentDashboard] All Open filter - found:', openTickets.length, 'tickets');
+
       return openTickets;
     } else {
       // Fallback to showOnlyMyTickets for backward compatibility
@@ -750,18 +690,10 @@ const AgentDashboard: React.FC = () => {
             (user && ticket.assigned === user.email);
           return isAssignedToMe;
         });
-        console.log(
-          '[AgentDashboard] Fallback My tickets filter - found:',
-          myTickets.length,
-          'tickets'
-        );
+
         return myTickets;
       } else {
-        console.log(
-          '[AgentDashboard] Fallback All tickets filter - showing all:',
-          tickets.length,
-          'tickets'
-        );
+
         return tickets;
       }
     }
@@ -785,7 +717,7 @@ const AgentDashboard: React.FC = () => {
       // Save even if 0 tickets (empty state)
       const userKey = `agent-tickets-${user.id}`;
       localStorage.setItem(userKey, JSON.stringify(tickets));
-      console.log('Saved tickets to localStorage:', tickets.length, 'for user:', user.email);
+
     }
   }, [tickets, user]);
 
@@ -1104,12 +1036,7 @@ const AgentDashboard: React.FC = () => {
       const statusTickets = filteredTickets
         .filter((t) => t.status === status)
         .sort((a, b) => a.order - b.order);
-      console.log(
-        `[AgentDashboard] getStatusTickets("${status}") - filteredTickets:`,
-        filteredTickets.length,
-        'statusTickets:',
-        statusTickets.length
-      );
+
       return statusTickets;
     },
     [filteredTickets]
@@ -1587,22 +1514,11 @@ const AgentDashboard: React.FC = () => {
   );
 
   const renderKanbanBoard = () => {
-    console.log(
-      '[AgentDashboard] Rendering kanban board - tickets:',
-      tickets.length,
-      'showOnlyMyTickets:',
-      showOnlyMyTickets,
-      'filteredTickets:',
-      filteredTickets.length,
-      'statuses:',
-      statuses.length
-    );
+
 
     // CRITICAL: Force default statuses if we have none
     if (statuses.length === 0) {
-      console.log('[AgentDashboard] CRITICAL: No statuses available, forcing defaults');
       const defaultStatuses = getStatuses();
-      console.log('[AgentDashboard] Default statuses:', defaultStatuses);
 
       // Use setTimeout to prevent infinite re-render
       setTimeout(() => setStatuses(defaultStatuses), 0);
@@ -1634,63 +1550,14 @@ const AgentDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Emergency Ticket List */}
-          <div className="bg-white shadow overflow-hidden sm:rounded-md">
-            <div className="px-4 py-5 sm:px-6 bg-gray-50">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                🎫 Emergency Ticket List ({tickets.length} tickets)
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Your tickets displayed in simple list format while we fix the kanban board.
-              </p>
-            </div>
-            <ul className="divide-y divide-gray-200">
-              {tickets.slice(0, 50).map((ticket) => (
-                <li key={ticket.id} className="px-4 py-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3">
-                          #{ticket.id}
-                        </span>
-                        <h4 className="text-sm font-medium text-gray-900">{ticket.title}</h4>
-                      </div>
-                      <div className="mt-2 flex items-center text-sm text-gray-500 space-x-4">
-                        <span>
-                          Status: <strong>{ticket.status}</strong>
-                        </span>
-                        <span>
-                          Priority: <strong>{ticket.priority}</strong>
-                        </span>
-                        <span>
-                          Assigned: <strong>{ticket.assigned}</strong>
-                        </span>
-                        <span>
-                          Customer: <strong>{ticket.customer}</strong>
-                        </span>
-                      </div>
-                      {ticket.description && (
-                        <p className="mt-1 text-sm text-gray-600 truncate">{ticket.description}</p>
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 text-sm text-gray-500">{ticket.created}</div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {tickets.length > 50 && (
-              <div className="px-4 py-3 bg-gray-50 text-center text-sm text-gray-500">
-                Showing first 50 of {tickets.length} tickets
-              </div>
-            )}
-          </div>
+
         </div>
       );
     }
 
     // Show empty state if no tickets and user is filtering to "My Tickets"
     if (tickets.length === 0 && showOnlyMyTickets) {
-      console.log('[AgentDashboard] Showing empty state - no tickets assigned');
+
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🎫</div>
@@ -1712,7 +1579,7 @@ const AgentDashboard: React.FC = () => {
 
     // Show debug info if no tickets at all
     if (tickets.length === 0) {
-      console.log('[AgentDashboard] No tickets found at all');
+
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
@@ -1735,7 +1602,7 @@ const AgentDashboard: React.FC = () => {
 
     // Show debug info if we have tickets but filtered tickets is empty
     if (tickets.length > 0 && filteredTickets.length === 0) {
-      console.log('[AgentDashboard] Have tickets but filtered tickets is empty');
+
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
@@ -1772,58 +1639,11 @@ const AgentDashboard: React.FC = () => {
       );
     }
 
-    // TEMPORARY DEBUG: Show raw data for Shane
-    if (tickets.length > 0 && filteredTickets.length > 0) {
-      console.log('[DEBUG] Raw tickets data:', tickets.slice(0, 3));
-      console.log('[DEBUG] Filtered tickets data:', filteredTickets.slice(0, 3));
-      console.log('[DEBUG] Statuses data:', statuses);
-      console.log(
-        '[DEBUG] Sample ticket statuses:',
-        tickets.slice(0, 10).map((t) => t.status)
-      );
-    }
+
 
     return (
       <div className="space-y-6">
-        {/* TEMPORARY DEBUG DISPLAY FOR SHANE */}
-        <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-4">
-          <h3 className="font-bold text-yellow-800 mb-2">🔧 DEBUG INFO FOR SHANE</h3>
-          <div className="text-sm text-yellow-700 space-y-1">
-            <p>
-              <strong>Total tickets:</strong> {tickets.length}
-            </p>
-            <p>
-              <strong>Filtered tickets:</strong> {filteredTickets.length}
-            </p>
-            <p>
-              <strong>Statuses:</strong> {statuses.length} (
-              {statuses.map((s) => s.label).join(', ')})
-            </p>
-            <p>
-              <strong>Show only my tickets:</strong> {showOnlyMyTickets ? 'Yes' : 'No'}
-            </p>
-            {tickets.length > 0 && (
-              <p>
-                <strong>Sample ticket statuses:</strong>{' '}
-                {tickets
-                  .slice(0, 5)
-                  .map((t) => t.status)
-                  .join(', ')}
-              </p>
-            )}
-            {filteredTickets.length > 0 && statuses.length > 0 && (
-              <div>
-                <strong>Tickets per status:</strong>
-                {statuses.map((status) => (
-                  <span key={status.value} className="ml-2">
-                    {status.label}:{' '}
-                    {filteredTickets.filter((t) => t.status === status.value).length}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+
 
         <div
           className={`grid grid-cols-1 gap-6`}
@@ -1842,11 +1662,7 @@ const AgentDashboard: React.FC = () => {
               <div className="space-y-3">
                 {(() => {
                   const statusTickets = getStatusTickets(statusConfig.value);
-                  console.log(
-                    `[AgentDashboard] Rendering tickets for status "${statusConfig.value}":`,
-                    statusTickets.length,
-                    statusTickets
-                  );
+
                   return statusTickets.map((ticket, index) => (
                     <div key={ticket.id} className="relative">
                       {/* Drop indicator above */}
@@ -1995,33 +1811,7 @@ const AgentDashboard: React.FC = () => {
           ))}
         </div>
 
-        {/* EMERGENCY FALLBACK: Show tickets as simple list if kanban fails */}
-        {filteredTickets.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-            <h3 className="font-bold text-blue-800 mb-3">
-              🚨 EMERGENCY TICKET LIST (if kanban fails)
-            </h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredTickets.slice(0, 20).map((ticket, index) => (
-                <div key={ticket.id} className="bg-white p-3 rounded border text-sm">
-                  <div className="font-medium">
-                    #{ticket.id}: {ticket.title}
-                  </div>
-                  <div className="text-gray-600">
-                    Status: {ticket.status} | Priority: {ticket.priority} | Assigned:{' '}
-                    {ticket.assigned}
-                  </div>
-                  <div className="text-gray-500">Customer: {ticket.customer}</div>
-                </div>
-              ))}
-              {filteredTickets.length > 20 && (
-                <div className="text-center text-gray-500 py-2">
-                  ... and {filteredTickets.length - 20} more tickets
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+
       </div>
     );
   };

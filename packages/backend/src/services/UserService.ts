@@ -12,7 +12,7 @@ import {
 
 export class UserService {
   /**
-   * Get all users with pagination and filtering
+   * Get all users with pagination and filtering (with tenant isolation)
    */
   static async getUsers(
     options: {
@@ -21,10 +21,17 @@ export class UserService {
       search?: string;
       role?: string;
       isActive?: boolean;
+      requestingUser?: {
+        id: string;
+        role: string;
+        organizationId?: string;
+        companyId?: string;
+        companies?: string[];
+      };
     } = {}
   ): Promise<PaginatedResponse<UserModel>> {
     try {
-      const { page = 1, limit = 25, search, role, isActive } = options;
+      const { page = 1, limit = 25, search, role, isActive, requestingUser } = options;
       const offset = (page - 1) * limit;
 
       let whereClause: any = {};
@@ -37,8 +44,29 @@ export class UserService {
         whereClause.is_active = isActive;
       }
 
-      // Build search query
+      // Build search query with tenant isolation
       let searchQuery = User.query;
+
+      // CRITICAL: Implement tenant isolation based on organization
+      if (requestingUser) {
+        if (requestingUser.organizationId) {
+          // Organization users (service providers) can only see users from their own organization
+          searchQuery = searchQuery.where('organization_id', requestingUser.organizationId);
+        } else if (requestingUser.companies?.length) {
+          // Customer users can only see users from their own companies
+          searchQuery = searchQuery.whereIn('id', function() {
+            this.select('user_id')
+              .from('user_company_associations')
+              .whereIn('company_id', requestingUser.companies!);
+          });
+        } else {
+          // If user has no organization or company associations, they can only see themselves
+          searchQuery = searchQuery.where('id', requestingUser.id);
+        }
+      } else {
+        // If no requesting user context, return empty results for security
+        searchQuery = searchQuery.where('id', 'impossible-id-that-never-exists');
+      }
 
       if (search) {
         searchQuery = searchQuery.where(function () {
@@ -94,15 +122,44 @@ export class UserService {
   }
 
   /**
-   * Get user by ID with company associations
+   * Get user by ID with company associations (with tenant isolation)
    */
   static async getUserById(
-    userId: string
+    userId: string,
+    requestingUser?: {
+      id: string;
+      role: string;
+      organizationId?: string;
+      companyId?: string;
+      companies?: string[];
+    }
   ): Promise<UserModel & { companies?: UserCompanyAssociation[] }> {
     try {
       const userWithCompanies = await User.findWithCompanies(userId);
       if (!userWithCompanies) {
         throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
+
+      // CRITICAL: Implement tenant isolation for user details
+      if (requestingUser) {
+        let hasAccess = requestingUser.id === userId; // User can see their own profile
+        
+        if (!hasAccess && requestingUser.organizationId) {
+          // Organization users can see users from their own organization
+          const targetUser = await User.findById(userId);
+          hasAccess = targetUser?.organization_id === requestingUser.organizationId;
+        }
+        
+        if (!hasAccess && requestingUser.companies?.length) {
+          // Customer users can see users from their own companies
+          hasAccess = requestingUser.companies.some(companyId => 
+            userWithCompanies.companies.some(uc => uc.companyId === companyId)
+          );
+        }
+
+        if (!hasAccess) {
+          throw new AppError('User not found', 404, 'USER_NOT_FOUND'); // Don't reveal existence
+        }
       }
 
       const userModel = User.toModel(userWithCompanies);
@@ -473,6 +530,78 @@ export class UserService {
     } catch (error) {
       logger.error('Get all companies error:', error);
       throw new AppError('Failed to get companies', 500, 'GET_COMPANIES_FAILED');
+    }
+  }
+
+  /**
+   * Create new user
+   */
+  static async createUser(
+    userData: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      password: string;
+      role: string;
+      companyId?: string;
+      teamId?: string;
+    },
+    createdById: string
+  ): Promise<UserModel> {
+    try {
+      // Check if user already exists
+      const existingUser = await User.findByEmail(userData.email);
+      if (existingUser) {
+        throw new AppError('User with this email already exists', 400, 'USER_EXISTS');
+      }
+
+      // Use the User.createUser method which handles password hashing
+      const newUser = await User.createUser({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role as 'customer' | 'employee' | 'team_lead' | 'admin',
+      });
+
+      if (!newUser) {
+        throw new AppError('Failed to create user', 500, 'CREATE_FAILED');
+      }
+
+      logger.info(`User ${newUser.id} created by ${createdById}`);
+
+      return User.toModel(newUser);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Create user error:', error);
+      throw new AppError('Failed to create user', 500, 'CREATE_USER_FAILED');
+    }
+  }
+
+  /**
+   * Delete user permanently
+   */
+  static async deleteUser(userId: string, deletedById: string): Promise<void> {
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
+
+      // Check if user has any active tickets or important associations
+      // This is a safety check - in a real system you'd want to handle this more carefully
+      
+      await User.delete(userId);
+
+      logger.info(`User ${userId} permanently deleted by ${deletedById}`);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Delete user error:', error);
+      throw new AppError('Failed to delete user', 500, 'DELETE_USER_FAILED');
     }
   }
 }

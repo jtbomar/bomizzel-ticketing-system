@@ -66,6 +66,61 @@ router.post('/:orgId/set-default', authenticate, async (req, res, next) => {
 });
 
 /**
+ * GET /api/orgs/profile
+ * Get current user's organization profile (for company profile page)
+ */
+router.get('/profile', authenticate, async (req, res, next): Promise<void> => {
+  try {
+    if (!req.user?.organizationId) {
+      res.status(404).json({
+        success: false,
+        message: 'No organization found for user',
+      });
+      return;
+    }
+
+    const org = await OrganizationService.getOrganization(req.user.organizationId);
+
+    res.json({
+      success: true,
+      data: org,
+    });
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
+});
+
+/**
+ * PUT /api/orgs/profile
+ * Update current user's organization profile
+ */
+router.put('/profile', authenticate, async (req, res, next): Promise<void> => {
+  try {
+    if (!req.user?.organizationId) {
+      res.status(404).json({
+        success: false,
+        message: 'No organization found for user',
+      });
+      return;
+    }
+
+    const updatedOrg = await OrganizationService.updateOrganization(req.user.organizationId, req.body);
+
+    res.json({
+      success: true,
+      data: updatedOrg,
+      message: 'Organization profile updated successfully',
+    });
+    return;
+  } catch (error) {
+    next(error);
+    return;
+  }
+});
+
+/**
  * GET /api/orgs/:orgId
  * Get organization details
  */

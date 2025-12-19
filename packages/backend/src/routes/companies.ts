@@ -42,7 +42,7 @@ router.post(
  * GET /companies
  * Get all companies with pagination and filtering
  */
-router.get('/', authenticate, validate(paginationSchema, 'query'), async (req, res, next) => {
+router.get('/', authenticate, async (req, res, next) => {
   try {
     const { page, limit, search } = req.query as any;
     const { isActive } = req.query as any;
@@ -52,6 +52,12 @@ router.get('/', authenticate, validate(paginationSchema, 'query'), async (req, r
       limit,
       search,
       isActive: isActive !== undefined ? isActive === 'true' : undefined,
+      requestingUser: {
+        id: req.user!.id,
+        role: req.user!.role,
+        organizationId: req.user!.organizationId,
+        companies: req.user!.companies,
+      },
     });
 
     res.json(companies);

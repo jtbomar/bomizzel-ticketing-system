@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomizzel Dashboard - Emergency Access</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+        .header { background: #1e40af; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: bold; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .card { background: white; border-radius: 8px; padding: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card h3 { color: #1f2937; margin-bottom: 1rem; }
+        .btn { background: #3b82f6; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; margin: 0.5rem 0.5rem 0.5rem 0; }
+        .btn:hover { background: #2563eb; }
+        .btn-secondary { background: #6b7280; }
+        .btn-secondary:hover { background: #4b5563; }
+        .status { padding: 1rem; border-radius: 6px; margin: 1rem 0; }
+        .status.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .status.error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .quick-actions { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 1rem 0; }
+        .stat { text-align: center; padding: 1rem; background: #f3f4f6; border-radius: 6px; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #1f2937; }
+        .stat-label { color: #6b7280; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🎫 Bomizzel</div>
+        <div class="user-info">
+            <span id="userInfo">Loading...</span>
+            <button class="btn btn-secondary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Emergency Dashboard Access</h1>
+        <div id="authStatus" class="status error">
+            🚨 Authentication system is currently experiencing issues. This is a bypass dashboard.
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Quick Actions -->
+            <div class="card">
+                <h3>🚀 Quick Actions</h3>
+                <div class="quick-actions">
+                    <a href="https://www.bomizzel.com" class="btn">Main Dashboard</a>
+                    <a href="https://www.bomizzel.com/agent" class="btn">Agent View</a>
+                    <a href="https://www.bomizzel.com/admin" class="btn">Admin Panel</a>
+                    <button class="btn btn-secondary" onclick="testAPI()">Test API</button>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="card">
+                <h3>📊 System Status</h3>
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-number" id="backendStatus">?</div>
+                        <div class="stat-label">Backend</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="dbStatus">?</div>
+                        <div class="stat-label">Database</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-number" id="authStatus">?</div>
+                        <div class="stat-label">Auth</div>
+                    </div>
+                </div>
+                <button class="btn" onclick="checkSystemStatus()">Refresh Status</button>
+            </div>
+
+            <!-- Emergency Tools -->
+            <div class="card">
+                <h3>🛠️ Emergency Tools</h3>
+                <p>Direct access tools for when the main system is down:</p>
+                <div class="quick-actions">
+                    <button class="btn" onclick="getWorkingToken()">Get Working Token</button>
+                    <button class="btn" onclick="testDirectLogin()">Test Direct Login</button>
+                    <button class="btn btn-secondary" onclick="clearStorage()">Clear Storage</button>
+                </div>
+                <div id="toolResults"></div>
+            </div>
+
+            <!-- Manual Login -->
+            <div class="card">
+                <h3>🔐 Manual Login</h3>
+                <input type="email" id="manualEmail" placeholder="Email" value="shane@bomar.com" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #d1d5db; border-radius: 4px;">
+                <input type="password" id="manualPassword" placeholder="Password" value="Welcome123!" style="width: 100%; padding: 0.5rem; margin: 0.5rem 0; border: 1px solid #d1d5db; border-radius: 4px;">
+                <button class="btn" onclick="manualLogin()">Emergency Login</button>
+                <div id="loginResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserInfo();
+            checkSystemStatus();
+        });
+
+        function loadUserInfo() {
+            const user = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            if (user && token) {
+                try {
+                    const userData = JSON.parse(user);
+                    document.getElementById('userInfo').textContent = `${userData.firstName} ${userData.lastName} (${userData.role})`;
+                    document.getElementById('authStatus').className = 'status success';
+                    document.getElementById('authStatus').innerHTML = '✅ You have a valid token stored. Try accessing the main dashboard.';
+                } catch (e) {
+                    document.getElementById('userInfo').textContent = 'Invalid user data';
+                }
+            } else {
+                document.getElementById('userInfo').textContent = 'Not logged in';
+            }
+        }
+
+        async function checkSystemStatus() {
+            // Check backend
+            try {
+                const response = await fetch('https://backend-production-97e1.up.railway.app/api/health');
+                document.getElementById('backendStatus').textContent = response.ok ? '✅' : '❌';
+            } catch (e) {
+                document.getElementById('backendStatus').textContent = '❌';
+            }
+
+            // Check database (via emergency endpoint)
+            try {
+                const response = await fetch('https://backend-production-97e1.up.railway.app/api/health?emergency_reseed=login&email=test%40test.com&password=test');
+                document.getElementById('dbStatus').textContent = response.status === 401 ? '✅' : '❌';
+            } catch (e) {
+                document.getElementById('dbStatus').textContent = '❌';
+            }
+
+            // Check auth
+            const token = localStorage.getItem('token');
+            if (token) {
+                try {
+                    const response = await fetch('https://backend-production-97e1.up.railway.app/api/auth/verify', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    document.getElementById('authStatus').textContent = response.ok ? '✅' : '❌';
+                } catch (e) {
+                    document.getElementById('authStatus').textContent = '❌';
+                }
+            } else {
+                document.getElementById('authStatus').textContent = '❌';
+            }
+        }
+
+        async function manualLogin() {
+            const email = document.getElementById('manualEmail').value;
+            const password = document.getElementById('manualPassword').value;
+            const resultsDiv = document.getElementById('loginResults');
+            
+            resultsDiv.innerHTML = '<div class="status">🔄 Attempting login...</div>';
+            
+            try {
+                const encodedEmail = encodeURIComponent(email);
+                const encodedPassword = encodeURIComponent(password);
+                const url = `https://backend-production-97e1.up.railway.app/api/health?emergency_reseed=login&email=${encodedEmail}&password=${encodedPassword}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.message === 'Login successful' && data.token) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('refreshToken', data.refreshToken || data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Login successful! Token saved.<br>
+                            <a href="https://www.bomizzel.com" class="btn" style="margin-top: 1rem;">Go to Main Dashboard</a>
+                        </div>
+                    `;
+                    loadUserInfo();
+                } else {
+                    resultsDiv.innerHTML = `<div class="status error">❌ Login failed: ${data.message || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="status error">❌ Connection error: ${error.message}</div>`;
+            }
+        }
+
+        async function getWorkingToken() {
+            const resultsDiv = document.getElementById('toolResults');
+            resultsDiv.innerHTML = '<div class="status">🔄 Getting token...</div>';
+            
+            try {
+                const response = await fetch('https://backend-production-97e1.up.railway.app/api/health?emergency_reseed=login&email=shane%40bomar.com&password=Welcome123!');
+                const data = await response.json();
+                
+                if (data.token) {
+                    resultsDiv.innerHTML = `
+                        <div class="status success">
+                            ✅ Token retrieved!<br>
+                            <textarea readonly style="width: 100%; height: 100px; margin: 1rem 0; font-family: monospace; font-size: 12px;">${data.token}</textarea>
+                            <button class="btn" onclick="navigator.clipboard.writeText('${data.token}')">Copy Token</button>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div class="status error">❌ Failed to get token</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="status error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function testAPI() {
+            window.open('https://backend-production-97e1.up.railway.app/api/health', '_blank');
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            alert('Storage cleared! Refresh the page.');
+            location.reload();
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'https://www.bomizzel.com/login';
+        }
+    </script>
+</body>
+</html>

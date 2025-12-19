@@ -102,12 +102,23 @@ const Departments: React.FC = () => {
       // Create company lookup map
       const companyMap = new Map(companiesList.map((c: any) => [c.id, c.name]));
 
-      // Add default agents and templates arrays if missing, plus company name
+      // For organization users, get organization name instead of company name
+      let organizationName = 'Unknown Organization';
+      try {
+        const orgProfile = await apiService.getCompanyProfile(); // This now calls /orgs/profile
+        organizationName = orgProfile.data?.name || 'Unknown Organization';
+      } catch (error) {
+        // Could not fetch organization profile, use fallback
+      }
+
+      // Add default agents and templates arrays if missing, plus organization/company name
       const dataWithDefaults = departmentsData.map((dept: any) => ({
         ...dept,
         agents: dept.agents || [],
         templates: dept.templates || [],
-        company_name: companyMap.get(dept.company_id) || 'Unknown Company',
+        company_name: dept.organization_id 
+          ? organizationName  // Use organization name for org-based departments
+          : (companyMap.get(dept.company_id) || 'Unknown Company'), // Use company name for company-based departments
       }));
 
       setDepartments(dataWithDefaults);

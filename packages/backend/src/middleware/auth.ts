@@ -13,6 +13,9 @@ declare global {
         email: string;
         role: string;
         isActive: boolean;
+        organizationId?: string;
+        companyId?: string;
+        companies?: string[];
       };
     }
   }
@@ -50,12 +53,20 @@ export const authenticate = async (
       throw new AppError('Account is deactivated', 401, 'ACCOUNT_DEACTIVATED');
     }
 
-    // Attach user info to request
+    // Get user's organization for tenant isolation
+    const organizationId = user.organization_id;
+    const userCompanies = await User.getUserCompanies(user.id);
+    const companyIds = userCompanies.map(uc => uc.companyId);
+
+    // Attach user info to request with organization and company context
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
       isActive: user.is_active,
+      organizationId: organizationId, // Organization for service provider employees
+      companyId: companyIds[0], // Primary company for customers
+      companies: companyIds, // All associated companies for customers
     };
 
     next();

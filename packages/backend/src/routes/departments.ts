@@ -6,14 +6,19 @@ import { AppError } from '../middleware/errorHandler';
 
 const router = express.Router();
 
-// Get all departments for the user's company
+// Get all departments for the user's organization/company
 router.get('/', authenticate, async (req, res) => {
   try {
     const userRole = req.user!.role;
+    const organizationId = req.user!.organizationId;
 
-    // For admin/agent/team_lead, get all departments across all companies
-    if (['admin', 'employee', 'team_lead'].includes(userRole)) {
-      const departments = await db('departments').select('*').orderBy('name');
+    // CRITICAL: Implement tenant isolation for departments
+    if (organizationId) {
+      // Organization users (like Bomar Corp) see only their organization's departments
+      const departments = await db('departments')
+        .where('organization_id', organizationId)
+        .select('*')
+        .orderBy('name');
       return res.json(departments);
     }
 
@@ -188,33 +193,69 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user!.organizationId;
 
-    // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    // CRITICAL: Handle organization users vs company users
+    if (organizationId) {
+      // Organization user - verify department belongs to their organization
+      const department = await db('departments')
+        .where('id', parseInt(id))
+        .where('organization_id', organizationId)
+        .first();
 
-    if (!userCompany) {
-      return res.status(400).json({ error: 'User not associated with any company' });
+      if (!department) {
+        return res.status(404).json({ error: 'Department not found or access denied' });
+      }
+
+      const { name, description, logo, color, is_active, is_default } = req.body;
+
+      // Update department directly for organization users
+      await db('departments')
+        .where('id', parseInt(id))
+        .where('organization_id', organizationId)
+        .update({
+          name,
+          description,
+          logo,
+          color,
+          is_active,
+          is_default,
+          updated_at: db.fn.now(),
+        });
+
+      const updatedDepartment = await db('departments')
+        .where('id', parseInt(id))
+        .first();
+
+      return res.json(updatedDepartment);
+    } else {
+      // Company user - use existing logic
+      const userCompany = await db('user_company_associations')
+        .where('user_id', req.user!.id)
+        .first();
+
+      if (!userCompany) {
+        return res.status(400).json({ error: 'User not associated with any company' });
+      }
+
+      const companyId = userCompany.company_id;
+      const { name, description, logo, color, is_active, is_default } = req.body;
+
+      const department = await DepartmentService.updateDepartment(parseInt(id), companyId, {
+        name,
+        description,
+        logo,
+        color,
+        is_active,
+        is_default,
+      });
+
+      if (!department) {
+        return res.status(404).json({ error: 'Department not found' });
+      }
+
+      return res.json(department);
     }
-
-    const companyId = userCompany.company_id;
-    const { name, description, logo, color, is_active, is_default } = req.body;
-
-    const department = await DepartmentService.updateDepartment(parseInt(id), companyId, {
-      name,
-      description,
-      logo,
-      color,
-      is_active,
-      is_default,
-    });
-
-    if (!department) {
-      return res.status(404).json({ error: 'Department not found' });
-    }
-
-    return res.json(department);
   } catch (error: any) {
     console.error('Error updating department:', error);
     if (error.code === 'DEPARTMENT_NAME_EXISTS') {
@@ -260,17 +301,7 @@ router.post('/:id/agents', authenticate, authorize('admin'), async (req, res) =>
   try {
     const { id } = req.params;
     const { user_id, role = 'member' } = req.body;
-
-    // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
-
-    if (!userCompany) {
-      return res.status(400).json({ error: 'User not associated with any company' });
-    }
-
-    const companyId = userCompany.company_id;
+    const organizationId = req.user!.organizationId;
 
     if (!user_id) {
       return res.status(400).json({ error: 'User ID is required' });
@@ -280,9 +311,53 @@ router.post('/:id/agents', authenticate, authorize('admin'), async (req, res) =>
       return res.status(400).json({ error: 'Invalid role. Must be member, lead, or manager' });
     }
 
-    await DepartmentService.addAgent(parseInt(id), companyId, user_id, role);
+    // CRITICAL: Handle organization users vs company users
+    if (organizationId) {
+      // Organization user - verify department belongs to their organization
+      const department = await db('departments')
+        .where('id', parseInt(id))
+        .where('organization_id', organizationId)
+        .first();
 
-    return res.json({ message: 'Agent added to department successfully' });
+      if (!department) {
+        return res.status(404).json({ error: 'Department not found or access denied' });
+      }
+
+      // Verify the user being added belongs to the same organization
+      const targetUser = await db('users')
+        .where('id', user_id)
+        .where('organization_id', organizationId)
+        .first();
+
+      if (!targetUser) {
+        return res.status(404).json({ error: 'User not found in your organization' });
+      }
+
+      // Add agent to department (for organization, we can add directly to department_agents table)
+      await db('department_agents').insert({
+        department_id: parseInt(id),
+        user_id: user_id,
+        role: role,
+        created_at: db.fn.now(),
+        updated_at: db.fn.now(),
+      }).onConflict(['department_id', 'user_id']).merge();
+
+      return res.json({ message: 'Agent added to department successfully' });
+    } else {
+      // Company user - use existing logic
+      const userCompany = await db('user_company_associations')
+        .where('user_id', req.user!.id)
+        .first();
+
+      if (!userCompany) {
+        return res.status(400).json({ error: 'User not associated with any company' });
+      }
+
+      const companyId = userCompany.company_id;
+      await DepartmentService.addAgent(parseInt(id), companyId, user_id, role);
+
+      return res.json({ message: 'Agent added to department successfully' });
+    }
   } catch (error: any) {
     console.error('Error adding agent to department:', error);
     if (error.code === 'DEPARTMENT_NOT_FOUND') {
