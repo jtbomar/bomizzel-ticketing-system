@@ -784,72 +784,52 @@ app.get('/api/test', (_req: Request, res: Response) => {
   res.json({ message: 'Test endpoint working' });
 });
 
-// Mock user data (from database seeds)
-const users = [
-  {
-    id: '1d005c4e-9c40-4a34-ae93-4272069e334e', // Real database ID
-    email: 'jeffrey.t.bomar@gmail.com',
-    password: 'BomizzelAdmin2024!',
-    firstName: 'Jeff',
-    lastName: 'Bomar',
-    role: 'admin',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440001',
-    email: 'admin@bomizzel.com',
-    password: 'password123', // In real app, this would be hashed
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'admin',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440002',
-    email: 'john.doe@customer.com',
-    password: 'password123',
-    firstName: 'John',
-    lastName: 'Doe',
-    role: 'customer',
-  },
-  {
-    id: '550e8400-e29b-41d4-a716-446655440003',
-    email: 'jane.smith@bomizzel.com',
-    password: 'password123',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    role: 'user',
-  },
-];
-
-// Login endpoint
+// Database-backed login endpoint (fallback when full routes fail to load)
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
-    const user = users.find((u) => u.email === email);
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    console.log('🔐 Fallback login attempt for:', email);
+
+    const { db } = require('./config/database');
+    const bcrypt = require('bcryptjs');
+
+    // Find user in database
+    const user = await db('users').where('email', email.toLowerCase()).first();
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Check password (in real app, compare with hashed password)
-    if (password !== user.password) {
+    if (!user.is_active) {
+      return res.status(401).json({ error: 'Account is deactivated' });
+    }
+
+    // Verify password against hash
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token with proper format (including type: 'access')
+    // Generate JWT token
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role, type: 'access' },
       process.env.JWT_SECRET || 'your-super-secret-jwt-key',
       { expiresIn: '24h' }
     );
 
+    console.log('✅ Fallback login successful for:', email);
+
     return res.json({
       token,
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
       },
     });
@@ -859,8 +839,8 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
   }
 });
 
-// Get current user endpoint
-app.get('/api/auth/me', (req: Request, res: Response) => {
+// Database-backed /auth/me endpoint (fallback)
+app.get('/api/auth/me', async (req: Request, res: Response) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'No token provided' });
@@ -869,7 +849,9 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
   const token = authHeader.substring(7);
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
-    const user = users.find((u) => u.id === decoded.userId);
+
+    const { db } = require('./config/database');
+    const user = await db('users').where('id', decoded.userId).first();
 
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
@@ -878,8 +860,8 @@ app.get('/api/auth/me', (req: Request, res: Response) => {
     return res.json({
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.first_name,
+      lastName: user.last_name,
       role: user.role,
     });
   } catch (error) {
