@@ -47,17 +47,23 @@ module.exports = {
 
   production: {
     client: 'postgresql',
-    connection: process.env.DATABASE_URL || {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    },
+    connection: process.env.DATABASE_URL
+      ? {
+          connectionString: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false },
+        }
+      : {
+          host: process.env.DB_HOST,
+          port: process.env.DB_PORT,
+          database: process.env.DB_NAME,
+          user: process.env.DB_USER,
+          password: process.env.DB_PASSWORD,
+        },
     pool: {
-      min: 2,
+      min: 0,
       max: 20,
     },
+    acquireConnectionTimeout: 30000,
     migrations: {
       directory: './database/migrations',
       tableName: 'knex_migrations',
