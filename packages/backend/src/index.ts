@@ -9,7 +9,7 @@ import path from 'path';
 // Load environment variables first
 dotenv.config();
 
-// Run migrations before starting server
+// Run migrations before starting server (with timeout to prevent blocking)
 console.log('🔄 Running database migrations...');
 try {
   const env = process.env.NODE_ENV || (process.env.DATABASE_URL ? 'production' : 'development');
@@ -30,6 +30,7 @@ try {
     execSync('node scripts/cleanup-migrations.js', {
       stdio: 'inherit',
       cwd: workingDir,
+      timeout: 15000,
     });
   } catch (cleanupError) {
     console.log('⚠️  Cleanup script failed (may not be needed)');
@@ -41,12 +42,12 @@ try {
   execSync(migrateCommand, {
     stdio: 'inherit',
     cwd: workingDir,
+    timeout: 30000,
   });
 
   console.log('✅ Migrations completed');
 } catch (error: any) {
   console.error('❌ Migration failed:', error.message);
-  console.error('Error details:', error);
   // Don't exit - let the server start anyway
 }
 
