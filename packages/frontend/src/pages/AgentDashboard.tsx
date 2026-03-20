@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -1338,26 +1338,36 @@ const AgentDashboard: React.FC = () => {
     }
   };
 
-  // Enhanced drag and drop with within-column reordering - memoized to prevent re-renders
-  const handleDragStart = useCallback((e: React.DragEvent, ticket: Ticket) => {
-    setDraggedTicket(ticket);
-    e.dataTransfer.effectAllowed = 'move';
+  // Use refs for drag state to avoid stale closures in event handlers
+  const draggedTicketRef = useRef<Ticket | null>(null);
+  const dragOverPositionRef = useRef<'above' | 'below' | null>(null);
 
-    // Create a custom drag image for better UX
-    const dragElement = e.currentTarget.cloneNode(true) as HTMLElement;
-    dragElement.style.transform = 'rotate(5deg)';
-    dragElement.style.opacity = '0.8';
-    dragElement.style.width = e.currentTarget.getBoundingClientRect().width + 'px';
-    document.body.appendChild(dragElement);
-    e.dataTransfer.setDragImage(dragElement, 0, 0);
-
-    // Clean up the drag image after a short delay
-    setTimeout(() => {
-      if (document.body.contains(dragElement)) {
-        document.body.removeChild(dragElement);
-      }
-    }, 0);
+  const clearDragState = useCallback(() => {
+    draggedTicketRef.current = null;
+    dragOverPositionRef.current = null;
+    setDraggedTicket(null);
+    setDragOverTicket(null);
+    setDragOverPosition(null);
   }, []);
+
+  // Enhanced drag and drop handlers using refs for reliable state access
+  const handleDragStart = useCallback((e: React.DragEvent, ticket: Ticket) => {
+    draggedTicketRef.current = ticket;
+    setDraggedTicket(ticket);
+
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(ticket.id));
+
+    // Use the current element as drag image (no custom clone that gets removed)
+    if (e.currentTarget instanceof HTMLElement) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      e.dataTransfer.setDragImage(e.currentTarget, rect.width / 2, 20);
+    }
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    clearDragState();
+  }, [clearDragState]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -1369,28 +1379,29 @@ const AgentDashboard: React.FC = () => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (!draggedTicket || draggedTicket.id === ticket.id) return;
+      const dragged = draggedTicketRef.current;
+      if (!dragged || dragged.id === ticket.id) return;
 
       const rect = e.currentTarget.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
       const position = e.clientY < midY ? 'above' : 'below';
 
+      dragOverPositionRef.current = position;
       setDragOverTicket(ticket.id);
       setDragOverPosition(position);
     },
-    [draggedTicket]
+    []
   );
 
   const handleTicketDragLeave = useCallback((e: React.DragEvent) => {
-    // Only clear if we're leaving the ticket entirely
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX;
-    const y = e.clientY;
-
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
-      setDragOverTicket(null);
-      setDragOverPosition(null);
+    // Use relatedTarget to check if we're moving to a child element (don't clear)
+    const related = e.relatedTarget as Node | null;
+    if (related && e.currentTarget.contains(related)) {
+      return;
     }
+    setDragOverTicket(null);
+    setDragOverPosition(null);
+    dragOverPositionRef.current = null;
   }, []);
 
   const handleTicketDrop = useCallback(
@@ -1398,49 +1409,45 @@ const AgentDashboard: React.FC = () => {
       e.preventDefault();
       e.stopPropagation();
 
-      if (!draggedTicket || draggedTicket.id === targetTicket.id) {
-        setDraggedTicket(null);
-        setDragOverTicket(null);
-        setDragOverPosition(null);
+      const dragged = draggedTicketRef.current;
+      const position = dragOverPositionRef.current;
+
+      if (!dragged || dragged.id === targetTicket.id) {
+        clearDragState();
         return;
       }
 
-      const sourceStatus = draggedTicket.status;
+      const sourceStatus = dragged.status;
       const targetStatus = targetTicket.status;
 
       if (sourceStatus === targetStatus) {
-        // Reordering within the same column
-        reorderTicketsInColumn(draggedTicket.id, targetTicket.id, dragOverPosition || 'below');
+        reorderTicketsInColumn(dragged.id, targetTicket.id, position || 'below');
       } else {
-        // Moving to different column
         moveTicketToPosition(
-          draggedTicket.id,
+          dragged.id,
           targetStatus,
           targetTicket.id,
-          dragOverPosition || 'below'
+          position || 'below'
         );
       }
 
-      setDraggedTicket(null);
-      setDragOverTicket(null);
-      setDragOverPosition(null);
+      clearDragState();
     },
-    [draggedTicket, dragOverPosition, tickets]
+    [clearDragState, reorderTicketsInColumn, moveTicketToPosition]
   );
 
   const handleColumnDrop = useCallback(
     (e: React.DragEvent, newStatus: string) => {
       e.preventDefault();
 
-      if (draggedTicket && draggedTicket.status !== newStatus) {
-        moveTicket(draggedTicket.id, newStatus);
+      const dragged = draggedTicketRef.current;
+      if (dragged && dragged.status !== newStatus) {
+        moveTicket(dragged.id, newStatus);
       }
 
-      setDraggedTicket(null);
-      setDragOverTicket(null);
-      setDragOverPosition(null);
+      clearDragState();
     },
-    [draggedTicket]
+    [clearDragState, moveTicket]
   );
 
   const reorderTicketsInColumn = useCallback(
@@ -1675,6 +1682,7 @@ const AgentDashboard: React.FC = () => {
                         onDragStart={
                           boardSettings.dragAndDrop ? (e) => handleDragStart(e, ticket) : undefined
                         }
+                        onDragEnd={boardSettings.dragAndDrop ? handleDragEnd : undefined}
                         onDragOver={
                           boardSettings.dragAndDrop
                             ? (e) => handleTicketDragOver(e, ticket)
@@ -1684,11 +1692,11 @@ const AgentDashboard: React.FC = () => {
                         onDrop={
                           boardSettings.dragAndDrop ? (e) => handleTicketDrop(e, ticket) : undefined
                         }
-                        className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-move hover:shadow-md transition-all duration-200 ${getStatusColor(
+                        className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 ${getStatusColor(
                           ticket.status
-                        )} ${draggedTicket?.id === ticket.id ? 'opacity-50 rotate-2 scale-105' : ''} ${
+                        )} ${draggedTicket?.id === ticket.id ? 'opacity-50 scale-95' : ''} ${
                           dragOverTicket === ticket.id
-                            ? 'ring-2 ring-blue-300 dark:ring-blue-500 ring-opacity-50'
+                            ? 'ring-2 ring-blue-400 dark:ring-blue-500'
                             : ''
                         }`}
                         onClick={() => setSelectedTicket(ticket)}
