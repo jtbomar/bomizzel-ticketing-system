@@ -1342,6 +1342,76 @@ const AgentDashboard: React.FC = () => {
   const draggedTicketRef = useRef<Ticket | null>(null);
   const dragOverPositionRef = useRef<'above' | 'below' | null>(null);
 
+  const reorderTicketsInColumn = useCallback(
+    (draggedId: number, targetId: number, position: 'above' | 'below') => {
+      const draggedTicket = tickets.find((t) => t.id === draggedId);
+      const targetTicket = tickets.find((t) => t.id === targetId);
+
+      if (!draggedTicket || !targetTicket || draggedTicket.status !== targetTicket.status) return;
+
+      const statusTickets = getStatusTickets(draggedTicket.status);
+      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
+
+      let newOrder: number;
+
+      if (position === 'above') {
+        if (targetIndex === 0) {
+          newOrder = Math.max(1, targetTicket.order - 1);
+        } else {
+          const prevTicket = statusTickets[targetIndex - 1];
+          newOrder = (prevTicket.order + targetTicket.order) / 2;
+        }
+      } else {
+        if (targetIndex === statusTickets.length - 1) {
+          newOrder = targetTicket.order + 1;
+        } else {
+          const nextTicket = statusTickets[targetIndex + 1];
+          newOrder = (targetTicket.order + nextTicket.order) / 2;
+        }
+      }
+
+      setTickets((prev) =>
+        prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
+      );
+    },
+    [tickets, getStatusTickets]
+  );
+
+  const moveTicketToPosition = useCallback(
+    (draggedId: number, newStatus: string, targetId: number, position: 'above' | 'below') => {
+      const targetTicket = tickets.find((t) => t.id === targetId);
+      if (!targetTicket) return;
+
+      const statusTickets = getStatusTickets(newStatus);
+      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
+
+      let newOrder: number;
+
+      if (position === 'above') {
+        if (targetIndex === 0) {
+          newOrder = Math.max(1, targetTicket.order - 1);
+        } else {
+          const prevTicket = statusTickets[targetIndex - 1];
+          newOrder = (prevTicket.order + targetTicket.order) / 2;
+        }
+      } else {
+        if (targetIndex === statusTickets.length - 1) {
+          newOrder = targetTicket.order + 1;
+        } else {
+          const nextTicket = statusTickets[targetIndex + 1];
+          newOrder = (targetTicket.order + nextTicket.order) / 2;
+        }
+      }
+
+      setTickets((prev) =>
+        prev.map((ticket) =>
+          ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
+        )
+      );
+    },
+    [tickets, getStatusTickets]
+  );
+
   const clearDragState = useCallback(() => {
     draggedTicketRef.current = null;
     dragOverPositionRef.current = null;
@@ -1448,76 +1518,6 @@ const AgentDashboard: React.FC = () => {
       clearDragState();
     },
     [clearDragState, moveTicket]
-  );
-
-  const reorderTicketsInColumn = useCallback(
-    (draggedId: number, targetId: number, position: 'above' | 'below') => {
-      const draggedTicket = tickets.find((t) => t.id === draggedId);
-      const targetTicket = tickets.find((t) => t.id === targetId);
-
-      if (!draggedTicket || !targetTicket || draggedTicket.status !== targetTicket.status) return;
-
-      const statusTickets = getStatusTickets(draggedTicket.status);
-      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-      let newOrder: number;
-
-      if (position === 'above') {
-        if (targetIndex === 0) {
-          newOrder = Math.max(1, targetTicket.order - 1);
-        } else {
-          const prevTicket = statusTickets[targetIndex - 1];
-          newOrder = (prevTicket.order + targetTicket.order) / 2;
-        }
-      } else {
-        if (targetIndex === statusTickets.length - 1) {
-          newOrder = targetTicket.order + 1;
-        } else {
-          const nextTicket = statusTickets[targetIndex + 1];
-          newOrder = (targetTicket.order + nextTicket.order) / 2;
-        }
-      }
-
-      setTickets((prev) =>
-        prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
-      );
-    },
-    [tickets, getStatusTickets]
-  );
-
-  const moveTicketToPosition = useCallback(
-    (draggedId: number, newStatus: string, targetId: number, position: 'above' | 'below') => {
-      const targetTicket = tickets.find((t) => t.id === targetId);
-      if (!targetTicket) return;
-
-      const statusTickets = getStatusTickets(newStatus);
-      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-      let newOrder: number;
-
-      if (position === 'above') {
-        if (targetIndex === 0) {
-          newOrder = Math.max(1, targetTicket.order - 1);
-        } else {
-          const prevTicket = statusTickets[targetIndex - 1];
-          newOrder = (prevTicket.order + targetTicket.order) / 2;
-        }
-      } else {
-        if (targetIndex === statusTickets.length - 1) {
-          newOrder = targetTicket.order + 1;
-        } else {
-          const nextTicket = statusTickets[targetIndex + 1];
-          newOrder = (targetTicket.order + nextTicket.order) / 2;
-        }
-      }
-
-      setTickets((prev) =>
-        prev.map((ticket) =>
-          ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
-        )
-      );
-    },
-    [tickets, getStatusTickets]
   );
 
   const renderKanbanBoard = () => {
