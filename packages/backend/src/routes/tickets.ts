@@ -470,4 +470,30 @@ router.post('/delete-all', authenticate, async (req, res, next) => {
   }
 });
 
+/**
+ * DELETE /tickets/:ticketId
+ * Delete a single ticket (admin and employee)
+ */
+router.delete('/:ticketId', authenticate, async (req, res, next) => {
+  try {
+    const { ticketId } = req.params;
+    const db = require('../config/database').default;
+
+    const ticket = await db('tickets').where('id', ticketId).first();
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+
+    // Delete related records first
+    await db('ticket_notes').where('ticket_id', ticketId).del();
+    await db('ticket_history').where('ticket_id', ticketId).del();
+    await db('file_attachments').where('ticket_id', ticketId).del();
+    await db('tickets').where('id', ticketId).del();
+
+    return res.json({ success: true, message: 'Ticket deleted successfully' });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 export default router;

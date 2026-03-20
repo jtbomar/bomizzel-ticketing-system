@@ -528,6 +528,11 @@ class ApiService {
     return response.data;
   }
 
+  async deleteTicket(ticketId: string): Promise<any> {
+    const response = await this.client.delete(`/tickets/${ticketId}`);
+    return response.data;
+  }
+
   async validateTicketAccess(ticketIds: string[]): Promise<any> {
     const response = await this.client.post('/bulk/validate-access', { ticketIds });
     return response.data;

@@ -2204,23 +2204,44 @@ const AgentDashboard: React.FC = () => {
                   {selectedTicket.customer} • {selectedTicket.assigned} • {selectedTicket.created}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  setSelectedTicket(null);
-                  setActiveModalTab('details');
-                  setNewNoteContent('');
-                }}
-                className="ml-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={async () => {
+                    if (!confirm('Are you sure you want to delete this ticket? This cannot be undone.')) return;
+                    try {
+                      const uuidId = ticketIdMap.get(selectedTicket.id);
+                      if (uuidId) {
+                        await apiService.deleteTicket(uuidId);
+                      }
+                      setTickets((prev) => prev.filter((t) => t.id !== selectedTicket.id));
+                      setSelectedTicket(null);
+                      setActiveModalTab('details');
+                      setNewNoteContent('');
+                    } catch (err: any) {
+                      console.error('Failed to delete ticket:', err);
+                      alert('Failed to delete ticket: ' + (err?.response?.data?.message || err.message));
+                    }
+                  }}
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Delete ticket"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedTicket(null);
+                    setActiveModalTab('details');
+                    setNewNoteContent('');
+                  }}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -3399,7 +3420,29 @@ const AgentDashboard: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="px-8 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex justify-end space-x-3">
+          <div className="px-8 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex justify-between">
+            <button
+              onClick={async () => {
+                if (!selectedTicket) return;
+                if (!confirm('Are you sure you want to delete this ticket? This cannot be undone.')) return;
+                try {
+                  const uuidId = ticketIdMap.get(selectedTicket.id);
+                  if (uuidId) {
+                    await apiService.deleteTicket(uuidId);
+                  }
+                  setTickets((prev) => prev.filter((t) => t.id !== selectedTicket.id));
+                  setSelectedTicket(null);
+                  setActiveModalTab('details');
+                  setNewNoteContent('');
+                } catch (err: any) {
+                  console.error('Failed to delete ticket:', err);
+                  alert('Failed to delete ticket: ' + (err?.response?.data?.message || err.message));
+                }
+              }}
+              className="px-6 py-2.5 text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
+            >
+              Delete Ticket
+            </button>
             <button
               onClick={() => {
                 setSelectedTicket(null);
