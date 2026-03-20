@@ -122,7 +122,7 @@ router.get(
   authorize('admin'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const user = await UserService.getUserById(userId, {
         id: req.user!.id,
         role: req.user!.role,
@@ -172,7 +172,7 @@ router.put(
   validate(updateUserSchema),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const updatedUser = await UserService.updateUser(userId, req.body, req.user!.id);
 
       res.json({
@@ -196,7 +196,7 @@ router.put(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const { role } = req.body;
 
       const updatedUser = await UserService.updateUser(userId, { role }, req.user!.id);
@@ -222,7 +222,7 @@ router.put(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const { isActive } = req.body;
 
       if (userId === req.user!.id && !isActive) {
@@ -252,7 +252,7 @@ router.get(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       // This would need to be implemented in UserService or TicketService
       // For now, return empty array
       res.json({ tickets: [] });
@@ -273,7 +273,7 @@ router.delete(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
 
       if (userId === req.user!.id) {
         throw new AppError('Cannot delete your own account', 400, 'CANNOT_DELETE_SELF');

@@ -110,7 +110,7 @@ router.get(
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const user = await UserService.getUserById(userId, {
         id: req.user!.id,
         role: req.user!.role,
@@ -137,7 +137,7 @@ router.put(
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
 
       // Only admins can change role and isActive status
       if ((req.body.role || req.body.isActive !== undefined) && req.user!.role !== 'admin') {
@@ -171,7 +171,7 @@ router.post(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
 
       if (userId === req.user!.id) {
         throw new AppError('Cannot deactivate your own account', 400, 'CANNOT_DEACTIVATE_SELF');
@@ -199,7 +199,7 @@ router.post(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       await UserService.reactivateUser(userId, req.user!.id);
 
       res.json({
@@ -222,7 +222,7 @@ router.get(
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const companies = await UserService.getUserCompanies(userId);
       res.json({ companies });
     } catch (error) {
@@ -242,7 +242,7 @@ router.get(
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const teams = await UserService.getUserTeams(userId);
       res.json({ teams });
     } catch (error) {
@@ -262,7 +262,7 @@ router.put(
   authorizeOwnerOrAdmin('userId'),
   async (req, res, next) => {
     try {
-      const { userId } = req.params;
+      const userId = req.params.userId as string;
       const updatedUser = await UserService.updateUserPreferences(userId, req.body);
 
       res.json({
