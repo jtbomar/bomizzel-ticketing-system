@@ -9,47 +9,9 @@ import path from 'path';
 // Load environment variables first
 dotenv.config();
 
-// Run migrations before starting server (with timeout to prevent blocking)
-console.log('🔄 Running database migrations...');
-try {
-  const env = process.env.NODE_ENV || (process.env.DATABASE_URL ? 'production' : 'development');
-  console.log(`🎯 Environment: ${env}`);
-
-  // Determine the correct working directory
-  // In production (Railway), __dirname will be /app/dist, so we need to go up to /app
-  const workingDir = __dirname.includes('dist')
-    ? path.resolve(__dirname, '..')
-    : path.resolve(__dirname, '..');
-
-  console.log(`📂 Working directory: ${workingDir}`);
-  console.log(`📍 Current __dirname: ${__dirname}`);
-
-  // First, clean up old migration records
-  console.log('🧹 Cleaning up old migration records...');
-  try {
-    execSync('node scripts/cleanup-migrations.js', {
-      stdio: 'inherit',
-      cwd: workingDir,
-      timeout: 15000,
-    });
-  } catch (cleanupError) {
-    console.log('⚠️  Cleanup script failed (may not be needed)');
-  }
-
-  const migrateCommand = `npx knex migrate:latest --knexfile knexfile.js --env ${env}`;
-  console.log(`⚙️  Command: ${migrateCommand}`);
-
-  execSync(migrateCommand, {
-    stdio: 'inherit',
-    cwd: workingDir,
-    timeout: 30000,
-  });
-
-  console.log('✅ Migrations completed');
-} catch (error: any) {
-  console.error('❌ Migration failed:', error.message);
-  // Don't exit - let the server start anyway
-}
+// Migrations are handled by Dockerfile startup script
+// Skip running them again in the application code
+console.log('🚀 Starting Bomizzel backend...');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
