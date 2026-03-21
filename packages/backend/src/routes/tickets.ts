@@ -12,6 +12,7 @@ import {
   enforceAndTrackTicketCompletion,
   addUsageWarnings,
 } from '@/middleware/subscriptionEnforcement';
+import { db } from '@/config/database';
 
 const router = Router();
 
@@ -457,7 +458,6 @@ router.post('/delete-all', authenticate, async (req, res, next) => {
       });
     }
 
-    const db = require('../config/database').db;
     const deleted = await db('tickets').del();
 
     return res.json({
@@ -477,7 +477,6 @@ router.post('/delete-all', authenticate, async (req, res, next) => {
 router.delete('/:ticketId', authenticate, async (req, res, next) => {
   try {
     const { ticketId } = req.params;
-    const db = require('../config/database').db;
 
     const ticket = await db('tickets').where('id', ticketId).first();
     if (!ticket) {
