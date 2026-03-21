@@ -1,8 +1,11 @@
 import knex from 'knex';
 
 const knexConfig = require('../../knexfile.js');
-const environment = process.env['NODE_ENV'] || 'development';
+// Use production config if DATABASE_URL is set (Railway), regardless of NODE_ENV
+const environment = process.env.DATABASE_URL ? 'production' : (process.env['NODE_ENV'] || 'development');
 const config = knexConfig[environment];
+
+console.log(`📦 Database environment: ${environment}`);
 
 export const db = knex(config);
 
