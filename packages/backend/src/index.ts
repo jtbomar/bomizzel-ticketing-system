@@ -466,8 +466,8 @@ app.get('/db-test', async (_req: Request, res: Response) => {
     const knexConfig = require('../knexfile.js');
     const env = process.env.DATABASE_URL ? 'production' : (process.env.NODE_ENV || 'development');
     results.knexEnv = env;
-    results.knexHasSSL = !!(knexConfig[env]?.connection?.ssl);
-    results.knexConnectionType = typeof knexConfig[env]?.connection === 'string' ? 'string' : 'object';
+    results.knexConnectionIsString = typeof knexConfig[env]?.connection === 'string';
+    results.knexConnectionKeys = typeof knexConfig[env]?.connection === 'object' ? Object.keys(knexConfig[env].connection) : 'N/A (string URL)';
 
     const knex = require('knex');
     const testDb = knex(knexConfig[env]);
