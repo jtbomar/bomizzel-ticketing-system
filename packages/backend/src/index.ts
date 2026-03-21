@@ -453,6 +453,39 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
+// Database diagnostic endpoint
+app.get('/db-test', async (_req: Request, res: Response) => {
+  const results: any = {
+    timestamp: new Date().toISOString(),
+    NODE_ENV: process.env.NODE_ENV || 'not set',
+    DATABASE_URL: process.env.DATABASE_URL ? 'SET (hidden)' : 'NOT SET',
+    REDIS_URL: process.env.REDIS_URL ? 'SET (hidden)' : 'NOT SET',
+  };
+
+  try {
+    const knexConfig = require('../knexfile.js');
+    const env = process.env.DATABASE_URL ? 'production' : (process.env.NODE_ENV || 'development');
+    results.knexEnv = env;
+    results.knexHasSSL = !!(knexConfig[env]?.connection?.ssl);
+    results.knexConnectionType = typeof knexConfig[env]?.connection === 'string' ? 'string' : 'object';
+
+    const knex = require('knex');
+    const testDb = knex(knexConfig[env]);
+    const dbResult = await Promise.race([
+      testDb.raw('SELECT 1 as connected'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('DB query timed out after 5s')), 5000))
+    ]);
+    results.dbConnected = true;
+    results.dbResult = dbResult?.rows?.[0] || 'ok';
+    await testDb.destroy();
+  } catch (err: any) {
+    results.dbConnected = false;
+    results.dbError = err.message;
+  }
+
+  res.json(results);
+});
+
 app.get('/api/health', async (req: Request, res: Response) => {
   const { emergency_reseed } = req.query;
   
