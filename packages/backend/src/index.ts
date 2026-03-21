@@ -491,6 +491,22 @@ app.get('/db-test', async (_req: Request, res: Response) => {
   res.json(results);
 });
 
+// Temporary diagnostic: list users (REMOVE after checking)
+app.get('/db-users', async (_req: Request, res: Response) => {
+  try {
+    const { db } = require('./config/database');
+    const users = await db('users')
+      .select('id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'created_at')
+      .orderBy('created_at', 'desc');
+    const companies = await db('companies')
+      .select('id', 'name', 'created_at')
+      .orderBy('created_at', 'desc');
+    res.json({ userCount: users.length, users, companyCount: companies.length, companies });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/health', async (req: Request, res: Response) => {
   const { emergency_reseed } = req.query;
   
