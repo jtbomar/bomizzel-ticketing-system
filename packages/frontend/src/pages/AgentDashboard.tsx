@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -7,6 +7,20 @@ import DepartmentSelector from '../components/DepartmentSelector';
 import AgentGlobalSearch from '../components/AgentGlobalSearch';
 import KanbanTemplates, { Template } from '../components/KanbanTemplates';
 import { apiService } from '../services/api';
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import SortableTicketCard from '../components/SortableTicketCard';
+import DroppableColumn from '../components/DroppableColumn';
 
 interface Ticket {
   id: number;
@@ -325,8 +339,7 @@ const AgentDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketIdMap, setTicketIdMap] = useState<Map<number, string>>(new Map()); // Maps numeric ID to UUID
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [draggedTicket, setDraggedTicket] = useState<Ticket | null>(null);
-  const [dragOverTicket, setDragOverTicket] = useState<number | null>(null);
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
   // Load initial tickets when user is available
   useEffect(() => {
@@ -528,7 +541,10 @@ const AgentDashboard: React.FC = () => {
     getUserTeamId();
   }, [user]);
 
-  const [dragOverPosition, setDragOverPosition] = useState<'above' | 'below' | null>(null);
+  // dnd-kit sensor with activation constraint to avoid accidental drags
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -1338,186 +1354,111 @@ const AgentDashboard: React.FC = () => {
     }
   };
 
-  // Use refs for drag state to avoid stale closures in event handlers
-  const draggedTicketRef = useRef<Ticket | null>(null);
-  const dragOverPositionRef = useRef<'above' | 'below' | null>(null);
-
-  const reorderTicketsInColumn = useCallback(
-    (draggedId: number, targetId: number, position: 'above' | 'below') => {
-      const draggedTicket = tickets.find((t) => t.id === draggedId);
-      const targetTicket = tickets.find((t) => t.id === targetId);
-
-      if (!draggedTicket || !targetTicket || draggedTicket.status !== targetTicket.status) return;
-
-      const statusTickets = getStatusTickets(draggedTicket.status);
-      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-      let newOrder: number;
-
-      if (position === 'above') {
-        if (targetIndex === 0) {
-          newOrder = Math.max(1, targetTicket.order - 1);
-        } else {
-          const prevTicket = statusTickets[targetIndex - 1];
-          newOrder = (prevTicket.order + targetTicket.order) / 2;
-        }
-      } else {
-        if (targetIndex === statusTickets.length - 1) {
-          newOrder = targetTicket.order + 1;
-        } else {
-          const nextTicket = statusTickets[targetIndex + 1];
-          newOrder = (targetTicket.order + nextTicket.order) / 2;
-        }
-      }
-
-      setTickets((prev) =>
-        prev.map((ticket) => (ticket.id === draggedId ? { ...ticket, order: newOrder } : ticket))
-      );
-    },
-    [tickets, getStatusTickets]
-  );
-
-  const moveTicketToPosition = useCallback(
-    (draggedId: number, newStatus: string, targetId: number, position: 'above' | 'below') => {
-      const targetTicket = tickets.find((t) => t.id === targetId);
-      if (!targetTicket) return;
-
-      const statusTickets = getStatusTickets(newStatus);
-      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-      let newOrder: number;
-
-      if (position === 'above') {
-        if (targetIndex === 0) {
-          newOrder = Math.max(1, targetTicket.order - 1);
-        } else {
-          const prevTicket = statusTickets[targetIndex - 1];
-          newOrder = (prevTicket.order + targetTicket.order) / 2;
-        }
-      } else {
-        if (targetIndex === statusTickets.length - 1) {
-          newOrder = targetTicket.order + 1;
-        } else {
-          const nextTicket = statusTickets[targetIndex + 1];
-          newOrder = (targetTicket.order + nextTicket.order) / 2;
-        }
-      }
-
-      setTickets((prev) =>
-        prev.map((ticket) =>
-          ticket.id === draggedId ? { ...ticket, status: newStatus, order: newOrder } : ticket
-        )
-      );
-    },
-    [tickets, getStatusTickets]
-  );
-
-  const clearDragState = useCallback(() => {
-    draggedTicketRef.current = null;
-    dragOverPositionRef.current = null;
-    setDraggedTicket(null);
-    setDragOverTicket(null);
-    setDragOverPosition(null);
+  // dnd-kit drag handlers
+  const handleDndDragStart = useCallback((event: DragStartEvent) => {
+    const id = Number(event.active.id);
+    setActiveDragId(id);
   }, []);
 
-  // Enhanced drag and drop handlers using refs for reliable state access
-  const handleDragStart = useCallback((e: React.DragEvent, ticket: Ticket) => {
-    draggedTicketRef.current = ticket;
-    setDraggedTicket(ticket);
+  const handleDndDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveDragId(null);
 
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', String(ticket.id));
+      if (!over) return;
 
-    // Use the current element as drag image (no custom clone that gets removed)
-    if (e.currentTarget instanceof HTMLElement) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      e.dataTransfer.setDragImage(e.currentTarget, rect.width / 2, 20);
-    }
-  }, []);
+      const activeId = Number(active.id);
+      const overId = String(over.id);
 
-  const handleDragEnd = useCallback(() => {
-    clearDragState();
-  }, [clearDragState]);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const handleTicketDragOver = useCallback(
-    (e: React.DragEvent, ticket: Ticket) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const dragged = draggedTicketRef.current;
-      if (!dragged || dragged.id === ticket.id) return;
-
-      const rect = e.currentTarget.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      const position = e.clientY < midY ? 'above' : 'below';
-
-      dragOverPositionRef.current = position;
-      setDragOverTicket(ticket.id);
-      setDragOverPosition(position);
-    },
-    []
-  );
-
-  const handleTicketDragLeave = useCallback((e: React.DragEvent) => {
-    // Use relatedTarget to check if we're moving to a child element (don't clear)
-    const related = e.relatedTarget as Node | null;
-    if (related && e.currentTarget.contains(related)) {
-      return;
-    }
-    setDragOverTicket(null);
-    setDragOverPosition(null);
-    dragOverPositionRef.current = null;
-  }, []);
-
-  const handleTicketDrop = useCallback(
-    (e: React.DragEvent, targetTicket: Ticket) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const dragged = draggedTicketRef.current;
-      const position = dragOverPositionRef.current;
-
-      if (!dragged || dragged.id === targetTicket.id) {
-        clearDragState();
+      // Check if dropped on a column (status droppable)
+      if (overId.startsWith('column-')) {
+        const newStatus = overId.replace('column-', '');
+        const draggedTicket = tickets.find((t) => t.id === activeId);
+        if (draggedTicket && draggedTicket.status !== newStatus) {
+          moveTicket(activeId, newStatus);
+        }
         return;
       }
 
-      const sourceStatus = dragged.status;
-      const targetStatus = targetTicket.status;
+      // Dropped on another ticket
+      const targetId = Number(overId);
+      if (activeId === targetId) return;
 
-      if (sourceStatus === targetStatus) {
-        reorderTicketsInColumn(dragged.id, targetTicket.id, position || 'below');
+      const draggedTicket = tickets.find((t) => t.id === activeId);
+      const targetTicket = tickets.find((t) => t.id === targetId);
+      if (!draggedTicket || !targetTicket) return;
+
+      const targetStatus = targetTicket.status;
+      const statusTickets = getStatusTickets(targetStatus);
+      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
+
+      // Calculate new order to place dragged ticket at target position
+      let newOrder: number;
+      if (targetIndex === 0) {
+        newOrder = Math.max(1, targetTicket.order - 1);
       } else {
-        moveTicketToPosition(
-          dragged.id,
-          targetStatus,
-          targetTicket.id,
-          position || 'below'
-        );
+        const prevTicket = statusTickets[targetIndex - 1];
+        if (prevTicket.id === activeId) {
+          // Moving down past the target
+          if (targetIndex === statusTickets.length - 1) {
+            newOrder = targetTicket.order + 1;
+          } else {
+            const nextTicket = statusTickets[targetIndex + 1];
+            newOrder = (targetTicket.order + nextTicket.order) / 2;
+          }
+        } else {
+          newOrder = (prevTicket.order + targetTicket.order) / 2;
+        }
       }
 
-      clearDragState();
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === activeId ? { ...t, status: targetStatus, order: newOrder } : t
+        )
+      );
     },
-    [clearDragState, reorderTicketsInColumn, moveTicketToPosition]
+    [tickets, getStatusTickets, moveTicket]
   );
 
-  const handleColumnDrop = useCallback(
-    (e: React.DragEvent, newStatus: string) => {
-      e.preventDefault();
+  const handleDndDragOver = useCallback(
+    (event: DragOverEvent) => {
+      // Handle cross-column dragging by updating status in real-time
+      const { active, over } = event;
+      if (!over) return;
 
-      const dragged = draggedTicketRef.current;
-      if (dragged && dragged.status !== newStatus) {
-        moveTicket(dragged.id, newStatus);
+      const activeId = Number(active.id);
+      const overId = String(over.id);
+
+      let targetStatus: string | null = null;
+      if (overId.startsWith('column-')) {
+        targetStatus = overId.replace('column-', '');
+      } else {
+        const targetTicket = tickets.find((t) => t.id === Number(overId));
+        if (targetTicket) targetStatus = targetTicket.status;
       }
 
-      clearDragState();
+      if (!targetStatus) return;
+
+      const draggedTicket = tickets.find((t) => t.id === activeId);
+      if (draggedTicket && draggedTicket.status !== targetStatus) {
+        // Move ticket to new column immediately for visual feedback
+        const targetStatusTickets = tickets.filter((t) => t.status === targetStatus);
+        const maxOrder = targetStatusTickets.length > 0
+          ? Math.max(...targetStatusTickets.map((t) => t.order))
+          : 0;
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.id === activeId ? { ...t, status: targetStatus!, order: maxOrder + 1 } : t
+          )
+        );
+      }
     },
-    [clearDragState, moveTicket]
+    [tickets]
+  );
+
+  const activeDragTicket = useMemo(
+    () => (activeDragId ? tickets.find((t) => t.id === activeDragId) ?? null : null),
+    [activeDragId, tickets]
   );
 
   const renderKanbanBoard = () => {
@@ -1651,174 +1592,173 @@ const AgentDashboard: React.FC = () => {
     return (
       <div className="space-y-6">
 
-
-        <div
-          className={`grid grid-cols-1 gap-6`}
-          style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDndDragStart}
+          onDragOver={handleDndDragOver}
+          onDragEnd={handleDndDragEnd}
         >
-          {statuses.map((statusConfig) => (
-            <div
-              key={statusConfig.value}
-              className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 min-h-96 transition-colors"
-              onDragOver={handleDragOver}
-              onDrop={(e) => handleColumnDrop(e, statusConfig.value)}
-            >
-              <h3 className="font-medium text-gray-900 dark:text-white mb-4">
-                {statusConfig.label} ({getStatusTickets(statusConfig.value).length})
-              </h3>
-              <div className="space-y-3">
-                {(() => {
-                  const statusTickets = getStatusTickets(statusConfig.value);
+          <div
+            className={`grid grid-cols-1 gap-6`}
+            style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
+          >
+            {statuses.map((statusConfig) => {
+              const statusTickets = getStatusTickets(statusConfig.value);
+              const ticketIds = statusTickets.map((t) => String(t.id));
 
-                  return statusTickets.map((ticket, index) => (
-                    <div key={ticket.id} className="relative">
-                      {/* Drop indicator above */}
-                      {dragOverTicket === ticket.id && dragOverPosition === 'above' && (
-                        <div className="absolute -top-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
-                      )}
-
-                      <div
-                        draggable={boardSettings.dragAndDrop}
-                        onDragStart={
-                          boardSettings.dragAndDrop ? (e) => handleDragStart(e, ticket) : undefined
-                        }
-                        onDragEnd={boardSettings.dragAndDrop ? handleDragEnd : undefined}
-                        onDragOver={
-                          boardSettings.dragAndDrop
-                            ? (e) => handleTicketDragOver(e, ticket)
-                            : undefined
-                        }
-                        onDragLeave={boardSettings.dragAndDrop ? handleTicketDragLeave : undefined}
-                        onDrop={
-                          boardSettings.dragAndDrop ? (e) => handleTicketDrop(e, ticket) : undefined
-                        }
-                        className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 ${getStatusColor(
-                          ticket.status
-                        )} ${draggedTicket?.id === ticket.id ? 'opacity-50 scale-95' : ''} ${
-                          dragOverTicket === ticket.id
-                            ? 'ring-2 ring-blue-400 dark:ring-blue-500'
-                            : ''
-                        }`}
-                        onClick={() => setSelectedTicket(ticket)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-2 flex-1">
-                            {/* Drag handle */}
-                            {boardSettings.dragAndDrop && (
-                              <div className="flex flex-col space-y-0.5 mt-1 opacity-40 hover:opacity-70 transition-opacity">
-                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                                <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-                              </div>
-                            )}
-
-                            <div className="flex-1">
-                              <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                                {ticket.title}
-                              </h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                {boardSettings.showTicketIds && `#${ticket.id} • `}
-                                {ticket.customer}
-                              </p>
-                              {boardSettings.showAssignee && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  Assigned: {ticket.assigned}
-                                </p>
-                              )}
-                              {ticket.notes && ticket.notes.length > 0 && (
-                                <div className="flex items-center mt-1">
-                                  <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
-                                    💬 {ticket.notes.length} note
-                                    {ticket.notes.length !== 1 ? 's' : ''}
-                                  </span>
+              return (
+                <SortableContext
+                  key={statusConfig.value}
+                  items={ticketIds}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <DroppableColumn
+                    id={`column-${statusConfig.value}`}
+                    className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 min-h-96 transition-colors"
+                  >
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-4">
+                      {statusConfig.label} ({statusTickets.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {statusTickets.map((ticket, index) => (
+                        <SortableTicketCard
+                          key={ticket.id}
+                          id={String(ticket.id)}
+                          disabled={!boardSettings.dragAndDrop}
+                        >
+                          <div
+                            className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 ${getStatusColor(
+                              ticket.status
+                            )} ${activeDragId === ticket.id ? 'opacity-50 scale-95' : ''}`}
+                            onClick={() => setSelectedTicket(ticket)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-2 flex-1">
+                                {boardSettings.dragAndDrop && (
+                                  <div className="flex flex-col space-y-0.5 mt-1 opacity-40 hover:opacity-70 transition-opacity">
+                                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                    <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {ticket.title}
+                                  </h4>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {boardSettings.showTicketIds && `#${ticket.id} • `}
+                                    {ticket.customer}
+                                  </p>
+                                  {boardSettings.showAssignee && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      Assigned: {ticket.assigned}
+                                    </p>
+                                  )}
+                                  {ticket.notes && ticket.notes.length > 0 && (
+                                    <div className="flex items-center mt-1">
+                                      <span className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                                        💬 {ticket.notes.length} note
+                                        {ticket.notes.length !== 1 ? 's' : ''}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
+                              <div className="flex flex-col items-end space-y-1">
+                                <select
+                                  value={ticket.priority}
+                                  onChange={(e) =>
+                                    changePriority(
+                                      ticket.id,
+                                      e.target.value as 'High' | 'Medium' | 'Low'
+                                    )
+                                  }
+                                  className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                >
+                                  <option value="High">High</option>
+                                  <option value="Medium">Medium</option>
+                                  <option value="Low">Low</option>
+                                </select>
+                                {boardSettings.showPriorityArrows && (
+                                  <div className="flex flex-col space-y-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveTicketInColumn(ticket.id, 'up');
+                                      }}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      disabled={index === 0}
+                                      className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                      title="Move up"
+                                    >
+                                      ↑
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        moveTicketInColumn(ticket.id, 'down');
+                                      }}
+                                      onPointerDown={(e) => e.stopPropagation()}
+                                      disabled={
+                                        index === statusTickets.length - 1
+                                      }
+                                      className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                                      title="Move down"
+                                    >
+                                      ↓
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {ticket.created}
+                              </span>
+                              <button
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedTicket(ticket);
+                                }}
+                                onPointerDown={(e) => e.stopPropagation()}
+                              >
+                                View
+                              </button>
                             </div>
                           </div>
-                          <div className="flex flex-col items-end space-y-1">
-                            <select
-                              value={ticket.priority}
-                              onChange={(e) =>
-                                changePriority(
-                                  ticket.id,
-                                  e.target.value as 'High' | 'Medium' | 'Low'
-                                )
-                              }
-                              className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <option value="High">High</option>
-                              <option value="Medium">Medium</option>
-                              <option value="Low">Low</option>
-                            </select>
-                            {boardSettings.showPriorityArrows && (
-                              <div className="flex flex-col space-y-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveTicketInColumn(ticket.id, 'up');
-                                  }}
-                                  disabled={index === 0}
-                                  className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                                  title="Move up"
-                                >
-                                  ↑
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    moveTicketInColumn(ticket.id, 'down');
-                                  }}
-                                  disabled={
-                                    index === getStatusTickets(statusConfig.value).length - 1
-                                  }
-                                  className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                                  title="Move down"
-                                >
-                                  ↓
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {ticket.created}
-                          </span>
-                          <button
-                            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedTicket(ticket);
-                            }}
-                          >
-                            View
-                          </button>
-                        </div>
-                      </div>
+                        </SortableTicketCard>
+                      ))}
 
-                      {/* Drop indicator below */}
-                      {dragOverTicket === ticket.id && dragOverPosition === 'below' && (
-                        <div className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-500 rounded-full z-10" />
+                      {statusTickets.length === 0 && (
+                        <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                          Drop tickets here
+                        </div>
                       )}
                     </div>
-                  ));
-                })()}
+                  </DroppableColumn>
+                </SortableContext>
+              );
+            })}
+          </div>
 
-                {getStatusTickets(statusConfig.value).length === 0 && (
-                  <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-                    Drop tickets here
-                    <div className="text-xs mt-2">
-                      Status: {statusConfig.value} | Total filtered: {filteredTickets.length}
-                    </div>
-                  </div>
-                )}
+          <DragOverlay>
+            {activeDragTicket ? (
+              <div className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg border-l-4 rotate-2 ${getStatusColor(activeDragTicket.status)}`}>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  {activeDragTicket.title}
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {activeDragTicket.customer}
+                </p>
               </div>
-            </div>
-          ))}
-        </div>
-
+            ) : null}
+          </DragOverlay>
+        </DndContext>
 
       </div>
     );
