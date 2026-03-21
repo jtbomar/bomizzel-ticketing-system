@@ -47,13 +47,24 @@ module.exports = {
 
   production: {
     client: 'postgresql',
-    connection: process.env.DATABASE_URL || {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
-      database: process.env.DB_NAME,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-    },
+    connection: (() => {
+      const url = process.env.DATABASE_URL;
+      if (!url) {
+        return {
+          host: process.env.DB_HOST,
+          port: process.env.DB_PORT,
+          database: process.env.DB_NAME,
+          user: process.env.DB_USER,
+          password: process.env.DB_PASSWORD,
+        };
+      }
+      // Use public URL if available, otherwise internal
+      const publicUrl = process.env.DATABASE_PUBLIC_URL;
+      return {
+        connectionString: publicUrl || url,
+        ssl: publicUrl ? { rejectUnauthorized: false } : false,
+      };
+    })(),
     pool: {
       min: 0,
       max: 20,
