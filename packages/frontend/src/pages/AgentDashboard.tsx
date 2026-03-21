@@ -1365,95 +1365,117 @@ const AgentDashboard: React.FC = () => {
       const { active, over } = event;
       setActiveDragId(null);
 
-      if (!over) return;
+      if (!over || active.id === over.id) return;
 
       const activeId = Number(active.id);
       const overId = String(over.id);
 
-      // Check if dropped on a column (status droppable)
-      if (overId.startsWith('column-')) {
-        const newStatus = overId.replace('column-', '');
-        const draggedTicket = tickets.find((t) => t.id === activeId);
-        if (draggedTicket && draggedTicket.status !== newStatus) {
-          moveTicket(activeId, newStatus);
-        }
-        return;
-      }
+      setTickets((prev) => {
+        const draggedTicket = prev.find((t) => t.id === activeId);
+        if (!draggedTicket) return prev;
 
-      // Dropped on another ticket
-      const targetId = Number(overId);
-      if (activeId === targetId) return;
-
-      const draggedTicket = tickets.find((t) => t.id === activeId);
-      const targetTicket = tickets.find((t) => t.id === targetId);
-      if (!draggedTicket || !targetTicket) return;
-
-      const targetStatus = targetTicket.status;
-      const statusTickets = getStatusTickets(targetStatus);
-      const targetIndex = statusTickets.findIndex((t) => t.id === targetId);
-
-      // Calculate new order to place dragged ticket at target position
-      let newOrder: number;
-      if (targetIndex === 0) {
-        newOrder = Math.max(1, targetTicket.order - 1);
-      } else {
-        const prevTicket = statusTickets[targetIndex - 1];
-        if (prevTicket.id === activeId) {
-          // Moving down past the target
-          if (targetIndex === statusTickets.length - 1) {
-            newOrder = targetTicket.order + 1;
-          } else {
-            const nextTicket = statusTickets[targetIndex + 1];
-            newOrder = (targetTicket.order + nextTicket.order) / 2;
-          }
+        // Determine target status
+        let targetStatus: string;
+        if (overId.startsWith('column-')) {
+          targetStatus = overId.replace('column-', '');
         } else {
-          newOrder = (prevTicket.order + targetTicket.order) / 2;
+          const overTicket = prev.find((t) => t.id === Number(overId));
+          if (!overTicket) return prev;
+          targetStatus = overTicket.status;
         }
-      }
 
-      setTickets((prev) =>
-        prev.map((t) =>
-          t.id === activeId ? { ...t, status: targetStatus, order: newOrder } : t
-        )
-      );
+        // Get tickets in the target column, sorted by order
+        const columnTickets = prev
+          .filter((t) => t.status === targetStatus && t.id !== activeId)
+          .sort((a, b) => a.order - b.order);
+
+        // Find where to insert
+        let insertIndex = columnTickets.length; // default: end
+        if (!overId.startsWith('column-')) {
+          const overIndex = columnTickets.findIndex((t) => t.id === Number(overId));
+          if (overIndex !== -1) {
+            insertIndex = overIndex;
+          }
+        }
+
+        // Insert dragged ticket at the right position
+        columnTickets.splice(insertIndex, 0, { ...draggedTicket, status: targetStatus });
+
+        // Reassign clean integer orders
+        const updatedIds = new Map<number, { status: string; order: number }>();
+        columnTickets.forEach((t, i) => {
+          updatedIds.set(t.id, { status: targetStatus, order: i + 1 });
+        });
+
+        return prev.map((t) => {
+          const update = updatedIds.get(t.id);
+          if (update) {
+            return { ...t, status: update.status, order: update.order };
+          }
+          return t;
+        });
+      });
     },
-    [tickets, getStatusTickets, moveTicket]
+    []
   );
 
   const handleDndDragOver = useCallback(
     (event: DragOverEvent) => {
-      // Handle cross-column dragging by updating status in real-time
       const { active, over } = event;
       if (!over) return;
 
       const activeId = Number(active.id);
       const overId = String(over.id);
 
+      // Determine target status
       let targetStatus: string | null = null;
       if (overId.startsWith('column-')) {
         targetStatus = overId.replace('column-', '');
       } else {
-        const targetTicket = tickets.find((t) => t.id === Number(overId));
-        if (targetTicket) targetStatus = targetTicket.status;
+        setTickets((prev) => {
+          const overTicket = prev.find((t) => t.id === Number(overId));
+          const draggedTicket = prev.find((t) => t.id === activeId);
+          if (!overTicket || !draggedTicket) return prev;
+          if (draggedTicket.status === overTicket.status) return prev;
+
+          // Move to new column at the end for visual feedback
+          const targetColumnTickets = prev.filter(
+            (t) => t.status === overTicket.status && t.id !== activeId
+          );
+          const maxOrder = targetColumnTickets.length > 0
+            ? Math.max(...targetColumnTickets.map((t) => t.order))
+            : 0;
+
+          return prev.map((t) =>
+            t.id === activeId
+              ? { ...t, status: overTicket.status, order: maxOrder + 1 }
+              : t
+          );
+        });
+        return;
       }
 
-      if (!targetStatus) return;
+      if (targetStatus) {
+        setTickets((prev) => {
+          const draggedTicket = prev.find((t) => t.id === activeId);
+          if (!draggedTicket || draggedTicket.status === targetStatus) return prev;
 
-      const draggedTicket = tickets.find((t) => t.id === activeId);
-      if (draggedTicket && draggedTicket.status !== targetStatus) {
-        // Move ticket to new column immediately for visual feedback
-        const targetStatusTickets = tickets.filter((t) => t.status === targetStatus);
-        const maxOrder = targetStatusTickets.length > 0
-          ? Math.max(...targetStatusTickets.map((t) => t.order))
-          : 0;
-        setTickets((prev) =>
-          prev.map((t) =>
-            t.id === activeId ? { ...t, status: targetStatus!, order: maxOrder + 1 } : t
-          )
-        );
+          const targetColumnTickets = prev.filter(
+            (t) => t.status === targetStatus && t.id !== activeId
+          );
+          const maxOrder = targetColumnTickets.length > 0
+            ? Math.max(...targetColumnTickets.map((t) => t.order))
+            : 0;
+
+          return prev.map((t) =>
+            t.id === activeId
+              ? { ...t, status: targetStatus!, order: maxOrder + 1 }
+              : t
+          );
+        });
       }
     },
-    [tickets]
+    []
   );
 
   const activeDragTicket = useMemo(
