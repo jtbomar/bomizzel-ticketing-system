@@ -67,7 +67,7 @@ class ApiService {
   async login(email: string, password: string): Promise<any> {
     try {
       console.log('[ApiService] Attempting login with baseURL:', this.client.defaults.baseURL);
-      
+
       // Create a separate axios instance without auth interceptors for login
       const loginClient = axios.create({
         baseURL: this.client.defaults.baseURL,
@@ -76,7 +76,7 @@ class ApiService {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const response = await loginClient.post('/auth/login', { email, password });
       console.log('[ApiService] Login successful:', response.data);
       return response.data;

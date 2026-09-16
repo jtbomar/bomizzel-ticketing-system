@@ -116,9 +116,9 @@ const Departments: React.FC = () => {
         ...dept,
         agents: dept.agents || [],
         templates: dept.templates || [],
-        company_name: dept.organization_id 
-          ? organizationName  // Use organization name for org-based departments
-          : (companyMap.get(dept.company_id) || 'Unknown Company'), // Use company name for company-based departments
+        company_name: dept.organization_id
+          ? organizationName // Use organization name for org-based departments
+          : companyMap.get(dept.company_id) || 'Unknown Company', // Use company name for company-based departments
       }));
 
       setDepartments(dataWithDefaults);

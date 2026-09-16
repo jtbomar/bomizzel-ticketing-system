@@ -56,7 +56,7 @@ export const authenticate = async (
     // Get user's organization for tenant isolation
     const organizationId = user.organization_id;
     const userCompanies = await User.getUserCompanies(user.id);
-    const companyIds = userCompanies.map(uc => uc.companyId);
+    const companyIds = userCompanies.map((uc) => uc.companyId);
 
     // Attach user info to request with organization and company context
     req.user = {

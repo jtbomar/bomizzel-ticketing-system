@@ -9,21 +9,19 @@ export async function getUserOrgId(userId: string): Promise<string> {
   const user = await db('users').where('id', userId).first();
   let orgId = user?.current_org_id;
 
-  // If no org is set, try to get the first organization for this user
+  // If no org is set, derive it from the user's company association.
+  //
+  // This used to query `user_organization_associations` first, but no migration
+  // ever creates that table - the query threw, so the fallback below was never
+  // reached and every caller 500'd. Org ids are company ids here: the
+  // multi-tenancy migration backfills org_id from company_id.
   if (!orgId) {
-    const userOrg = await db('user_organization_associations').where('user_id', userId).first();
+    const userCompany = await db('user_company_associations').where('user_id', userId).first();
 
-    if (userOrg) {
-      orgId = userOrg.org_id;
-      // Update user's current_org_id for next time
+    if (userCompany) {
+      orgId = userCompany.company_id;
+      // Remember it so we skip this lookup next time.
       await db('users').where('id', userId).update({ current_org_id: orgId });
-    } else {
-      // Fallback: use company_id as org_id
-      const userCompany = await db('user_company_associations').where('user_id', userId).first();
-
-      if (userCompany) {
-        orgId = userCompany.company_id;
-      }
     }
   }
 

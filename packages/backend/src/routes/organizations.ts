@@ -106,7 +106,10 @@ router.put('/profile', authenticate, async (req, res, next): Promise<void> => {
       return;
     }
 
-    const updatedOrg = await OrganizationService.updateOrganization(req.user.organizationId, req.body);
+    const updatedOrg = await OrganizationService.updateOrganization(
+      req.user.organizationId,
+      req.body
+    );
 
     res.json({
       success: true,

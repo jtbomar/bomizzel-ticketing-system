@@ -130,7 +130,7 @@ export class OrgScopedTeamService {
     }
 
     // Check if already a member
-    const existing = await db('team_members')
+    const existing = await db('team_memberships')
       .where('team_id', teamId)
       .where('user_id', userId)
       .first();
@@ -139,7 +139,7 @@ export class OrgScopedTeamService {
       throw new AppError('User is already a team member', 400, 'ALREADY_TEAM_MEMBER');
     }
 
-    await db('team_members').insert({
+    await db('team_memberships').insert({
       team_id: teamId,
       user_id: userId,
       role,
@@ -156,7 +156,7 @@ export class OrgScopedTeamService {
     // Verify team belongs to org
     await this.getTeam(orgId, teamId);
 
-    const deleted = await db('team_members')
+    const deleted = await db('team_memberships')
       .where('team_id', teamId)
       .where('user_id', userId)
       .del();

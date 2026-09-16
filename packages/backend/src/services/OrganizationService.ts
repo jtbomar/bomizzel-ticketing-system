@@ -109,7 +109,7 @@ export class OrganizationService {
   static async getOrganization(orgId: string): Promise<any> {
     // First try organizations table
     let org = await db('organizations').where('id', orgId).where('is_active', true).first();
-    
+
     if (org) {
       const settings = org.settings || {};
       return {
@@ -153,7 +153,7 @@ export class OrganizationService {
   static async updateOrganization(orgId: string, updateData: any): Promise<any> {
     // First try organizations table
     const orgExists = await db('organizations').where('id', orgId).first();
-    
+
     if (orgExists) {
       const updateFields: any = {
         updated_at: db.fn.now(),
@@ -163,31 +163,31 @@ export class OrganizationService {
       if (updateData.description) updateFields.description = updateData.description;
       if (updateData.domain) updateFields.domain = updateData.domain;
       if (updateData.logoUrl) updateFields.logo_url = updateData.logoUrl;
-      
+
       // Handle settings (including websiteUrl)
       if (updateData.websiteUrl || updateData.settings) {
         const currentSettings = orgExists.settings || {};
         const newSettings = { ...currentSettings };
-        
+
         if (updateData.websiteUrl) {
           newSettings.websiteUrl = updateData.websiteUrl;
         }
-        
+
         if (updateData.settings) {
           Object.assign(newSettings, updateData.settings);
         }
-        
+
         updateFields.settings = newSettings;
       }
 
       await db('organizations').where('id', orgId).update(updateFields);
-      
+
       return this.getOrganization(orgId);
     }
 
     // Fallback to companies table
     const companyExists = await db('companies').where('id', orgId).first();
-    
+
     if (!companyExists) {
       throw new AppError('Organization not found', 404, 'ORG_NOT_FOUND');
     }
@@ -203,7 +203,7 @@ export class OrganizationService {
     if (updateData.logoUrl) updateFields.logo_url = updateData.logoUrl;
 
     await db('companies').where('id', orgId).update(updateFields);
-    
+
     return this.getOrganization(orgId);
   }
 

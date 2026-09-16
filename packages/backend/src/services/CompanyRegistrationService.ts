@@ -205,33 +205,27 @@ export class CompanyRegistrationService {
         },
       };
 
-      // Create organization for the company
-      const [organization] = await trx('organizations')
-        .insert({
-          name: data.companyName,
-          slug: data.companyName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-          is_active: true,
-        })
-        .returning('*');
+      // The org id IS the company id. Every org_id column is a foreign key to
+      // companies(id) and the multi-tenancy migration backfills org_id from
+      // company_id, so there is no separate row to create here.
+      //
+      // This block previously inserted into `organizations` with a `slug`
+      // column that does not exist, then into `user_organization_associations`,
+      // a table no migration creates - so the whole transaction rolled back and
+      // company registration failed for every signup.
+      const orgId = createdCompany.id;
 
       // Associate admin user with company as owner
       await trx('user_company_associations').insert({
         user_id: adminUser.user.id,
         company_id: createdCompany.id,
         role: 'owner',
-      });
-
-      // Associate admin user with organization
-      await trx('user_organization_associations').insert({
-        user_id: adminUser.user.id,
-        org_id: organization.id,
-        role: 'admin',
         is_default: true,
       });
 
       // Set current_org_id for the user
       await trx('users').where('id', adminUser.user.id).update({
-        current_org_id: organization.id,
+        current_org_id: orgId,
       });
 
       // Create default departments
@@ -246,58 +240,71 @@ export class CompanyRegistrationService {
           name: dept.name,
           description: dept.description,
           company_id: createdCompany.id,
-          org_id: organization.id,
+          org_id: orgId,
           is_active: true,
         });
       }
 
-      // Create default team
+      // Create default team. `teams` has no company_id column - it is scoped by org_id.
       const [team] = await trx('teams')
         .insert({
           name: 'Support Team',
           description: 'Default support team',
-          company_id: createdCompany.id,
-          org_id: organization.id,
+          org_id: orgId,
           is_active: true,
         })
         .returning('*');
 
-      // Add admin to the team
-      await trx('team_members').insert({
+      // Add admin to the team. The table is `team_memberships`, not `team_members`.
+      await trx('team_memberships').insert({
         team_id: team.id,
         user_id: adminUser.user.id,
         role: 'lead',
       });
 
-      // Create default ticket statuses for the team
+      // Create default ticket statuses for the team.
+      // The column is `order`, not `sort_order`, and `label` is NOT NULL.
       const statuses = [
-        { name: 'Open', color: '#3B82F6', sort_order: 1, is_default: true },
-        { name: 'In Progress', color: '#F59E0B', sort_order: 2, is_default: false },
-        { name: 'Waiting on Customer', color: '#8B5CF6', sort_order: 3, is_default: false },
-        { name: 'Resolved', color: '#10B981', sort_order: 4, is_default: false },
-        { name: 'Closed', color: '#6B7280', sort_order: 5, is_default: false },
+        { name: 'Open', label: 'Open', color: '#3B82F6', order: 1, is_default: true },
+        {
+          name: 'In Progress',
+          label: 'In Progress',
+          color: '#F59E0B',
+          order: 2,
+          is_default: false,
+        },
+        {
+          name: 'Waiting on Customer',
+          label: 'Waiting on Customer',
+          color: '#8B5CF6',
+          order: 3,
+          is_default: false,
+        },
+        { name: 'Resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false },
+        { name: 'Closed', label: 'Closed', color: '#6B7280', order: 5, is_default: false },
       ];
 
       for (const status of statuses) {
         await trx('ticket_statuses').insert({
           team_id: team.id,
           name: status.name,
+          label: status.label,
           color: status.color,
-          sort_order: status.sort_order,
+          order: status.order,
           is_default: status.is_default,
           is_closed: status.name === 'Closed',
         });
       }
 
-      // Create default queue
+      // Create default queue. `queues` has no company_id/sort_order columns, and
+      // `type` is NOT NULL.
       await trx('queues').insert({
         name: 'General Queue',
         description: 'Default queue for incoming tickets',
-        company_id: createdCompany.id,
-        org_id: organization.id,
+        type: 'unassigned',
+        org_id: orgId,
         team_id: team.id,
         is_active: true,
-        sort_order: 1,
       });
 
       await trx.commit();

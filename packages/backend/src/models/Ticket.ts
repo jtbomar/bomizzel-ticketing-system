@@ -19,6 +19,10 @@ export class Ticket extends BaseModel {
       description: ticketData.description,
       submitter_id: ticketData.submitterId,
       company_id: ticketData.companyId,
+      // org_id is a foreign key to companies(id) and the multi-tenancy migration
+      // backfills it from company_id. It was not being set on insert, so every
+      // ticket created after that migration had org_id = NULL.
+      org_id: ticketData.companyId,
       queue_id: ticketData.queueId,
       team_id: ticketData.teamId,
       custom_field_values: ticketData.customFieldValues || {},

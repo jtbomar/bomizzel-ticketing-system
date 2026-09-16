@@ -118,22 +118,15 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 
     console.log('User current_org_id:', orgId);
 
-    // If no org is set, try to get the first organization for this user
+    // If no org is set, derive it from the company association.
+    //
+    // This used to query `user_organization_associations` first, but no
+    // migration creates that table - the query threw rather than returning
+    // null, so this branch 500'd instead of falling through.
     if (!orgId) {
-      const userOrg = await db('user_organization_associations')
-        .where('user_id', req.user!.id)
-        .first();
-
-      if (userOrg) {
-        orgId = userOrg.org_id;
-        // Update user's current_org_id
-        await db('users').where('id', req.user!.id).update({ current_org_id: orgId });
-        console.log('Set user org_id to:', orgId);
-      } else {
-        // Fallback: use company_id as org_id (for backwards compatibility)
-        orgId = userCompany.company_id;
-        console.log('Using company_id as org_id:', orgId);
-      }
+      orgId = userCompany.company_id;
+      await db('users').where('id', req.user!.id).update({ current_org_id: orgId });
+      console.log('Derived org_id from company association:', orgId);
     }
 
     const companyId = userCompany.company_id;
@@ -223,9 +216,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
           updated_at: db.fn.now(),
         });
 
-      const updatedDepartment = await db('departments')
-        .where('id', parseInt(id))
-        .first();
+      const updatedDepartment = await db('departments').where('id', parseInt(id)).first();
 
       return res.json(updatedDepartment);
     } else {
@@ -334,13 +325,16 @@ router.post('/:id/agents', authenticate, authorize('admin'), async (req, res) =>
       }
 
       // Add agent to department (for organization, we can add directly to department_agents table)
-      await db('department_agents').insert({
-        department_id: parseInt(id),
-        user_id: user_id,
-        role: role,
-        created_at: db.fn.now(),
-        updated_at: db.fn.now(),
-      }).onConflict(['department_id', 'user_id']).merge();
+      await db('department_agents')
+        .insert({
+          department_id: parseInt(id),
+          user_id: user_id,
+          role: role,
+          created_at: db.fn.now(),
+          updated_at: db.fn.now(),
+        })
+        .onConflict(['department_id', 'user_id'])
+        .merge();
 
       return res.json({ message: 'Agent added to department successfully' });
     } else {

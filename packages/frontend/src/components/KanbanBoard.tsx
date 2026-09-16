@@ -20,14 +20,17 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   loading = false,
 }) => {
   // Group tickets by status
-  const ticketsByStatus = tickets.reduce((acc, ticket) => {
-    const status = ticket.status || 'Open';
-    if (!acc[status]) {
-      acc[status] = [];
-    }
-    acc[status].push(ticket);
-    return acc;
-  }, {} as Record<string, Ticket[]>);
+  const ticketsByStatus = tickets.reduce(
+    (acc, ticket) => {
+      const status = ticket.status || 'Open';
+      if (!acc[status]) {
+        acc[status] = [];
+      }
+      acc[status].push(ticket);
+      return acc;
+    },
+    {} as Record<string, Ticket[]>
+  );
 
   // TODO: Implement drag and drop with @dnd-kit
   // const handleDragEnd = (result: any) => {
@@ -49,10 +52,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
         const statusTickets = ticketsByStatus[status.name] || [];
 
         return (
-          <div
-            key={status.id}
-            className="flex-shrink-0 w-80 bg-gray-50 rounded-lg p-4"
-          >
+          <div key={status.id} className="flex-shrink-0 w-80 bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">{status.name}</h3>
               <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-sm">

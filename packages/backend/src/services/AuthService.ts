@@ -142,10 +142,10 @@ export class AuthService {
     try {
       // PERMANENT FIX: Use direct database access instead of User model
       // This bypasses the broken User.findByEmail and User.verifyPassword methods
-      
+
       // Find user directly from database
       const user = await db('users').where('email', loginData.email.toLowerCase()).first();
-      
+
       if (!user) {
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }

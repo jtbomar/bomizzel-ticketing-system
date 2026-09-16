@@ -81,18 +81,13 @@ router.post('/', authenticate, async (req, res) => {
     const user = await db('users').where('id', req.user!.id).first();
     let orgId = user.current_org_id;
 
-    // If no org is set, try to get the first organization for this user
+    // If no org is set, fall back to the user's company id.
+    //
+    // This used to query `user_organization_associations`, a table no migration
+    // creates - the query threw instead of returning null, so this whole block
+    // 500'd rather than falling through.
     if (!orgId) {
-      const userOrg = await db('user_organization_associations')
-        .where('user_id', req.user!.id)
-        .first();
-
-      if (userOrg) {
-        orgId = userOrg.org_id;
-      } else {
-        // Fallback: use company_id as org_id
-        orgId = companyId;
-      }
+      orgId = companyId;
     }
 
     const { holidayList, holidays } = req.body;

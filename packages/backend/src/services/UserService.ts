@@ -54,7 +54,7 @@ export class UserService {
           searchQuery = searchQuery.where('organization_id', requestingUser.organizationId);
         } else if (requestingUser.companies?.length) {
           // Customer users can only see users from their own companies
-          searchQuery = searchQuery.whereIn('id', function() {
+          searchQuery = searchQuery.whereIn('id', function () {
             this.select('user_id')
               .from('user_company_associations')
               .whereIn('company_id', requestingUser.companies!);
@@ -143,17 +143,17 @@ export class UserService {
       // CRITICAL: Implement tenant isolation for user details
       if (requestingUser) {
         let hasAccess = requestingUser.id === userId; // User can see their own profile
-        
+
         if (!hasAccess && requestingUser.organizationId) {
           // Organization users can see users from their own organization
           const targetUser = await User.findById(userId);
           hasAccess = targetUser?.organization_id === requestingUser.organizationId;
         }
-        
+
         if (!hasAccess && requestingUser.companies?.length) {
           // Customer users can see users from their own companies
-          hasAccess = requestingUser.companies.some(companyId => 
-            userWithCompanies.companies.some(uc => uc.companyId === companyId)
+          hasAccess = requestingUser.companies.some((companyId) =>
+            userWithCompanies.companies.some((uc) => uc.companyId === companyId)
           );
         }
 
@@ -592,7 +592,7 @@ export class UserService {
 
       // Check if user has any active tickets or important associations
       // This is a safety check - in a real system you'd want to handle this more carefully
-      
+
       await User.delete(userId);
 
       logger.info(`User ${userId} permanently deleted by ${deletedById}`);

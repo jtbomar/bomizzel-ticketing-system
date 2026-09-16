@@ -1,4 +1,6 @@
-import nodemailer from 'nodemailer';
+// nodemailer 10 ships its own types and no longer exposes a `nodemailer.*`
+// type namespace through the default import, so Transporter is imported by name.
+import nodemailer, { type Transporter } from 'nodemailer';
 import { TicketNoteService } from './TicketNoteService';
 import { Ticket } from '@/models/Ticket';
 import { User } from '@/models/User';
@@ -51,7 +53,7 @@ export interface EmailMetadata {
 }
 
 export class EmailService {
-  private static transporter: nodemailer.Transporter | null = null;
+  private static transporter: Transporter | null = null;
   private static config: EmailConfig | null = null;
 
   static initialize(config: EmailConfig): void {

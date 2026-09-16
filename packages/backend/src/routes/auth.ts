@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AuthService } from '@/services/AuthService';
+import { User } from '@/models/User';
 import { authenticate, optionalAuth } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
 import { authRateLimiter, strictRateLimiter } from '@/middleware/rateLimiter';
@@ -44,20 +45,20 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
   try {
     // DIRECT DATABASE LOGIN - BYPASSES BROKEN AuthService
     const { email, password } = req.body;
-    
+
     console.log('🔐 DIRECT AUTH LOGIN:', email);
-    
+
     const { db } = require('../config/database');
     const bcrypt = require('bcryptjs');
     const jwt = require('jsonwebtoken');
-    
+
     // Find user directly from database
     const user = await db('users').where('email', email.toLowerCase()).first();
-    
+
     if (!user) {
       logger.warn(`Login attempt with non-existent email: ${email}`);
       return res.status(401).json({
-        error: 'Invalid credentials'
+        error: 'Invalid credentials',
       });
     }
 
@@ -65,7 +66,7 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
     if (!user.is_active) {
       logger.warn(`Login attempt with deactivated account: ${email}`);
       return res.status(401).json({
-        error: 'Account is deactivated'
+        error: 'Account is deactivated',
       });
     }
 
@@ -74,7 +75,7 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
     if (!isPasswordValid) {
       logger.warn(`Login attempt with invalid password: ${email}`);
       return res.status(401).json({
-        error: 'Invalid credentials'
+        error: 'Invalid credentials',
       });
     }
 
@@ -84,18 +85,18 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
         userId: user.id,
         email: user.email,
         role: user.role,
-        type: 'access'
+        type: 'access',
       },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '15m' }
     );
-    
+
     const refreshToken = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
-        type: 'refresh'
+        type: 'refresh',
       },
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'fallback-refresh-secret',
       { expiresIn: '7d' }
@@ -340,6 +341,109 @@ router.post('/associate-company', authenticate, async (req, res, next) => {
 });
 
 /**
+ * GET /auth/me
+ * Current user. The frontend calls this on every page load; it previously had no
+ * implementation here and was served by a duplicate handler in index.ts.
+ */
+router.get('/me', authenticate, async (req, res, next) => {
+  try {
+    const profile = await AuthService.getUserProfile(req.user!.id);
+
+    // getUserProfile returns a camelCase UserModel, not a raw DB row.
+    res.json({
+      id: profile.id,
+      email: profile.email,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      role: profile.role,
+      isActive: profile.isActive,
+      emailVerified: profile.emailVerified,
+      preferences: profile.preferences || {},
+      companies: profile.companies || [],
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * PUT /auth/change-password
+ * Alias of POST /auth/change-password - the frontend issues a PUT.
+ */
+router.put(
+  '/change-password',
+  authenticate,
+  validate(changePasswordSchema),
+  async (req, res, next) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      await AuthService.changePassword(req.user!.id, currentPassword, newPassword);
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * PUT /auth/preferences
+ * Merge a partial preferences object into the user's stored preferences.
+ */
+router.put('/preferences', authenticate, async (req, res, next) => {
+  try {
+    if (typeof req.body !== 'object' || req.body === null || Array.isArray(req.body)) {
+      throw new AppError('Preferences must be an object', 400, 'INVALID_PREFERENCES');
+    }
+
+    const user = await User.findById(req.user!.id);
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    const preferences = { ...(user.preferences || {}), ...req.body };
+    await User.update(req.user!.id, { preferences });
+
+    res.json({ message: 'Preferences updated successfully', preferences });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /auth/profile-picture
+ * Stores the avatar URL in the users.preferences JSONB blob. There is no
+ * profile_picture_url column and no upload pipeline wired up here, so this
+ * persists a generated avatar rather than an uploaded file - same visible
+ * behaviour as before, but it now survives a reload.
+ */
+router.post('/profile-picture', authenticate, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user!.id);
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    const displayName = `${user.first_name} ${user.last_name}`.trim() || user.email;
+    const profilePictureUrl =
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}` +
+      `&size=96&background=3b82f6&color=ffffff`;
+
+    const preferences = { ...(user.preferences || {}), profilePictureUrl };
+    await User.update(req.user!.id, { preferences });
+
+    res.json({
+      message: 'Profile picture updated successfully',
+      profilePictureUrl,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * GET /auth/debug
  * Debug authentication - test if middleware works
  */
@@ -348,7 +452,7 @@ router.get('/debug', authenticate, async (req, res, next) => {
     res.json({
       message: 'Authentication working!',
       user: req.user,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     next(error);

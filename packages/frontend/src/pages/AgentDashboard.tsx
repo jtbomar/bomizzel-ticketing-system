@@ -328,7 +328,6 @@ const AgentDashboard: React.FC = () => {
       // If no mapping found, assign to first available status
       const firstStatus = statuses[0];
       if (firstStatus) {
-
         return { ...ticketWithNotes, status: firstStatus.value };
       }
 
@@ -355,7 +354,6 @@ const AgentDashboard: React.FC = () => {
           const idMapArray = JSON.parse(savedIdMap);
           const idMapping = new Map<number, string>(idMapArray);
           setTicketIdMap(idMapping);
-
         } catch (error) {
           console.error('Failed to load ticket ID mapping:', error);
         }
@@ -454,7 +452,6 @@ const AgentDashboard: React.FC = () => {
           // Save ID mapping to localStorage
           const idMapKey = `agent-ticket-ids-${user.id}`;
           localStorage.setItem(idMapKey, JSON.stringify(Array.from(idMapping.entries())));
-
         }
       } catch (error) {
         console.error('Failed to fetch tickets:', error);
@@ -481,7 +478,6 @@ const AgentDashboard: React.FC = () => {
       // If we have a teamId, try to fetch team-specific statuses
       if (teamId) {
         try {
-
           const response = await apiService.getTeamStatuses(teamId);
           const apiStatuses = response.statuses || [];
 
@@ -532,7 +528,6 @@ const AgentDashboard: React.FC = () => {
 
         // Fallback: get from user profile or teams endpoint
         // For now, we'll use a default team if available
-
       } catch (error) {
         console.error('[AgentDashboard] Failed to get user team:', error);
       }
@@ -542,9 +537,7 @@ const AgentDashboard: React.FC = () => {
   }, [user]);
 
   // dnd-kit sensor with activation constraint to avoid accidental drags
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [showProfile, setShowProfile] = useState(false);
   const [showCreateTicket, setShowCreateTicket] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
@@ -669,8 +662,6 @@ const AgentDashboard: React.FC = () => {
 
   // Memoized filtered tickets to prevent excessive re-renders during drag operations
   const filteredTickets = useMemo(() => {
-
-
     // Use activeViewFilter (sidebar) as primary filter
     if (activeViewFilter === 'my-queue') {
       // Check for tickets assigned to current user - handle multiple formats
@@ -685,7 +676,6 @@ const AgentDashboard: React.FC = () => {
 
       return myTickets;
     } else if (activeViewFilter === 'all-tickets') {
-
       return tickets;
     } else if (activeViewFilter === 'unassigned') {
       const unassignedTickets = tickets.filter((ticket) => ticket.assigned === 'Unassigned');
@@ -709,7 +699,6 @@ const AgentDashboard: React.FC = () => {
 
         return myTickets;
       } else {
-
         return tickets;
       }
     }
@@ -733,7 +722,6 @@ const AgentDashboard: React.FC = () => {
       // Save even if 0 tickets (empty state)
       const userKey = `agent-tickets-${user.id}`;
       localStorage.setItem(userKey, JSON.stringify(tickets));
-
     }
   }, [tickets, user]);
 
@@ -1360,132 +1348,118 @@ const AgentDashboard: React.FC = () => {
     setActiveDragId(id);
   }, []);
 
-  const handleDndDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      setActiveDragId(null);
+  const handleDndDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDragId(null);
 
-      if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id) return;
 
-      const activeId = Number(active.id);
-      const overId = String(over.id);
+    const activeId = Number(active.id);
+    const overId = String(over.id);
 
-      setTickets((prev) => {
-        const draggedTicket = prev.find((t) => t.id === activeId);
-        if (!draggedTicket) return prev;
-
-        // Determine target status
-        let targetStatus: string;
-        if (overId.startsWith('column-')) {
-          targetStatus = overId.replace('column-', '');
-        } else {
-          const overTicket = prev.find((t) => t.id === Number(overId));
-          if (!overTicket) return prev;
-          targetStatus = overTicket.status;
-        }
-
-        // Get tickets in the target column, sorted by order
-        const columnTickets = prev
-          .filter((t) => t.status === targetStatus && t.id !== activeId)
-          .sort((a, b) => a.order - b.order);
-
-        // Find where to insert
-        let insertIndex = columnTickets.length; // default: end
-        if (!overId.startsWith('column-')) {
-          const overIndex = columnTickets.findIndex((t) => t.id === Number(overId));
-          if (overIndex !== -1) {
-            insertIndex = overIndex;
-          }
-        }
-
-        // Insert dragged ticket at the right position
-        columnTickets.splice(insertIndex, 0, { ...draggedTicket, status: targetStatus });
-
-        // Reassign clean integer orders
-        const updatedIds = new Map<number, { status: string; order: number }>();
-        columnTickets.forEach((t, i) => {
-          updatedIds.set(t.id, { status: targetStatus, order: i + 1 });
-        });
-
-        return prev.map((t) => {
-          const update = updatedIds.get(t.id);
-          if (update) {
-            return { ...t, status: update.status, order: update.order };
-          }
-          return t;
-        });
-      });
-    },
-    []
-  );
-
-  const handleDndDragOver = useCallback(
-    (event: DragOverEvent) => {
-      const { active, over } = event;
-      if (!over) return;
-
-      const activeId = Number(active.id);
-      const overId = String(over.id);
+    setTickets((prev) => {
+      const draggedTicket = prev.find((t) => t.id === activeId);
+      if (!draggedTicket) return prev;
 
       // Determine target status
-      let targetStatus: string | null = null;
+      let targetStatus: string;
       if (overId.startsWith('column-')) {
         targetStatus = overId.replace('column-', '');
       } else {
-        setTickets((prev) => {
-          const overTicket = prev.find((t) => t.id === Number(overId));
-          const draggedTicket = prev.find((t) => t.id === activeId);
-          if (!overTicket || !draggedTicket) return prev;
-          if (draggedTicket.status === overTicket.status) return prev;
-
-          // Move to new column at the end for visual feedback
-          const targetColumnTickets = prev.filter(
-            (t) => t.status === overTicket.status && t.id !== activeId
-          );
-          const maxOrder = targetColumnTickets.length > 0
-            ? Math.max(...targetColumnTickets.map((t) => t.order))
-            : 0;
-
-          return prev.map((t) =>
-            t.id === activeId
-              ? { ...t, status: overTicket.status, order: maxOrder + 1 }
-              : t
-          );
-        });
-        return;
+        const overTicket = prev.find((t) => t.id === Number(overId));
+        if (!overTicket) return prev;
+        targetStatus = overTicket.status;
       }
 
-      if (targetStatus) {
-        setTickets((prev) => {
-          const draggedTicket = prev.find((t) => t.id === activeId);
-          if (!draggedTicket || draggedTicket.status === targetStatus) return prev;
+      // Get tickets in the target column, sorted by order
+      const columnTickets = prev
+        .filter((t) => t.status === targetStatus && t.id !== activeId)
+        .sort((a, b) => a.order - b.order);
 
-          const targetColumnTickets = prev.filter(
-            (t) => t.status === targetStatus && t.id !== activeId
-          );
-          const maxOrder = targetColumnTickets.length > 0
-            ? Math.max(...targetColumnTickets.map((t) => t.order))
-            : 0;
-
-          return prev.map((t) =>
-            t.id === activeId
-              ? { ...t, status: targetStatus!, order: maxOrder + 1 }
-              : t
-          );
-        });
+      // Find where to insert
+      let insertIndex = columnTickets.length; // default: end
+      if (!overId.startsWith('column-')) {
+        const overIndex = columnTickets.findIndex((t) => t.id === Number(overId));
+        if (overIndex !== -1) {
+          insertIndex = overIndex;
+        }
       }
-    },
-    []
-  );
+
+      // Insert dragged ticket at the right position
+      columnTickets.splice(insertIndex, 0, { ...draggedTicket, status: targetStatus });
+
+      // Reassign clean integer orders
+      const updatedIds = new Map<number, { status: string; order: number }>();
+      columnTickets.forEach((t, i) => {
+        updatedIds.set(t.id, { status: targetStatus, order: i + 1 });
+      });
+
+      return prev.map((t) => {
+        const update = updatedIds.get(t.id);
+        if (update) {
+          return { ...t, status: update.status, order: update.order };
+        }
+        return t;
+      });
+    });
+  }, []);
+
+  const handleDndDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = Number(active.id);
+    const overId = String(over.id);
+
+    // Determine target status
+    let targetStatus: string | null = null;
+    if (overId.startsWith('column-')) {
+      targetStatus = overId.replace('column-', '');
+    } else {
+      setTickets((prev) => {
+        const overTicket = prev.find((t) => t.id === Number(overId));
+        const draggedTicket = prev.find((t) => t.id === activeId);
+        if (!overTicket || !draggedTicket) return prev;
+        if (draggedTicket.status === overTicket.status) return prev;
+
+        // Move to new column at the end for visual feedback
+        const targetColumnTickets = prev.filter(
+          (t) => t.status === overTicket.status && t.id !== activeId
+        );
+        const maxOrder =
+          targetColumnTickets.length > 0 ? Math.max(...targetColumnTickets.map((t) => t.order)) : 0;
+
+        return prev.map((t) =>
+          t.id === activeId ? { ...t, status: overTicket.status, order: maxOrder + 1 } : t
+        );
+      });
+      return;
+    }
+
+    if (targetStatus) {
+      setTickets((prev) => {
+        const draggedTicket = prev.find((t) => t.id === activeId);
+        if (!draggedTicket || draggedTicket.status === targetStatus) return prev;
+
+        const targetColumnTickets = prev.filter(
+          (t) => t.status === targetStatus && t.id !== activeId
+        );
+        const maxOrder =
+          targetColumnTickets.length > 0 ? Math.max(...targetColumnTickets.map((t) => t.order)) : 0;
+
+        return prev.map((t) =>
+          t.id === activeId ? { ...t, status: targetStatus!, order: maxOrder + 1 } : t
+        );
+      });
+    }
+  }, []);
 
   const activeDragTicket = useMemo(
-    () => (activeDragId ? tickets.find((t) => t.id === activeDragId) ?? null : null),
+    () => (activeDragId ? (tickets.find((t) => t.id === activeDragId) ?? null) : null),
     [activeDragId, tickets]
   );
 
   const renderKanbanBoard = () => {
-
-
     // CRITICAL: Force default statuses if we have none
     if (statuses.length === 0) {
       const defaultStatuses = getStatuses();
@@ -1519,15 +1493,12 @@ const AgentDashboard: React.FC = () => {
               </div>
             </div>
           </div>
-
-
         </div>
       );
     }
 
     // Show empty state if no tickets and user is filtering to "My Tickets"
     if (tickets.length === 0 && showOnlyMyTickets) {
-
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🎫</div>
@@ -1549,7 +1520,6 @@ const AgentDashboard: React.FC = () => {
 
     // Show debug info if no tickets at all
     if (tickets.length === 0) {
-
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
@@ -1572,7 +1542,6 @@ const AgentDashboard: React.FC = () => {
 
     // Show debug info if we have tickets but filtered tickets is empty
     if (tickets.length > 0 && filteredTickets.length === 0) {
-
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
@@ -1609,11 +1578,8 @@ const AgentDashboard: React.FC = () => {
       );
     }
 
-
-
     return (
       <div className="space-y-6">
-
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -1623,7 +1589,9 @@ const AgentDashboard: React.FC = () => {
         >
           <div
             className={`grid grid-cols-1 gap-6`}
-            style={{ gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))` }}
+            style={{
+              gridTemplateColumns: `repeat(${Math.min(statuses.length, 6)}, minmax(0, 1fr))`,
+            }}
           >
             {statuses.map((statusConfig) => {
               const statusTickets = getStatusTickets(statusConfig.value);
@@ -1725,9 +1693,7 @@ const AgentDashboard: React.FC = () => {
                                         moveTicketInColumn(ticket.id, 'down');
                                       }}
                                       onPointerDown={(e) => e.stopPropagation()}
-                                      disabled={
-                                        index === statusTickets.length - 1
-                                      }
+                                      disabled={index === statusTickets.length - 1}
                                       className="text-xs text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
                                       title="Move down"
                                     >
@@ -1770,7 +1736,9 @@ const AgentDashboard: React.FC = () => {
 
           <DragOverlay>
             {activeDragTicket ? (
-              <div className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg border-l-4 rotate-2 ${getStatusColor(activeDragTicket.status)}`}>
+              <div
+                className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-lg border-l-4 rotate-2 ${getStatusColor(activeDragTicket.status)}`}
+              >
                 <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                   {activeDragTicket.title}
                 </h4>
@@ -1781,7 +1749,6 @@ const AgentDashboard: React.FC = () => {
             ) : null}
           </DragOverlay>
         </DndContext>
-
       </div>
     );
   };
@@ -2169,7 +2136,12 @@ const AgentDashboard: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={async () => {
-                    if (!confirm('Are you sure you want to delete this ticket? This cannot be undone.')) return;
+                    if (
+                      !confirm(
+                        'Are you sure you want to delete this ticket? This cannot be undone.'
+                      )
+                    )
+                      return;
                     try {
                       const uuidId = ticketIdMap.get(selectedTicket.id);
                       if (uuidId) {
@@ -2181,14 +2153,21 @@ const AgentDashboard: React.FC = () => {
                       setNewNoteContent('');
                     } catch (err: any) {
                       console.error('Failed to delete ticket:', err);
-                      alert('Failed to delete ticket: ' + (err?.response?.data?.message || err.message));
+                      alert(
+                        'Failed to delete ticket: ' + (err?.response?.data?.message || err.message)
+                      );
                     }
                   }}
                   className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   title="Delete ticket"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                 </button>
                 <button
@@ -2200,7 +2179,12 @@ const AgentDashboard: React.FC = () => {
                   className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -3386,7 +3370,8 @@ const AgentDashboard: React.FC = () => {
             <button
               onClick={async () => {
                 if (!selectedTicket) return;
-                if (!confirm('Are you sure you want to delete this ticket? This cannot be undone.')) return;
+                if (!confirm('Are you sure you want to delete this ticket? This cannot be undone.'))
+                  return;
                 try {
                   const uuidId = ticketIdMap.get(selectedTicket.id);
                   if (uuidId) {
@@ -3398,7 +3383,9 @@ const AgentDashboard: React.FC = () => {
                   setNewNoteContent('');
                 } catch (err: any) {
                   console.error('Failed to delete ticket:', err);
-                  alert('Failed to delete ticket: ' + (err?.response?.data?.message || err.message));
+                  alert(
+                    'Failed to delete ticket: ' + (err?.response?.data?.message || err.message)
+                  );
                 }
               }}
               className="px-6 py-2.5 text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"

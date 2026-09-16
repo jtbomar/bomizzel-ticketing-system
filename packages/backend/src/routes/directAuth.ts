@@ -13,21 +13,21 @@ const router = Router();
 router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    
+
     console.log('🔐 DIRECT AUTH LOGIN ATTEMPT:', email);
-    
+
     // Use direct database connection (same as working emergency endpoint)
     const { db } = require('../config/database');
     const bcrypt = require('bcryptjs');
     const jwt = require('jsonwebtoken');
-    
+
     // Find user directly from database
     const user = await db('users').where('email', email.toLowerCase()).first();
-    
+
     if (!user) {
       logger.warn(`Login attempt with non-existent email: ${email}`);
       return res.status(401).json({
-        error: 'Invalid credentials'
+        error: 'Invalid credentials',
       });
     }
 
@@ -35,7 +35,7 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
     if (!user.is_active) {
       logger.warn(`Login attempt with deactivated account: ${email}`);
       return res.status(401).json({
-        error: 'Account is deactivated'
+        error: 'Account is deactivated',
       });
     }
 
@@ -44,7 +44,7 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
     if (!isPasswordValid) {
       logger.warn(`Login attempt with invalid password: ${email}`);
       return res.status(401).json({
-        error: 'Invalid credentials'
+        error: 'Invalid credentials',
       });
     }
 
@@ -54,18 +54,18 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
         userId: user.id,
         email: user.email,
         role: user.role,
-        type: 'access'
+        type: 'access',
       },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn: '15m' }
     );
-    
+
     const refreshToken = jwt.sign(
       {
         userId: user.id,
         email: user.email,
         role: user.role,
-        type: 'refresh'
+        type: 'refresh',
       },
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'fallback-refresh-secret',
       { expiresIn: '7d' }
@@ -94,7 +94,6 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
       refreshToken: refreshToken,
     });
     return;
-
   } catch (error) {
     logger.error('Direct auth login error:', error);
     next(error);

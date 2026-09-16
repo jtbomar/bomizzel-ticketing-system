@@ -127,20 +127,28 @@ describe('TicketService', () => {
     let ticketId: string;
 
     beforeEach(async () => {
-      const ticket = await TicketService.createTicket({
-        title: 'Test Ticket for Assignment',
-        description: 'Test description',
-        companyId: companyId,
-        teamId: teamId,
-        customFieldValues: {
-          priority_level: 'Medium',
+      const ticket = await TicketService.createTicket(
+        {
+          title: 'Test Ticket for Assignment',
+          description: 'Test description',
+          companyId: companyId,
+          teamId: teamId,
+          customFieldValues: {
+            priority_level: 'Medium',
+          },
         },
-      }, customerId);
+        customerId
+      );
       ticketId = ticket.id;
     });
 
     it('should assign ticket to employee', async () => {
-      const updatedTicket = await TicketService.assignTicket(ticketId, employeeId, employeeId, 'employee');
+      const updatedTicket = await TicketService.assignTicket(
+        ticketId,
+        employeeId,
+        employeeId,
+        'employee'
+      );
 
       expect(updatedTicket.assignedToId).toBe(employeeId);
     });
@@ -154,9 +162,9 @@ describe('TicketService', () => {
     });
 
     it('should reject assignment to non-existent employee', async () => {
-      await expect(TicketService.assignTicket(ticketId, 'non-existent-id', employeeId, 'employee')).rejects.toThrow(
-        'Employee not found'
-      );
+      await expect(
+        TicketService.assignTicket(ticketId, 'non-existent-id', employeeId, 'employee')
+      ).rejects.toThrow('Employee not found');
     });
   });
 
@@ -164,20 +172,28 @@ describe('TicketService', () => {
     let ticketId: string;
 
     beforeEach(async () => {
-      const ticket = await TicketService.createTicket({
-        title: 'Test Ticket for Status Update',
-        description: 'Test description',
-        companyId: companyId,
-        teamId: teamId,
-        customFieldValues: {
-          priority_level: 'Low',
+      const ticket = await TicketService.createTicket(
+        {
+          title: 'Test Ticket for Status Update',
+          description: 'Test description',
+          companyId: companyId,
+          teamId: teamId,
+          customFieldValues: {
+            priority_level: 'Low',
+          },
         },
-      }, customerId);
+        customerId
+      );
       ticketId = ticket.id;
     });
 
     it('should update ticket status', async () => {
-      const updatedTicket = await TicketService.updateTicketStatus(ticketId, 'in_progress', employeeId, 'employee');
+      const updatedTicket = await TicketService.updateTicketStatus(
+        ticketId,
+        'in_progress',
+        employeeId,
+        'employee'
+      );
 
       expect(updatedTicket.status).toBe('in_progress');
     });
@@ -195,21 +211,27 @@ describe('TicketService', () => {
   describe('searchTickets', () => {
     beforeAll(async () => {
       // Create multiple test tickets
-      await TicketService.createTicket({
-        title: 'Bug Report',
-        description: 'Application crashes on startup',
-        companyId: companyId,
-        teamId: teamId,
-        customFieldValues: { priority_level: 'High' },
-      }, customerId);
+      await TicketService.createTicket(
+        {
+          title: 'Bug Report',
+          description: 'Application crashes on startup',
+          companyId: companyId,
+          teamId: teamId,
+          customFieldValues: { priority_level: 'High' },
+        },
+        customerId
+      );
 
-      await TicketService.createTicket({
-        title: 'Feature Request',
-        description: 'Add dark mode support',
-        companyId: companyId,
-        teamId: teamId,
-        customFieldValues: { priority_level: 'Low' },
-      }, customerId);
+      await TicketService.createTicket(
+        {
+          title: 'Feature Request',
+          description: 'Add dark mode support',
+          companyId: companyId,
+          teamId: teamId,
+          customFieldValues: { priority_level: 'Low' },
+        },
+        customerId
+      );
     });
 
     it('should search tickets by title', async () => {

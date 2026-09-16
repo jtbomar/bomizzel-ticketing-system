@@ -21,12 +21,12 @@ import systemConfigRoutes from './systemConfig';
 import reportsRoutes from './reports';
 import ticketStatusRoutes from './ticketStatuses';
 import monitoringRoutes from './monitoring';
-// Temporarily disabled - Stripe not configured
-// import subscriptionRoutes from './subscriptions';
-// import usageAlertRoutes from './usageAlerts';
-// import billingRoutes from './billing';
-// import subscriptionAnalyticsRoutes from './subscriptionAnalytics';
+import subscriptionRoutes from './subscriptions';
+import usageAlertRoutes from './usageAlerts';
+import subscriptionAnalyticsRoutes from './subscriptionAnalytics';
+// billing requires live Stripe credentials; mounted conditionally below.
 import ticketArchivalRoutes from './ticketArchival';
+import ticketLayoutRoutes from './ticketLayouts';
 import companyRegistrationRoutes from './companyRegistration';
 import enhancedRegistrationRoutes from './enhancedRegistration';
 import adminProvisioningRoutes from './adminProvisioning';
@@ -70,6 +70,7 @@ router.use('/tickets', ticketRoutes);
 router.use('/profile-fields', profileFieldRoutes);
 router.use('/tickets', ticketNoteRoutes);
 router.use('/tickets', ticketArchivalRoutes);
+router.use('/ticket-layouts', ticketLayoutRoutes);
 router.use('/queues', queueRoutes);
 router.use('/files', fileRoutes);
 router.use('/bulk', bulkOperationsRoutes);
@@ -78,11 +79,18 @@ router.use('/admin', adminRoutes);
 router.use('/system', systemConfigRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/monitoring', monitoringRoutes);
-// Temporarily disabled - Stripe not configured
-// router.use('/subscriptions', subscriptionRoutes);
-// router.use('/subscription-analytics', subscriptionAnalyticsRoutes);
-// router.use('/usage-alerts', usageAlertRoutes);
-// router.use('/billing', billingRoutes);
+router.use('/subscriptions', subscriptionRoutes);
+router.use('/subscription-analytics', subscriptionAnalyticsRoutes);
+router.use('/usage-alerts', usageAlertRoutes);
+
+// Billing talks to Stripe on every request, so only mount it when a key is present.
+// Without this the frontend's /billing calls 404 with JSON instead of failing opaquely.
+if (process.env.STRIPE_SECRET_KEY) {
+  const billingRoutes = require('./billing').default;
+  router.use('/billing', billingRoutes);
+} else {
+  console.warn('⚠️  STRIPE_SECRET_KEY not set - /api/billing routes are not mounted');
+}
 router.use('/data-export', dataExportRoutes);
 router.use('/query-builder', queryBuilderRoutes);
 router.use('/customer-query-builder', customerQueryBuilderRoutes);
@@ -132,7 +140,10 @@ router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) =
   }
 });
 
-router.use('/', emailRoutes);
+// Mounted at /email, NOT at '/'. Mounting at '/' made this a catch-all: because
+// emailRoutes applies `authenticate` to every request, any unmatched /api/* path
+// fell through to it and returned 401, which logged the user out client-side.
+router.use('/email', emailRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {
