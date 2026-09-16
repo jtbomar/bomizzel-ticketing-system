@@ -76,141 +76,21 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Import and mount API routes
-try {
-  const routes = require('./routes').default;
-  app.use('/api', routes);
-  console.log('✅ API routes registered successfully');
-} catch (error) {
-  console.warn('⚠️ Could not register API routes:', error);
-
-  // Try to register critical routes individually
-  try {
-    const authRoutes = require('./routes/auth').default;
-    const adminRoutes = require('./routes/admin').default;
-    const adminProvisioningRoutes = require('./routes/adminProvisioning').default;
-    const enhancedRegistrationRoutes = require('./routes/enhancedRegistration').default;
-    const businessHoursRoutes = require('./routes/businessHours').default;
-    const holidayListRoutes = require('./routes/holidayLists').default;
-    const departmentRoutes = require('./routes/departments').default;
-    const customerHappinessRoutes = require('./routes/customerHappiness').default;
-    const companyRoutes = require('./routes/companies').default;
-    const organizationalRolesRoutes = require('./routes/organizationalRoles').default;
-    const userProfilesRoutes = require('./routes/userProfiles').default;
-    const agentsRoutes = require('./routes/agents').default;
-    const usersRoutes = require('./routes/users').default;
-
-    // Try to load tickets, custom fields, teams, and files routes
-    let ticketsRoutes, customFieldsRoutes, teamsRoutes, filesRoutes;
-    try {
-      ticketsRoutes = require('./routes/tickets').default;
-      customFieldsRoutes = require('./routes/customFields').default;
-      teamsRoutes = require('./routes/teams').default;
-      filesRoutes = require('./routes/files').default;
-    } catch (err) {
-      console.warn('⚠️ Could not load tickets/custom-fields/teams/files routes:', err);
-    }
-
-    app.use('/api/auth', authRoutes);
-    app.use('/api/auth', enhancedRegistrationRoutes);
-
-    // Direct auth routes (bypass User model issues)
-    try {
-      const directAuthRoutes = require('./routes/directAuth').default;
-      app.use('/api/direct-auth', directAuthRoutes);
-      console.log('🔐 Direct auth routes registered');
-    } catch (error) {
-      console.warn('⚠️ Could not load direct auth routes:', error);
-    }
-    app.use('/api/admin', adminRoutes);
-    app.use('/api/admin/provisioning', adminProvisioningRoutes);
-
-    // Emergency admin routes for database issues
-    try {
-      const emergencyAdminRoutes = require('./routes/admin').default;
-      app.use('/api/emergency', emergencyAdminRoutes);
-      console.log('🚨 Emergency admin routes registered');
-    } catch (error) {
-      console.warn('⚠️ Could not load emergency admin routes:', error);
-    }
-    app.use('/api/business-hours', businessHoursRoutes);
-    app.use('/api/holiday-lists', holidayListRoutes);
-    app.use('/api/departments', departmentRoutes);
-    app.use('/api/customer-happiness', customerHappinessRoutes);
-    app.use('/api/companies', companyRoutes);
-    app.use('/api/organizational-roles', organizationalRolesRoutes);
-    app.use('/api/user-profiles', userProfilesRoutes);
-    app.use('/api/agents', agentsRoutes);
-    app.use('/api/users', usersRoutes);
-
-    if (ticketsRoutes) {
-      app.use('/api/tickets', ticketsRoutes);
-      console.log('✅ Tickets routes registered');
-    }
-    if (customFieldsRoutes) {
-      app.use('/api/custom-fields', customFieldsRoutes);
-      console.log('✅ Custom fields routes registered');
-    }
-    if (teamsRoutes) {
-      app.use('/api/teams', teamsRoutes);
-      console.log('✅ Teams routes registered');
-    }
-    if (filesRoutes) {
-      app.use('/api/files', filesRoutes);
-      console.log('✅ Files routes registered');
-    }
-
-    console.log(
-      '✅ Auth, admin, companies, agents, users, admin provisioning, enhanced registration, business hours, holiday lists, departments, customer happiness, organizational roles, and user profiles routes registered'
-    );
-  } catch (err) {
-    console.error('❌ Failed to register provisioning routes:', err);
-  }
-
-  // Manually register auth verify endpoint as fallback
-  app.get('/api/auth/verify', async (req: Request, res: Response): Promise<void> => {
-    try {
-      const { authenticate } = await import('./middleware/auth');
-      const { User } = await import('./models/User');
-
-      // Extract token
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'No token provided' });
-        return;
-      }
-
-      const token = authHeader.substring(7);
-      const { JWTUtils } = await import('./utils/jwt');
-      const payload = JWTUtils.verifyAccessToken(token);
-
-      if (!payload) {
-        res.status(401).json({ error: 'Invalid token' });
-        return;
-      }
-
-      const user = await User.findById(payload.userId);
-      if (!user) {
-        res.status(404).json({ error: 'User not found' });
-        return;
-      }
-
-      res.json({
-        valid: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          firstName: user.first_name,
-          lastName: user.last_name,
-          role: user.role,
-        },
-      });
-    } catch (error) {
-      console.error('Auth verify error:', error);
-      res.status(401).json({ error: 'Authentication failed' });
-    }
-  });
-  console.log('✅ Manual auth verify endpoint registered');
-}
+// Mount the API router.
+//
+// Deliberately NOT wrapped in try/catch. This used to catch a failed
+// `require('./routes')` and fall back to registering a hand-picked subset of
+// routers, logging a warning and continuing. The result was a server that
+// looked healthy while /api/tickets, /api/queues, /api/ticket-layouts,
+// /api/subscriptions and /api/usage-alerts all returned 404 - which is exactly
+// what happened when a sharp upgrade made one transitive import unloadable.
+//
+// A router that cannot be built is a deploy-blocking bug, so let it throw: the
+// process exits, the platform health check fails, and the bad release is
+// obvious instead of silently half-working.
+const routes = require('./routes').default;
+app.use('/api', routes);
+console.log('✅ API routes registered successfully');
 
 // Company profile endpoints with database persistence
 app.get('/api/company-registration/profile', async (req: Request, res: Response) => {

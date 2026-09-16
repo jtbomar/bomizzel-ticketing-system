@@ -327,7 +327,10 @@ export class FileService {
     const thumbnailFileName = `thumb_${fileName}`;
     const thumbnailPath = path.join(thumbnailDir, thumbnailFileName);
 
-    let sharp: typeof import('sharp');
+    // `typeof import('sharp')` is the module namespace, which is not callable.
+    // The callable factory is its default export, and require() hands that back
+    // directly under CJS.
+    let sharp: typeof import('sharp').default;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       sharp = require('sharp');

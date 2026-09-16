@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nodejs_18"]
+nixPkgs = ["nodejs_20"]
 
 [phases.install]
 cmds = ["npm install --include=dev"]
@@ -8,4 +8,4 @@ cmds = ["npm install --include=dev"]
 cmds = ["echo 'Skipping TypeScript build - using ts-node'"]
 
 [start]
-cmd = "npx ts-node src/index.ts"
+cmd = "npx ts-node --transpile-only -r tsconfig-paths/register src/index.ts"
