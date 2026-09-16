@@ -7,7 +7,15 @@ import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors'
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import sharp from 'sharp';
+// sharp is loaded lazily inside generateThumbnail(), NOT at module scope.
+//
+// sharp is a native module and fails to load when its platform binary is
+// missing or the Node version is too old. FileService is imported by
+// routes/files.ts and routes/tickets.ts, so a top-level import meant that one
+// unloadable optional dependency threw while building the router - which
+// index.ts catches, silently falling back to a partial route set. That took
+// /api/tickets and /api/queues off the air entirely. Thumbnails are the only
+// thing sharp is used for; they should degrade on their own.
 
 export class FileService {
   private static readonly UPLOAD_DIR = process.env['UPLOAD_DIR'] || 'uploads';
@@ -318,6 +326,19 @@ export class FileService {
 
     const thumbnailFileName = `thumb_${fileName}`;
     const thumbnailPath = path.join(thumbnailDir, thumbnailFileName);
+
+    let sharp: typeof import('sharp');
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      sharp = require('sharp');
+    } catch (error) {
+      console.error(
+        'sharp is unavailable, skipping thumbnail generation. ' +
+          "Check that the platform binary installed and that Node meets sharp's engine requirement:",
+        error instanceof Error ? error.message : error
+      );
+      throw new Error('Thumbnail generation unavailable');
+    }
 
     try {
       await sharp(filePath)
