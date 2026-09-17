@@ -475,34 +475,24 @@ describe('Authentication Security Tests', () => {
         .expect(413);
     });
 
-    it('should reject file names that try to climb out of the upload directory', async () => {
-      // This expected the name to be sanitized and the upload to succeed. The
-      // upload filter refuses it instead, which is the stronger answer - there
-      // is no rewritten name to get wrong later. The extension is .txt so the
-      // request dies on the traversal, not on an unsupported type.
-      const fileContent = Buffer.from('test content');
-
-      for (const name of ['../../../etc/passwd.txt', '..\\..\\windows\\system.txt', 'a/b.txt']) {
-        await request(app)
-          .post('/api/files/upload')
-          .set('Authorization', `Bearer ${validToken}`)
-          .field('ticketId', ticketId)
-          .attach('file', fileContent, name)
-          .expect(400);
-      }
-    });
-
-    it('should accept an ordinary file', async () => {
-      // The other side of that line: the rejections above have to be about the
-      // names, not about uploads being broken.
+    it('should store a file under a name that cannot escape the upload directory', async () => {
+      // This expected the name to be rewritten. Nothing rewrites it: the
+      // directory component never survives the multipart parse, so the stored
+      // name is already a bare filename. The filter's own traversal check sits
+      // behind that and never fires for a path. Asserted here through the real
+      // API; tests/fileUploadSecurity.test.ts covers the filter directly, with
+      // hand-built multipart bodies, because form-data normalises the filename
+      // before it reaches the wire and a real attacker would not.
       const response = await request(app)
         .post('/api/files/upload')
         .set('Authorization', `Bearer ${validToken}`)
         .field('ticketId', ticketId)
-        .attach('file', Buffer.from('test content'), 'notes.txt')
+        .attach('file', Buffer.from('test content'), '../../../etc/passwd.txt')
         .expect(201);
 
-      expect(response.body.data).toBeDefined();
+      const storedName = response.body.data.fileName ?? response.body.data.filename;
+      expect(storedName).not.toContain('..');
+      expect(storedName).not.toContain('/');
     });
   });
 
