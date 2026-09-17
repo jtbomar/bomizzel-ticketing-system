@@ -13,6 +13,7 @@ import dotenv from 'dotenv';
 import { connectRedis } from './config/redis';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
+import { ForbiddenError } from './utils/errors';
 
 // Load environment variables first
 dotenv.config();
@@ -107,7 +108,10 @@ app.use(
         callback(null, true);
       } else {
         console.log('❌ CORS: Origin blocked:', origin);
-        callback(new Error('Not allowed by CORS'));
+        // A bare Error here reached the error handler unclassified and came back
+        // as a 500, so a blocked origin looked like a server fault in the logs
+        // and to anything watching error rates. It is a refusal, and says so.
+        callback(new ForbiddenError('Not allowed by CORS'));
       }
     },
     credentials: true,

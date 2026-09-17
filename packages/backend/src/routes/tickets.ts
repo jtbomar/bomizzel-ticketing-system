@@ -13,6 +13,7 @@ import {
   addUsageWarnings,
 } from '@/middleware/subscriptionEnforcement';
 import { db } from '@/config/database';
+import { apiRateLimiter } from '@/middleware/rateLimiter';
 
 const router = Router();
 
@@ -25,6 +26,9 @@ router.use(authenticate);
  */
 router.post(
   '/',
+  // 60 creations per minute per user. Well clear of anything a person does by
+  // hand, and email-to-ticket ingestion does not come through this route.
+  apiRateLimiter,
   validateRequest({
     body: {
       title: { type: 'string', required: true, minLength: 1, maxLength: 255 },

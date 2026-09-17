@@ -103,10 +103,20 @@ if (process.env['NODE_ENV'] !== 'production') {
   );
 }
 
-// Enhanced logging methods
-export const enhancedLogger = {
-  ...logger,
-
+// Enhanced logging methods.
+//
+// These used to be spread onto a fresh object: `{ ...logger, security, ... }`.
+// Winston's level methods live on the logger's prototype, so the spread copied
+// none of them - enhancedLogger.error, .warn, .info, .debug and .log were all
+// undefined, and every call site was a TypeError waiting to fire. The worst was
+// in QueryPerformanceMonitor.monitorQuery, where enhancedLogger.error sat inside
+// a catch block: it replaced whatever error the query had thrown with
+// "enhancedLogger.error is not a function", so a ForbiddenError from a tenant
+// isolation check reached the client as a 500.
+//
+// Attaching the category helpers to the logger itself keeps every winston
+// method intact, correctly bound, with no copy to fall out of date.
+export const enhancedLogger = Object.assign(logger, {
   // Security event logging
   security: (message: string, meta: any = {}) => {
     logger.warn(message, {
@@ -160,6 +170,6 @@ export const enhancedLogger = {
       timestamp: new Date().toISOString(),
     });
   },
-};
+});
 
 export { logger };
