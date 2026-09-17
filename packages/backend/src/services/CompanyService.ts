@@ -91,12 +91,13 @@ export class CompanyService {
         search,
       });
 
-      // Get total count
-      let countQuery = Company.query;
-
-      if (isActive !== undefined) {
-        countQuery = countQuery.where('is_active', isActive);
-      }
+      // Get total count.
+      //
+      // findActiveCompanies above always restricts to is_active, so the count
+      // has to as well. It only applied that filter when the caller asked for
+      // it, which meant deactivating a company left the page reading "11
+      // accounts" over seven rows.
+      let countQuery = Company.query.where('is_active', isActive === undefined ? true : isActive);
 
       if (search) {
         countQuery = countQuery.where(function () {
