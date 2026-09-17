@@ -33,12 +33,8 @@ describe('listing tickets', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
 
-    jest
-      .spyOn(User, 'findByIds')
-      .mockImplementation(async (ids: string[]) => ids.map(row));
-    jest
-      .spyOn(Company, 'findByIds')
-      .mockImplementation(async (ids: string[]) => ids.map(row));
+    jest.spyOn(User, 'findByIds').mockImplementation(async (ids: string[]) => ids.map(row));
+    jest.spyOn(Company, 'findByIds').mockImplementation(async (ids: string[]) => ids.map(row));
     jest.spyOn(Queue, 'findByIds').mockImplementation(async (ids: string[]) => ids.map(row));
     jest.spyOn(Team, 'findByIds').mockImplementation(async (ids: string[]) => ids.map(row));
 
