@@ -5,15 +5,23 @@ import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/utils/validation';
 import { CreateNoteRequest } from '@/types/models';
 
-const router = Router();
+// Two routers, because this file serves two different path families.
+//
+// Everything used to live on one router mounted at /tickets, so the
+// note-scoped paths resolved to /api/tickets/notes/:noteId while the frontend
+// (and these tests) call /api/notes/:noteId - those endpoints 404d in
+// production, breaking note edit and delete. Mounting the single router at /
+// instead would have been worse: it applies authenticate to the whole router,
+// so every unmatched /api path would answer 401 rather than 404.
+//
+// ticketNoteRoutes is mounted at /tickets, noteRoutes at /notes.
 
-// All ticket note routes require authentication
+const router = Router();
 router.use(authenticate);
 
-/**
- * Create a new note for a ticket
- * POST /tickets/:ticketId/notes
- */
+const noteRouter = Router();
+noteRouter.use(authenticate);
+
 router.post(
   '/:ticketId/notes',
   validateRequest({
@@ -47,6 +55,7 @@ router.post(
  * Get notes for a ticket
  * GET /tickets/:ticketId/notes
  */
+
 router.get(
   '/:ticketId/notes',
   validateRequest({
@@ -89,8 +98,90 @@ router.get(
  * Get a specific note
  * GET /notes/:noteId
  */
+
 router.get(
-  '/notes/:noteId',
+  '/:ticketId/notes/history',
+  validateRequest({
+    params: {
+      ticketId: { type: 'string', required: true, format: 'uuid' },
+    },
+  }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { ticketId } = req.params;
+
+      const history = await TicketNoteService.getNotesHistory(ticketId);
+
+      res.json({
+        success: true,
+        data: history,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * Link an attachment to a note
+ * POST /notes/:noteId/attachments/:attachmentId
+ */
+
+noteRouter.get(
+  '/search',
+  validateRequest({
+    query: {
+      q: { type: 'string', required: false, minLength: 1 },
+      ticketIds: { type: 'string', required: false }, // Comma-separated UUIDs
+      authorId: { type: 'string', required: false, format: 'uuid' },
+      isInternal: { type: 'boolean', required: false },
+      isEmailGenerated: { type: 'boolean', required: false },
+      page: { type: 'number', required: false, min: 1 },
+      limit: { type: 'number', required: false, min: 1, max: 100 },
+    },
+  }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { q, ticketIds, authorId, isInternal, isEmailGenerated, page, limit } = req.query;
+      const user = req.user!;
+
+      // Parse ticket IDs if provided
+      const ticketIdArray = ticketIds ? (ticketIds as string).split(',') : undefined;
+
+      // Customers cannot search internal notes
+      const shouldIncludeInternal = user.role === 'customer' ? false : isInternal === 'true';
+
+      const searchOptions: any = {
+        page: page ? parseInt(page as string) : 1,
+        limit: limit ? parseInt(limit as string) : 50,
+        isInternal: shouldIncludeInternal,
+        isEmailGenerated: isEmailGenerated === 'true',
+      };
+
+      if (q) searchOptions.query = q as string;
+      if (ticketIdArray) searchOptions.ticketIds = ticketIdArray;
+      if (authorId) searchOptions.authorId = authorId as string;
+
+      const result = await TicketNoteService.searchNotes(searchOptions);
+
+      res.json({
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * Get note history for a ticket
+ * GET /tickets/:ticketId/notes/history
+ */
+
+noteRouter.get(
+  '/:noteId',
   validateRequest({
     params: {
       noteId: { type: 'string', required: true, format: 'uuid' },
@@ -145,8 +236,9 @@ router.get(
  * Update a note
  * PUT /notes/:noteId
  */
-router.put(
-  '/notes/:noteId',
+
+noteRouter.put(
+  '/:noteId',
   validateRequest({
     params: {
       noteId: { type: 'string', required: true, format: 'uuid' },
@@ -188,8 +280,9 @@ router.put(
  * Delete a note
  * DELETE /notes/:noteId
  */
-router.delete(
-  '/notes/:noteId',
+
+noteRouter.delete(
+  '/:noteId',
   validateRequest({
     params: {
       noteId: { type: 'string', required: true, format: 'uuid' },
@@ -226,87 +319,9 @@ router.delete(
  * Search notes
  * GET /notes/search
  */
-router.get(
-  '/notes/search',
-  validateRequest({
-    query: {
-      q: { type: 'string', required: false, minLength: 1 },
-      ticketIds: { type: 'string', required: false }, // Comma-separated UUIDs
-      authorId: { type: 'string', required: false, format: 'uuid' },
-      isInternal: { type: 'boolean', required: false },
-      isEmailGenerated: { type: 'boolean', required: false },
-      page: { type: 'number', required: false, min: 1 },
-      limit: { type: 'number', required: false, min: 1, max: 100 },
-    },
-  }),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { q, ticketIds, authorId, isInternal, isEmailGenerated, page, limit } = req.query;
-      const user = req.user!;
 
-      // Parse ticket IDs if provided
-      const ticketIdArray = ticketIds ? (ticketIds as string).split(',') : undefined;
-
-      // Customers cannot search internal notes
-      const shouldIncludeInternal = user.role === 'customer' ? false : isInternal === 'true';
-
-      const searchOptions: any = {
-        page: page ? parseInt(page as string) : 1,
-        limit: limit ? parseInt(limit as string) : 50,
-        isInternal: shouldIncludeInternal,
-        isEmailGenerated: isEmailGenerated === 'true',
-      };
-
-      if (q) searchOptions.query = q as string;
-      if (ticketIdArray) searchOptions.ticketIds = ticketIdArray;
-      if (authorId) searchOptions.authorId = authorId as string;
-
-      const result = await TicketNoteService.searchNotes(searchOptions);
-
-      res.json({
-        success: true,
-        data: result.data,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
- * Get note history for a ticket
- * GET /tickets/:ticketId/notes/history
- */
-router.get(
-  '/:ticketId/notes/history',
-  validateRequest({
-    params: {
-      ticketId: { type: 'string', required: true, format: 'uuid' },
-    },
-  }),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { ticketId } = req.params;
-
-      const history = await TicketNoteService.getNotesHistory(ticketId);
-
-      res.json({
-        success: true,
-        data: history,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
- * Link an attachment to a note
- * POST /notes/:noteId/attachments/:attachmentId
- */
-router.post(
-  '/notes/:noteId/attachments/:attachmentId',
+noteRouter.post(
+  '/:noteId/attachments/:attachmentId',
   validateRequest({
     params: {
       noteId: { type: 'string', required: true, format: 'uuid' },
@@ -333,8 +348,9 @@ router.post(
  * Unlink an attachment from a note
  * DELETE /notes/:noteId/attachments/:attachmentId
  */
-router.delete(
-  '/notes/:noteId/attachments/:attachmentId',
+
+noteRouter.delete(
+  '/:noteId/attachments/:attachmentId',
   validateRequest({
     params: {
       noteId: { type: 'string', required: true, format: 'uuid' },
@@ -361,8 +377,9 @@ router.delete(
  * Get attachments for a note
  * GET /notes/:noteId/attachments
  */
-router.get(
-  '/notes/:noteId/attachments',
+
+noteRouter.get(
+  '/:noteId/attachments',
   validateRequest({
     params: {
       noteId: { type: 'string', required: true, format: 'uuid' },
@@ -384,4 +401,5 @@ router.get(
   }
 );
 
+export { noteRouter };
 export default router;

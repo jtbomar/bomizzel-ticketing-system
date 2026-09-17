@@ -10,7 +10,7 @@ import teamRoutes from './teams';
 import customFieldRoutes from './customFields';
 import ticketRoutes from './tickets';
 import profileFieldRoutes from './profileFields';
-import ticketNoteRoutes from './ticketNotes';
+import ticketNoteRoutes, { noteRouter } from './ticketNotes';
 import queueRoutes from './queues';
 import fileRoutes from './files';
 import emailRoutes from './email';
@@ -69,6 +69,9 @@ router.use('/custom-fields', customFieldRoutes);
 router.use('/tickets', ticketRoutes);
 router.use('/profile-fields', profileFieldRoutes);
 router.use('/tickets', ticketNoteRoutes);
+// Note-scoped endpoints (/api/notes/:noteId, /api/notes/search). The
+// frontend calls these directly; they were previously unreachable.
+router.use('/notes', noteRouter);
 router.use('/tickets', ticketArchivalRoutes);
 router.use('/ticket-layouts', ticketLayoutRoutes);
 router.use('/queues', queueRoutes);

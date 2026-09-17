@@ -148,6 +148,15 @@ describe('Custom Fields Endpoints', () => {
 
   describe('GET /api/custom-fields/teams/:teamId', () => {
     it('should get all custom fields for a team', async () => {
+      // Create the field this test asserts on. It used to rely on one left
+      // behind by an earlier test in the file, which no longer survives now
+      // that each test starts from an empty database.
+      await request(app)
+        .post(`/api/custom-fields/teams/${teamId}`)
+        .set('Authorization', `Bearer ${teamLeadToken}`)
+        .send({ name: 'listed_field', label: 'Listed Field', type: 'string' })
+        .expect(201);
+
       const response = await request(app)
         .get(`/api/custom-fields/teams/${teamId}`)
         .set('Authorization', `Bearer ${employeeToken}`)

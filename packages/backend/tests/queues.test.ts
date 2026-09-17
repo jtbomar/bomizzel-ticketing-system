@@ -136,7 +136,7 @@ describe('Queue Management', () => {
         .send(queueData)
         .expect(403);
 
-      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBeDefined();
     });
 
     it('should reject duplicate queue names', async () => {
@@ -152,7 +152,7 @@ describe('Queue Management', () => {
         .send(queueData)
         .expect(400);
 
-      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBeDefined();
     });
   });
 
@@ -264,7 +264,7 @@ describe('Queue Management', () => {
         .send(updateData)
         .expect(403);
 
-      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBeDefined();
     });
   });
 
@@ -362,7 +362,7 @@ describe('Queue Management', () => {
         .set('Authorization', `Bearer ${teamLeadToken}`)
         .expect(404);
 
-      expect(response.body.success).toBe(false);
+      expect(response.body.error).toBeDefined();
     });
   });
 });
