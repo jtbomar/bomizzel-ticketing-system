@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectRedis } from './config/redis';
@@ -16,6 +17,22 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
 console.log('🔧 Environment PORT:', process.env.PORT);
 console.log('🔧 Using PORT:', PORT);
+
+// Security headers. helmet is a declared dependency and was applied in
+// src/index.ts.backup, but the live app never used it - the API served no
+// X-Content-Type-Options, no X-Frame-Options and no HSTS, and advertised
+// x-powered-by: Express.
+//
+// CSP is off because this process only serves JSON; the frontend is a separate
+// Vercel deployment with its own policy. frameguard is set to deny rather than
+// helmet's sameorigin default, since nothing here should ever be framed.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    frameguard: { action: 'deny' },
+  })
+);
+app.disable('x-powered-by');
 
 // Basic middleware
 const allowedOrigins = [

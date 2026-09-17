@@ -436,8 +436,13 @@ describe('Authentication Security Tests', () => {
       // Check for security headers
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('DENY');
-      expect(response.headers['x-xss-protection']).toBe('1; mode=block');
       expect(response.headers['strict-transport-security']).toBeDefined();
+      // helmet 7 sets X-XSS-Protection to 0 on purpose: the legacy XSS auditor
+      // is removed from modern browsers and could itself be abused, so asking
+      // for '1; mode=block' would be a step backwards.
+      expect(response.headers['x-xss-protection']).toBe('0');
+      // and the stack should not be advertised
+      expect(response.headers['x-powered-by']).toBeUndefined();
     });
   });
 });
