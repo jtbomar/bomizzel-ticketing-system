@@ -3,7 +3,7 @@ import { UserService } from '@/services/UserService';
 import { authenticate, authorize, authorizeOwnerOrAdmin } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
 import Joi from 'joi';
-import { updateUserSchema, paginationSchema, uuidSchema } from '@/utils/validation';
+import { updateUserSchema, userListSchema, uuidSchema } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
 
 const router = Router();
@@ -16,7 +16,7 @@ router.get(
   '/',
   authenticate,
   authorize('admin'),
-  validate(paginationSchema, 'query'),
+  validate(userListSchema, 'query'),
   async (req, res, next) => {
     try {
       const { page, limit, search, sortBy, sortOrder } = req.query as any;
@@ -27,7 +27,10 @@ router.get(
         limit,
         search,
         role,
-        isActive: isActive !== undefined ? isActive === 'true' : undefined,
+        // Joi coerces this to a real boolean now that the schema declares it,
+        // so the old `isActive === 'true'` compared a boolean to a string and
+        // turned every isActive=true request into isActive=false.
+        isActive,
         requestingUser: {
           id: req.user!.id,
           role: req.user!.role,

@@ -49,7 +49,17 @@ export class UserService {
 
       // CRITICAL: Implement tenant isolation based on organization
       if (requestingUser) {
-        if (requestingUser.organizationId) {
+        if (['admin', 'team_lead'].includes(requestingUser.role)) {
+          // Admins and team leads see everyone. This branch was missing, so an
+          // admin fell through to the company rule below and was scoped to the
+          // companies they happen to be associated with - on a desk whose admin
+          // belongs to one company, that meant the user list showed a handful of
+          // people out of twenty-five, while the companies list showed all
+          // eleven. Same login, two different isolation rules.
+          //
+          // GET /users is authorize('admin') already, so it was an admin-only
+          // endpoint hiding data from admins.
+        } else if (requestingUser.organizationId) {
           // Organization users (service providers) can only see users from their own organization
           searchQuery = searchQuery.where('organization_id', requestingUser.organizationId);
         } else if (requestingUser.companies?.length) {

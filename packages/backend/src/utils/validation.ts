@@ -131,6 +131,20 @@ export const paginationSchema = Joi.object({
   sortOrder: Joi.string().valid('asc', 'desc').optional().default('desc'),
 });
 
+/**
+ * Pagination plus the filters the user list actually accepts.
+ *
+ * GET /users validated its query against paginationSchema, and validate()
+ * strips unknown keys before replacing req.query - so `role` and `isActive`
+ * were removed from the request before the handler could read them. The filter
+ * was silently ignored and every caller got every user back, which the
+ * customers page then had to re-filter in the browser.
+ */
+export const userListSchema = paginationSchema.keys({
+  role: Joi.string().valid('customer', 'employee', 'team_lead', 'admin').optional(),
+  isActive: Joi.boolean().optional(),
+});
+
 // User management validation schemas
 export const updateUserSchema = Joi.object({
   firstName: Joi.string().min(1).max(50).optional().messages({
