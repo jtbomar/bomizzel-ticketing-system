@@ -7,6 +7,11 @@ import { CustomField } from '../src/models/CustomField';
 import { Ticket } from '../src/models/Ticket';
 import { MetricsService } from '../src/services/MetricsService';
 import { AdvancedSearchService } from '../src/services/AdvancedSearchService';
+import { TicketStatus } from '../src/models/TicketStatus';
+
+// Well-formed uuid that matches no row. A literal like 'non-existent-id'
+// fails Postgres' uuid cast before the service's own check runs.
+const ABSENT_UUID = '00000000-0000-4000-8000-000000000000';
 
 describe('TicketService', () => {
   let customerId: string;
@@ -28,6 +33,10 @@ describe('TicketService', () => {
       name: 'Support Team',
       description: 'Test team',
     });
+
+    // A team with no ticket_statuses rows only permits 'open', so
+    // status changes fail. Give test teams the default set.
+    await TicketStatus.seedDefaultStatuses(team.id);
     teamId = team.id;
 
     const queue = await Queue.createQueue({
@@ -156,17 +165,34 @@ describe('TicketService', () => {
       expect(updatedTicket.assignedToId).toBe(employeeId);
     });
 
-    it('should create employee queue when assigning', async () => {
-      await TicketService.assignTicket(ticketId, employeeId, employeeId, 'employee');
+    it('should move the ticket into the assignee personal queue', async () => {
+      // assignTicket does not create a queue - it moves the ticket into the
+      // assignee's existing personal queue when there is one. This used to
+      // assert that assigning created the queue, which was never implemented.
+      const personalQueue = await Queue.createQueue({
+        name: `Personal Queue ${employeeId.slice(0, 8)}`,
+        type: 'employee',
+        assignedToId: employeeId,
+        teamId,
+      });
+
+      const updated = await TicketService.assignTicket(
+        ticketId,
+        employeeId,
+        employeeId,
+        'employee'
+      );
+
+      expect(updated.assignedToId).toBe(employeeId);
 
       const employeeQueues = await Queue.findByAssignee(employeeId);
-      expect(employeeQueues.length).toBeGreaterThan(0);
+      expect(employeeQueues.map((q) => q.id)).toContain(personalQueue.id);
       expect(employeeQueues[0].type).toBe('employee');
     });
 
     it('should reject assignment to non-existent employee', async () => {
       await expect(
-        TicketService.assignTicket(ticketId, 'non-existent-id', employeeId, 'employee')
+        TicketService.assignTicket(ticketId, ABSENT_UUID, employeeId, 'employee')
       ).rejects.toThrow('Employee not found');
     });
   });

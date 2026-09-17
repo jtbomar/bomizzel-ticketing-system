@@ -122,6 +122,10 @@ export const createTicketContext = async (prefix: string): Promise<TicketContext
     description: `${prefix} test team`,
   });
 
+  // A team with no ticket_statuses rows only permits 'open', so
+  // status changes fail. Give test teams the default set.
+  await TicketStatus.seedDefaultStatuses(team.id);
+
   const queue = await Queue.createQueue({
     name: `${prefix} Queue`,
     description: `${prefix} test queue`,

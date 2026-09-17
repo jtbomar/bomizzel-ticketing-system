@@ -6,6 +6,7 @@ import { Team } from '../src/models/Team';
 import { Queue } from '../src/models/Queue';
 import { JWTUtils } from '../src/utils/jwt';
 import { createTestToken } from './helpers/testUtils';
+import { TicketStatus } from '../src/models/TicketStatus';
 
 describe('Ticket Management', () => {
   let customerToken: string;
@@ -30,6 +31,10 @@ describe('Ticket Management', () => {
       name: 'Support Team',
       description: 'Customer support team',
     });
+
+    // A team with no ticket_statuses rows only permits 'open', so
+    // status changes fail. Give test teams the default set.
+    await TicketStatus.seedDefaultStatuses(team.id);
     teamId = team.id;
 
     // Create test queue

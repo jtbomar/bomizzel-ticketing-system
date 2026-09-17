@@ -4,6 +4,7 @@ import { AuthService } from '../src/services/AuthService';
 import { User } from '../src/models/User';
 import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
+import { TicketStatus } from '../src/models/TicketStatus';
 
 // A well-formed UUID that no row uses. A literal like 'non-existent' makes
 // Postgres fail the uuid cast before the service's own check runs.
@@ -36,6 +37,10 @@ describe('UserService', () => {
       name: 'Test Team',
       description: 'Test team',
     });
+
+    // A team with no ticket_statuses rows only permits 'open', so
+    // status changes fail. Give test teams the default set.
+    await TicketStatus.seedDefaultStatuses(team.id);
     teamId = team.id;
 
     const user = await User.createUser({
@@ -181,11 +186,23 @@ describe('UserService', () => {
     });
 
     it('should remove user from company', async () => {
-      await CompanyService.addUserToCompany(companyId, userId, 'member', adminId);
-      await CompanyService.removeUserFromCompany(companyId, userId, adminId);
+      // Use a dedicated company: an earlier test in this file already associated
+      // the user with `companyId`, and this suite builds fixtures once in
+      // beforeAll, so re-adding threw "User is already associated".
+      const removable = await Company.createCompany({
+        name: 'Removable Company',
+        domain: 'removable.com',
+      });
+
+      await CompanyService.addUserToCompany(removable.id, userId, 'member', adminId);
+      expect((await UserService.getUserCompanies(userId)).map((c) => c.companyId)).toContain(
+        removable.id
+      );
+
+      await CompanyService.removeUserFromCompany(removable.id, userId, adminId);
 
       const companies = await UserService.getUserCompanies(userId);
-      expect(companies.map((c) => c.companyId)).not.toContain(companyId);
+      expect(companies.map((c) => c.companyId)).not.toContain(removable.id);
     });
 
     it('should prevent duplicate company associations', async () => {

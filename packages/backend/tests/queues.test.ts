@@ -5,6 +5,7 @@ import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
 import { Queue } from '../src/models/Queue';
 import { JWTUtils } from '../src/utils/jwt';
+import { TicketStatus } from '../src/models/TicketStatus';
 
 describe('Queue Management', () => {
   let adminToken: string;
@@ -29,6 +30,10 @@ describe('Queue Management', () => {
       name: 'Test Team',
       description: 'Test team for queue management',
     });
+
+    // A team with no ticket_statuses rows only permits 'open', so
+    // status changes fail. Give test teams the default set.
+    await TicketStatus.seedDefaultStatuses(team.id);
     teamId = team.id;
 
     // Create admin user

@@ -3,6 +3,7 @@ import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { Team } from '../src/models/Team';
 import { resetDatabase } from './helpers/db';
+import { TicketStatus } from '../src/models/TicketStatus';
 
 describe('Custom Fields Endpoints', () => {
   let teamLeadToken: string;
@@ -44,6 +45,10 @@ describe('Custom Fields Endpoints', () => {
       name: 'Test Team',
       description: 'Team for testing custom fields',
     });
+
+    // A team with no ticket_statuses rows only permits 'open', so
+    // status changes fail. Give test teams the default set.
+    await TicketStatus.seedDefaultStatuses(team.id);
     teamId = team.id;
 
     // Get auth tokens

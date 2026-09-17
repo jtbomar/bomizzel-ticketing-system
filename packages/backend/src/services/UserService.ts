@@ -149,6 +149,14 @@ export class UserService {
       if (requestingUser) {
         let hasAccess = requestingUser.id === userId; // User can see their own profile
 
+        // Global admins. The route guards this with authorizeOwnerOrAdmin, so
+        // it already intends admins to have access, but the checks below only
+        // covered organization or shared-company membership - so an admin with
+        // no company in common with the target got "User not found".
+        if (!hasAccess && requestingUser.role === 'admin') {
+          hasAccess = true;
+        }
+
         if (!hasAccess && requestingUser.organizationId) {
           // Organization users can see users from their own organization
           const targetUser = await User.findById(userId);
