@@ -281,7 +281,10 @@ exports.seed = async function (knex) {
         company_id: customer.companyId,
         assigned_to_id: assignedAgent.id,
         queue_id: queueId,
-        team_id: supportTeamId,
+        // supportTeamId is a const inside the "team does not exist yet" branch
+        // above, so it is out of scope here and the seed died on a ReferenceError
+        // before writing a single ticket. The row is what is in scope.
+        team_id: supportTeam.id,
         custom_field_values: JSON.stringify({}),
         created_at: knex.fn.now(),
         updated_at: knex.fn.now(),
