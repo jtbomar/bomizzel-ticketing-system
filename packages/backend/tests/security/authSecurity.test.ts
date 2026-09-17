@@ -6,6 +6,8 @@ import { Team } from '../../src/models/Team';
 import { JWTUtils } from '../../src/utils/jwt';
 import jwt from 'jsonwebtoken';
 import { createTestToken } from '../helpers/testUtils';
+import { Queue } from '../../src/models/Queue';
+import { TicketStatus } from '../../src/models/TicketStatus';
 
 describe('Authentication Security Tests', () => {
   let validToken: string;
@@ -35,6 +37,16 @@ describe('Authentication Security Tests', () => {
       role: 'customer',
     });
     userId = user.id;
+
+    // Filing a ticket needs a queue on the team and the team's statuses;
+    // without them creation fails with "No available queue found for team".
+    await Queue.createQueue({
+      name: 'Security Test Queue',
+      description: 'Default queue for security tests',
+      type: 'unassigned',
+      teamId,
+    });
+    await TicketStatus.seedDefaultStatuses(teamId);
 
     await Company.addUserToCompany(userId, companyId);
     validToken = createTestToken(userId);
@@ -154,8 +166,11 @@ describe('Authentication Security Tests', () => {
     });
 
     it('should prevent customers from accessing employee endpoints', async () => {
+      // /api/queues/metrics is not a route - it matches /:id and fails uuid
+      // validation with a 400, so this never tested authorisation. /api/admin/users
+      // carries an explicit authorize('admin'), which is what we mean here.
       await request(app)
-        .get('/api/queues/metrics')
+        .get('/api/admin/users')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(403);
     });
