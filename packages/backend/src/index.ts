@@ -448,10 +448,15 @@ connectRedis().catch((err) => {
 
 // Start server.
 //
-// Skipped under NODE_ENV=test: the test suites import { app } and drive it with
+// Skipped under Jest: the test suites import { app } and drive it with
 // supertest, and binding a real port on import left a TCPSERVERWRAP handle open
 // that stopped Jest from exiting.
-if (process.env.NODE_ENV !== 'test') {
+//
+// Keyed on JEST_WORKER_ID rather than NODE_ENV=test, which is what it used to
+// check. Plenty of things run against a test database without being Jest - the
+// E2E job sets NODE_ENV=test, starts this server and then waits for a health
+// check that never came, because the server had quietly decided not to listen.
+if (!process.env.JEST_WORKER_ID) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Bomizzel backend server running on port ${PORT}`);
     console.log(`📊 Health check available at http://localhost:${PORT}/health`);

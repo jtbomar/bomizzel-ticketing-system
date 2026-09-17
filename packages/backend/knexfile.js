@@ -25,7 +25,11 @@ module.exports = {
 
   test: {
     client: 'postgresql',
-    connection: {
+    // DATABASE_URL wins when it is set. Only production honoured it before, so a
+    // job that supplied nothing but a connection URL - the performance job does
+    // exactly that - silently fell through to the test_user defaults and died on
+    // "password authentication failed for user test_user".
+    connection: process.env.DATABASE_URL || {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 5432,
       database: process.env.DB_NAME || 'bomizzel_test',
