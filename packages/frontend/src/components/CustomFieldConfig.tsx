@@ -39,7 +39,7 @@ const CustomFieldConfig: React.FC<CustomFieldConfigProps> = ({ teamId, onClose }
 
       if (editingField) {
         // Update existing field
-        const updatedField = await apiService.updateCustomField(editingField.id, fieldData);
+        const updatedField = await apiService.updateCustomField(teamId, editingField.id, fieldData);
         setFields((prev) => prev.map((f) => (f.id === editingField.id ? updatedField : f)));
       } else {
         // Create new field
@@ -66,7 +66,7 @@ const CustomFieldConfig: React.FC<CustomFieldConfigProps> = ({ teamId, onClose }
     }
 
     try {
-      await apiService.deleteCustomField(fieldId);
+      await apiService.deleteCustomField(teamId, fieldId);
       setFields((prev) => prev.filter((f) => f.id !== fieldId));
     } catch (err) {
       setError('Failed to delete custom field');

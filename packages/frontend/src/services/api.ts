@@ -378,6 +378,10 @@ class ApiService {
     return response.data;
   }
 
+  // These endpoints are team-scoped on the server, which is how it authorises
+  // the caller against that team. The paths here omitted the team, so create,
+  // update and delete all 404'd. teamId also cannot ride in the body: the Joi
+  // schema rejects unknown keys.
   async createCustomField(customFieldData: {
     teamId: string;
     name: string;
@@ -387,17 +391,18 @@ class ApiService {
     options?: string[];
     validation?: any;
   }): Promise<any> {
-    const response = await this.client.post('/custom-fields', customFieldData);
+    const { teamId, ...fieldData } = customFieldData;
+    const response = await this.client.post(`/custom-fields/teams/${teamId}`, fieldData);
     return response.data;
   }
 
-  async updateCustomField(fieldId: string, updates: any): Promise<any> {
-    const response = await this.client.put(`/custom-fields/${fieldId}`, updates);
+  async updateCustomField(teamId: string, fieldId: string, updates: any): Promise<any> {
+    const response = await this.client.put(`/custom-fields/${fieldId}/teams/${teamId}`, updates);
     return response.data;
   }
 
-  async deleteCustomField(fieldId: string): Promise<any> {
-    const response = await this.client.delete(`/custom-fields/${fieldId}`);
+  async deleteCustomField(teamId: string, fieldId: string): Promise<any> {
+    const response = await this.client.delete(`/custom-fields/${fieldId}/teams/${teamId}`);
     return response.data;
   }
 
