@@ -6,6 +6,7 @@ import {
   CreateNoteRequest,
   PaginatedResponse,
 } from '@/types/models';
+import { ValidationError, NotFoundError, ForbiddenError } from '@/utils/errors';
 
 export class TicketNoteService {
   static async createNote(
@@ -16,7 +17,7 @@ export class TicketNoteService {
     // Verify ticket exists
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
-      throw new Error('Ticket not found');
+      throw new NotFoundError('Ticket not found');
     }
 
     const note = await TicketNote.createNote({
@@ -41,7 +42,7 @@ export class TicketNoteService {
     // Verify ticket exists
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
-      throw new Error('Ticket not found');
+      throw new NotFoundError('Ticket not found');
     }
 
     const note = await TicketNote.createNote({
@@ -116,17 +117,17 @@ export class TicketNoteService {
     // Verify note exists and user has permission to update it
     const existingNote = await TicketNote.findById(noteId);
     if (!existingNote) {
-      throw new Error('Note not found');
+      throw new NotFoundError('Note not found');
     }
 
     // Only the author can update their own notes (or admins could be added later)
     if (existingNote.author_id !== authorId) {
-      throw new Error('Unauthorized to update this note');
+      throw new ForbiddenError('Unauthorized to update this note');
     }
 
     // Email-generated notes cannot be edited
     if (existingNote.is_email_generated) {
-      throw new Error('Email-generated notes cannot be edited');
+      throw new ValidationError('Email-generated notes cannot be edited');
     }
 
     const updatedNote = await TicketNote.updateNote(noteId, updates);
@@ -137,17 +138,17 @@ export class TicketNoteService {
     // Verify note exists and user has permission to delete it
     const existingNote = await TicketNote.findById(noteId);
     if (!existingNote) {
-      throw new Error('Note not found');
+      throw new NotFoundError('Note not found');
     }
 
     // Only the author can delete their own notes (or admins could be added later)
     if (existingNote.author_id !== authorId) {
-      throw new Error('Unauthorized to delete this note');
+      throw new ForbiddenError('Unauthorized to delete this note');
     }
 
     // Email-generated notes cannot be deleted
     if (existingNote.is_email_generated) {
-      throw new Error('Email-generated notes cannot be deleted');
+      throw new ValidationError('Email-generated notes cannot be deleted');
     }
 
     return TicketNote.deleteNote(noteId);
@@ -208,18 +209,18 @@ export class TicketNoteService {
     // Verify note exists
     const note = await TicketNote.findById(noteId);
     if (!note) {
-      throw new Error('Note not found');
+      throw new NotFoundError('Note not found');
     }
 
     // Verify attachment exists
     const attachment = await FileAttachment.findById(attachmentId);
     if (!attachment) {
-      throw new Error('Attachment not found');
+      throw new NotFoundError('Attachment not found');
     }
 
     // Verify attachment belongs to the same ticket as the note
     if (attachment.ticket_id !== note.ticket_id) {
-      throw new Error('Attachment does not belong to the same ticket as the note');
+      throw new ValidationError('Attachment does not belong to the same ticket as the note');
     }
 
     // Link attachment to note
@@ -230,7 +231,7 @@ export class TicketNoteService {
     // Verify attachment exists
     const attachment = await FileAttachment.findById(attachmentId);
     if (!attachment) {
-      throw new Error('Attachment not found');
+      throw new NotFoundError('Attachment not found');
     }
 
     // Unlink attachment from note
@@ -241,7 +242,7 @@ export class TicketNoteService {
     // Verify note exists
     const note = await TicketNote.findById(noteId);
     if (!note) {
-      throw new Error('Note not found');
+      throw new NotFoundError('Note not found');
     }
 
     return FileAttachment.findByNote(noteId);

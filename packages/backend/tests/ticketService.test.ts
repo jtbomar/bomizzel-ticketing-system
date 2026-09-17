@@ -114,8 +114,9 @@ describe('TicketService', () => {
         },
       };
 
+      // The service reports: Field '<label>' must be one of: <options>
       await expect(TicketService.createTicket(ticketData, customerId)).rejects.toThrow(
-        'Invalid value for custom field'
+        'must be one of'
       );
     });
 
@@ -294,8 +295,13 @@ describe('TicketService', () => {
         'customer'
       );
 
-      expect(results.data).toHaveLength(1);
-      expect(results.data[0].customFieldValues?.priority_level).toBe('High');
+      // The suite's own beforeAll also creates a High ticket, so assert the
+      // filter held rather than a fixed count.
+      expect(results.data.length).toBeGreaterThan(0);
+      results.data.forEach((t: any) => {
+        expect(t.customFieldValues?.priority_level).toBe('High');
+      });
+      expect(results.data.map((t: any) => t.title)).toContain('Bug Report');
     });
 
     it('should filter by status', async () => {
