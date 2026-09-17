@@ -5,6 +5,7 @@ import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
 import { Queue } from '../src/models/Queue';
 import { JWTUtils } from '../src/utils/jwt';
+import { createTestToken } from './helpers/testUtils';
 
 describe('Ticket Management', () => {
   let customerToken: string;
@@ -66,8 +67,8 @@ describe('Ticket Management', () => {
     await Team.addUserToTeam(employeeId, teamId);
 
     // Generate tokens
-    customerToken = JWTUtils.generateAccessToken({ userId: customerId });
-    employeeToken = JWTUtils.generateAccessToken({ userId: employeeId });
+    customerToken = createTestToken(customerId);
+    employeeToken = createTestToken(employeeId);
   });
 
   describe('POST /api/tickets', () => {

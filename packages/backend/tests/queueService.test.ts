@@ -3,6 +3,7 @@ import { Queue } from '@/models/Queue';
 import { Team } from '@/models/Team';
 import { User } from '@/models/User';
 import { ValidationError, NotFoundError, ForbiddenError } from '@/utils/errors';
+import { QueueTable } from '../src/types/database';
 
 // Mock the models
 jest.mock('@/models/Queue');
@@ -34,7 +35,7 @@ describe('QueueService', () => {
       updated_at: new Date(),
     };
 
-    const mockCreatedQueue = {
+    const mockCreatedQueue: QueueTable = {
       id: 'queue-123',
       name: 'Test Queue',
       description: 'Test Description',
@@ -127,7 +128,8 @@ describe('QueueService', () => {
         whereNotNull: jest.fn().mockReturnThis(),
       };
 
-      MockedQueue.db = jest.fn().mockReturnValue(mockDb);
+      // The real `db` is a full Knex instance; only the call signature matters here.
+      MockedQueue.db = jest.fn().mockReturnValue(mockDb) as unknown as typeof MockedQueue.db;
 
       const result = await QueueService.getQueueMetrics('queue-123', 'user-123', 'employee');
 
@@ -220,7 +222,7 @@ describe('QueueService', () => {
 
   describe('getFilteredQueues', () => {
     it('should return filtered queues with sorting', async () => {
-      const mockQueues = [
+      const mockQueues: QueueTable[] = [
         {
           id: 'queue-1',
           name: 'Alpha Queue',
@@ -255,7 +257,8 @@ describe('QueueService', () => {
           .mockResolvedValueOnce({ count: '5' }) // First queue
           .mockResolvedValueOnce({ count: '3' }), // Second queue
       };
-      MockedQueue.db = jest.fn().mockReturnValue(mockDb);
+      // The real `db` is a full Knex instance; only the call signature matters here.
+      MockedQueue.db = jest.fn().mockReturnValue(mockDb) as unknown as typeof MockedQueue.db;
       MockedQueue.toModel.mockImplementation((queue) => ({
         id: queue.id,
         name: queue.name,

@@ -4,6 +4,7 @@ import { User } from '../../src/models/User';
 import { Company } from '../../src/models/Company';
 import { Team } from '../../src/models/Team';
 import { JWTUtils } from '../../src/utils/jwt';
+import { createTestToken } from '../helpers/testUtils';
 
 describe('Performance Load Tests', () => {
   let customerTokens: string[] = [];
@@ -35,7 +36,7 @@ describe('Performance Load Tests', () => {
         role: 'customer',
       });
       await Company.addUserToCompany(user.id, companyId);
-      return JWTUtils.generateAccessToken({ userId: user.id });
+      return createTestToken(user.id);
     });
 
     const employeePromises = Array.from({ length: 5 }, async (_, i) => {
@@ -47,7 +48,7 @@ describe('Performance Load Tests', () => {
         role: 'employee',
       });
       await Team.addUserToTeam(user.id, teamId);
-      return JWTUtils.generateAccessToken({ userId: user.id });
+      return createTestToken(user.id);
     });
 
     customerTokens = await Promise.all(customerPromises);

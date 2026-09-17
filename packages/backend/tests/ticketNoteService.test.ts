@@ -32,7 +32,7 @@ describe('TicketNoteService', () => {
     content: 'Test note content',
     is_internal: false,
     is_email_generated: false,
-    email_metadata: null,
+    email_metadata: undefined,
     created_at: new Date(),
     updated_at: new Date(),
   };
@@ -53,7 +53,7 @@ describe('TicketNoteService', () => {
         content: 'Test note content',
         isInternal: false,
         isEmailGenerated: false,
-        emailMetadata: null,
+        emailMetadata: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -149,7 +149,7 @@ describe('TicketNoteService', () => {
         content: 'Updated content',
         isInternal: false,
         isEmailGenerated: false,
-        emailMetadata: null,
+        emailMetadata: undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

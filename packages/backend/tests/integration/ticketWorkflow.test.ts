@@ -5,6 +5,7 @@ import { Company } from '../../src/models/Company';
 import { Team } from '../../src/models/Team';
 import { CustomField } from '../../src/models/CustomField';
 import { JWTUtils } from '../../src/utils/jwt';
+import { createTestToken } from '../helpers/testUtils';
 
 describe('Ticket Workflow Integration', () => {
   let customerToken: string;
@@ -65,12 +66,12 @@ describe('Ticket Workflow Integration', () => {
     await Team.addUserToTeam(teamLeadId, teamId);
 
     // Generate tokens
-    customerToken = JWTUtils.generateAccessToken({ userId: customerId });
-    employeeToken = JWTUtils.generateAccessToken({ userId: employeeId });
-    teamLeadToken = JWTUtils.generateAccessToken({ userId: teamLeadId });
+    customerToken = createTestToken(customerId);
+    employeeToken = createTestToken(employeeId);
+    teamLeadToken = createTestToken(teamLeadId);
 
     // Create custom fields
-    await CustomField.createField({
+    await CustomField.createCustomField({
       teamId: teamId,
       name: 'issue_type',
       label: 'Issue Type',
@@ -80,7 +81,7 @@ describe('Ticket Workflow Integration', () => {
       order: 1,
     });
 
-    await CustomField.createField({
+    await CustomField.createCustomField({
       teamId: teamId,
       name: 'severity',
       label: 'Severity',

@@ -16,7 +16,8 @@ app.use(express.json());
 app.use('/files', fileRoutes);
 
 // Mock authentication middleware
-mockAuthenticate.mockImplementation((req: any, res: any, next: any) => {
+// `authenticate` is declared async, so the stand-in must return a promise too.
+mockAuthenticate.mockImplementation(async (req: any, _res: any, next: any) => {
   req.user = { id: 'user-123', role: 'customer' };
   next();
 });

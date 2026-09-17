@@ -1,6 +1,7 @@
 import { CustomFieldService } from '../src/services/CustomFieldService';
 import { CustomField } from '../src/models/CustomField';
 import { Team } from '../src/models/Team';
+import { CustomFieldTable } from '../src/types/database';
 
 // Mock the dependencies
 jest.mock('../src/models/CustomField');
@@ -128,8 +129,8 @@ describe('CustomFieldService', () => {
         label: fieldData.label,
         type: fieldData.type,
         is_required: fieldData.isRequired,
-        options: null,
-        validation: null,
+        options: undefined,
+        validation: undefined,
         order: 0,
         is_active: true,
         created_at: new Date(),
@@ -195,7 +196,11 @@ describe('CustomFieldService', () => {
       };
 
       const mockTeamRecord = { id: teamId, name: 'Test Team' };
-      const mockExistingField = { id: 'existing-field-id', name: fieldData.name };
+      // Only presence matters here - the service just checks for a duplicate.
+      const mockExistingField = {
+        id: 'existing-field-id',
+        name: fieldData.name,
+      } as CustomFieldTable;
 
       mockTeam.findById.mockResolvedValue(mockTeamRecord);
       mockCustomField.findByTeamAndName.mockResolvedValue(mockExistingField);

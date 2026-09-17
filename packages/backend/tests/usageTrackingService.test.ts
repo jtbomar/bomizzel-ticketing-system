@@ -4,8 +4,10 @@ import { SubscriptionPlan } from '../src/models/SubscriptionPlan';
 import { User } from '../src/models/User';
 import { Ticket } from '../src/models/Ticket';
 import { Company } from '../src/models/Company';
+import { createTicketContext, createContextTicket, TicketContext } from './helpers/testUtils';
 
 describe('UsageTrackingService', () => {
+  let ctx: TicketContext;
   let userId: string;
   let companyId: string;
   let freePlanId: string;
@@ -13,6 +15,7 @@ describe('UsageTrackingService', () => {
   let subscriptionId: string;
 
   beforeAll(async () => {
+    ctx = await createTicketContext('UsageTracking');
     // Create test company
     const company = await Company.createCompany({
       name: 'Usage Test Company',
@@ -68,14 +71,9 @@ describe('UsageTrackingService', () => {
 
   describe('recordTicketCreation', () => {
     it('should record ticket creation', async () => {
-      const ticket = await Ticket.createTicket({
+      const ticket = await createContextTicket(ctx, {
         title: 'Test Ticket for Usage',
         description: 'Test ticket description',
-        priority: 'medium',
-        status: 'open',
-        customerId: userId,
-        companyId: companyId,
-        createdBy: userId,
       });
 
       await expect(
@@ -107,14 +105,9 @@ describe('UsageTrackingService', () => {
     let testTicketId: string;
 
     beforeAll(async () => {
-      const ticket = await Ticket.createTicket({
+      const ticket = await createContextTicket(ctx, {
         title: 'Status Change Test Ticket',
         description: 'Test ticket for status changes',
-        priority: 'medium',
-        status: 'open',
-        customerId: userId,
-        companyId: companyId,
-        createdBy: userId,
       });
       testTicketId = ticket.id;
 
@@ -258,14 +251,9 @@ describe('UsageTrackingService', () => {
     it('should prevent ticket creation when at active limit', async () => {
       // Create tickets up to the limit
       for (let i = 0; i < 5; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Limit Test Ticket ${i}`,
           description: 'Test ticket for limits',
-          priority: 'medium',
-          status: 'open',
-          customerId: limitTestUserId,
-          companyId: companyId,
-          createdBy: limitTestUserId,
         });
         await UsageTrackingService.recordTicketCreation(limitTestUserId, ticket.id);
       }
@@ -318,14 +306,9 @@ describe('UsageTrackingService', () => {
     it('should prevent completion when at completed limit', async () => {
       // Create and complete tickets up to the limit
       for (let i = 0; i < 5; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Complete Test Ticket ${i}`,
           description: 'Test ticket for completion limits',
-          priority: 'medium',
-          status: 'open',
-          customerId: completeTestUserId,
-          companyId: companyId,
-          createdBy: completeTestUserId,
         });
         await UsageTrackingService.recordTicketCreation(completeTestUserId, ticket.id);
         await UsageTrackingService.recordTicketStatusChange(
@@ -377,14 +360,9 @@ describe('UsageTrackingService', () => {
     let historyTicketId: string;
 
     beforeAll(async () => {
-      const ticket = await Ticket.createTicket({
+      const ticket = await createContextTicket(ctx, {
         title: 'History Test Ticket',
         description: 'Test ticket for history',
-        priority: 'medium',
-        status: 'open',
-        customerId: userId,
-        companyId: companyId,
-        createdBy: userId,
       });
       historyTicketId = ticket.id;
 
@@ -450,14 +428,9 @@ describe('UsageTrackingService', () => {
 
   describe('recordTicketArchival', () => {
     it('should record ticket archival', async () => {
-      const ticket = await Ticket.createTicket({
+      const ticket = await createContextTicket(ctx, {
         title: 'Archival Test Ticket',
         description: 'Test ticket for archival',
-        priority: 'medium',
-        status: 'completed',
-        customerId: userId,
-        companyId: companyId,
-        createdBy: userId,
       });
 
       await expect(
@@ -468,14 +441,9 @@ describe('UsageTrackingService', () => {
 
   describe('recordTicketRestoration', () => {
     it('should record ticket restoration', async () => {
-      const ticket = await Ticket.createTicket({
+      const ticket = await createContextTicket(ctx, {
         title: 'Restoration Test Ticket',
         description: 'Test ticket for restoration',
-        priority: 'medium',
-        status: 'archived',
-        customerId: userId,
-        companyId: companyId,
-        createdBy: userId,
       });
 
       await expect(

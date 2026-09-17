@@ -9,24 +9,43 @@ jest.mock('@/services/TicketNoteService');
 jest.mock('@/models/Ticket');
 jest.mock('@/models/User');
 jest.mock('@/models/Company');
-jest.mock('nodemailer');
 
 const MockedTicketNoteService = TicketNoteService as jest.Mocked<typeof TicketNoteService>;
 const MockedTicket = Ticket as jest.Mocked<typeof Ticket>;
 const MockedUser = User as jest.Mocked<typeof User>;
 const MockedCompany = Company as jest.Mocked<typeof Company>;
 
-// Mock nodemailer
-const mockSendMail = jest.fn();
-const mockVerify = jest.fn();
-const mockCreateTransporter = jest.fn(() => ({
-  sendMail: mockSendMail,
-  verify: mockVerify,
-}));
+// Mock nodemailer.
+//
+// Two bugs here before: the factory referenced `mockCreateTransporter` from the
+// enclosing scope, but jest.mock() is hoisted above the const declaration, so it
+// threw "Cannot access 'mockCreateTransporter' before initialization". And the
+// mocked method was `createTransporter`, while the API EmailService actually
+// calls is `createTransport` - so the real module was never stubbed.
+//
+// Declaring the mocks inside the factory avoids the temporal dead zone; they are
+// read back out afterwards with requireMock.
+jest.mock('nodemailer', () => {
+  const sendMail = jest.fn();
+  const verify = jest.fn();
+  // EmailService uses a default import, so default.createTransport and the
+  // named export must be the SAME spy or assertions watch the wrong one.
+  const createTransport = jest.fn(() => ({ sendMail, verify }));
+  return {
+    __esModule: true,
+    default: { createTransport },
+    createTransport,
+    __mocks: { sendMail, verify },
+  };
+});
 
-jest.mock('nodemailer', () => ({
-  createTransporter: mockCreateTransporter,
-}));
+const nodemailerMock = jest.requireMock('nodemailer') as {
+  createTransport: jest.Mock;
+  __mocks: { sendMail: jest.Mock; verify: jest.Mock };
+};
+const mockSendMail = nodemailerMock.__mocks.sendMail;
+const mockVerify = nodemailerMock.__mocks.verify;
+const mockCreateTransporter = nodemailerMock.createTransport;
 
 describe('EmailService', () => {
   const mockConfig: EmailConfig = {

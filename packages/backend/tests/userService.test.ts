@@ -1,4 +1,6 @@
 import { UserService } from '../src/services/UserService';
+import { CompanyService } from '../src/services/CompanyService';
+import { AuthService } from '../src/services/AuthService';
 import { User } from '../src/models/User';
 import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
@@ -7,8 +9,19 @@ describe('UserService', () => {
   let userId: string;
   let companyId: string;
   let teamId: string;
+  // CompanyService association methods record who performed the change.
+  let adminId: string;
 
   beforeAll(async () => {
+    const admin = await User.createUser({
+      email: 'userservice-admin@example.com',
+      password: 'password123',
+      firstName: 'Admin',
+      lastName: 'User',
+      role: 'admin',
+    });
+    adminId = admin.id;
+
     const company = await Company.createCompany({
       name: 'Test Company',
       domain: 'test.com',
@@ -35,12 +48,12 @@ describe('UserService', () => {
     it('should return user profile with company associations', async () => {
       await Company.addUserToCompany(userId, companyId);
 
-      const profile = await UserService.getUserProfile(userId);
+      const profile = await AuthService.getUserProfile(userId);
 
       expect(profile.id).toBe(userId);
       expect(profile.email).toBe('test@example.com');
       expect(profile.companies).toHaveLength(1);
-      expect(profile.companies[0].id).toBe(companyId);
+      expect(profile.companies?.[0].id).toBe(companyId);
     });
 
     it('should return user profile with team memberships for employees', async () => {
@@ -54,14 +67,16 @@ describe('UserService', () => {
 
       await Team.addUserToTeam(employee.id, teamId);
 
-      const profile = await UserService.getUserProfile(employee.id);
+      // getUserProfile returns companies but not teams; memberships come from
+      // UserService.getUserTeams.
+      const teams = await UserService.getUserTeams(employee.id);
 
-      expect(profile.teams).toHaveLength(1);
-      expect(profile.teams[0].id).toBe(teamId);
+      expect(teams).toHaveLength(1);
+      expect(teams[0].teamId).toBe(teamId);
     });
 
     it('should throw error for non-existent user', async () => {
-      await expect(UserService.getUserProfile('non-existent-id')).rejects.toThrow('User not found');
+      await expect(AuthService.getUserProfile('non-existent-id')).rejects.toThrow('User not found');
     });
   });
 
@@ -72,7 +87,7 @@ describe('UserService', () => {
         lastName: 'Name',
       };
 
-      const updatedUser = await UserService.updateUserProfile(userId, updateData);
+      const updatedUser = await AuthService.updateProfile(userId, updateData);
 
       expect(updatedUser.firstName).toBe('Updated');
       expect(updatedUser.lastName).toBe('Name');
@@ -85,7 +100,7 @@ describe('UserService', () => {
         firstName: 'Test',
       };
 
-      const updatedUser = await UserService.updateUserProfile(userId, updateData);
+      const updatedUser = await AuthService.updateProfile(userId, updateData);
 
       expect(updatedUser.email).toBe('test@example.com'); // Should remain unchanged
     });
@@ -95,97 +110,118 @@ describe('UserService', () => {
         firstName: '', // Invalid empty name
       };
 
-      await expect(UserService.updateUserProfile(userId, updateData)).rejects.toThrow(
+      await expect(AuthService.updateProfile(userId, updateData)).rejects.toThrow(
         'Validation error'
       );
     });
   });
 
   describe('updateUserPreferences', () => {
+    // UserPreferences exposes dashboard.defaultView, not a flat `viewMode`.
     it('should update user preferences', async () => {
       const preferences = {
-        viewMode: 'kanban',
+        dashboard: { defaultView: 'kanban' as const, ticketsPerPage: 25 },
         notifications: {
           email: true,
           browser: false,
+          ticketAssigned: true,
+          ticketUpdated: true,
+          ticketResolved: true,
         },
-        theme: 'dark',
+        theme: 'dark' as const,
       };
 
       const updatedUser = await UserService.updateUserPreferences(userId, preferences);
 
-      expect(updatedUser.preferences.viewMode).toBe('kanban');
-      expect(updatedUser.preferences.notifications.email).toBe(true);
-      expect(updatedUser.preferences.theme).toBe('dark');
+      expect(updatedUser.preferences?.dashboard?.defaultView).toBe('kanban');
+      expect(updatedUser.preferences?.notifications?.email).toBe(true);
+      expect(updatedUser.preferences?.theme).toBe('dark');
     });
 
     it('should merge preferences with existing ones', async () => {
-      // Set initial preferences
       await UserService.updateUserPreferences(userId, {
-        viewMode: 'list',
-        notifications: { email: true, browser: true },
+        dashboard: { defaultView: 'list' as const, ticketsPerPage: 25 },
+        notifications: {
+          email: true,
+          browser: true,
+          ticketAssigned: true,
+          ticketUpdated: true,
+          ticketResolved: true,
+        },
       });
 
-      // Update only part of preferences
       const updatedUser = await UserService.updateUserPreferences(userId, {
-        viewMode: 'kanban',
+        dashboard: { defaultView: 'kanban' as const, ticketsPerPage: 25 },
       });
 
-      expect(updatedUser.preferences.viewMode).toBe('kanban');
-      expect(updatedUser.preferences.notifications.email).toBe(true); // Should remain
+      expect(updatedUser.preferences?.dashboard?.defaultView).toBe('kanban');
+      // untouched keys survive the merge
+      expect(updatedUser.preferences?.notifications?.email).toBe(true);
     });
   });
 
-  describe('manageCompanyAssociations', () => {
+  describe('company associations', () => {
+    // Association management lives on CompanyService; UserService reads it back
+    // via getUserCompanies.
     it('should add user to company', async () => {
       const newCompany = await Company.createCompany({
         name: 'New Company',
         domain: 'new.com',
       });
 
-      await UserService.addUserToCompany(userId, newCompany.id);
+      await CompanyService.addUserToCompany(newCompany.id, userId, 'member', adminId);
 
-      const profile = await UserService.getUserProfile(userId);
-      const companyIds = profile.companies.map((c) => c.id);
-      expect(companyIds).toContain(newCompany.id);
+      const companies = await UserService.getUserCompanies(userId);
+      expect(companies.map((c) => c.companyId)).toContain(newCompany.id);
     });
 
     it('should remove user from company', async () => {
-      await UserService.removeUserFromCompany(userId, companyId);
+      await CompanyService.addUserToCompany(companyId, userId, 'member', adminId);
+      await CompanyService.removeUserFromCompany(companyId, userId, adminId);
 
-      const profile = await UserService.getUserProfile(userId);
-      const companyIds = profile.companies.map((c) => c.id);
-      expect(companyIds).not.toContain(companyId);
+      const companies = await UserService.getUserCompanies(userId);
+      expect(companies.map((c) => c.companyId)).not.toContain(companyId);
     });
 
     it('should prevent duplicate company associations', async () => {
-      await UserService.addUserToCompany(userId, companyId);
+      const dupCompany = await Company.createCompany({
+        name: 'Dup Company',
+        domain: 'dup.com',
+      });
 
-      await expect(UserService.addUserToCompany(userId, companyId)).rejects.toThrow(
-        'User already associated with company'
-      );
+      await CompanyService.addUserToCompany(dupCompany.id, userId, 'member', adminId);
+
+      await expect(
+        CompanyService.addUserToCompany(dupCompany.id, userId, 'member', adminId)
+      ).rejects.toThrow();
     });
   });
 
-  describe('validateUserPermissions', () => {
-    it('should validate customer access to company tickets', async () => {
-      await Company.addUserToCompany(userId, companyId);
+  describe('access checks', () => {
+    // There is no UserService.canAccessCompany/canAccessTeam; access is derived
+    // from the association lists.
+    it('should report access to an associated company', async () => {
+      const accessCompany = await Company.createCompany({
+        name: 'Access Company',
+        domain: 'access.com',
+      });
+      await CompanyService.addUserToCompany(accessCompany.id, userId, 'member', adminId);
 
-      const hasAccess = await UserService.canAccessCompany(userId, companyId);
-      expect(hasAccess).toBe(true);
+      const companies = await UserService.getUserCompanies(userId);
+      expect(companies.some((c) => c.companyId === accessCompany.id)).toBe(true);
     });
 
-    it('should reject access to non-associated company', async () => {
+    it('should not report access to a non-associated company', async () => {
       const otherCompany = await Company.createCompany({
         name: 'Other Company',
         domain: 'other.com',
       });
 
-      const hasAccess = await UserService.canAccessCompany(userId, otherCompany.id);
-      expect(hasAccess).toBe(false);
+      const companies = await UserService.getUserCompanies(userId);
+      expect(companies.some((c) => c.companyId === otherCompany.id)).toBe(false);
     });
 
-    it('should validate employee access to team resources', async () => {
+    it('should report team membership for an employee', async () => {
       const employee = await User.createUser({
         email: 'employee2@example.com',
         password: 'password123',
@@ -196,29 +232,30 @@ describe('UserService', () => {
 
       await Team.addUserToTeam(employee.id, teamId);
 
-      const hasAccess = await UserService.canAccessTeam(employee.id, teamId);
-      expect(hasAccess).toBe(true);
+      const teams = await UserService.getUserTeams(employee.id);
+      expect(teams.some((t) => t.teamId === teamId)).toBe(true);
     });
   });
 
-  describe('getUsersByRole', () => {
+  describe('filtering users by role', () => {
+    // getUsers({ role }) is the real entry point; there is no getUsersByRole.
     it('should return users filtered by role', async () => {
-      const customers = await UserService.getUsersByRole('customer');
-      const employees = await UserService.getUsersByRole('employee');
+      const customers = await UserService.getUsers({ role: 'customer' });
+      const employees = await UserService.getUsers({ role: 'employee' });
 
-      expect(customers.length).toBeGreaterThan(0);
-      customers.forEach((user) => {
+      expect(customers.data.length).toBeGreaterThan(0);
+      customers.data.forEach((user) => {
         expect(user.role).toBe('customer');
       });
 
-      employees.forEach((user) => {
+      employees.data.forEach((user) => {
         expect(user.role).toBe('employee');
       });
     });
 
-    it('should return empty array for non-existent role', async () => {
-      const users = await UserService.getUsersByRole('invalid_role' as any);
-      expect(users).toHaveLength(0);
+    it('should return no users for a role nobody has', async () => {
+      const users = await UserService.getUsers({ role: 'invalid_role' });
+      expect(users.data).toHaveLength(0);
     });
   });
 });

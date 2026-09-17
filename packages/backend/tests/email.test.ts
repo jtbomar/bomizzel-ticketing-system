@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app } from '@/app';
+import { app } from '@/index';
 import { db } from '@/config/database';
 import { AuthService } from '@/services/AuthService';
 import { EmailService } from '@/services/EmailService';
@@ -40,7 +40,7 @@ describe('Email API', () => {
       role: 'employee',
     });
     employeeId = employee.user.id;
-    employeeToken = employee.token;
+    employeeToken = employee.tokens.accessToken;
 
     // Create test company
     const company = await CompanyService.createCompany(

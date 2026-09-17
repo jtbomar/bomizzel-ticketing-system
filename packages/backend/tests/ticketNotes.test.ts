@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app } from '@/app';
+import { app } from '@/index';
 import { db } from '@/config/database';
 import { AuthService } from '@/services/AuthService';
 import { TicketService } from '@/services/TicketService';
@@ -36,7 +36,7 @@ describe('Ticket Notes API', () => {
       role: 'customer',
     });
     customerId = customer.user.id;
-    customerToken = customer.token;
+    customerToken = customer.tokens.accessToken;
 
     const employee = await AuthService.register({
       email: 'employee@test.com',
@@ -46,7 +46,7 @@ describe('Ticket Notes API', () => {
       role: 'employee',
     });
     employeeId = employee.user.id;
-    employeeToken = employee.token;
+    employeeToken = employee.tokens.accessToken;
 
     // Create test company
     const company = await CompanyService.createCompany(

@@ -5,6 +5,7 @@ import { Company } from '../../src/models/Company';
 import { Team } from '../../src/models/Team';
 import { JWTUtils } from '../../src/utils/jwt';
 import jwt from 'jsonwebtoken';
+import { createTestToken } from '../helpers/testUtils';
 
 describe('Authentication Security Tests', () => {
   let validToken: string;
@@ -36,7 +37,7 @@ describe('Authentication Security Tests', () => {
     userId = user.id;
 
     await Company.addUserToCompany(userId, companyId);
-    validToken = JWTUtils.generateAccessToken({ userId });
+    validToken = createTestToken(userId);
   });
 
   describe('JWT Token Security', () => {
@@ -85,9 +86,7 @@ describe('Authentication Security Tests', () => {
     });
 
     it('should reject tokens for non-existent users', async () => {
-      const tokenForNonExistentUser = JWTUtils.generateAccessToken({
-        userId: 'non-existent-user-id',
-      });
+      const tokenForNonExistentUser = createTestToken('non-existent-user-id');
 
       await request(app)
         .get('/api/tickets')
@@ -117,7 +116,7 @@ describe('Authentication Security Tests', () => {
       });
 
       await Company.addUserToCompany(otherUser.id, otherCompanyId);
-      otherUserToken = JWTUtils.generateAccessToken({ userId: otherUser.id });
+      otherUserToken = createTestToken(otherUser.id);
     });
 
     it('should prevent access to other companies tickets', async () => {

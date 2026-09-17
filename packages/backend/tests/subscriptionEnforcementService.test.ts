@@ -6,8 +6,10 @@ import { User } from '../src/models/User';
 import { Ticket } from '../src/models/Ticket';
 import { Company } from '../src/models/Company';
 import { AppError } from '../src/middleware/errorHandler';
+import { createTicketContext, createContextTicket, TicketContext } from './helpers/testUtils';
 
 describe('SubscriptionEnforcementService', () => {
+  let ctx: TicketContext;
   let userId: string;
   let companyId: string;
   let limitedPlanId: string;
@@ -15,6 +17,7 @@ describe('SubscriptionEnforcementService', () => {
   let subscriptionId: string;
 
   beforeAll(async () => {
+    ctx = await createTicketContext('SubEnforce');
     // Create test company
     const company = await Company.createCompany({
       name: 'Enforcement Test Company',
@@ -79,14 +82,9 @@ describe('SubscriptionEnforcementService', () => {
     it('should prevent ticket creation when at active limit', async () => {
       // Create tickets up to the limit
       for (let i = 0; i < 3; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Enforcement Test Ticket ${i}`,
           description: 'Test ticket for enforcement',
-          priority: 'medium',
-          status: 'open',
-          customerId: userId,
-          companyId: companyId,
-          createdBy: userId,
         });
         await UsageTrackingService.recordTicketCreation(userId, ticket.id);
       }
@@ -145,14 +143,9 @@ describe('SubscriptionEnforcementService', () => {
     it('should prevent completion when at completed limit', async () => {
       // Create and complete tickets up to the limit
       for (let i = 0; i < 3; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Completion Test Ticket ${i}`,
           description: 'Test ticket for completion enforcement',
-          priority: 'medium',
-          status: 'open',
-          customerId: completionTestUserId,
-          companyId: companyId,
-          createdBy: completionTestUserId,
         });
         await UsageTrackingService.recordTicketCreation(completionTestUserId, ticket.id);
         await UsageTrackingService.recordTicketStatusChange(
@@ -190,14 +183,9 @@ describe('SubscriptionEnforcementService', () => {
 
       // Fill up the limits
       for (let i = 0; i < 3; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Creation Check Ticket ${i}`,
           description: 'Test ticket for creation check',
-          priority: 'medium',
-          status: 'open',
-          customerId: creationCheckUserId,
-          companyId: companyId,
-          createdBy: creationCheckUserId,
         });
         await UsageTrackingService.recordTicketCreation(creationCheckUserId, ticket.id);
       }
@@ -212,11 +200,12 @@ describe('SubscriptionEnforcementService', () => {
         await SubscriptionEnforcementService.checkTicketCreationLimits(creationCheckUserId);
       } catch (error) {
         expect(error).toBeInstanceOf(AppError);
-        expect(error.statusCode).toBe(429);
-        expect(error.code).toBe('SUBSCRIPTION_LIMIT_REACHED');
-        expect(error.details).toHaveProperty('limitType');
-        expect(error.details).toHaveProperty('upgradeMessage');
-        expect(error.details).toHaveProperty('suggestedPlans');
+        const appError = error as AppError;
+        expect(appError.statusCode).toBe(429);
+        expect(appError.code).toBe('SUBSCRIPTION_LIMIT_REACHED');
+        expect(appError.details).toHaveProperty('limitType');
+        expect(appError.details).toHaveProperty('upgradeMessage');
+        expect(appError.details).toHaveProperty('suggestedPlans');
       }
     });
 
@@ -254,14 +243,9 @@ describe('SubscriptionEnforcementService', () => {
 
       // Fill up the completion limits
       for (let i = 0; i < 3; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Completion Check Ticket ${i}`,
           description: 'Test ticket for completion check',
-          priority: 'medium',
-          status: 'open',
-          customerId: completionCheckUserId,
-          companyId: companyId,
-          createdBy: completionCheckUserId,
         });
         await UsageTrackingService.recordTicketCreation(completionCheckUserId, ticket.id);
         await UsageTrackingService.recordTicketStatusChange(
@@ -282,8 +266,9 @@ describe('SubscriptionEnforcementService', () => {
         await SubscriptionEnforcementService.checkTicketCompletionLimits(completionCheckUserId);
       } catch (error) {
         expect(error).toBeInstanceOf(AppError);
-        expect(error.statusCode).toBe(429);
-        expect(error.code).toBe('SUBSCRIPTION_LIMIT_REACHED');
+        const appError = error as AppError;
+        expect(appError.statusCode).toBe(429);
+        expect(appError.code).toBe('SUBSCRIPTION_LIMIT_REACHED');
       }
     });
   });
@@ -305,14 +290,9 @@ describe('SubscriptionEnforcementService', () => {
 
       // Create tickets to approach limits (75% threshold)
       for (let i = 0; i < 2; i++) {
-        const ticket = await Ticket.createTicket({
+        const ticket = await createContextTicket(ctx, {
           title: `Warning Test Ticket ${i}`,
           description: 'Test ticket for warnings',
-          priority: 'medium',
-          status: 'open',
-          customerId: warningTestUserId,
-          companyId: companyId,
-          createdBy: warningTestUserId,
         });
         await UsageTrackingService.recordTicketCreation(warningTestUserId, ticket.id);
       }

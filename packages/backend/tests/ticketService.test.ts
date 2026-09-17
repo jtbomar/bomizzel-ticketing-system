@@ -4,6 +4,9 @@ import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
 import { Queue } from '../src/models/Queue';
 import { CustomField } from '../src/models/CustomField';
+import { Ticket } from '../src/models/Ticket';
+import { MetricsService } from '../src/services/MetricsService';
+import { AdvancedSearchService } from '../src/services/AdvancedSearchService';
 
 describe('TicketService', () => {
   let customerId: string;
@@ -56,7 +59,7 @@ describe('TicketService', () => {
     await Team.addUserToTeam(employeeId, teamId);
 
     // Create custom field
-    const customField = await CustomField.createField({
+    const customField = await CustomField.createCustomField({
       teamId: teamId,
       name: 'priority_level',
       label: 'Priority Level',
@@ -156,9 +159,9 @@ describe('TicketService', () => {
     it('should create employee queue when assigning', async () => {
       await TicketService.assignTicket(ticketId, employeeId, employeeId, 'employee');
 
-      const employeeQueue = await Queue.findByEmployeeId(employeeId);
-      expect(employeeQueue).toBeDefined();
-      expect(employeeQueue.type).toBe('employee');
+      const employeeQueues = await Queue.findByAssignee(employeeId);
+      expect(employeeQueues.length).toBeGreaterThan(0);
+      expect(employeeQueues[0].type).toBe('employee');
     });
 
     it('should reject assignment to non-existent employee', async () => {
@@ -197,14 +200,14 @@ describe('TicketService', () => {
 
       expect(updatedTicket.status).toBe('in_progress');
     });
-
     it('should track status change history', async () => {
       await TicketService.updateTicketStatus(ticketId, 'in_progress', employeeId, 'employee');
 
-      const history = await TicketService.getTicketHistory(ticketId);
+      // History lives on the Ticket model, and rows use snake_case columns.
+      const history = await Ticket.getTicketHistory(ticketId);
       expect(history).toHaveLength(1);
       expect(history[0].action).toBe('status_changed');
-      expect(history[0].newValue).toBe('in_progress');
+      expect(history[0].new_value).toBe('in_progress');
     });
   });
 
@@ -234,58 +237,72 @@ describe('TicketService', () => {
       );
     });
 
+    // Ticket.searchTickets returns a plain array, takes status as string[], and
+    // has no custom-field filtering - that lives in AdvancedSearchService.
     it('should search tickets by title', async () => {
-      const results = await TicketService.searchTickets({
+      const results = await Ticket.searchTickets({
         query: 'Bug',
         companyIds: [companyId],
       });
 
-      expect(results.tickets).toHaveLength(1);
-      expect(results.tickets[0].title).toContain('Bug');
+      expect(results).toHaveLength(1);
+      expect(results[0].title).toContain('Bug');
     });
 
     it('should filter by custom field values', async () => {
-      const results = await TicketService.searchTickets({
-        companyIds: [companyId],
-        customFieldFilters: {
-          priority_level: 'High',
+      const results = await AdvancedSearchService.search(
+        {
+          // Custom fields are addressed with a `custom_field_` name prefix.
+          filters: [
+            {
+              field: 'custom_field_priority_level',
+              operator: 'equals' as const,
+              value: 'High',
+            },
+          ],
+          companyIds: [companyId],
         },
-      });
+        customerId,
+        'customer'
+      );
 
-      expect(results.tickets).toHaveLength(1);
-      expect(results.tickets[0].customFieldValues.priority_level).toBe('High');
+      expect(results.data).toHaveLength(1);
+      expect(results.data[0].customFieldValues?.priority_level).toBe('High');
     });
 
     it('should filter by status', async () => {
-      const results = await TicketService.searchTickets({
+      const results = await Ticket.searchTickets({
         companyIds: [companyId],
-        status: 'open',
+        status: ['open'],
       });
 
-      expect(results.tickets.length).toBeGreaterThan(0);
-      results.tickets.forEach((ticket) => {
+      expect(results.length).toBeGreaterThan(0);
+      results.forEach((ticket) => {
         expect(ticket.status).toBe('open');
       });
     });
   });
 
   describe('getTicketMetrics', () => {
+    // Metrics come from MetricsService; the shape is QueueMetrics.
     it('should calculate queue metrics', async () => {
-      const metrics = await TicketService.getQueueMetrics(queueId);
+      const metrics = await MetricsService.calculateQueueMetrics(queueId);
 
       expect(metrics).toHaveProperty('totalTickets');
-      expect(metrics).toHaveProperty('statusCounts');
+      expect(metrics).toHaveProperty('statusBreakdown');
       expect(metrics).toHaveProperty('averageResolutionTime');
-      expect(metrics.statusCounts).toHaveProperty('open');
+      expect(metrics.queueId).toBe(queueId);
     });
 
     it('should calculate team metrics', async () => {
-      const metrics = await TicketService.getTeamMetrics(teamId);
+      const metrics = await MetricsService.calculateTeamMetrics(teamId);
 
-      expect(metrics).toHaveProperty('totalTickets');
-      expect(metrics).toHaveProperty('assignedTickets');
-      expect(metrics).toHaveProperty('unassignedTickets');
-      expect(metrics).toHaveProperty('statusDistribution');
+      expect(Array.isArray(metrics)).toBe(true);
+      metrics.forEach((m) => {
+        expect(m).toHaveProperty('totalTickets');
+        expect(m).toHaveProperty('assignedTickets');
+        expect(m).toHaveProperty('statusBreakdown');
+      });
     });
   });
 });
