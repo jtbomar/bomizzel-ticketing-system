@@ -7,7 +7,7 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc --noEmit false || tsc --skipLibCheck --noEmit false",
     "build:prod": "tsc --skipLibCheck --noEmit false",
-    "start": "node scripts/run-migrations.js && node dist/index.js",
+    "start": "node scripts/run-migrations.js && ts-node --transpile-only -r tsconfig-paths/register src/index.ts",
     "start:prod": "npm run build:prod && NODE_ENV=production npm run migrate && node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
