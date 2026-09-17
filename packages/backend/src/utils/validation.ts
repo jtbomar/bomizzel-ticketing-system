@@ -311,11 +311,14 @@ export const validateRequest = (schema: ValidationSchema) => {
               errors[fieldPath] = `${field} must be one of: ${rules.enum.join(', ')}`;
               return;
             }
+            // Accept any well-formed UUID. The previous pattern pinned the
+            // version digit to 1-5 and the variant to 8/9/a/b, so it rejected
+            // the nil UUID (00000000-...) and every v6/v7/v8 id - a lookup with
+            // one answered 400 instead of 404. Postgres still rejects anything
+            // that is not a real uuid on the way to the query.
             if (
               rules.format === 'uuid' &&
-              !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-                value
-              )
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
             ) {
               errors[fieldPath] = `${field} must be a valid UUID`;
               return;
