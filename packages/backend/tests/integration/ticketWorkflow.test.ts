@@ -6,6 +6,8 @@ import { Team } from '../../src/models/Team';
 import { CustomField } from '../../src/models/CustomField';
 import { JWTUtils } from '../../src/utils/jwt';
 import { createTestToken } from '../helpers/testUtils';
+import { Queue } from '../../src/models/Queue';
+import { TicketStatus } from '../../src/models/TicketStatus';
 
 describe('Ticket Workflow Integration', () => {
   let customerToken: string;
@@ -59,6 +61,17 @@ describe('Ticket Workflow Integration', () => {
       role: 'team_lead',
     });
     teamLeadId = teamLead.id;
+
+    // A team needs a queue before a ticket can be filed against it - ticket
+    // creation fails with "No available queue found for team" otherwise - and
+    // needs its statuses, or getValidStatusesForTeam allows only 'open'.
+    await Queue.createQueue({
+      name: 'Integration Queue',
+      description: 'Default queue for the integration workflow',
+      type: 'unassigned',
+      teamId,
+    });
+    await TicketStatus.seedDefaultStatuses(teamId);
 
     // Set up associations
     await Company.addUserToCompany(customerId, companyId);
@@ -357,15 +370,20 @@ describe('Ticket Workflow Integration', () => {
     });
 
     it('should provide queue metrics', async () => {
+      // There is no /api/queues/metrics - that path matches /:id and fails uuid
+      // validation. Team metrics live at /queues/teams/:teamId/metrics and come
+      // back as one QueueMetrics entry per queue.
       const response = await request(app)
-        .get(`/api/queues/metrics`)
+        .get(`/api/queues/teams/${teamId}/metrics`)
         .set('Authorization', `Bearer ${employeeToken}`)
-        .query({ teamId: teamId })
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data).toHaveProperty('totalTickets');
-      expect(response.body.data).toHaveProperty('statusCounts');
+      expect(Array.isArray(response.body.data)).toBe(true);
+      response.body.data.forEach((m: any) => {
+        expect(m).toHaveProperty('totalTickets');
+        expect(m).toHaveProperty('statusBreakdown');
+      });
     });
   });
 
