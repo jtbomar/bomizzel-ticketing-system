@@ -210,6 +210,49 @@ export class TeamService {
   /**
    * Get team members with their roles
    */
+  /**
+   * Permanently delete a team.
+   *
+   * Its queues, ticket statuses, custom fields, layouts and memberships are
+   * owned by the team and go with it - those foreign keys cascade. Tickets do
+   * not: tickets.team_id is RESTRICT, so the database refuses to orphan them.
+   * That refusal surfaces as a raw constraint violation and a 500, so the count
+   * is checked first and reported as something a caller can act on.
+   */
+  static async deleteTeam(teamId: string, deletedById: string): Promise<void> {
+    try {
+      const team = await Team.findById(teamId);
+      if (!team) {
+        throw new AppError('Team not found', 404, 'TEAM_NOT_FOUND');
+      }
+
+      const result = await Team.db('tickets')
+        .where('team_id', teamId)
+        .count<{ count: string }[]>('* as count')
+        .first();
+      const ticketCount = parseInt(result?.count ?? '0', 10);
+
+      if (ticketCount > 0) {
+        throw new AppError(
+          `Team has ${ticketCount} ticket${ticketCount === 1 ? '' : 's'} and cannot be deleted. ` +
+            `Move or delete them first, or deactivate the team instead.`,
+          409,
+          'TEAM_HAS_TICKETS'
+        );
+      }
+
+      await Team.delete(teamId);
+
+      logger.info(`Team ${teamId} (${team.name}) deleted by ${deletedById}`);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Delete team error:', error);
+      throw new AppError('Failed to delete team', 500, 'DELETE_TEAM_FAILED');
+    }
+  }
+
   static async getTeamMembers(
     teamId: string
   ): Promise<(UserModel & { teamRole: string; membershipDate: Date })[]> {

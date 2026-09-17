@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { TeamService } from '@/services/TeamService';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/utils/validation';
@@ -174,6 +174,30 @@ router.put(
           details: error instanceof Error ? error.message : 'Unknown error',
         },
       });
+    }
+  }
+);
+
+/**
+ * DELETE /teams/:teamId
+ * Permanently delete a team (Admin only)
+ */
+router.delete(
+  '/:teamId',
+  authenticate,
+  requireRole(['admin']),
+  validateRequest({
+    params: {
+      teamId: { type: 'string', required: true, format: 'uuid' },
+    },
+  }),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      await TeamService.deleteTeam(req.params.teamId as string, req.user!.id);
+
+      res.json({ message: 'Team deleted successfully' });
+    } catch (error) {
+      next(error);
     }
   }
 );
