@@ -38,7 +38,9 @@
     "@typescript-eslint/parser": "^8.49.0",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
   },
   "engines": {
     "node": ">=20.9.0",

@@ -9,18 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      // @testing-library/react resolves from the workspace root, where npm
-      // hoisted a second React, so JSX was created by one copy and rendered by
-      // another - React then reports every element as an invalid child. dedupe
-      // alone does not cover packages resolved outside this workspace, so pin
-      // both explicitly to this package's React.
-      react: path.resolve(__dirname, 'node_modules/react'),
-      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
-    // npm hoists a second React to the workspace root to satisfy an older peer
-    // range, so tests rendered components with one React while the test
-    // renderer used another - React then rejects the elements with "Objects are
-    // not valid as a React child". Force a single copy.
+    // There is one React in the tree - see the root package.json, which pins it
+    // so npm cannot install a second copy beside this one. dedupe keeps vite
+    // honest if that ever slips.
     dedupe: ['react', 'react-dom'],
   },
   server: {
@@ -50,19 +42,5 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    server: {
-      deps: {
-        // The resolve.alias above pins react and react-dom to this package's
-        // copies, but vitest externalises anything under node_modules and lets
-        // Node resolve it - so @testing-library/react, which npm hoisted to the
-        // workspace root, picked up the root's React 18 while components built
-        // their elements with this package's React 19. React 19 tags elements
-        // with a different $$typeof symbol, so react-dom 18 did not recognise
-        // them and rejected every render with "Objects are not valid as a React
-        // child". Inlining it puts it back through vite's resolver, where the
-        // alias applies and there is only one React.
-        inline: [/@testing-library\//],
-      },
-    },
   },
 });
