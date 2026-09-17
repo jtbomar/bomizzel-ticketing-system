@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider } from '../../contexts/AuthContext';
 import { ToastProvider } from '../../contexts/ToastContext';
+import { SocketProvider } from '../../contexts/SocketContext';
 import EmployeeDashboard from '../../pages/EmployeeDashboard';
 import KanbanBoard from '../../components/KanbanBoard';
 import TicketListView from '../../components/TicketListView';
@@ -120,7 +121,9 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <SocketProvider>{children}</SocketProvider>
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
