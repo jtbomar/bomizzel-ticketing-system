@@ -145,7 +145,9 @@ export class AuthService {
       // This bypasses the broken User.findByEmail and User.verifyPassword methods
 
       // Find user directly from database
-      const user = await db('users').where('email', loginData.email.toLowerCase()).first();
+      const user = await db('users')
+        .whereRaw('lower(email) = ?', [loginData.email.toLowerCase()])
+        .first();
 
       if (!user) {
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');

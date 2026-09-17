@@ -114,7 +114,7 @@ export class CompanyRegistrationService {
       }
 
       // Check if admin email already exists
-      const existingUser = await User.findByEmail(data.adminEmail);
+      const existingUser = await User.findByEmail(data.adminEmail.toLowerCase());
       if (existingUser) {
         throw new AppError('Admin email already exists', 400, 'EMAIL_EXISTS');
       }
@@ -177,7 +177,12 @@ export class CompanyRegistrationService {
         .insert({
           first_name: data.adminFirstName,
           last_name: data.adminLastName,
-          email: data.adminEmail,
+          // Lowercased, as User.createUser does. This insert stored whatever
+          // was typed, and every login lowercases before looking up - so a
+          // company that signed up as Jeff@Example.com got a row nobody could
+          // ever match, and the admin account created by the signup flow could
+          // never sign in.
+          email: data.adminEmail.toLowerCase(),
           password_hash: hashedPassword,
           role: 'admin',
           is_active: true,

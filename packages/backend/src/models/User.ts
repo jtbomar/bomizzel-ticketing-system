@@ -7,7 +7,12 @@ export class User extends BaseModel {
   protected static tableName = 'users';
 
   static async findByEmail(email: string): Promise<UserTable | null> {
-    const result = await this.query.where('email', email).first();
+    // Compared case-insensitively rather than exactly. Addresses are stored
+    // lowercased on every path now, but rows written before that was true can
+    // hold mixed case, and an exact match made those accounts unreachable -
+    // including for the duplicate check, which would then happily create a
+    // second account differing only in capitals.
+    const result = await this.query.whereRaw('lower(email) = ?', [email.toLowerCase()]).first();
     return result || null;
   }
 

@@ -22,7 +22,7 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
     const jwt = require('jsonwebtoken');
 
     // Find user directly from database
-    const user = await db('users').where('email', email.toLowerCase()).first();
+    const user = await db('users').whereRaw('lower(email) = ?', [email.toLowerCase()]).first();
 
     if (!user) {
       logger.warn(`Login attempt with non-existent email: ${email}`);
