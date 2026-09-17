@@ -254,7 +254,10 @@ describe('Ticket Notes API', () => {
           content: 'Unauthorized update',
         });
 
-      expect(response.status).toBe(500); // Should be handled by service error
+      // Editing someone else's note is a permission failure, not a server
+      // error. This asserted 500 because TicketNoteService threw a plain
+      // Error, which errorHandler could not classify.
+      expect(response.status).toBe(403);
     });
 
     it('should require authentication', async () => {
