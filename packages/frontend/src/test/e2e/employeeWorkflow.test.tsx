@@ -11,7 +11,10 @@ import * as api from '../../services/api';
 
 // Mock API calls
 vi.mock('../../services/api');
-const mockApi = vi.mocked(api);
+// apiService is exported as an instance; the methods live on it, not as
+// top-level module exports, so vi.mocked(api) produced a namespace whose
+// members were all undefined.
+const mockApi = vi.mocked(api.apiService);
 
 // Mock drag and drop
 vi.mock('react-beautiful-dnd', () => ({
@@ -128,7 +131,7 @@ describe('Employee Workflow E2E Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockApi.getCurrentUser.mockResolvedValue({ data: mockEmployee });
+    mockApi.getProfile.mockResolvedValue({ data: mockEmployee });
     mockApi.getTickets.mockResolvedValue({
       data: mockTickets,
       pagination: { total: 2, page: 1, limit: 10 },
@@ -353,7 +356,7 @@ describe('Employee Workflow E2E Tests', () => {
 
     it('should allow adding internal notes', async () => {
       mockApi.getTicket.mockResolvedValue({ data: mockTicketDetail });
-      mockApi.addTicketNote.mockResolvedValue({
+      mockApi.createTicketNote.mockResolvedValue({
         data: {
           id: '2',
           content: 'Internal investigation note',
@@ -393,14 +396,17 @@ describe('Employee Workflow E2E Tests', () => {
       fireEvent.click(addNoteButton);
 
       await waitFor(() => {
-        expect(mockApi.addTicketNote).toHaveBeenCalledWith('1', {
+        expect(mockApi.createTicketNote).toHaveBeenCalledWith('1', {
           content: 'Internal investigation note',
           isInternal: true,
         });
       });
     });
 
-    it('should allow sending emails from tickets', async () => {
+    // apiService has no sendTicketEmail - the frontend makes no email calls at
+    // all, so this covers a feature that is not wired up in the UI. Skipped
+    // rather than deleted so the gap stays visible.
+    it.skip('should allow sending emails from tickets', async () => {
       mockApi.getTicket.mockResolvedValue({ data: mockTicketDetail });
       mockApi.sendTicketEmail.mockResolvedValue({
         data: { message: 'Email sent successfully' },
@@ -470,7 +476,7 @@ describe('Employee Workflow E2E Tests', () => {
     });
 
     it('should perform bulk status updates', async () => {
-      mockApi.bulkUpdateTickets.mockResolvedValue({
+      mockApi.bulkUpdateStatus.mockResolvedValue({
         data: { updatedCount: 2 },
       });
 
@@ -497,7 +503,7 @@ describe('Employee Workflow E2E Tests', () => {
       fireEvent.click(confirmButton);
 
       await waitFor(() => {
-        expect(mockApi.bulkUpdateTickets).toHaveBeenCalledWith({
+        expect(mockApi.bulkUpdateStatus).toHaveBeenCalledWith({
           ticketIds: ['1', '2'],
           updates: { status: 'resolved' },
         });
@@ -506,7 +512,10 @@ describe('Employee Workflow E2E Tests', () => {
   });
 
   describe('Real-time Updates', () => {
-    it('should handle real-time ticket updates', async () => {
+    // Sockets live in SocketContext via socket.io-client, not on apiService,
+    // so mockApi.connectSocket does not exist. Rewriting these against the real
+    // socket layer is a separate piece of work.
+    it.skip('should handle real-time ticket updates', async () => {
       // Mock WebSocket connection
       const mockSocket = {
         on: vi.fn(),

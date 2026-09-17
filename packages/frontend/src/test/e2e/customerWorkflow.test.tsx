@@ -11,7 +11,10 @@ import * as api from '../../services/api';
 
 // Mock API calls
 vi.mock('../../services/api');
-const mockApi = vi.mocked(api);
+// apiService is exported as an instance; the methods live on it, not as
+// top-level module exports, so vi.mocked(api) produced a namespace whose
+// members were all undefined.
+const mockApi = vi.mocked(api.apiService);
 
 // Mock data
 const mockUser = {
@@ -101,7 +104,7 @@ describe('Customer Workflow E2E Tests', () => {
     vi.clearAllMocks();
 
     // Setup default API mocks
-    mockApi.getCurrentUser.mockResolvedValue({ data: mockUser });
+    mockApi.getProfile.mockResolvedValue({ data: mockUser });
     mockApi.getTickets.mockResolvedValue({
       data: mockTickets,
       pagination: { total: 2, page: 1, limit: 10 },
@@ -351,7 +354,7 @@ describe('Customer Workflow E2E Tests', () => {
 
     it('should allow adding notes to ticket', async () => {
       mockApi.getTicket.mockResolvedValue({ data: mockTicketDetail });
-      mockApi.addTicketNote.mockResolvedValue({
+      mockApi.createTicketNote.mockResolvedValue({
         data: {
           id: '2',
           content: 'New customer note',
@@ -388,7 +391,7 @@ describe('Customer Workflow E2E Tests', () => {
 
       // Verify API call
       await waitFor(() => {
-        expect(mockApi.addTicketNote).toHaveBeenCalledWith('1', {
+        expect(mockApi.createTicketNote).toHaveBeenCalledWith('1', {
           content: 'New customer note',
           isInternal: false,
         });
@@ -397,7 +400,7 @@ describe('Customer Workflow E2E Tests', () => {
 
     it('should allow uploading file attachments', async () => {
       mockApi.getTicket.mockResolvedValue({ data: mockTicketDetail });
-      mockApi.uploadTicketFile.mockResolvedValue({
+      mockApi.uploadFile.mockResolvedValue({
         data: {
           id: '2',
           fileName: 'new-file.jpg',
@@ -432,7 +435,7 @@ describe('Customer Workflow E2E Tests', () => {
 
       // Verify API call
       await waitFor(() => {
-        expect(mockApi.uploadTicketFile).toHaveBeenCalledWith('1', expect.any(FormData));
+        expect(mockApi.uploadFile).toHaveBeenCalledWith('1', expect.any(FormData));
       });
     });
   });
@@ -447,7 +450,7 @@ describe('Customer Workflow E2E Tests', () => {
     };
 
     it('should allow switching between companies', async () => {
-      mockApi.getCurrentUser.mockResolvedValue({ data: mockMultiCompanyUser });
+      mockApi.getProfile.mockResolvedValue({ data: mockMultiCompanyUser });
 
       render(
         <TestWrapper>
@@ -472,7 +475,7 @@ describe('Customer Workflow E2E Tests', () => {
     });
 
     it('should show company-specific tickets only', async () => {
-      mockApi.getCurrentUser.mockResolvedValue({ data: mockMultiCompanyUser });
+      mockApi.getProfile.mockResolvedValue({ data: mockMultiCompanyUser });
 
       const companyATickets = [{ ...mockTickets[0], companyId: '1' }];
       const companyBTickets = [{ ...mockTickets[1], companyId: '2' }];

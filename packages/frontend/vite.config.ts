@@ -9,7 +9,19 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // @testing-library/react resolves from the workspace root, where npm
+      // hoisted a second React, so JSX was created by one copy and rendered by
+      // another - React then reports every element as an invalid child. dedupe
+      // alone does not cover packages resolved outside this workspace, so pin
+      // both explicitly to this package's React.
+      react: path.resolve(__dirname, 'node_modules/react'),
+      'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
+    // npm hoists a second React to the workspace root to satisfy an older peer
+    // range, so tests rendered components with one React while the test
+    // renderer used another - React then rejects the elements with "Objects are
+    // not valid as a React child". Force a single copy.
+    dedupe: ['react', 'react-dom'],
   },
   server: {
     port: 3000,

@@ -7,7 +7,10 @@ import * as api from '../../services/api';
 
 // Mock API calls
 vi.mock('../../services/api');
-const mockApi = vi.mocked(api);
+// apiService is exported as an instance; the methods live on it, not as
+// top-level module exports, so vi.mocked(api) produced a namespace whose
+// members were all undefined.
+const mockApi = vi.mocked(api.apiService);
 
 const mockUser = {
   id: '1',
@@ -104,7 +107,7 @@ describe('CreateTicketForm Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    mockApi.getCurrentUser.mockResolvedValue({ data: mockUser });
+    mockApi.getProfile.mockResolvedValue({ data: mockUser });
     mockApi.getTeams.mockResolvedValue({ data: mockTeams });
     mockApi.createTicket.mockResolvedValue({
       data: {
