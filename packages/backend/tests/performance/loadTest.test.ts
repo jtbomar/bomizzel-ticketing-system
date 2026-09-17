@@ -7,12 +7,14 @@ import { JWTUtils } from '../../src/utils/jwt';
 import { createTestToken } from '../helpers/testUtils';
 import { Queue } from '../../src/models/Queue';
 import { TicketStatus } from '../../src/models/TicketStatus';
+import { Ticket } from '../../src/models/Ticket';
 
 describe('Performance Load Tests', () => {
   let customerTokens: string[] = [];
   let employeeTokens: string[] = [];
   let companyId: string;
   let teamId: string;
+  let queueId: string;
 
   beforeAll(async () => {
     // Create test company and team
@@ -31,12 +33,13 @@ describe('Performance Load Tests', () => {
     // Ticket creation needs a queue on the team and the team's statuses; without
     // them every POST /api/tickets fails with "No available queue found for
     // team" and the 201 assertions below cannot hold.
-    await Queue.createQueue({
+    const queue = await Queue.createQueue({
       name: 'Load Test Queue',
       description: 'Default queue for load testing',
       type: 'unassigned',
       teamId,
     });
+    queueId = queue.id;
     await TicketStatus.seedDefaultStatuses(teamId);
 
     // Create multiple test users for concurrent testing
@@ -138,30 +141,35 @@ describe('Performance Load Tests', () => {
 
   describe('Database Performance', () => {
     it('should handle large dataset queries efficiently', async () => {
-      // Create a large number of tickets first
-      const ticketPromises = Array.from({ length: 1000 }, (_, i) => {
-        const token = customerTokens[i % customerTokens.length];
-        return request(app)
-          .post('/api/tickets')
-          .set('Authorization', `Bearer ${token}`)
-          .send({
-            title: `Performance Test Ticket ${i}`,
-            description: `Performance test ticket ${i}`,
-            companyId: companyId,
-            teamId: teamId,
-          });
-      });
+      // The fixture used to be built with a thousand HTTP POSTs, which is what
+      // actually consumed the sixty seconds - the test then had nothing left to
+      // measure the thing it is named after. The dataset is the precondition,
+      // not the subject, so insert it in one statement.
+      const submitterId = (await User.findByEmail('customer0@loadtest.com'))!.id;
 
-      await Promise.all(ticketPromises);
+      await Ticket.query.insert(
+        Array.from({ length: 1000 }, (_, i) => ({
+          title: `Performance Test Ticket ${i}`,
+          description: `Performance test ticket ${i}`,
+          status: 'open',
+          priority: 0,
+          submitter_id: submitterId,
+          company_id: companyId,
+          queue_id: queueId,
+          team_id: teamId,
+          custom_field_values: JSON.stringify({}),
+        }))
+      );
 
-      // Test search performance on large dataset
       const startTime = Date.now();
 
       const response = await request(app)
         .get('/api/tickets')
         .set('Authorization', `Bearer ${customerTokens[0]}`)
+        // `search`, not `query`. The route takes search, so the old parameter
+        // was dropped on the floor and this measured an unfiltered list.
         .query({
-          query: 'Performance',
+          search: 'Performance',
           limit: 50,
           page: 1,
         });
@@ -171,17 +179,28 @@ describe('Performance Load Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
-      expect(duration).toBeLessThan(1000); // Search should complete within 1 second
+      expect(response.body.data.length).toBeGreaterThan(0);
+
+      // Both title and description are matched with a leading-wildcard ILIKE,
+      // which cannot use an index, so this is two sequential scans of the table
+      // - one for the page, one for the count. 3s leaves room for a shared
+      // runner while still catching the day that becomes minutes.
+      expect(duration).toBeLessThan(3000);
 
       console.log(`Searched 1000+ tickets in ${duration}ms`);
-    }, 60000); // Extended timeout for large dataset creation
+    }, 60000);
   });
 
   describe('Authentication Performance', () => {
     it('should handle concurrent login requests', async () => {
+      // Twenty, not fifty. Passwords are hashed with bcrypt at cost 12, which is
+      // deliberately expensive - roughly a third of a second each - and bcrypt
+      // runs on libuv's four-thread pool, so logins serialise four at a time no
+      // matter how many arrive. Fifty could not fit in the ten second timeout
+      // this test had; it was asserting that a security control was cheap.
       const startTime = Date.now();
 
-      const loginPromises = Array.from({ length: 50 }, (_, i) => {
+      const loginPromises = Array.from({ length: 20 }, (_, i) => {
         return request(app)
           .post('/api/auth/login')
           .send({
@@ -202,25 +221,32 @@ describe('Performance Load Tests', () => {
       expect(duration).toBeLessThan(5000);
 
       const avgResponseTime = duration / responses.length;
-      expect(avgResponseTime).toBeLessThan(100);
+      // Throughput, not latency: total elapsed over the number of logins.
+      // Twenty hashes across four threads is a little under two seconds, so
+      // 300ms leaves roughly three times the headroom a shared runner needs
+      // while still catching a cost bump or an N+1 creeping into the login path.
+      expect(avgResponseTime).toBeLessThan(300);
 
-      console.log(`Processed 50 logins in ${duration}ms (avg: ${avgResponseTime}ms per login)`);
-    }, 10000);
+      console.log(
+        `Processed ${responses.length} logins in ${duration}ms (avg: ${avgResponseTime}ms per login)`
+      );
+    }, 30000);
   });
 
-  describe('Real-time Performance', () => {
-    it('should handle multiple WebSocket connections', async () => {
-      // This would test WebSocket connection limits and message broadcasting
-      // For now, we'll test the HTTP endpoints that support real-time features
-
+  describe('Queue Metrics Performance', () => {
+    // Named for WebSockets, which it has never tested - the body says as much.
+    // It measures the queue metrics endpoint the dashboard polls, so it is named
+    // for that. It also asked for /api/queues/metrics, which is not a route: it
+    // matched GET /:id, failed uuid validation and returned 400, so every
+    // assertion here was made against an error.
+    it('should handle repeated team metrics requests', async () => {
       const startTime = Date.now();
 
       const metricsPromises = Array.from({ length: 20 }, (_, i) => {
         const token = employeeTokens[i % employeeTokens.length];
         return request(app)
-          .get('/api/queues/metrics')
-          .set('Authorization', `Bearer ${token}`)
-          .query({ teamId: teamId });
+          .get(`/api/queues/teams/${teamId}/metrics`)
+          .set('Authorization', `Bearer ${token}`);
       });
 
       const responses = await Promise.all(metricsPromises);
@@ -232,10 +258,10 @@ describe('Performance Load Tests', () => {
         expect(response.body.success).toBe(true);
       });
 
-      expect(duration).toBeLessThan(2000);
+      expect(duration).toBeLessThan(3000);
 
       console.log(`Retrieved metrics 20 times in ${duration}ms`);
-    }, 5000);
+    }, 15000);
   });
 
   describe('File Upload Performance', () => {
@@ -327,19 +353,28 @@ describe('Performance Load Tests', () => {
 
       await Promise.all(operations);
 
-      // Force garbage collection if available
-      if (global.gc) {
-        global.gc();
-      }
+      // "if available" was doing the work here: jest runs without --expose-gc by
+      // default, so global.gc was undefined, nothing was collected, and the test
+      // compared two high-water marks. It measured how much garbage 300 requests
+      // produce, not whether any of it is retained - and 223MB of garbage is
+      // unremarkable. test:performance now passes --expose-gc, so this actually
+      // collects before measuring; if it ever does not, say so rather than
+      // quietly asserting something else.
+      expect(typeof global.gc).toBe('function');
+      global.gc!();
+      // A second pass, since the first can leave objects that only became
+      // unreachable during it.
+      global.gc!();
 
       const finalMemory = process.memoryUsage();
       const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
       const memoryIncreaseMB = memoryIncrease / 1024 / 1024;
 
-      console.log(`Memory increase: ${memoryIncreaseMB.toFixed(2)}MB`);
+      console.log(`Memory retained after GC: ${memoryIncreaseMB.toFixed(2)}MB`);
 
-      // Memory increase should be reasonable (less than 100MB for this test)
-      expect(memoryIncreaseMB).toBeLessThan(100);
+      // What survives collection is what matters. 300 requests holding on to
+      // 50MB would mean something is keeping references it should not.
+      expect(memoryIncreaseMB).toBeLessThan(50);
     }, 30000);
   });
 });

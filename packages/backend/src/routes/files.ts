@@ -39,6 +39,10 @@ router.post(
       const attachment = await FileService.uploadFile(req.file, ticketId, userId, noteId);
 
       res.status(201).json({
+        // `success` is what the rest of the API returns and what callers check
+        // for; this endpoint sent only message and data. Added rather than
+        // swapped, so anything reading `message` today keeps working.
+        success: true,
         message: 'File uploaded successfully',
         data: attachment,
       });
