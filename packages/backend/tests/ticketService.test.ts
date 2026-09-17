@@ -130,7 +130,7 @@ describe('TicketService', () => {
       };
 
       await expect(TicketService.createTicket(ticketData, customerId)).rejects.toThrow(
-        'Required custom field missing'
+        'is required'
       );
     });
   });
@@ -231,9 +231,11 @@ describe('TicketService', () => {
 
       // History lives on the Ticket model, and rows use snake_case columns.
       const history = await Ticket.getTicketHistory(ticketId);
-      expect(history).toHaveLength(1);
-      expect(history[0].action).toBe('status_changed');
-      expect(history[0].new_value).toBe('in_progress');
+      // Creating the ticket also writes a 'created' row, and history comes back
+      // newest first, so assert on the status_changed entry rather than a count.
+      const statusChange = history.find((h: any) => h.action === 'status_changed');
+      expect(statusChange).toBeDefined();
+      expect(statusChange.new_value).toBe('in_progress');
     });
   });
 

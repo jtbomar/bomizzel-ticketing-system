@@ -262,10 +262,14 @@ describe('Email API', () => {
           .post('/api/email/templates')
           .set('Authorization', `Bearer ${employeeToken}`)
           .send({
+            // An empty subject is rejected by the request schema first, with
+            // VALIDATION_ERROR, so INVALID_TEMPLATE was unreachable. Send a
+            // payload that satisfies the schema but fails template validation:
+            // variable names may contain dots but not hyphens.
             name: 'invalid_template',
-            subject: '', // Empty subject
-            htmlBody: '',
-            textBody: '', // Both bodies empty
+            subject: 'Hello {{bad-variable}}',
+            htmlBody: '<p>Hi</p>',
+            textBody: 'Hi',
           });
 
         expect(response.status).toBe(400);
