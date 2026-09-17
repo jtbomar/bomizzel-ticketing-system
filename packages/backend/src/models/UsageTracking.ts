@@ -115,15 +115,37 @@ export class UsageTracking extends BaseModel {
       [subscriptionId, subscriptionId]
     );
 
+    // Archived tickets: those whose most recent action is 'archived'.
+    // This used to be hardcoded to 0 with "will be calculated separately if
+    // needed", so the archived count was always zero no matter how many tickets
+    // had been archived - including on the subscription dashboard, where the
+    // archival feature reports it.
+    const archivedTicketsResult = await this.db.raw(
+      `
+      SELECT COUNT(DISTINCT ticket_id) as count
+      FROM usage_tracking ut1
+      WHERE ut1.subscription_id = ?
+      AND ut1.action_timestamp = (
+        SELECT MAX(ut2.action_timestamp)
+        FROM usage_tracking ut2
+        WHERE ut2.subscription_id = ut1.subscription_id
+        AND ut2.ticket_id = ut1.ticket_id
+      )
+      AND ut1.action = 'archived'
+    `,
+      [subscriptionId]
+    );
+
     const activeTickets = parseInt(activeTicketsResult.rows[0]?.count || '0');
     const completedTickets = parseInt(completedTicketsResult.rows[0]?.count || '0');
     const totalTickets = parseInt(totalTicketsResult.rows[0]?.count || '0');
+    const archivedTickets = parseInt(archivedTicketsResult.rows[0]?.count || '0');
 
     return {
       activeTickets,
       completedTickets,
       totalTickets,
-      archivedTickets: 0, // Will be calculated separately if needed
+      archivedTickets,
     };
   }
 

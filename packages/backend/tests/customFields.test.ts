@@ -174,6 +174,35 @@ describe('Custom Fields Endpoints', () => {
   });
 
   describe('POST /api/custom-fields/teams/:teamId/validate', () => {
+    // These tests validate values against customer_name and priority_level.
+    // Both used to be left behind by earlier tests in this file, which no longer
+    // survive now that each test starts from an empty database.
+    beforeEach(async () => {
+      await request(app)
+        .post(`/api/custom-fields/teams/${teamId}`)
+        .set('Authorization', `Bearer ${teamLeadToken}`)
+        .send({
+          name: 'customer_name',
+          label: 'Customer Name',
+          type: 'string',
+          isRequired: true,
+          validation: { min: 2, max: 100 },
+        })
+        .expect(201);
+
+      await request(app)
+        .post(`/api/custom-fields/teams/${teamId}`)
+        .set('Authorization', `Bearer ${teamLeadToken}`)
+        .send({
+          name: 'priority_level',
+          label: 'Priority Level',
+          type: 'picklist',
+          isRequired: false,
+          options: ['Low', 'Medium', 'High', 'Critical'],
+        })
+        .expect(201);
+    });
+
     it('should validate custom field values successfully', async () => {
       const values = {
         customer_name: 'John Doe',
