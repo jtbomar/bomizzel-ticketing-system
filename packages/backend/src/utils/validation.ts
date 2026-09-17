@@ -345,7 +345,13 @@ export const validateRequest = (schema: ValidationSchema) => {
             break;
 
           case 'boolean':
-            if (typeof value !== 'boolean') {
+            // Query string and route params are always strings, so a boolean
+            // declared in a `query` schema could never validate - GET
+            // /api/email/templates?activeOnly=true and GET
+            // /api/teams?isActive=true both answered 400. Accept the string
+            // forms as well. This validator does not write back to req, so
+            // handlers still read the raw 'true'/'false' string.
+            if (typeof value !== 'boolean' && value !== 'true' && value !== 'false') {
               errors[fieldPath] = `${field} must be a boolean`;
               return;
             }
