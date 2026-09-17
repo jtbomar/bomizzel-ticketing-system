@@ -5,17 +5,29 @@ import { EmailTemplateService } from '@/services/EmailTemplateService';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/utils/validation';
 
-const router = Router();
-
-// All email routes require authentication
-router.use(authenticate);
-
 /**
  * Send email from ticket
  * POST /tickets/:ticketId/email
  */
+// Two routers: this file serves ticket-scoped paths (/tickets/:ticketId/email)
+// and email-scoped ones (/email/templates, /email/status).
+//
+// It used to be a single router mounted at "/", which made both families
+// resolve correctly but applied authenticate to every /api request, so any
+// unmatched path answered 401 instead of 404 and the frontend logged the user
+// out. Mounting that same router at /email instead produced
+// /api/email/email/templates, so the template endpoints 404d.
+//
+// ticketEmailRoutes is mounted at /tickets, emailRoutes at /email.
+
+const router = Router();
+router.use(authenticate);
+
+const emailRouter = Router();
+emailRouter.use(authenticate);
+
 router.post(
-  '/tickets/:ticketId/email',
+  '/:ticketId/email',
   validateRequest({
     params: {
       ticketId: { type: 'string', required: true, format: 'uuid' },
@@ -128,8 +140,9 @@ router.post(
  * Send ticket notification
  * POST /tickets/:ticketId/notify
  */
+
 router.post(
-  '/tickets/:ticketId/notify',
+  '/:ticketId/notify',
   validateRequest({
     params: {
       ticketId: { type: 'string', required: true, format: 'uuid' },
@@ -169,7 +182,8 @@ router.post(
  * Get email service status
  * GET /email/status
  */
-router.get('/email/status', async (_req: Request, res: Response, next: NextFunction) => {
+
+emailRouter.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const isInitialized = EmailService.isInitialized();
     let isConnected = false;
@@ -204,8 +218,9 @@ router.get('/email/status', async (_req: Request, res: Response, next: NextFunct
  * Create email template
  * POST /email/templates
  */
-router.post(
-  '/email/templates',
+
+emailRouter.post(
+  '/templates',
   validateRequest({
     body: {
       name: { type: 'string', required: true, minLength: 1, maxLength: 255 },
@@ -254,8 +269,9 @@ router.post(
  * Get all email templates
  * GET /email/templates
  */
-router.get(
-  '/email/templates',
+
+emailRouter.get(
+  '/templates',
   validateRequest({
     query: {
       activeOnly: { type: 'boolean', required: false },
@@ -284,8 +300,9 @@ router.get(
  * Get email template by ID
  * GET /email/templates/:templateId
  */
-router.get(
-  '/email/templates/:templateId',
+
+emailRouter.get(
+  '/templates/:templateId',
   validateRequest({
     params: {
       templateId: { type: 'string', required: true, format: 'uuid' },
@@ -321,8 +338,9 @@ router.get(
  * Update email template
  * PUT /email/templates/:templateId
  */
-router.put(
-  '/email/templates/:templateId',
+
+emailRouter.put(
+  '/templates/:templateId',
   validateRequest({
     params: {
       templateId: { type: 'string', required: true, format: 'uuid' },
@@ -367,8 +385,9 @@ router.put(
  * Delete email template
  * DELETE /email/templates/:templateId
  */
-router.delete(
-  '/email/templates/:templateId',
+
+emailRouter.delete(
+  '/templates/:templateId',
   validateRequest({
     params: {
       templateId: { type: 'string', required: true, format: 'uuid' },
@@ -404,8 +423,9 @@ router.delete(
  * Render email template
  * POST /email/templates/:templateId/render
  */
-router.post(
-  '/email/templates/:templateId/render',
+
+emailRouter.post(
+  '/templates/:templateId/render',
   validateRequest({
     params: {
       templateId: { type: 'string', required: true, format: 'uuid' },
@@ -445,20 +465,19 @@ router.post(
  * Get template variables reference
  * GET /email/template-variables
  */
-router.get(
-  '/email/template-variables',
-  async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      const variables = EmailTemplateService.getDefaultTemplateVariables();
 
-      res.json({
-        success: true,
-        data: variables,
-      });
-    } catch (error) {
-      next(error);
-    }
+emailRouter.get('/template-variables', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const variables = EmailTemplateService.getDefaultTemplateVariables();
+
+    res.json({
+      success: true,
+      data: variables,
+    });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
+export { emailRouter };
 export default router;

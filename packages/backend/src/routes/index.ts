@@ -13,7 +13,7 @@ import profileFieldRoutes from './profileFields';
 import ticketNoteRoutes, { noteRouter } from './ticketNotes';
 import queueRoutes from './queues';
 import fileRoutes from './files';
-import emailRoutes from './email';
+import ticketEmailRoutes, { emailRouter } from './email';
 import bulkOperationsRoutes from './bulkOperations';
 import searchRoutes from './search';
 import adminRoutes from './admin';
@@ -143,10 +143,12 @@ router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) =
   }
 });
 
-// Mounted at /email, NOT at '/'. Mounting at '/' made this a catch-all: because
-// emailRoutes applies `authenticate` to every request, any unmatched /api/* path
-// fell through to it and returned 401, which logged the user out client-side.
-router.use('/email', emailRoutes);
+// Split by path family. Mounting the whole router at '/' made it a catch-all:
+// it applies `authenticate` to every request, so any unmatched /api/* path
+// returned 401 and logged the user out. Mounting it all at '/email' instead put
+// the template endpoints at /api/email/email/templates.
+router.use('/tickets', ticketEmailRoutes);
+router.use('/email', emailRouter);
 
 // API info endpoint
 router.get('/', (req, res) => {
