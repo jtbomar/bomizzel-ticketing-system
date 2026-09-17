@@ -1,5 +1,9 @@
 import request from 'supertest';
+import express from 'express';
 import { app } from '../src/index';
+import { createRateLimiter } from '../src/middleware/rateLimiter';
+import { errorHandler } from '../src/middleware/errorHandler';
+import { isRedisAvailable, redisClient } from '../src/config/redis';
 
 describe('Security Middleware Tests', () => {
   describe('Input Sanitization', () => {
@@ -16,35 +20,109 @@ describe('Security Middleware Tests', () => {
     });
 
     it('should block requests with suspicious user agents', async () => {
-      const response = await request(app).get('/api/health').set('User-Agent', 'sqlmap/1.0');
+      // Aimed at a real API path, not /api/health: the health endpoints are
+      // deliberately exempt from this check so platform probes always get through.
+      const response = await request(app).get('/api/auth/profile').set('User-Agent', 'sqlmap/1.0');
 
       expect(response.status).toBe(403);
       expect(response.body.error.code).toBe('BLOCKED_USER_AGENT');
     });
 
-    it('should require user agent header', async () => {
-      const response = await request(app).get('/api/health').set('User-Agent', '');
+    it('should not block ordinary HTTP clients', async () => {
+      // curl, wget and python-requests were on the blocklist. They are ordinary
+      // clients, not attack tools, and blocking them broke scripts and webhooks
+      // while stopping nobody - a User-Agent is whatever the caller says it is.
+      for (const ua of ['curl/8.5.0', 'Wget/1.21', 'python-requests/2.31.0', 'axios/1.6.0']) {
+        const response = await request(app).get('/api/auth/profile').set('User-Agent', ua);
+        expect(response.status).not.toBe(403);
+      }
+    });
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.code).toBe('MISSING_USER_AGENT');
+    it('should allow requests with no user agent header', async () => {
+      // This used to be a 400. The header is set by the caller, so requiring it
+      // stopped no attacker; it only rejected honest server-to-server clients
+      // and HTTP libraries that omit it.
+      const response = await request(app).get('/api/health');
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should let health checks through regardless of user agent', async () => {
+      // Railway's probe sends no User-Agent. If these ever start failing the
+      // platform marks the service unhealthy and takes it out of rotation.
+      for (const path of ['/health', '/api/health']) {
+        expect((await request(app).get(path)).status).toBe(200);
+        expect((await request(app).get(path).set('User-Agent', 'sqlmap/1.0')).status).toBe(200);
+      }
     });
   });
 
   describe('Rate Limiting', () => {
-    it('should allow requests within rate limit', async () => {
-      const response = await request(app).get('/health');
+    // These used to assert rate limit headers on /health, which has never been
+    // rate limited - no limiter is mounted globally, only on specific routes
+    // like /auth/login. So they were asserting behaviour the app does not have,
+    // and the middleware itself went untested. Exercise it directly instead, on
+    // its own app, with a Redis stand-in: it needs Redis, and the suite's shared
+    // mock reports Redis as unavailable (which makes the limiter step aside).
+    const buildApp = (maxRequests: number) => {
+      const store = new Map<string, number>();
 
-      expect(response.status).toBe(200);
-      expect(response.headers['x-ratelimit-limit']).toBeDefined();
-      expect(response.headers['x-ratelimit-remaining']).toBeDefined();
+      (isRedisAvailable as jest.Mock).mockReturnValue(true);
+      (redisClient.get as jest.Mock).mockImplementation(async (key: string) =>
+        store.has(key) ? String(store.get(key)) : null
+      );
+      (redisClient as unknown as { multi: jest.Mock }).multi = jest.fn(() => {
+        const queued: Array<() => void> = [];
+        const pipeline = {
+          incr: (key: string) => {
+            queued.push(() => store.set(key, (store.get(key) || 0) + 1));
+            return pipeline;
+          },
+          expire: () => pipeline,
+          exec: async () => queued.forEach((run) => run()),
+        };
+        return pipeline;
+      });
+
+      const limited = express();
+      limited.use(createRateLimiter({ windowMs: 60_000, maxRequests }));
+      limited.get('/thing', (_req, res) => res.json({ ok: true }));
+      limited.use(errorHandler);
+      return limited;
+    };
+
+    afterEach(() => {
+      (isRedisAvailable as jest.Mock).mockReturnValue(false);
+    });
+
+    it('should allow requests within rate limit, and report what is left', async () => {
+      const limited = buildApp(3);
+
+      const first = await request(limited).get('/thing').expect(200);
+      expect(first.headers['x-ratelimit-limit']).toBe('3');
+      expect(first.headers['x-ratelimit-remaining']).toBe('2');
+
+      const second = await request(limited).get('/thing').expect(200);
+      expect(second.headers['x-ratelimit-remaining']).toBe('1');
     });
 
     it('should block requests exceeding rate limit', async () => {
-      // This test would need to make many requests quickly
-      // For now, just verify rate limit headers are present
-      const response = await request(app).get('/health');
+      const limited = buildApp(2);
 
-      expect(response.headers['x-ratelimit-limit']).toBeDefined();
+      await request(limited).get('/thing').expect(200);
+      await request(limited).get('/thing').expect(200);
+
+      const blocked = await request(limited).get('/thing').expect(429);
+      expect(blocked.body.error.code).toBe('RATE_LIMIT_EXCEEDED');
+    });
+
+    it('should let requests through when Redis is unavailable', async () => {
+      // Failing closed here would take the whole API down with Redis.
+      const limited = buildApp(1);
+      (isRedisAvailable as jest.Mock).mockReturnValue(false);
+
+      await request(limited).get('/thing').expect(200);
+      await request(limited).get('/thing').expect(200);
     });
   });
 
@@ -54,8 +132,13 @@ describe('Security Middleware Tests', () => {
 
       expect(response.headers['x-content-type-options']).toBe('nosniff');
       expect(response.headers['x-frame-options']).toBe('DENY');
-      expect(response.headers['x-xss-protection']).toBe('1; mode=block');
-      expect(response.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+      expect(response.headers['referrer-policy']).toBe('no-referrer');
+      expect(response.headers['strict-transport-security']).toContain('max-age=');
+
+      // Not "1; mode=block". Browsers removed the XSS auditor this header drove,
+      // and enabling it was itself exploitable, so helmet sends 0 to switch off
+      // whatever remains of it. 0 is the value we want here.
+      expect(response.headers['x-xss-protection']).toBe('0');
     });
 
     it('should not expose server information', async () => {

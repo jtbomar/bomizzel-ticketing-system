@@ -11,9 +11,20 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction): 
       req.body = sanitizeObject(req.body);
     }
 
-    // Sanitize query parameters
+    // Sanitize query parameters.
+    //
+    // Express 5 exposes req.query through a getter-only accessor, so plain
+    // assignment threw on every request. The catch below swallowed it, which
+    // meant query strings were never sanitized - and because the throw happened
+    // here, req.params was never sanitized either. Redefine the property, the
+    // same way utils/validation.ts does.
     if (req.query && typeof req.query === 'object') {
-      req.query = sanitizeObject(req.query);
+      Object.defineProperty(req, 'query', {
+        value: sanitizeObject(req.query),
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
     }
 
     // Sanitize URL parameters
