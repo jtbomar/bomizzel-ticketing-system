@@ -186,7 +186,10 @@ const Agents: React.FC = () => {
     }
   };
 
-  const deleteUser = async (userId: string) => {
+  // Named for what it does. It was called deleteUser while only setting
+  // isActive to false, which is how it ended up behind a button labelled
+  // "Deactivate" sitting next to another button labelled "Deactivate".
+  const deactivateAgent = async (userId: string) => {
     // Check for assigned tickets first
     try {
       const ticketCheck = await apiService.checkUserTickets(userId);
@@ -246,6 +249,18 @@ const Agents: React.FC = () => {
   }
 
   // Show all users except customers, and optionally show inactive users
+  // One place for role labels, so the badge in the table and the dropdown in the
+  // edit dialog cannot disagree. The badge used to read
+  // `role === 'team_lead' ? 'Team Lead' : 'Agent'`, which labelled every other
+  // role "Agent" - an administrator showed as an Agent in the list while the
+  // edit dialog correctly said Administrator.
+  const ROLE_LABELS: Record<string, string> = {
+    admin: 'Administrator',
+    team_lead: 'Team Lead',
+    employee: 'Agent',
+  };
+  const roleLabel = (role: string) => ROLE_LABELS[role] ?? role;
+
   const agents = users.filter((u) => u.role !== 'customer');
 
   return (
@@ -340,8 +355,14 @@ const Agents: React.FC = () => {
                       {agent.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {agent.role === 'team_lead' ? 'Team Lead' : 'Agent'}
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          agent.role === 'admin'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {roleLabel(agent.role)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -378,24 +399,30 @@ const Agents: React.FC = () => {
                           </svg>
                           Edit
                         </button>
-                        <button
-                          onClick={() => toggleStatus(agent.id, agent.isActive)}
-                          className={`px-3 py-1 rounded text-xs font-medium ${
-                            agent.isActive
-                              ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                              : 'bg-green-600 text-white hover:bg-green-700'
-                          }`}
-                        >
-                          {agent.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
+                        {/*
+                          An active agent used to get two buttons both labelled
+                          "Deactivate": a bare toggle with no confirmation, and
+                          this one, which checks for assigned tickets and asks
+                          first. Same outcome, different safety, no way to tell
+                          them apart. The guarded one is the only way to
+                          deactivate now; the toggle is left to reactivate.
+                        */}
                         {agent.isActive ? (
                           <button
-                            onClick={() => deleteUser(agent.id)}
-                            className="px-3 py-1 bg-orange-600 text-white rounded text-xs font-medium hover:bg-orange-700"
+                            onClick={() => deactivateAgent(agent.id)}
+                            className="px-3 py-1 bg-yellow-600 text-white rounded text-xs font-medium hover:bg-yellow-700"
                           >
                             Deactivate
                           </button>
                         ) : (
+                          <button
+                            onClick={() => toggleStatus(agent.id, agent.isActive)}
+                            className="px-3 py-1 bg-green-600 text-white rounded text-xs font-medium hover:bg-green-700"
+                          >
+                            Activate
+                          </button>
+                        )}
+                        {!agent.isActive && (
                           <button
                             onClick={() =>
                               permanentlyDeleteUser(
@@ -732,9 +759,11 @@ const Agents: React.FC = () => {
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                 >
-                  <option value="employee">Agent</option>
-                  <option value="team_lead">Team Lead</option>
-                  <option value="admin">Administrator</option>
+                  {Object.entries(ROLE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
