@@ -26,14 +26,29 @@ export const resetDatabase = async (): Promise<void> => {
     );
   }
 
-  const { rows } = await db.raw(
-    `SELECT tablename FROM pg_tables
-      WHERE schemaname = 'public'
-        AND tablename NOT IN ('knex_migrations', 'knex_migrations_lock')`
-  );
+  let rows: Array<{ tablename: string }>;
+  try {
+    ({ rows } = await db.raw(
+      `SELECT tablename FROM pg_tables
+        WHERE schemaname = 'public'
+          AND tablename NOT IN ('knex_migrations', 'knex_migrations_lock')`
+    ));
+  } catch (error) {
+    // Several suites mock every dependency and never touch the database. Making
+    // all of them require a live Postgres just to be truncated would mean you
+    // could not run the unit tests without one. Skip when unreachable - but
+    // never in CI, where a missing database means the run is not testing what
+    // it claims to.
+    if (process.env.CI) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠️  Skipping database reset - no database reachable (${message})`);
+    return;
+  }
 
   if (rows.length > 0) {
-    const tables = rows.map((r: { tablename: string }) => `"${r.tablename}"`).join(', ');
+    const tables = rows.map((r) => `"${r.tablename}"`).join(', ');
     await db.raw(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
   }
 };

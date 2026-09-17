@@ -110,8 +110,11 @@ describe('QueueService', () => {
         { userId: 'user-123', teamId: 'team-123', role: 'member', createdAt: new Date() },
       ]);
 
-      // Mock the database query for metrics
+      // getQueueMetrics builds `db('tickets').where(...).select(db.raw(..)).first()`
+      // and a second chain ending in .groupBy(), so the stand-in needs .where and
+      // the factory needs a .raw of its own.
       const mockDb = {
+        where: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         first: jest.fn().mockResolvedValue({
           total_tickets: '10',
@@ -128,8 +131,9 @@ describe('QueueService', () => {
         whereNotNull: jest.fn().mockReturnThis(),
       };
 
-      // The real `db` is a full Knex instance; only the call signature matters here.
-      MockedQueue.db = jest.fn().mockReturnValue(mockDb) as unknown as typeof MockedQueue.db;
+      const dbFactory: any = jest.fn().mockReturnValue(mockDb);
+      dbFactory.raw = jest.fn((sql: string) => sql);
+      MockedQueue.db = dbFactory as unknown as typeof MockedQueue.db;
 
       const result = await QueueService.getQueueMetrics('queue-123', 'user-123', 'employee');
 

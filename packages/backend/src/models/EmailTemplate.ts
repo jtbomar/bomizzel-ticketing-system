@@ -113,7 +113,10 @@ export class EmailTemplate extends BaseModel {
   }
 
   static extractVariablesFromContent(content: string): string[] {
-    const regex = /{{\\s*([^}]+)\\s*}}/g;
+    // `\\s` here meant a literal backslash followed by "s", not whitespace, so
+    // the pattern required `{{\...}}` and matched nothing in a real template.
+    // Every template was stored with an empty variables list.
+    const regex = /{{\s*([^}]+?)\s*}}/g;
     const variables: string[] = [];
     let match;
 

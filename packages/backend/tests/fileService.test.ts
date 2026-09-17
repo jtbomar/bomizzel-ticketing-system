@@ -10,8 +10,30 @@ import * as path from 'path';
 jest.mock('../src/models/FileAttachment');
 jest.mock('../src/models/Ticket');
 jest.mock('../src/models/User');
-jest.mock('fs');
-jest.mock('sharp');
+// An automock of 'fs' leaves fs.promises undefined, and assigning to it does
+// not stick because the mocked module's properties are not writable. Provide
+// the promises API explicitly instead.
+jest.mock('fs', () => ({
+  ...jest.requireActual('fs'),
+  promises: {
+    writeFile: jest.fn(),
+    access: jest.fn(),
+    mkdir: jest.fn(),
+    unlink: jest.fn(),
+    stat: jest.fn(),
+  },
+}));
+// sharp is used as a chain: sharp(path).resize(..).jpeg(..).toFile(..).
+// An automock returns undefined from the factory call, so the first .resize()
+// threw and surfaced as "Thumbnail generation failed".
+jest.mock('sharp', () => {
+  const chain = {
+    resize: jest.fn().mockReturnThis(),
+    jpeg: jest.fn().mockReturnThis(),
+    toFile: jest.fn().mockResolvedValue(undefined),
+  };
+  return jest.fn(() => chain);
+});
 
 const mockFileAttachment = FileAttachment as jest.Mocked<typeof FileAttachment>;
 const mockTicket = Ticket as jest.Mocked<typeof Ticket>;
@@ -21,6 +43,16 @@ const mockFs = fs as jest.Mocked<typeof fs>;
 describe('FileService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // jest.mock('fs') automocks the module, which leaves fs.promises undefined.
+    // Only three tests reassigned it, so every other test that reached a file
+    // operation died on "Cannot read properties of undefined (reading 'mkdir')".
+    // Give all of them a working default; individual tests can still override.
+    (mockFs.promises.writeFile as jest.Mock).mockResolvedValue(undefined);
+    (mockFs.promises.access as jest.Mock).mockResolvedValue(undefined);
+    (mockFs.promises.mkdir as jest.Mock).mockResolvedValue(undefined);
+    (mockFs.promises.unlink as jest.Mock).mockResolvedValue(undefined);
+    (mockFs.promises.stat as jest.Mock).mockResolvedValue({ size: 1024 });
   });
 
   describe('uploadFile', () => {
@@ -53,13 +85,6 @@ describe('FileService', () => {
       } as any);
 
       mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
-
-      // Mock file operations
-      mockFs.promises = {
-        writeFile: jest.fn().mockResolvedValue(undefined),
-        access: jest.fn().mockResolvedValue(undefined),
-        mkdir: jest.fn().mockResolvedValue(undefined),
-      } as any;
 
       // Mock database creation
       const mockAttachment = {
@@ -166,10 +191,6 @@ describe('FileService', () => {
 
       mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
 
-      mockFs.promises = {
-        access: jest.fn().mockResolvedValue(undefined),
-      } as any;
-
       mockFileAttachment.toModel.mockReturnValue({
         id: attachmentId,
       } as any);
@@ -213,10 +234,6 @@ describe('FileService', () => {
       } as any);
 
       mockUser.getUserCompanies.mockResolvedValue([{ companyId: 'company-123' } as any]);
-
-      mockFs.promises = {
-        unlink: jest.fn().mockResolvedValue(undefined),
-      } as any;
 
       mockFileAttachment.deleteAttachment.mockResolvedValue(true);
       mockTicket.addHistory.mockResolvedValue(undefined);

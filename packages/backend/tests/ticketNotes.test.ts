@@ -71,8 +71,9 @@ describe('Ticket Notes API', () => {
     );
     teamId = team.id;
 
-    // Add employee to team
-    await TeamService.addUserToTeam(teamId, employeeId, 'member', employeeId);
+    // TeamService.createTeam already adds the creator as an admin member,
+    // so adding them again threw "User is already a member of this team"
+    // from beforeAll - which failed every test in the suite.
 
     // Create test queue
     const queue = await QueueService.createQueue(

@@ -161,9 +161,15 @@ export class EmailTemplateService {
 
     const uniqueVariables = [...new Set(variables)];
 
-    // Check for malformed variables
+    // Check for malformed variables.
+    //
+    // Template variables are dotted paths - getDefaultTemplateVariables
+    // advertises ticket.title, customer.firstName and so on - but this pattern
+    // disallowed '.', so every template using a documented variable was
+    // reported as invalid. Allow dot-separated segments; names with characters
+    // like '-' are still rejected.
     const malformedVariables = uniqueVariables.filter(
-      (variable) => !variable.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+      (variable) => !variable.match(/^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$/)
     );
 
     if (malformedVariables.length > 0) {

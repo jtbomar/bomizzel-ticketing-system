@@ -21,6 +21,12 @@ describe('EmailTemplateService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // The automock returns undefined by default, and the service spreads the
+    // result (`...extractVariablesFromContent(subject)`), so every test that did
+    // not set an explicit return value failed with "its return value is not
+    // iterable". Default to an empty list; tests override as needed.
+    MockedEmailTemplate.extractVariablesFromContent.mockReturnValue([]);
   });
 
   describe('createTemplate', () => {
