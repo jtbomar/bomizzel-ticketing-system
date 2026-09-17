@@ -65,10 +65,20 @@ router.get('/list', authenticate, async (req, res, next) => {
   try {
     const { role, limit } = req.query as any;
 
+    // requestingUser drives tenant isolation in getUsers. Omitting it here sent
+    // this route down the "no context" branch, which is meant to return nothing
+    // but actually threw, so /users/list answered 500 for every caller.
     const users = await UserService.getUsers({
       role,
       limit: limit ? parseInt(limit, 10) : 100,
       isActive: undefined,
+      requestingUser: {
+        id: req.user!.id,
+        role: req.user!.role,
+        organizationId: req.user!.organizationId,
+        companyId: req.user!.companyId,
+        companies: req.user!.companies,
+      },
     });
 
     res.json(users);

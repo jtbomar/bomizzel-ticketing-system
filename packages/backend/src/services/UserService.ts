@@ -64,8 +64,13 @@ export class UserService {
           searchQuery = searchQuery.where('id', requestingUser.id);
         }
       } else {
-        // If no requesting user context, return empty results for security
-        searchQuery = searchQuery.where('id', 'impossible-id-that-never-exists');
+        // If no requesting user context, return empty results for security.
+        //
+        // This used to be .where('id', 'impossible-id-that-never-exists'), but
+        // users.id is a uuid column, so Postgres rejected the cast and the
+        // "return nothing" path raised a 500 instead. whereRaw('1 = 0') matches
+        // no rows without touching a typed column.
+        searchQuery = searchQuery.whereRaw('1 = 0');
       }
 
       if (search) {
