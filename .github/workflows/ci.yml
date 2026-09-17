@@ -308,13 +308,19 @@ jobs:
         run: npm run build
 
       - name: Start backend server
-        run: npm run start --workspace=backend &
+        run: |
+          nohup npm run start --workspace=backend > backend.log 2>&1 &
+          echo $! > backend.pid
         env:
           NODE_ENV: test
 
       - name: Wait for backend to be ready
         run: |
-          timeout 60 bash -c 'until curl -f http://localhost:5000/api/health; do sleep 2; done'
+          if ! timeout 60 bash -c 'until curl -sf http://localhost:5000/api/health; do sleep 2; done'; then
+            echo "Backend did not come up. Its output:"
+            cat backend.log || echo "(no output captured)"
+            exit 1
+          fi
 
       - name: Run E2E tests
         run: npm run test:e2e --workspace=frontend
@@ -330,9 +336,12 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_DB: bomizzel_perf
-          POSTGRES_USER: perf_user
-          POSTGRES_PASSWORD: perf_password
+          # Matches .env.test, which tests/setup.ts loads and which pins this
+          # connection. A differently named database here could never work: the
+          # suite would read .env.test, connect as test_user and be refused.
+          POSTGRES_DB: bomizzel_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -367,7 +376,12 @@ jobs:
       - name: Setup performance test environment
         run: |
           cat > packages/backend/.env << EOF
-          DATABASE_URL=postgresql://perf_user:perf_password@localhost:5432/bomizzel_perf
+          DATABASE_URL=postgresql://test_user:test_password@localhost:5432/bomizzel_test
+          DB_HOST=localhost
+          DB_PORT=5432
+          DB_NAME=bomizzel_test
+          DB_USER=test_user
+          DB_PASSWORD=test_password
           REDIS_URL=redis://localhost:6379
           JWT_SECRET=perf-jwt-secret
           NODE_ENV=test
