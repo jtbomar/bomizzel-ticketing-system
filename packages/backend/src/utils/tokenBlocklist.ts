@@ -29,8 +29,7 @@ const FALLBACK_TTL_SECONDS = 7 * 24 * 60 * 60;
 // hash -> epoch ms at which the entry may be dropped
 const memoryBlocklist = new Map<string, number>();
 
-const hashToken = (token: string): string =>
-  createHash('sha256').update(token).digest('hex');
+const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
 
 const remainingLifetimeSeconds = (token: string): number => {
   const expiresAt = JWTUtils.getTokenExpiration(token);

@@ -99,21 +99,46 @@ export class EmailTemplate extends BaseModel {
     }
 
     const subject = this.replaceVariables(template.subject, variables);
-    const htmlBody = this.replaceVariables(template.html_body, variables);
+    // The HTML body is the one place a user-supplied value is interpolated into
+    // markup, so it is the one place the value has to be escaped. Subject and
+    // text body are plain text - escaping there would just show people &amp;.
+    const htmlBody = this.replaceVariables(template.html_body, variables, true);
     const textBody = this.replaceVariables(template.text_body, variables);
 
     return { subject, htmlBody, textBody };
   }
 
-  private static replaceVariables(content: string, variables: Record<string, any>): string {
+  private static replaceVariables(
+    content: string,
+    variables: Record<string, any>,
+    escapeHtml = false
+  ): string {
     let result = content;
 
     for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      result = result.replace(regex, String(value || ''));
+      // The key goes into a regex, so a name containing regex punctuation would
+      // otherwise either throw or match the wrong thing.
+      const pattern = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`{{\\s*${pattern}\\s*}}`, 'g');
+      const replacement = String(value ?? '');
+      result = result.replace(
+        regex,
+        // Literal replacement: $& and friends in a ticket subject must not be
+        // read as replacement patterns.
+        () => (escapeHtml ? EmailTemplate.escapeHtml(replacement) : replacement)
+      );
     }
 
     return result;
+  }
+
+  private static escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   static async getTemplateVariables(templateId: string): Promise<string[]> {

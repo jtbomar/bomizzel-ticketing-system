@@ -70,29 +70,35 @@ function sanitizeObject(obj: any): any {
 }
 
 /**
- * Sanitize a string to prevent XSS attacks
+ * Strip characters that are dangerous to store, not to display.
+ *
+ * This used to HTML-escape every incoming string: < became &lt;, "javascript:"
+ * was cut out of the middle of words, anything matching on\w+= was deleted, and
+ * every value was trimmed. That is output encoding applied to input, and it was
+ * wrong in both directions.
+ *
+ * It did not prevent XSS. Escaping has to happen where a value is rendered,
+ * because only there do you know whether it is landing in HTML, an attribute, a
+ * URL or JSON. The frontend is React, which escapes on render, and nothing in it
+ * uses dangerouslySetInnerHTML - so input escaping was guarding a door that was
+ * already shut. Where HTML really is assembled from user values, in the email
+ * templates, it is now escaped at that point.
+ *
+ * Meanwhile it corrupted data at rest. An email's htmlBody arrived as
+ * &lt;p&gt;, a ticket describing "5 < 10" was stored mangled, a bug report
+ * mentioning javascript: lost the word, and passwords were silently trimmed, so
+ * one with a trailing space could never be typed. Stored escaped text also
+ * double-escapes the moment anything renders it correctly.
+ *
+ * Null bytes are a genuine storage problem - Postgres rejects them in text
+ * columns - so those still go.
  */
 function sanitizeString(str: string): string {
   if (typeof str !== 'string') {
     return str;
   }
 
-  return (
-    str
-      // Remove null bytes
-      .replace(/\0/g, '')
-      // Remove or escape HTML tags
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      // Remove script tags completely
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      // Remove javascript: protocol
-      .replace(/javascript:/gi, '')
-      // Remove on* event handlers
-      .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
-      // Trim whitespace
-      .trim()
-  );
+  return str.replace(/\0/g, '');
 }
 
 /**
@@ -107,7 +113,8 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
     // A bodyless POST has no content to describe, so demanding a Content-Type
     // for it just rejects valid requests - /auth/logout being the obvious one.
     const hasBody =
-      req.get('Transfer-Encoding') !== undefined || parseInt(req.get('Content-Length') || '0', 10) > 0;
+      req.get('Transfer-Encoding') !== undefined ||
+      parseInt(req.get('Content-Length') || '0', 10) > 0;
 
     if (!hasBody) {
       next();

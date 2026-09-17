@@ -16,11 +16,7 @@ jest.mock('../src/models/User', () => ({
 import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { JWTUtils } from '../src/utils/jwt';
-import {
-  revokeToken,
-  isTokenRevoked,
-  clearMemoryBlocklist,
-} from '../src/utils/tokenBlocklist';
+import { revokeToken, isTokenRevoked, clearMemoryBlocklist } from '../src/utils/tokenBlocklist';
 
 const USER_ID = '11111111-1111-4111-8111-111111111111';
 
@@ -144,10 +140,7 @@ describe('Token blocklist', () => {
     it('rotates the refresh token, so the spent one stops working', async () => {
       const refreshToken = JWTUtils.generateRefreshToken(TEST_USER);
 
-      const first = await request(app)
-        .post('/api/auth/refresh')
-        .send({ refreshToken })
-        .expect(200);
+      const first = await request(app).post('/api/auth/refresh').send({ refreshToken }).expect(200);
 
       expect(first.body.refreshToken).toBeDefined();
       expect(first.body.refreshToken).not.toBe(refreshToken);
