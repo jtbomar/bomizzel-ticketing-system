@@ -18,17 +18,29 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Sampled from the logo: the wordmark's azure (#0083eb) anchors 500, and
+        // the ramp darkens towards the mark's navy (#041636). The default
+        // Tailwind blue this replaced was indigo-leaning and visibly disagreed
+        // with the artwork sitting next to it. 600 carries white text at 5.06:1,
+        // comfortably past AA and better than the 4.5:1 it had before.
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: '#f0f8fe',
+          100: '#deeffc',
+          200: '#b8dcf9',
+          300: '#85c3f5',
+          400: '#47a6f1',
+          500: '#0083eb',
+          600: '#016fca',
+          700: '#025aa6',
+          800: '#024482',
+          900: '#032e5e',
+        },
+        // The mark's navy, for dark surfaces that should read as brand rather
+        // than as neutral grey.
+        navy: {
+          700: '#0a2a55',
+          800: '#071e3f',
+          900: '#041636',
         },
         secondary: {
           50: '#f8fafc',

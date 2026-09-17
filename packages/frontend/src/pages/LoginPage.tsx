@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
@@ -81,10 +82,7 @@ const LoginPage: React.FC = () => {
               to="/"
               className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">B</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">Bomizzel</span>
+              <Logo size={32} />
             </Link>
             <div className="flex items-center space-x-4">
               <Link to="/" className="text-gray-600 hover:text-gray-900 transition-colors">
@@ -102,6 +100,15 @@ const LoginPage: React.FC = () => {
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
+            {/* Room for the full lockup here, where the "Software Solutions"
+                line and tagline are actually readable. */}
+            <img
+              src="/logo-full.png"
+              alt="Bomizzel Software Solutions"
+              width={720}
+              height={435}
+              className="mx-auto h-28 w-auto"
+            />
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               Sign in to your account
             </h2>

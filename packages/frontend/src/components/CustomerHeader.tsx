@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import Logo from './Logo';
 import {
   ChevronDownIcon,
   PlusIcon,
@@ -43,7 +44,7 @@ const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           {/* Logo and Navigation */}
           <div className="flex items-center space-x-8">
             <Link to="/customer" className="flex items-center">
-              <h1 className="text-xl font-bold text-gray-900">Bomizzel</h1>
+              <Logo size={28} />
             </Link>
 
             <nav className="hidden md:flex space-x-6">
