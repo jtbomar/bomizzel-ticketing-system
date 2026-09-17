@@ -475,22 +475,34 @@ describe('Authentication Security Tests', () => {
         .expect(413);
     });
 
-    it('should sanitize file names', async () => {
-      const maliciousFileName = '../../../etc/passwd';
+    it('should reject file names that try to climb out of the upload directory', async () => {
+      // This expected the name to be sanitized and the upload to succeed. The
+      // upload filter refuses it instead, which is the stronger answer - there
+      // is no rewritten name to get wrong later. The extension is .txt so the
+      // request dies on the traversal, not on an unsupported type.
       const fileContent = Buffer.from('test content');
 
+      for (const name of ['../../../etc/passwd.txt', '..\\..\\windows\\system.txt', 'a/b.txt']) {
+        await request(app)
+          .post('/api/files/upload')
+          .set('Authorization', `Bearer ${validToken}`)
+          .field('ticketId', ticketId)
+          .attach('file', fileContent, name)
+          .expect(400);
+      }
+    });
+
+    it('should accept an ordinary file', async () => {
+      // The other side of that line: the rejections above have to be about the
+      // names, not about uploads being broken.
       const response = await request(app)
         .post('/api/files/upload')
         .set('Authorization', `Bearer ${validToken}`)
         .field('ticketId', ticketId)
-        .attach('file', fileContent, maliciousFileName)
+        .attach('file', Buffer.from('test content'), 'notes.txt')
         .expect(201);
 
-      // Whatever name it is stored under, it must not be able to climb out of
-      // the upload directory.
-      const storedName = response.body.data.fileName ?? response.body.data.filename;
-      expect(storedName).not.toContain('..');
-      expect(storedName).not.toContain('/');
+      expect(response.body.data).toBeDefined();
     });
   });
 
