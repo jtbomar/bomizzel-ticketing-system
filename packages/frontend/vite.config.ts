@@ -50,5 +50,19 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    server: {
+      deps: {
+        // The resolve.alias above pins react and react-dom to this package's
+        // copies, but vitest externalises anything under node_modules and lets
+        // Node resolve it - so @testing-library/react, which npm hoisted to the
+        // workspace root, picked up the root's React 18 while components built
+        // their elements with this package's React 19. React 19 tags elements
+        // with a different $$typeof symbol, so react-dom 18 did not recognise
+        // them and rejected every render with "Objects are not valid as a React
+        // child". Inlining it puts it back through vite's resolver, where the
+        // alias applies and there is only one React.
+        inline: [/@testing-library\//],
+      },
+    },
   },
 });
