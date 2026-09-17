@@ -5,6 +5,8 @@ import { Company } from '../../src/models/Company';
 import { Team } from '../../src/models/Team';
 import { JWTUtils } from '../../src/utils/jwt';
 import { createTestToken } from '../helpers/testUtils';
+import { Queue } from '../../src/models/Queue';
+import { TicketStatus } from '../../src/models/TicketStatus';
 
 describe('Performance Load Tests', () => {
   let customerTokens: string[] = [];
@@ -25,6 +27,17 @@ describe('Performance Load Tests', () => {
       description: 'Team for load testing',
     });
     teamId = team.id;
+
+    // Ticket creation needs a queue on the team and the team's statuses; without
+    // them every POST /api/tickets fails with "No available queue found for
+    // team" and the 201 assertions below cannot hold.
+    await Queue.createQueue({
+      name: 'Load Test Queue',
+      description: 'Default queue for load testing',
+      type: 'unassigned',
+      teamId,
+    });
+    await TicketStatus.seedDefaultStatuses(teamId);
 
     // Create multiple test users for concurrent testing
     const customerPromises = Array.from({ length: 10 }, async (_, i) => {
