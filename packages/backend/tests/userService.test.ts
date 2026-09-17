@@ -5,6 +5,10 @@ import { User } from '../src/models/User';
 import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
 
+// A well-formed UUID that no row uses. A literal like 'non-existent' makes
+// Postgres fail the uuid cast before the service's own check runs.
+const ABSENT_UUID = '00000000-0000-4000-8000-000000000000';
+
 describe('UserService', () => {
   let userId: string;
   let companyId: string;
@@ -76,7 +80,7 @@ describe('UserService', () => {
     });
 
     it('should throw error for non-existent user', async () => {
-      await expect(AuthService.getUserProfile('non-existent-id')).rejects.toThrow('User not found');
+      await expect(AuthService.getUserProfile(ABSENT_UUID)).rejects.toThrow('User not found');
     });
   });
 

@@ -5,6 +5,12 @@ import { QueueMetrics, Queue as QueueModel } from '@/types/models';
 import { QueueTable } from '@/types/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
 
+/**
+ * Team roles that carry lead authority. Mirrors Team.isTeamLead, which has
+ * always treated 'admin' as lead-equivalent.
+ */
+const isTeamLeadRole = (role: string): boolean => role === 'lead' || role === 'admin';
+
 export class QueueService {
   /**
    * Create a new queue for a team
@@ -30,7 +36,11 @@ export class QueueService {
       const userTeams = await User.getUserTeams(createdById);
       const teamMembership = userTeams.find((ut) => ut.teamId === queueData.teamId);
 
-      if (!teamMembership || teamMembership.role !== 'lead') {
+      // 'admin' is the highest team role and Team.isTeamLead treats it as
+      // lead-equivalent, but this check demanded exactly 'lead'. TeamService
+      // .createTeam adds the creator as 'admin', so the person who created a
+      // team could not create a queue in it - contradicting the comment above.
+      if (!teamMembership || !isTeamLeadRole(teamMembership.role)) {
         throw new ForbiddenError('Only team leads can create queues for their teams');
       }
     }
@@ -460,14 +470,14 @@ export class QueueService {
       }
 
       // For modification actions, user must be team lead
-      if (['update', 'delete', 'assign'].includes(action) && teamMembership.role !== 'lead') {
+      if (['update', 'delete', 'assign'].includes(action) && !isTeamLeadRole(teamMembership.role)) {
         throw new ForbiddenError('Only team leads can modify queues');
       }
 
       // For assigned queues, user can read if it's their queue
       if (action === 'read' && queue.assigned_to_id && queue.assigned_to_id !== userId) {
         // Allow if user is team lead
-        if (teamMembership.role !== 'lead') {
+        if (!isTeamLeadRole(teamMembership.role)) {
           throw new ForbiddenError('Access denied to assigned queue');
         }
       }

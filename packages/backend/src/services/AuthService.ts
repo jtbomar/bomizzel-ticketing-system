@@ -387,6 +387,19 @@ export class AuthService {
         throw new AppError('User not found', 404, 'USER_NOT_FOUND');
       }
 
+      // The route validates with Joi, but the service was happy to write an
+      // empty name when called directly. first_name/last_name are NOT NULL, and
+      // '' is not null, so a blank string went straight through and wiped the
+      // user's name.
+      for (const [field, value] of [
+        ['firstName', updateData.firstName],
+        ['lastName', updateData.lastName],
+      ] as const) {
+        if (value !== undefined && value.trim() === '') {
+          throw new AppError(`Validation error: ${field} cannot be empty`, 400, 'VALIDATION_ERROR');
+        }
+      }
+
       const updatedUser = await User.update(userId, {
         first_name: updateData.firstName,
         last_name: updateData.lastName,

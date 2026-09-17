@@ -4,6 +4,10 @@ import { CustomerSubscription } from '../src/models/CustomerSubscription';
 import { User } from '../src/models/User';
 import { AppError } from '../src/middleware/errorHandler';
 
+// A well-formed UUID that no row uses. A literal like 'non-existent' makes
+// Postgres fail the uuid cast before the service's own check runs.
+const ABSENT_UUID = '00000000-0000-4000-8000-000000000000';
+
 describe('SubscriptionService', () => {
   let userId: string;
   let freePlanId: string;
@@ -103,9 +107,9 @@ describe('SubscriptionService', () => {
     });
 
     it('should throw error if plan does not exist', async () => {
-      await expect(
-        SubscriptionService.createSubscription(userId, 'non-existent-plan')
-      ).rejects.toThrow('Invalid or inactive subscription plan');
+      await expect(SubscriptionService.createSubscription(userId, ABSENT_UUID)).rejects.toThrow(
+        'Invalid or inactive subscription plan'
+      );
     });
 
     it('should throw error if user already has subscription', async () => {
@@ -134,7 +138,7 @@ describe('SubscriptionService', () => {
 
     it('should throw error for non-existent subscription', async () => {
       await expect(
-        SubscriptionService.upgradeSubscription('non-existent', professionalPlanId)
+        SubscriptionService.upgradeSubscription(ABSENT_UUID, professionalPlanId)
       ).rejects.toThrow('Subscription not found');
     });
   });
@@ -246,7 +250,7 @@ describe('SubscriptionService', () => {
     });
 
     it('should return null for non-existent plan', async () => {
-      const plan = await SubscriptionService.getPlanById('non-existent');
+      const plan = await SubscriptionService.getPlanById(ABSENT_UUID);
       expect(plan).toBeNull();
     });
   });
@@ -262,7 +266,7 @@ describe('SubscriptionService', () => {
     });
 
     it('should return null for non-existent slug', async () => {
-      const plan = await SubscriptionService.getPlanBySlug('non-existent');
+      const plan = await SubscriptionService.getPlanBySlug(ABSENT_UUID);
       expect(plan).toBeNull();
     });
   });
@@ -370,7 +374,7 @@ describe('SubscriptionService', () => {
 
     it('should throw error for non-existent subscription', async () => {
       await expect(
-        SubscriptionService.updateSubscriptionStatus('non-existent', 'active')
+        SubscriptionService.updateSubscriptionStatus(ABSENT_UUID, 'active')
       ).rejects.toThrow('Subscription not found');
     });
   });
@@ -407,7 +411,7 @@ describe('SubscriptionService', () => {
 
     it('should throw error for non-existent subscription', async () => {
       await expect(
-        SubscriptionService.updatePaymentMethod('non-existent', 'payment-method')
+        SubscriptionService.updatePaymentMethod(ABSENT_UUID, 'payment-method')
       ).rejects.toThrow('Subscription not found');
     });
   });
