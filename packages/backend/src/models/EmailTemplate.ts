@@ -39,7 +39,15 @@ export class EmailTemplate extends BaseModel {
       subject: templateData.subject,
       html_body: templateData.htmlBody,
       text_body: templateData.textBody,
-      variables: templateData.variables || [],
+      // `variables` is jsonb. node-postgres renders a raw JS array as a
+      // Postgres array literal ({a,b,c}), which jsonb rejects with "invalid
+      // input syntax for type json", so it has to be stringified - the same
+      // thing SubscriptionPlan.createPlan does for `features`.
+      //
+      // This only started failing once extractVariablesFromContent was fixed:
+      // before that it always returned [], and an empty array happens to
+      // render as {}, which is valid JSON.
+      variables: JSON.stringify(templateData.variables || []),
       is_active: true,
     });
   }
@@ -70,7 +78,8 @@ export class EmailTemplate extends BaseModel {
     if (updates.subject !== undefined) updateData.subject = updates.subject;
     if (updates.htmlBody !== undefined) updateData.html_body = updates.htmlBody;
     if (updates.textBody !== undefined) updateData.text_body = updates.textBody;
-    if (updates.variables !== undefined) updateData.variables = updates.variables;
+    // jsonb column - see createTemplate above.
+    if (updates.variables !== undefined) updateData.variables = JSON.stringify(updates.variables);
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
 
     return this.update(templateId, updateData);

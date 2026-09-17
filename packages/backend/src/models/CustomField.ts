@@ -26,7 +26,11 @@ export class CustomField extends BaseModel {
       label: fieldData.label,
       type: fieldData.type,
       is_required: fieldData.isRequired || false,
-      options: fieldData.options,
+      // `options` is jsonb. node-postgres renders a raw JS array as a Postgres
+      // array literal ({a,b,c}), which jsonb rejects, so creating any picklist
+      // field with options failed. `validation` is an object, which serialises
+      // correctly on its own.
+      options: fieldData.options ? JSON.stringify(fieldData.options) : null,
       validation: fieldData.validation,
       order: fieldData.order || 0,
     });

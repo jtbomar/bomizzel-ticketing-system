@@ -222,8 +222,23 @@ export const validate = (
       });
     }
 
-    // Replace the original property with the validated and sanitized value
-    req[property] = value;
+    // Replace the original property with the validated and sanitized value.
+    //
+    // Express 5 exposes req.query through a getter-only accessor on the request
+    // prototype. Plain assignment to it throws
+    // "Cannot set property query ... which has only a getter" in strict mode -
+    // and compiled TypeScript is always strict - so every route using
+    // validate(schema, 'query') answered 500. Redefine the property instead.
+    if (property === 'query') {
+      Object.defineProperty(req, 'query', {
+        value,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    } else {
+      req[property] = value;
+    }
     next();
   };
 };
