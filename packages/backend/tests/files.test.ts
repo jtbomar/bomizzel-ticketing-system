@@ -3,6 +3,7 @@ import express from 'express';
 import fileRoutes from '../src/routes/files';
 import { FileService } from '../src/services/FileService';
 import { authenticate } from '../src/middleware/auth';
+import { errorHandler } from '../src/middleware/errorHandler';
 
 // Mock dependencies
 jest.mock('../src/services/FileService');
@@ -14,6 +15,10 @@ const mockAuthenticate = authenticate as jest.MockedFunction<typeof authenticate
 const app = express();
 app.use(express.json());
 app.use('/files', fileRoutes);
+// The real app formats errors through errorHandler; without it this standalone
+// test app returns Express's default HTML page and response.body.error is
+// undefined.
+app.use(errorHandler);
 
 // Mock authentication middleware
 // `authenticate` is declared async, so the stand-in must return a promise too.
@@ -21,6 +26,11 @@ mockAuthenticate.mockImplementation(async (req: any, _res: any, next: any) => {
   req.user = { id: 'user-123', role: 'customer' };
   next();
 });
+
+// fileUploadSecurity validates magic bytes against the declared MIME type, so a
+// buffer of 'test' labelled image/jpeg is correctly rejected. Use a real JPEG
+// header (FF D8 FF E0) followed by padding.
+const jpegBuffer = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(64, 0x20)]);
 
 describe('File Routes', () => {
   beforeEach(() => {
@@ -43,7 +53,7 @@ describe('File Routes', () => {
       const response = await request(app)
         .post('/files/upload')
         .field('ticketId', 'ticket-123')
-        .attach('file', Buffer.from('test'), 'test.jpg');
+        .attach('file', jpegBuffer, 'test.jpg');
 
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('File uploaded successfully');
@@ -60,7 +70,7 @@ describe('File Routes', () => {
     it('should return 400 when no ticketId provided', async () => {
       const response = await request(app)
         .post('/files/upload')
-        .attach('file', Buffer.from('test'), 'test.jpg');
+        .attach('file', jpegBuffer, 'test.jpg');
 
       expect(response.status).toBe(400);
       expect(response.body.error.message).toBe('Ticket ID is required');

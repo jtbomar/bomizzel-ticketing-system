@@ -88,7 +88,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(frontendUser);
       localStorage.setItem('user', JSON.stringify(frontendUser));
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || error.message || 'Login failed');
+      // The API returns `{ error: { code, message } }`. /auth/login used to be
+      // the one endpoint that returned `error` as a bare string, and the
+      // frontend and backend deploy separately, so accept either shape -
+      // otherwise a deploy-order skew shows the user "[object Object]".
+      const apiError = error.response?.data?.error;
+      const apiMessage = typeof apiError === 'string' ? apiError : apiError?.message;
+      throw new Error(apiMessage || error.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }

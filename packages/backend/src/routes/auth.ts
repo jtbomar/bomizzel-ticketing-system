@@ -43,86 +43,25 @@ router.post('/register', authRateLimiter, validate(registerSchema), async (req, 
  */
 router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, next) => {
   try {
-    // DIRECT DATABASE LOGIN - BYPASSES BROKEN AuthService
-    const { email, password } = req.body;
-
-    console.log('🔐 DIRECT AUTH LOGIN:', email);
-
-    const { db } = require('../config/database');
-    const bcrypt = require('bcryptjs');
-    const jwt = require('jsonwebtoken');
-
-    // Find user directly from database
-    const user = await db('users').where('email', email.toLowerCase()).first();
-
-    if (!user) {
-      logger.warn(`Login attempt with non-existent email: ${email}`);
-      return res.status(401).json({
-        error: 'Invalid credentials',
-      });
-    }
-
-    // Check if user is active
-    if (!user.is_active) {
-      logger.warn(`Login attempt with deactivated account: ${email}`);
-      return res.status(401).json({
-        error: 'Account is deactivated',
-      });
-    }
-
-    // Verify password directly with bcrypt
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
-      logger.warn(`Login attempt with invalid password: ${email}`);
-      return res.status(401).json({
-        error: 'Invalid credentials',
-      });
-    }
-
-    // Generate JWT tokens directly
-    const accessToken = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        type: 'access',
-      },
-      process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: user.role,
-        type: 'refresh',
-      },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'fallback-refresh-secret',
-      { expiresIn: '7d' }
-    );
-
-    // Convert to API model format
-    const userModel = {
-      id: user.id,
-      email: user.email,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      role: user.role,
-      isActive: user.is_active,
-      emailVerified: user.email_verified,
-      preferences: user.preferences || {},
-      createdAt: user.created_at,
-      updatedAt: user.updated_at,
-    };
-
-    logger.info(`Direct auth login successful: ${user.email}`);
+    // Delegates to AuthService. This route used to re-implement login inline
+    // ("BYPASSES BROKEN AuthService"), which caused two problems:
+    //
+    //  - It returned `{ error: 'Invalid credentials' }`, a bare string, while
+    //    every other endpoint returns the errorHandler's
+    //    `{ error: { code, message, ... } }`. Clients could not read a code.
+    //  - It signed tokens with `JWT_SECRET || 'fallback-secret'` while JWTUtils
+    //    verifies with `JWT_SECRET || 'your-super-secret-jwt-key'`. With
+    //    JWT_SECRET unset those disagree, so every issued token is rejected.
+    //
+    // AuthService.login performs the same direct-database lookup and bcrypt
+    // comparison, signs through JWTUtils, and throws AppError with a code.
+    const result = await AuthService.login(req.body);
 
     res.json({
       message: 'Login successful',
-      user: userModel,
-      token: accessToken,
-      refreshToken: refreshToken,
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
     });
     return;
   } catch (error) {
