@@ -47,6 +47,46 @@ jest.mock('../src/config/email', () => ({
   },
 }));
 
+// Give every suite a clean database.
+//
+// All suites share one database and seed fixtures with hardcoded identifiers
+// ('test@example.com', a plan named 'Free Tier', ...). Nothing cleaned up
+// between them, so the second suite to insert the same row failed on
+// users_email_unique or subscription_plans_name_unique - 204 duplicate-key
+// failures in CI. jest runs with maxWorkers: 1, so truncating before each file
+// is safe and gives each suite a clean slate.
+//
+// This file is a setupFilesAfterEach module, so this beforeAll runs once per
+// suite.
+beforeAll(async () => {
+  const { db } = require('../src/config/database');
+
+  // Hard guard: only ever truncate an explicitly-test database.
+  const connection = db.client?.config?.connection ?? {};
+  const target =
+    typeof connection === 'string'
+      ? connection
+      : connection.database || connection.connectionString;
+
+  if (process.env.NODE_ENV !== 'test' || !/test/i.test(String(target))) {
+    throw new Error(
+      `Refusing to truncate: expected NODE_ENV=test and a database name containing "test", ` +
+        `got NODE_ENV=${process.env.NODE_ENV} target=${target}`
+    );
+  }
+
+  const { rows } = await db.raw(
+    `SELECT tablename FROM pg_tables
+      WHERE schemaname = 'public'
+        AND tablename NOT IN ('knex_migrations', 'knex_migrations_lock')`
+  );
+
+  if (rows.length > 0) {
+    const tables = rows.map((r: { tablename: string }) => `"${r.tablename}"`).join(', ');
+    await db.raw(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
+  }
+});
+
 afterAll(async () => {
   // Release the pg pool so Jest can exit cleanly.
   const { db } = require('../src/config/database');

@@ -1,10 +1,18 @@
 import knex from 'knex';
 
 const knexConfig = require('../../knexfile.js');
-// Use production config if DATABASE_URL is set (Railway), regardless of NODE_ENV
-const environment = process.env.DATABASE_URL
-  ? 'production'
-  : process.env['NODE_ENV'] || 'development';
+// NODE_ENV=test always wins. Otherwise use the production config when
+// DATABASE_URL is set (Railway), falling back to NODE_ENV.
+//
+// Previously DATABASE_URL took precedence unconditionally, so a test run with
+// DATABASE_URL exported - which .env.test itself sets - resolved to the
+// production connection.
+const environment =
+  process.env['NODE_ENV'] === 'test'
+    ? 'test'
+    : process.env.DATABASE_URL
+      ? 'production'
+      : process.env['NODE_ENV'] || 'development';
 const config = knexConfig[environment];
 
 console.log(`📦 Database environment: ${environment}`);
