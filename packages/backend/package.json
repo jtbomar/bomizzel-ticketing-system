@@ -15,7 +15,7 @@
     "test:integration": "jest tests/integration --testTimeout=30000",
     "test:security": "jest tests/security --testTimeout=20000",
     "test:performance": "jest tests/performance --testTimeout=60000",
-    "test:coverage": "jest --coverage",
+    "test:coverage": "jest --coverage --testPathIgnorePatterns 'tests/performance'",
     "test:all": "ts-node tests/runAllTests.ts",
     "lint": "echo 'Backend linting temporarily disabled - TypeScript ESLint config needs setup'",
     "lint:fix": "echo 'Backend linting temporarily disabled - TypeScript ESLint config needs setup'",

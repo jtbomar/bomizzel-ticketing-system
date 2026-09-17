@@ -262,9 +262,12 @@ describe('Performance Load Tests', () => {
         const token = customerTokens[i % customerTokens.length];
         const fileContent = Buffer.from(`Test file content ${i}`.repeat(100)); // ~2KB file
 
+        // Uploads go to /api/files/upload with the ticket id in the body;
+        // /api/tickets/:id/files is not a route, so this was measuring 404s.
         return request(app)
-          .post(`/api/tickets/${testTicketId}/files`)
+          .post('/api/files/upload')
           .set('Authorization', `Bearer ${token}`)
+          .field('ticketId', testTicketId)
           .attach('file', fileContent, `test-file-${i}.txt`);
       });
 
