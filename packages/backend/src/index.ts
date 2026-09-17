@@ -1,5 +1,13 @@
 import express, { Request, Response } from 'express';
 import helmet from 'helmet';
+import { requestId } from './middleware/requestId';
+import { ipFilter, requestTimeout, validateUserAgent } from './middleware/security';
+import {
+  sanitizeInput,
+  validateContentType,
+  limitRequestSize,
+} from './middleware/inputSanitization';
+import { performanceMonitoring } from './middleware/performanceMonitoring';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectRedis } from './config/redis';
@@ -33,6 +41,30 @@ app.use(
   })
 );
 app.disable('x-powered-by');
+
+// Security middleware.
+//
+// These all live under src/middleware and were applied in src/index.ts.backup,
+// but the live app wired up none of them. Restored here, minus validateOrigin:
+// its allow-list is FRONTEND_URL plus localhost, so switching it on would block
+// www.bomizzel.com and the vercel.app domain outright. Rate limiting is also
+// left off for now - Redis is configured in production, so it would take effect
+// immediately.
+//
+// Health checks bypass the header gates: validateUserAgent rejects any request
+// without a User-Agent, and platform probes do not always send one.
+const isHealthCheck = (path: string): boolean => path === '/health' || path === '/api/health';
+const exceptHealth =
+  (mw: express.RequestHandler): express.RequestHandler =>
+  (req, res, next) =>
+    isHealthCheck(req.path) ? next() : mw(req, res, next);
+
+app.use(requestId); // populates req.id, which error responses report
+app.use(ipFilter); // no-op unless IP_BLACKLIST is set
+app.use(requestTimeout(30000));
+app.use(exceptHealth(validateUserAgent));
+app.use(limitRequestSize(10 * 1024 * 1024));
+app.use(performanceMonitoring);
 
 // Basic middleware
 const allowedOrigins = [
@@ -89,8 +121,10 @@ app.use(
 // CORS is already configured above
 
 // Increase payload limit for image uploads
+app.use(exceptHealth(validateContentType));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(sanitizeInput); // after body parsing, so it can clean the parsed body
 
 // Import and mount API routes
 // Mount the API router.

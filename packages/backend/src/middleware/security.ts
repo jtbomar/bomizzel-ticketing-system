@@ -119,17 +119,14 @@ export const validateUserAgent = (req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  // Block known malicious user agents
-  const blockedPatterns = [
-    /sqlmap/i,
-    /nikto/i,
-    /nessus/i,
-    /masscan/i,
-    /nmap/i,
-    /python-requests/i,
-    /curl/i,
-    /wget/i,
-  ];
+  // Block known attack tooling.
+  //
+  // curl, wget and python-requests used to be listed here. They are ordinary
+  // HTTP clients, not attack tools: blocking them breaks scripts, webhooks and
+  // anyone integrating with this API, while stopping no real attacker, since a
+  // User-Agent is trivially spoofed. Only scanners whose presence has no
+  // legitimate explanation remain.
+  const blockedPatterns = [/sqlmap/i, /nikto/i, /nessus/i, /masscan/i, /nmap/i, /acunetix/i];
 
   const isBlocked = blockedPatterns.some((pattern) => pattern.test(userAgent));
 
