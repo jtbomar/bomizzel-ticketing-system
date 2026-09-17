@@ -164,7 +164,9 @@ describe('Ticket Workflow Integration', () => {
 
       // The upload response is { message, data } - it carries no success flag.
       expect(response.body.message).toBe('File uploaded successfully');
-      expect(response.body.data.fileName).toBe('test.txt');
+      // fileName is the generated storage name (a uuid, to avoid collisions);
+      // the uploaded name is kept in originalName.
+      expect(response.body.data.originalName).toBe('test.txt');
     });
 
     it('should allow employee to view ticket in queue', async () => {
