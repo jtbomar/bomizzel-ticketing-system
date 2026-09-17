@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { resetDatabase } from './helpers/db';
 
 // Load test environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env.test') });
@@ -59,32 +60,7 @@ jest.mock('../src/config/email', () => ({
 // This file is a setupFilesAfterEach module, so this beforeAll runs once per
 // suite.
 beforeAll(async () => {
-  const { db } = require('../src/config/database');
-
-  // Hard guard: only ever truncate an explicitly-test database.
-  const connection = db.client?.config?.connection ?? {};
-  const target =
-    typeof connection === 'string'
-      ? connection
-      : connection.database || connection.connectionString;
-
-  if (process.env.NODE_ENV !== 'test' || !/test/i.test(String(target))) {
-    throw new Error(
-      `Refusing to truncate: expected NODE_ENV=test and a database name containing "test", ` +
-        `got NODE_ENV=${process.env.NODE_ENV} target=${target}`
-    );
-  }
-
-  const { rows } = await db.raw(
-    `SELECT tablename FROM pg_tables
-      WHERE schemaname = 'public'
-        AND tablename NOT IN ('knex_migrations', 'knex_migrations_lock')`
-  );
-
-  if (rows.length > 0) {
-    const tables = rows.map((r: { tablename: string }) => `"${r.tablename}"`).join(', ');
-    await db.raw(`TRUNCATE ${tables} RESTART IDENTITY CASCADE`);
-  }
+  await resetDatabase();
 });
 
 afterAll(async () => {

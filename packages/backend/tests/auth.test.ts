@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { app } from '../src/index';
 import { User } from '../src/models/User';
+import { resetDatabase } from './helpers/db';
 
 describe('Authentication Endpoints', () => {
   describe('POST /api/auth/register', () => {
@@ -61,6 +62,8 @@ describe('Authentication Endpoints', () => {
 
   describe('POST /api/auth/login', () => {
     beforeEach(async () => {
+      // Fixtures use fixed emails and are rebuilt per test.
+      await resetDatabase();
       // Create a test user
       await User.createUser({
         email: 'test@example.com',
@@ -114,6 +117,8 @@ describe('Authentication Endpoints', () => {
     let authToken: string;
 
     beforeEach(async () => {
+      // Fixtures use fixed emails and are rebuilt per test.
+      await resetDatabase();
       // Register and get token
       const response = await request(app).post('/api/auth/register').send({
         email: 'test@example.com',
@@ -159,6 +164,8 @@ describe('Authentication Endpoints', () => {
     let refreshToken: string;
 
     beforeEach(async () => {
+      // Fixtures use fixed emails and are rebuilt per test.
+      await resetDatabase();
       // Register and get refresh token
       const response = await request(app).post('/api/auth/register').send({
         email: 'test@example.com',

@@ -2,6 +2,7 @@ import request from 'supertest';
 import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { Company } from '../src/models/Company';
+import { resetDatabase } from './helpers/db';
 
 describe('User Management Endpoints', () => {
   let adminToken: string;
@@ -10,6 +11,9 @@ describe('User Management Endpoints', () => {
   let testCompanyId: string;
 
   beforeEach(async () => {
+    // Fixtures here use fixed emails and are rebuilt per test,
+    // so the database must be empty each time.
+    await resetDatabase();
     // Create admin user
     const adminUser = await User.createUser({
       email: 'admin@bomizzel.com',

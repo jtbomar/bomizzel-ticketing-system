@@ -2,6 +2,7 @@ import request from 'supertest';
 import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { Team } from '../src/models/Team';
+import { resetDatabase } from './helpers/db';
 
 describe('Custom Fields Endpoints', () => {
   let teamLeadToken: string;
@@ -10,6 +11,9 @@ describe('Custom Fields Endpoints', () => {
   let teamId: string;
 
   beforeEach(async () => {
+    // Fixtures here use fixed emails and are rebuilt per test,
+    // so the database must be empty each time.
+    await resetDatabase();
     // Create test users
     const teamLead = await User.createUser({
       email: 'teamlead@example.com',
