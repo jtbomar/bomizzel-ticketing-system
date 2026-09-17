@@ -105,6 +105,18 @@ class ApiService {
     return response.data;
   }
 
+  // Tokens are credentials until they expire, so logging out has to tell the
+  // server to revoke them - clearing localStorage only hides them from this tab.
+  // Both are passed explicitly: the caller clears storage immediately after, and
+  // the request interceptor would otherwise read it after it was already empty.
+  async logout(token?: string | null, refreshToken?: string | null): Promise<void> {
+    await this.client.post(
+      '/auth/logout',
+      refreshToken ? { refreshToken } : {},
+      token ? { headers: { Authorization: `Bearer ${token}` } } : undefined
+    );
+  }
+
   async refreshToken(refreshToken: string): Promise<any> {
     const response = await this.client.post('/auth/refresh', { refreshToken });
     return response.data;

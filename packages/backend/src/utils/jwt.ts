@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { logger } from './logger';
 
@@ -19,15 +20,21 @@ const JWT_EXPIRES_IN = process.env['JWT_EXPIRES_IN'] || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env['JWT_REFRESH_EXPIRES_IN'] || '7d';
 
 export class JWTUtils {
+  // Without a jti, a token is a pure function of its payload and its `iat`,
+  // which has one-second resolution - so refreshing within a second of issue
+  // produced a byte-identical token. Harmless until revocation existed;
+  // now it would mean revoking the spent token also revoked its replacement.
   static generateAccessToken(payload: Omit<JWTPayload, 'type'>): string {
     return jwt.sign({ ...payload, type: 'access' as const }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
+      jwtid: randomUUID(),
     } as jwt.SignOptions);
   }
 
   static generateRefreshToken(payload: Omit<JWTPayload, 'type'>): string {
     return jwt.sign({ ...payload, type: 'refresh' as const }, JWT_REFRESH_SECRET, {
       expiresIn: JWT_REFRESH_EXPIRES_IN,
+      jwtid: randomUUID(),
     } as jwt.SignOptions);
   }
 

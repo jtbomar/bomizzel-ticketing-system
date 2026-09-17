@@ -101,6 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    // Ask the server to revoke the tokens, but never let signing out depend on
+    // that call: the local session is cleared whether or not it reaches us.
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    void apiService.logout(token, refreshToken).catch(() => undefined);
+
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');

@@ -2,6 +2,7 @@ import { User } from '@/models/User';
 import { Company } from '@/models/Company';
 import { SubscriptionPlan } from '@/models/SubscriptionPlan';
 import { JWTUtils, TokenPair } from '@/utils/jwt';
+import { isTokenRevoked, revokeToken } from '@/utils/tokenBlocklist';
 import { CryptoUtils } from '@/utils/crypto';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
@@ -209,6 +210,14 @@ export class AuthService {
         throw new AppError('Invalid or expired refresh token', 401, 'INVALID_REFRESH_TOKEN');
       }
 
+      // Refresh tokens are single-use. A second presentation means either a
+      // replay or a stolen token being raced against the real user, so reject it
+      // rather than mint a fresh pair for whoever asked.
+      if (await isTokenRevoked(refreshToken)) {
+        logger.warn(`Refresh token reuse attempted for user: ${payload.userId}`);
+        throw new AppError('Refresh token has already been used', 401, 'REFRESH_TOKEN_REUSED');
+      }
+
       // Verify user still exists and is active
       const user = await User.findById(payload.userId);
       if (!user || !user.is_active) {
@@ -221,6 +230,9 @@ export class AuthService {
         email: user.email,
         role: user.role,
       });
+
+      // Retire the token we just spent, now that its replacement exists.
+      await revokeToken(refreshToken);
 
       logger.debug(`Tokens refreshed for user: ${user.email}`);
 

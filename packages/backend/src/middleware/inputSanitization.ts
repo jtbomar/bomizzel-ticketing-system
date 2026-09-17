@@ -93,6 +93,16 @@ export const validateContentType = (req: Request, res: Response, next: NextFunct
   if (['post', 'put', 'patch'].includes(method)) {
     const contentType = req.get('Content-Type');
 
+    // A bodyless POST has no content to describe, so demanding a Content-Type
+    // for it just rejects valid requests - /auth/logout being the obvious one.
+    const hasBody =
+      req.get('Transfer-Encoding') !== undefined || parseInt(req.get('Content-Length') || '0', 10) > 0;
+
+    if (!hasBody) {
+      next();
+      return;
+    }
+
     if (!contentType) {
       res.status(400).json({
         error: {

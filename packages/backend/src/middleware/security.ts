@@ -101,21 +101,11 @@ export const validateMethod = (req: Request, res: Response, next: NextFunction):
 export const validateUserAgent = (req: Request, res: Response, next: NextFunction): void => {
   const userAgent = req.get('User-Agent');
 
-  // Block requests without user agent (potential bots)
+  // A missing User-Agent used to be a 400. It never stopped an attacker - the
+  // header is set by the caller, so anyone unwelcome simply sends one - while it
+  // did reject honest server-to-server callers and HTTP libraries that omit it.
   if (!userAgent) {
-    logger.warn('Blocked request without User-Agent', {
-      ip: req.ip,
-      path: req.path,
-    });
-
-    res.status(400).json({
-      error: {
-        code: 'MISSING_USER_AGENT',
-        message: 'User-Agent header is required',
-        timestamp: new Date().toISOString(),
-        requestId: req.id || 'unknown',
-      },
-    });
+    next();
     return;
   }
 

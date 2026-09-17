@@ -3,6 +3,8 @@ import { AuthService } from '@/services/AuthService';
 import { User } from '@/models/User';
 import { authenticate, optionalAuth } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
+import { JWTUtils } from '@/utils/jwt';
+import { revokeToken } from '@/utils/tokenBlocklist';
 import { authRateLimiter, strictRateLimiter } from '@/middleware/rateLimiter';
 import {
   registerSchema,
@@ -95,9 +97,18 @@ router.post('/refresh', validate(refreshTokenSchema), async (req, res, next) => 
  */
 router.post('/logout', optionalAuth, async (req, res, next) => {
   try {
-    // In a JWT-based system, logout is primarily handled client-side
-    // by removing the tokens. We could implement token blacklisting here
-    // if needed for additional security.
+    // Dropping the tokens client-side is not enough - a copy of either one keeps
+    // working until it expires. Revoke both server-side so they stop being
+    // credentials the moment the user logs out.
+    const accessToken = JWTUtils.extractTokenFromHeader(req.headers.authorization);
+    if (accessToken) {
+      await revokeToken(accessToken);
+    }
+
+    const { refreshToken } = req.body ?? {};
+    if (typeof refreshToken === 'string' && refreshToken.length > 0) {
+      await revokeToken(refreshToken);
+    }
 
     if (req.user) {
       logger.info(`User logged out: ${req.user.email}`);

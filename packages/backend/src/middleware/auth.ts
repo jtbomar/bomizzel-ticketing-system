@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { JWTUtils, JWTPayload } from '@/utils/jwt';
+import { isTokenRevoked } from '@/utils/tokenBlocklist';
 import { User } from '@/models/User';
 import { AppError } from './errorHandler';
 import { logger } from '@/utils/logger';
@@ -40,6 +41,12 @@ export const authenticate = async (
 
     if (!payload) {
       throw new AppError('Invalid or expired token', 401, 'INVALID_TOKEN');
+    }
+
+    // A signature-valid token is not enough: it may have been revoked by logout
+    // before it reached its own expiry.
+    if (await isTokenRevoked(token)) {
+      throw new AppError('Token has been revoked', 401, 'TOKEN_REVOKED');
     }
 
     // Verify user still exists and is active
@@ -122,7 +129,7 @@ export const optionalAuth = async (
 
     const payload = JWTUtils.verifyAccessToken(token);
 
-    if (payload) {
+    if (payload && !(await isTokenRevoked(token))) {
       const user = await User.findById(payload.userId);
 
       if (user && user.is_active) {
