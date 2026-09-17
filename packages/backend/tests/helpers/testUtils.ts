@@ -4,6 +4,7 @@ import { Company } from '@/models/Company';
 import { Team } from '@/models/Team';
 import { Queue } from '@/models/Queue';
 import { Ticket } from '@/models/Ticket';
+import { TicketStatus } from '@/models/TicketStatus';
 
 export const createTestToken = (userId: string, email?: string, role?: string): string => {
   return JWTUtils.generateAccessToken({
