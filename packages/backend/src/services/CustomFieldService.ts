@@ -1,6 +1,7 @@
 import { CustomField } from '@/models/CustomField';
 import { Team } from '@/models/Team';
 import { CustomField as CustomFieldModel, FieldValidation } from '@/types/models';
+import { ValidationError, NotFoundError, ConflictError } from '@/utils/errors';
 
 export class CustomFieldService {
   /**
@@ -20,13 +21,15 @@ export class CustomFieldService {
     // Validate team exists
     const team = await Team.findById(teamId);
     if (!team) {
-      throw new Error('Team not found');
+      throw new NotFoundError('Team not found');
     }
 
     // Check if field name already exists for this team
     const existingField = await CustomField.findByTeamAndName(teamId, fieldData.name);
     if (existingField) {
-      throw new Error(`Custom field with name '${fieldData.name}' already exists for this team`);
+      throw new ConflictError(
+        `Custom field with name '${fieldData.name}' already exists for this team`
+      );
     }
 
     // Validate field configuration
@@ -75,17 +78,17 @@ export class CustomFieldService {
   ): Promise<CustomFieldModel> {
     const field = await CustomField.findById(fieldId);
     if (!field) {
-      throw new Error('Custom field not found');
+      throw new NotFoundError('Custom field not found');
     }
 
     if (field.team_id !== teamId) {
-      throw new Error('Custom field does not belong to this team');
+      throw new ValidationError('Custom field does not belong to this team');
     }
 
     // Validate updates
     if (updates.options !== undefined && field.type === 'picklist') {
       if (!Array.isArray(updates.options) || updates.options.length === 0) {
-        throw new Error('Picklist fields must have at least one option');
+        throw new ValidationError('Picklist fields must have at least one option');
       }
     }
 
@@ -113,11 +116,11 @@ export class CustomFieldService {
   static async deleteCustomField(fieldId: string, teamId: string): Promise<void> {
     const field = await CustomField.findById(fieldId);
     if (!field) {
-      throw new Error('Custom field not found');
+      throw new NotFoundError('Custom field not found');
     }
 
     if (field.team_id !== teamId) {
-      throw new Error('Custom field does not belong to this team');
+      throw new ValidationError('Custom field does not belong to this team');
     }
 
     await CustomField.update(fieldId, { is_active: false });
@@ -136,7 +139,7 @@ export class CustomFieldService {
 
     for (const { fieldId } of fieldOrders) {
       if (!teamFieldIds.has(fieldId)) {
-        throw new Error(`Field ${fieldId} does not belong to team ${teamId}`);
+        throw new ValidationError(`Field ${fieldId} does not belong to team ${teamId}`);
       }
     }
 
@@ -159,11 +162,11 @@ export class CustomFieldService {
   static async getCustomField(fieldId: string, teamId: string): Promise<CustomFieldModel> {
     const field = await CustomField.findById(fieldId);
     if (!field) {
-      throw new Error('Custom field not found');
+      throw new NotFoundError('Custom field not found');
     }
 
     if (field.team_id !== teamId) {
-      throw new Error('Custom field does not belong to this team');
+      throw new ValidationError('Custom field does not belong to this team');
     }
 
     return CustomField.toModel(field);
@@ -182,14 +185,14 @@ export class CustomFieldService {
   }): void {
     // Validate field name (must be alphanumeric with underscores)
     if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(fieldData.name)) {
-      throw new Error(
+      throw new ValidationError(
         'Field name must start with a letter and contain only letters, numbers, and underscores'
       );
     }
 
     // Validate label
     if (!fieldData.label || fieldData.label.trim().length === 0) {
-      throw new Error('Field label is required');
+      throw new ValidationError('Field label is required');
     }
 
     // Validate picklist options
@@ -199,13 +202,13 @@ export class CustomFieldService {
         !Array.isArray(fieldData.options) ||
         fieldData.options.length === 0
       ) {
-        throw new Error('Picklist fields must have at least one option');
+        throw new ValidationError('Picklist fields must have at least one option');
       }
 
       // Check for duplicate options
       const uniqueOptions = new Set(fieldData.options);
       if (uniqueOptions.size !== fieldData.options.length) {
-        throw new Error('Picklist options must be unique');
+        throw new ValidationError('Picklist options must be unique');
       }
     }
 
@@ -226,16 +229,16 @@ export class CustomFieldService {
     if (['number', 'decimal', 'integer'].includes(fieldType)) {
       if (validation.min !== undefined && validation.max !== undefined) {
         if (validation.min > validation.max) {
-          throw new Error('Minimum value cannot be greater than maximum value');
+          throw new ValidationError('Minimum value cannot be greater than maximum value');
         }
       }
 
       if (fieldType === 'integer') {
         if (validation.min !== undefined && !Number.isInteger(validation.min)) {
-          throw new Error('Minimum value for integer field must be an integer');
+          throw new ValidationError('Minimum value for integer field must be an integer');
         }
         if (validation.max !== undefined && !Number.isInteger(validation.max)) {
-          throw new Error('Maximum value for integer field must be an integer');
+          throw new ValidationError('Maximum value for integer field must be an integer');
         }
       }
     }
@@ -244,16 +247,16 @@ export class CustomFieldService {
     if (fieldType === 'string') {
       if (validation.min !== undefined && validation.max !== undefined) {
         if (validation.min > validation.max) {
-          throw new Error('Minimum length cannot be greater than maximum length');
+          throw new ValidationError('Minimum length cannot be greater than maximum length');
         }
       }
 
       if (validation.min !== undefined && validation.min < 0) {
-        throw new Error('Minimum length cannot be negative');
+        throw new ValidationError('Minimum length cannot be negative');
       }
 
       if (validation.max !== undefined && validation.max < 1) {
-        throw new Error('Maximum length must be at least 1');
+        throw new ValidationError('Maximum length must be at least 1');
       }
 
       // Validate regex pattern
@@ -261,7 +264,7 @@ export class CustomFieldService {
         try {
           new RegExp(validation.pattern);
         } catch (error) {
-          throw new Error('Invalid regex pattern in validation');
+          throw new ValidationError('Invalid regex pattern in validation');
         }
       }
     }
@@ -269,7 +272,7 @@ export class CustomFieldService {
     // Picklist fields don't support min/max/pattern validation
     if (fieldType === 'picklist') {
       if (validation.min !== undefined || validation.max !== undefined || validation.pattern) {
-        throw new Error('Picklist fields do not support min/max/pattern validation');
+        throw new ValidationError('Picklist fields do not support min/max/pattern validation');
       }
     }
   }

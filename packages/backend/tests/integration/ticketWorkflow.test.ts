@@ -162,7 +162,8 @@ describe('Ticket Workflow Integration', () => {
         .attach('file', Buffer.from('test file content'), 'test.txt')
         .expect(201);
 
-      expect(response.body.success).toBe(true);
+      // The upload response is { message, data } - it carries no success flag.
+      expect(response.body.message).toBe('File uploaded successfully');
       expect(response.body.data.fileName).toBe('test.txt');
     });
 
@@ -441,7 +442,8 @@ describe('Ticket Workflow Integration', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.updatedCount).toBe(ticketIds.length);
+      // Bulk endpoints report { summary: { successful, total } }, not updatedCount.
+      expect(response.body.data.summary.successful).toBe(ticketIds.length);
     });
 
     it('should allow bulk assignment', async () => {
@@ -455,7 +457,8 @@ describe('Ticket Workflow Integration', () => {
         .expect(200);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.updatedCount).toBe(ticketIds.length);
+      // Bulk endpoints report { summary: { successful, total } }, not updatedCount.
+      expect(response.body.data.summary.successful).toBe(ticketIds.length);
     });
   });
 });
