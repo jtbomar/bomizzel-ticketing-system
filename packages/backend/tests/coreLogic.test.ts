@@ -352,8 +352,10 @@ describe('Core Logic Tests', () => {
       const { result, duration } = await measureExecutionTime(slowFunction);
 
       expect(result).toBe('completed');
-      expect(duration).toBeGreaterThanOrEqual(100);
-      expect(duration).toBeLessThan(200); // Should complete within reasonable time
+      // setTimeout(100) can return a hair under 100ms by Date.now()'s reckoning -
+      // this asserted >= 100 and intermittently saw 99. Allow a small tolerance.
+      expect(duration).toBeGreaterThanOrEqual(95);
+      expect(duration).toBeLessThan(500); // generous upper bound for shared CI runners
     });
   });
 });

@@ -25,6 +25,61 @@ export class TicketStatus extends BaseModel {
     });
   }
 
+  /**
+   * The default status set, matching migration
+   * 20251120000000_seed_default_ticket_statuses.
+   *
+   * `name` is the key compared against a ticket's `status` value, so it must be
+   * the snake_case form; `label` is the display text. Keeping one definition
+   * here avoids the drift that broke status changes for newly registered
+   * companies, where the registration flow seeded name: 'In Progress'.
+   */
+  static readonly DEFAULT_STATUSES = [
+    { name: 'open', label: 'Open', color: '#3B82F6', order: 1, isDefault: true, isClosed: false },
+    {
+      name: 'in_progress',
+      label: 'In Progress',
+      color: '#F59E0B',
+      order: 2,
+      isDefault: false,
+      isClosed: false,
+    },
+    {
+      name: 'waiting',
+      label: 'Waiting',
+      color: '#8B5CF6',
+      order: 3,
+      isDefault: false,
+      isClosed: false,
+    },
+    {
+      name: 'resolved',
+      label: 'Resolved',
+      color: '#10B981',
+      order: 4,
+      isDefault: false,
+      isClosed: false,
+    },
+    {
+      name: 'closed',
+      label: 'Closed',
+      color: '#6B7280',
+      order: 5,
+      isDefault: false,
+      isClosed: true,
+    },
+  ];
+
+  /** Give a newly created team the default statuses. Safe to call twice. */
+  static async seedDefaultStatuses(teamId: string): Promise<void> {
+    const existing = await this.findByTeam(teamId);
+    if (existing.length > 0) return;
+
+    for (const status of this.DEFAULT_STATUSES) {
+      await this.createStatus({ teamId, ...status });
+    }
+  }
+
   static async findByTeam(teamId: string): Promise<TicketStatusTable[]> {
     return this.query.where('team_id', teamId).where('is_active', true).orderBy('order', 'asc');
   }

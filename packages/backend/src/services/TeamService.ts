@@ -9,6 +9,7 @@ import {
   PaginatedResponse,
 } from '@/types/models';
 import { TeamTable } from '@/types/database';
+import { TicketStatus } from '@/models/TicketStatus';
 
 export class TeamService {
   /**
@@ -32,6 +33,11 @@ export class TeamService {
 
       // Add creator as team admin
       await Team.addUserToTeam(createdById, team.id, 'admin');
+
+      // Give the team the default statuses. Without them
+      // TicketService.getValidStatusesForTeam falls back to ['open'] alone, so
+      // tickets on a newly created team could never leave the open state.
+      await TicketStatus.seedDefaultStatuses(team.id);
 
       logger.info(`Team created: ${team.name} by user ${createdById}`);
 

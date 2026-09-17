@@ -14,6 +14,112 @@ router.use(authenticate);
  * Get tickets in a specific queue
  * GET /queues/:id/tickets
  */
+// Literal paths are registered before the /:id family on purpose.
+// '/search' and '/dashboard/metrics' used to be declared after GET '/:id'
+// and GET '/:id/metrics', so Express matched them as an id and answered 400
+// "id must be a valid UUID" - both endpoints were unreachable.
+
+router.get(
+  '/teams/:teamId/metrics',
+  validateRequest({
+    params: {
+      teamId: { type: 'string', required: true, format: 'uuid' },
+    },
+  }),
+  async (req, res, next) => {
+    try {
+      const teamId = req.params.teamId;
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+
+      const metrics = await QueueService.getTeamQueuesWithMetrics(teamId, userId, userRole);
+
+      res.json({
+        success: true,
+        data: metrics,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * Get user's dashboard metrics
+ * GET /queues/dashboard/metrics
+ */
+
+router.get(
+  '/dashboard/metrics',
+  validateRequest({
+    query: {
+      includeTeamQueues: { type: 'boolean', required: false },
+      includePersonalQueues: { type: 'boolean', required: false },
+    },
+  }),
+  async (req, res, next) => {
+    try {
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      const options = {
+        includeTeamQueues: req.query.includeTeamQueues !== 'false',
+        includePersonalQueues: req.query.includePersonalQueues !== 'false',
+      };
+
+      const metrics = await QueueService.getUserQueuesWithMetrics(userId, userRole, options);
+
+      res.json({
+        success: true,
+        data: metrics,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * Get filtered queues with sorting
+ * GET /queues/search
+ */
+
+router.get(
+  '/search',
+  validateRequest({
+    query: {
+      teamId: { type: 'string', required: false, format: 'uuid' },
+      assignedToId: { type: 'string', required: false, format: 'uuid' },
+      type: { type: 'string', required: false, enum: ['unassigned', 'employee'] },
+      search: { type: 'string', required: false },
+      sortBy: { type: 'string', required: false, enum: ['name', 'ticketCount', 'createdAt'] },
+      sortOrder: { type: 'string', required: false, enum: ['asc', 'desc'] },
+    },
+  }),
+  async (req, res, next) => {
+    try {
+      const userId = req.user!.id;
+      const userRole = req.user!.role;
+      const filters = {
+        teamId: req.query.teamId as string,
+        assignedToId: req.query.assignedToId as string,
+        type: req.query.type as 'unassigned' | 'employee',
+        search: req.query.search as string,
+        sortBy: req.query.sortBy as 'name' | 'ticketCount' | 'createdAt',
+        sortOrder: req.query.sortOrder as 'asc' | 'desc',
+      };
+
+      const queues = await QueueService.getFilteredQueues(userId, userRole, filters);
+
+      res.json({
+        success: true,
+        data: queues,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.get(
   '/:id/tickets',
   validateRequest({
@@ -54,6 +160,7 @@ router.get(
  * Get queue details with metrics
  * GET /queues/:id
  */
+
 router.get(
   '/:id',
   validateRequest({
@@ -91,6 +198,7 @@ router.get(
  * Get all queues for a team with metrics
  * GET /queues
  */
+
 router.get(
   '/',
   validateRequest({
@@ -160,6 +268,7 @@ router.get(
  * Create a new queue
  * POST /queues
  */
+
 router.post(
   '/',
   validateRequest({
@@ -193,6 +302,7 @@ router.post(
  * Update queue details
  * PUT /queues/:id
  */
+
 router.put(
   '/:id',
   validateRequest({
@@ -227,6 +337,7 @@ router.put(
  * Delete queue
  * DELETE /queues/:id
  */
+
 router.delete(
   '/:id',
   validateRequest({
@@ -256,6 +367,7 @@ router.delete(
  * Update queue assignment
  * PUT /queues/:id/assign
  */
+
 router.put(
   '/:id/assign',
   validateRequest({
@@ -289,6 +401,7 @@ router.put(
  * Unassign queue
  * PUT /queues/:id/unassign
  */
+
 router.put(
   '/:id/unassign',
   validateRequest({
@@ -318,6 +431,7 @@ router.put(
  * Get queue metrics
  * GET /queues/:id/metrics
  */
+
 router.get(
   '/:id/metrics',
   validateRequest({
@@ -347,103 +461,5 @@ router.get(
  * Get team queues with metrics
  * GET /queues/teams/:teamId/metrics
  */
-router.get(
-  '/teams/:teamId/metrics',
-  validateRequest({
-    params: {
-      teamId: { type: 'string', required: true, format: 'uuid' },
-    },
-  }),
-  async (req, res, next) => {
-    try {
-      const teamId = req.params.teamId;
-      const userId = req.user!.id;
-      const userRole = req.user!.role;
-
-      const metrics = await QueueService.getTeamQueuesWithMetrics(teamId, userId, userRole);
-
-      res.json({
-        success: true,
-        data: metrics,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
- * Get user's dashboard metrics
- * GET /queues/dashboard/metrics
- */
-router.get(
-  '/dashboard/metrics',
-  validateRequest({
-    query: {
-      includeTeamQueues: { type: 'boolean', required: false },
-      includePersonalQueues: { type: 'boolean', required: false },
-    },
-  }),
-  async (req, res, next) => {
-    try {
-      const userId = req.user!.id;
-      const userRole = req.user!.role;
-      const options = {
-        includeTeamQueues: req.query.includeTeamQueues !== 'false',
-        includePersonalQueues: req.query.includePersonalQueues !== 'false',
-      };
-
-      const metrics = await QueueService.getUserQueuesWithMetrics(userId, userRole, options);
-
-      res.json({
-        success: true,
-        data: metrics,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
- * Get filtered queues with sorting
- * GET /queues/search
- */
-router.get(
-  '/search',
-  validateRequest({
-    query: {
-      teamId: { type: 'string', required: false, format: 'uuid' },
-      assignedToId: { type: 'string', required: false, format: 'uuid' },
-      type: { type: 'string', required: false, enum: ['unassigned', 'employee'] },
-      search: { type: 'string', required: false },
-      sortBy: { type: 'string', required: false, enum: ['name', 'ticketCount', 'createdAt'] },
-      sortOrder: { type: 'string', required: false, enum: ['asc', 'desc'] },
-    },
-  }),
-  async (req, res, next) => {
-    try {
-      const userId = req.user!.id;
-      const userRole = req.user!.role;
-      const filters = {
-        teamId: req.query.teamId as string,
-        assignedToId: req.query.assignedToId as string,
-        type: req.query.type as 'unassigned' | 'employee',
-        search: req.query.search as string,
-        sortBy: req.query.sortBy as 'name' | 'ticketCount' | 'createdAt',
-        sortOrder: req.query.sortOrder as 'asc' | 'desc',
-      };
-
-      const queues = await QueueService.getFilteredQueues(userId, userRole, filters);
-
-      res.json({
-        success: true,
-        data: queues,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 export default router;

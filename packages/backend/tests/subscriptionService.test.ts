@@ -174,7 +174,20 @@ describe('SubscriptionService', () => {
     });
 
     it('should throw error for already cancelled subscription', async () => {
-      await expect(SubscriptionService.cancelSubscription(subscriptionId, false)).rejects.toThrow(
+      // The shared subscriptionId was only cancelled at period end by an earlier
+      // test, which sets cancel_at_period_end but leaves status 'active', so a
+      // second cancel legitimately succeeds. Cancel one outright first.
+      const user = await User.createUser({
+        email: 'already-cancelled@example.com',
+        password: 'password123',
+        firstName: 'Already',
+        lastName: 'Cancelled',
+        role: 'customer',
+      });
+      const sub = await SubscriptionService.createSubscription(user.id, starterPlanId);
+      await SubscriptionService.cancelSubscription(sub.id, false);
+
+      await expect(SubscriptionService.cancelSubscription(sub.id, false)).rejects.toThrow(
         'Subscription is already cancelled'
       );
     });

@@ -57,7 +57,8 @@ describe('UserService', () => {
       expect(profile.id).toBe(userId);
       expect(profile.email).toBe('test@example.com');
       expect(profile.companies).toHaveLength(1);
-      expect(profile.companies?.[0].id).toBe(companyId);
+      // getUserProfile returns UserCompanyAssociation[], keyed by companyId.
+      expect(profile.companies?.[0].companyId).toBe(companyId);
     });
 
     it('should return user profile with team memberships for employees', async () => {
@@ -244,8 +245,13 @@ describe('UserService', () => {
   describe('filtering users by role', () => {
     // getUsers({ role }) is the real entry point; there is no getUsersByRole.
     it('should return users filtered by role', async () => {
-      const customers = await UserService.getUsers({ role: 'customer' });
-      const employees = await UserService.getUsers({ role: 'employee' });
+      // getUsers applies tenant isolation from requestingUser; without it the
+      // call deliberately matches nothing, so the context has to be supplied.
+      const ctx = {
+        requestingUser: { id: adminId, role: 'admin', companies: [companyId] },
+      };
+      const customers = await UserService.getUsers({ role: 'customer', ...ctx });
+      const employees = await UserService.getUsers({ role: 'employee', ...ctx });
 
       expect(customers.data.length).toBeGreaterThan(0);
       customers.data.forEach((user) => {
@@ -258,7 +264,10 @@ describe('UserService', () => {
     });
 
     it('should return no users for a role nobody has', async () => {
-      const users = await UserService.getUsers({ role: 'invalid_role' });
+      const users = await UserService.getUsers({
+        role: 'invalid_role',
+        requestingUser: { id: adminId, role: 'admin', companies: [companyId] },
+      });
       expect(users.data).toHaveLength(0);
     });
   });

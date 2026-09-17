@@ -5,6 +5,7 @@ import { AppError } from '@/middleware/errorHandler';
 import { db } from '@/config/database';
 import { JWTUtils } from '@/utils/jwt';
 import bcrypt from 'bcryptjs';
+import { TicketStatus } from '@/models/TicketStatus';
 
 export interface CompanyRegistrationData {
   // Company basic info
@@ -263,36 +264,21 @@ export class CompanyRegistrationService {
       });
 
       // Create default ticket statuses for the team.
-      // The column is `order`, not `sort_order`, and `label` is NOT NULL.
-      const statuses = [
-        { name: 'Open', label: 'Open', color: '#3B82F6', order: 1, is_default: true },
-        {
-          name: 'In Progress',
-          label: 'In Progress',
-          color: '#F59E0B',
-          order: 2,
-          is_default: false,
-        },
-        {
-          name: 'Waiting on Customer',
-          label: 'Waiting on Customer',
-          color: '#8B5CF6',
-          order: 3,
-          is_default: false,
-        },
-        { name: 'Resolved', label: 'Resolved', color: '#10B981', order: 4, is_default: false },
-        { name: 'Closed', label: 'Closed', color: '#6B7280', order: 5, is_default: false },
-      ];
-
-      for (const status of statuses) {
+      //
+      // `name` is the key compared against a ticket's `status` value, so it must
+      // be the snake_case form. This used to seed name: 'Open' / 'In Progress',
+      // i.e. the display text, which matched nothing - so a newly registered
+      // company could never move a ticket out of 'open'. The canonical set
+      // lives on TicketStatus.
+      for (const status of TicketStatus.DEFAULT_STATUSES) {
         await trx('ticket_statuses').insert({
           team_id: team.id,
           name: status.name,
           label: status.label,
           color: status.color,
           order: status.order,
-          is_default: status.is_default,
-          is_closed: status.name === 'Closed',
+          is_default: status.isDefault,
+          is_closed: status.isClosed,
         });
       }
 

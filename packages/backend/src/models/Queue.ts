@@ -33,7 +33,10 @@ export class Queue extends BaseModel {
   }
 
   static async getQueueWithTicketCount(queueId: string): Promise<any> {
-    const queue = await this.findById(queueId);
+    // Deleting a queue is a soft delete (is_active = false). Every other query
+    // here filters on is_active, but this one did not, so a deleted queue
+    // vanished from all the lists yet stayed fetchable by id and returned 200.
+    const queue = await this.query.where('id', queueId).where('is_active', true).first();
     if (!queue) return null;
 
     const ticketCount = await this.db('tickets')

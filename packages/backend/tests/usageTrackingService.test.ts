@@ -392,7 +392,8 @@ describe('UsageTrackingService', () => {
         const record = history[0];
         expect(record).toHaveProperty('ticketId');
         expect(record).toHaveProperty('action');
-        expect(record).toHaveProperty('timestamp');
+        // the record field is actionTimestamp, not timestamp
+        expect(record).toHaveProperty('actionTimestamp');
         expect(record.ticketId).toBe(historyTicketId);
       }
     });
@@ -408,7 +409,8 @@ describe('UsageTrackingService', () => {
         const record = activity[0];
         expect(record).toHaveProperty('ticketId');
         expect(record).toHaveProperty('action');
-        expect(record).toHaveProperty('timestamp');
+        // the record field is actionTimestamp, not timestamp
+        expect(record).toHaveProperty('actionTimestamp');
       }
     });
 
