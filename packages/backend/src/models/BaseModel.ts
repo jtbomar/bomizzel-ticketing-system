@@ -14,6 +14,17 @@ export abstract class BaseModel {
     return result || null;
   }
 
+  /**
+   * Fetch many rows by id in one round-trip. Loops of findById are how a list
+   * endpoint ends up making one query per row.
+   */
+  static async findByIds(ids: string[]): Promise<any[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+    return this.query.whereIn('id', ids);
+  }
+
   static async findAll(
     options: {
       limit?: number;

@@ -1,6 +1,16 @@
+import { Knex } from 'knex';
 import { BaseModel } from './BaseModel';
 import { TicketTable } from '@/types/database';
 import { Ticket as TicketModel, TicketAction } from '@/types/models';
+
+export interface TicketSearchOptions {
+  query?: string;
+  companyIds?: string[];
+  teamIds?: string[];
+  status?: string[];
+  assignedToId?: string;
+  submitterId?: string;
+}
 
 export class Ticket extends BaseModel {
   protected static tableName = 'tickets';
@@ -84,6 +94,18 @@ export class Ticket extends BaseModel {
     }
 
     return query.orderBy('priority', 'desc').orderBy('created_at', 'asc');
+  }
+
+  /** Counted in the database, for the same reason countTickets is. */
+  static async countByQueue(queueId: string, status?: string): Promise<number> {
+    let query = this.query.where('queue_id', queueId);
+
+    if (status) {
+      query = query.where('status', status);
+    }
+
+    const result = await query.count<{ count: string }[]>('* as count').first();
+    return parseInt(result?.count ?? '0', 10);
   }
 
   static async findByAssignee(
@@ -258,18 +280,14 @@ export class Ticket extends BaseModel {
       .orderBy('th.created_at', 'desc');
   }
 
-  static async searchTickets(options: {
-    query?: string;
-    companyIds?: string[];
-    teamIds?: string[];
-    status?: string[];
-    assignedToId?: string;
-    submitterId?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<TicketTable[]> {
-    let query = this.query;
-
+  /**
+   * The filters shared by searchTickets and countTickets, so a count can never
+   * drift from the rows it is counting.
+   */
+  private static applySearchFilters(
+    query: Knex.QueryBuilder,
+    options: TicketSearchOptions
+  ): Knex.QueryBuilder {
     if (options.query) {
       query = query.where(function () {
         this.where('title', 'ilike', `%${options.query}%`).orWhere(
@@ -300,6 +318,14 @@ export class Ticket extends BaseModel {
       query = query.where('submitter_id', options.submitterId);
     }
 
+    return query;
+  }
+
+  static async searchTickets(
+    options: TicketSearchOptions & { limit?: number; offset?: number }
+  ): Promise<TicketTable[]> {
+    let query = this.applySearchFilters(this.query, options);
+
     if (options.limit) {
       query = query.limit(options.limit);
     }
@@ -309,6 +335,20 @@ export class Ticket extends BaseModel {
     }
 
     return query.orderBy('created_at', 'desc');
+  }
+
+  /**
+   * Count matching tickets in the database rather than over the wire. The
+   * caller used to run searchTickets with no limit and take .length of the
+   * result, which meant every page of every list endpoint dragged the entire
+   * matching set across the connection to produce one integer.
+   */
+  static async countTickets(options: TicketSearchOptions): Promise<number> {
+    const result = await this.applySearchFilters(this.query, options)
+      .count<{ count: string }[]>('* as count')
+      .first();
+
+    return parseInt(result?.count ?? '0', 10);
   }
 
   static async findArchived(

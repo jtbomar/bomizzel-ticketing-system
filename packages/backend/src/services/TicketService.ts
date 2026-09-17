@@ -208,9 +208,7 @@ export class TicketService {
       });
 
       const total = await this.getQueueTicketCount(options.queueId, options.status);
-      const tickets = await Promise.all(
-        queueTickets.map((ticket) => this.enrichTicketData(ticket))
-      );
+      const tickets = await this.enrichTickets(queueTickets);
 
       return {
         data: tickets,
@@ -235,9 +233,7 @@ export class TicketService {
     const tickets = await Ticket.searchTickets(searchOptions);
     const totalCount = await this.getTicketCount(searchOptions);
 
-    const enrichedTickets = await Promise.all(
-      tickets.map((ticket) => this.enrichTicketData(ticket))
-    );
+    const enrichedTickets = await this.enrichTickets(tickets);
 
     return {
       data: enrichedTickets,
@@ -684,9 +680,7 @@ export class TicketService {
 
     const total = await this.getQueueTicketCount(queueId, options.status);
 
-    const enrichedTickets = await Promise.all(
-      tickets.map((ticket) => this.enrichTicketData(ticket))
-    );
+    const enrichedTickets = await this.enrichTickets(tickets);
 
     return {
       data: enrichedTickets,
@@ -818,29 +812,68 @@ export class TicketService {
     return statusNames;
   }
 
-  private static async enrichTicketData(ticket: TicketTable): Promise<TicketModel> {
-    const ticketModel = Ticket.toModel(ticket);
+  /**
+   * Attach submitter, company, assignee, queue and team to a page of tickets.
+   *
+   * This used to be done one ticket at a time, five queries each, run through
+   * Promise.all - so a fifty-row page issued two hundred and fifty round-trips,
+   * all queued behind a ten-connection pool. That page took 24 seconds.
+   *
+   * The related rows repeat heavily across a page: the same company, the same
+   * handful of assignees. So collect the distinct ids, fetch each table once,
+   * and join in memory. Five queries for the page, whatever its size.
+   */
+  private static async enrichTickets(tickets: TicketTable[]): Promise<TicketModel[]> {
+    if (tickets.length === 0) {
+      return [];
+    }
 
-    // Add related data
-    const [submitter, company, assignedTo, queue, team] = await Promise.all([
-      User.findById(ticket.submitter_id),
-      Company.findById(ticket.company_id),
-      ticket.assigned_to_id ? User.findById(ticket.assigned_to_id) : null,
-      Queue.findById(ticket.queue_id),
-      Team.findById(ticket.team_id),
+    const distinct = (values: (string | null | undefined)[]): string[] => [
+      ...new Set(values.filter((value): value is string => Boolean(value))),
+    ];
+
+    const [users, companies, queues, teams] = await Promise.all([
+      User.findByIds(
+        distinct([
+          ...tickets.map((ticket) => ticket.submitter_id),
+          ...tickets.map((ticket) => ticket.assigned_to_id),
+        ])
+      ),
+      Company.findByIds(distinct(tickets.map((ticket) => ticket.company_id))),
+      Queue.findByIds(distinct(tickets.map((ticket) => ticket.queue_id))),
+      Team.findByIds(distinct(tickets.map((ticket) => ticket.team_id))),
     ]);
 
-    const enrichedTicket: any = {
-      ...ticketModel,
-    };
+    const index = (rows: { id: string }[]): Map<string, any> =>
+      new Map(rows.map((row) => [row.id, row]));
 
-    if (submitter) enrichedTicket.submitter = User.toModel(submitter);
-    if (company) enrichedTicket.company = Company.toModel(company);
-    if (assignedTo) enrichedTicket.assignedTo = User.toModel(assignedTo);
-    if (queue) enrichedTicket.queue = Queue.toModel(queue);
-    if (team) enrichedTicket.team = Team.toModel(team);
+    const usersById = index(users);
+    const companiesById = index(companies);
+    const queuesById = index(queues);
+    const teamsById = index(teams);
 
-    return enrichedTicket as TicketModel;
+    return tickets.map((ticket) => {
+      const enrichedTicket: any = { ...Ticket.toModel(ticket) };
+
+      const submitter = usersById.get(ticket.submitter_id);
+      const company = companiesById.get(ticket.company_id);
+      const assignedTo = ticket.assigned_to_id ? usersById.get(ticket.assigned_to_id) : null;
+      const queue = queuesById.get(ticket.queue_id);
+      const team = teamsById.get(ticket.team_id);
+
+      if (submitter) enrichedTicket.submitter = User.toModel(submitter);
+      if (company) enrichedTicket.company = Company.toModel(company);
+      if (assignedTo) enrichedTicket.assignedTo = User.toModel(assignedTo);
+      if (queue) enrichedTicket.queue = Queue.toModel(queue);
+      if (team) enrichedTicket.team = Team.toModel(team);
+
+      return enrichedTicket as TicketModel;
+    });
+  }
+
+  private static async enrichTicketData(ticket: TicketTable): Promise<TicketModel> {
+    const [enriched] = await this.enrichTickets([ticket]);
+    return enriched as TicketModel;
   }
 
   private static async getTicketWithRelations(ticketId: string): Promise<TicketModel> {
@@ -853,17 +886,10 @@ export class TicketService {
   }
 
   private static async getTicketCount(searchOptions: any): Promise<number> {
-    // This is a simplified count - in production you'd want to optimize this
-    const tickets = await Ticket.searchTickets({
-      ...searchOptions,
-      limit: undefined,
-      offset: undefined,
-    });
-    return tickets.length;
+    return Ticket.countTickets(searchOptions);
   }
 
   private static async getQueueTicketCount(queueId: string, status?: string): Promise<number> {
-    const tickets = await Ticket.findByQueue(queueId, status ? { status } : {});
-    return tickets.length;
+    return Ticket.countByQueue(queueId, status);
   }
 }
