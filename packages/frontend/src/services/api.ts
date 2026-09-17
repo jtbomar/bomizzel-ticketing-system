@@ -603,7 +603,8 @@ class ApiService {
   }
 
   async cancelSubscription(subscriptionId: string, cancelAtPeriodEnd?: boolean): Promise<any> {
-    const response = await this.client.put(`/subscriptions/${subscriptionId}/cancel`, {
+    // The backend defines this as POST, not PUT.
+    const response = await this.client.post(`/subscriptions/${subscriptionId}/cancel`, {
       cancelAtPeriodEnd,
     });
     return response.data;
