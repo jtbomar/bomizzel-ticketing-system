@@ -5,6 +5,7 @@ import { TicketNoteService } from './TicketNoteService';
 import { Ticket } from '@/models/Ticket';
 import { User } from '@/models/User';
 import { Company } from '@/models/Company';
+import { NotFoundError } from '@/utils/errors';
 
 export interface EmailConfig {
   host: string;
@@ -91,13 +92,13 @@ export class EmailService {
     // Verify ticket exists and sender has access
     const ticket = await Ticket.findById(emailRequest.ticketId);
     if (!ticket) {
-      throw new Error('Ticket not found');
+      throw new NotFoundError('Ticket not found');
     }
 
     // Get sender information
     const sender = await User.findById(senderId);
     if (!sender) {
-      throw new Error('Sender not found');
+      throw new NotFoundError('Sender not found');
     }
 
     // Prepare email options
@@ -185,7 +186,7 @@ export class EmailService {
     // Get ticket details
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
-      throw new Error('Ticket not found');
+      throw new NotFoundError('Ticket not found');
     }
 
     // Get company details

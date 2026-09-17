@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../config/database';
+import { ValidationError } from '@/utils/errors';
 
 export interface BusinessHours {
   id?: number;
@@ -186,7 +187,7 @@ export class BusinessHoursService {
 
         if (count && parseInt(count.total as string) === 1) {
           await trx.rollback();
-          throw new Error('Cannot delete the only business hours configuration');
+          throw new ValidationError('Cannot delete the only business hours configuration');
         }
 
         // Set another one as default

@@ -4,6 +4,7 @@ import { EmailService } from './EmailService';
 import { logger } from '../utils/logger';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { NotFoundError } from '@/utils/errors';
 
 export interface EnhancedRegistrationData {
   // Personal Information
@@ -207,7 +208,7 @@ export class EnhancedRegistrationService {
     }
 
     if (!company) {
-      throw new Error('Company not found');
+      throw new NotFoundError('Company not found');
     }
 
     // For now, assume all companies allow self-registration

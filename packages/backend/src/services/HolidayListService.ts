@@ -1,4 +1,5 @@
 import { db } from '../config/database';
+import { ValidationError } from '@/utils/errors';
 
 export interface HolidayList {
   id?: number;
@@ -188,7 +189,7 @@ export class HolidayListService {
 
         if (count && parseInt(count.total as string) === 1) {
           await trx.rollback();
-          throw new Error('Cannot delete the only holiday list configuration');
+          throw new ValidationError('Cannot delete the only holiday list configuration');
         }
 
         // Set another one as default

@@ -3,6 +3,7 @@ import { Ticket } from '../models/Ticket';
 import { QueueMetrics } from '../types/models';
 import { notificationService } from './NotificationService';
 import { logger } from '../utils/logger';
+import { NotFoundError } from '@/utils/errors';
 
 export class MetricsService {
   /**
@@ -34,7 +35,7 @@ export class MetricsService {
   static async calculateQueueMetrics(queueId: string): Promise<QueueMetrics> {
     const queue = await Queue.findById(queueId);
     if (!queue) {
-      throw new Error('Queue not found');
+      throw new NotFoundError('Queue not found');
     }
 
     // Get all tickets in the queue
