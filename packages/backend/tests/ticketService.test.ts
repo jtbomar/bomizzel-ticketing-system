@@ -192,9 +192,11 @@ describe('TicketService', () => {
     });
 
     it('should reject assignment to non-existent employee', async () => {
+      // The service reports 'Invalid assignee', which covers both a missing
+      // user and one whose role is customer, without revealing which.
       await expect(
         TicketService.assignTicket(ticketId, ABSENT_UUID, employeeId, 'employee')
-      ).rejects.toThrow('Employee not found');
+      ).rejects.toThrow('Invalid assignee');
     });
   });
 
