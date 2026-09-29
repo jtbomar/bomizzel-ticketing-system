@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthService } from '@/services/AuthService';
 import { User } from '@/models/User';
 import { authenticate, optionalAuth } from '@/middleware/auth';
+import { isStaff } from '@/utils/tenant';
 import { isPlatformAdmin } from '@/middleware/platformAdmin';
 import { validate } from '@/utils/validation';
 import { JWTUtils } from '@/utils/jwt';
@@ -25,15 +26,44 @@ const router = Router();
  * POST /auth/register
  * Register a new user
  */
-router.post('/register', authRateLimiter, validate(registerSchema), async (req, res, next) => {
-  try {
-    const { user, tokens } = await AuthService.register(req.body);
+router.post(
+  '/register',
+  authRateLimiter,
+  optionalAuth,
+  validate(registerSchema),
+  async (req, res, next) => {
+    try {
+      // Staff adding a contact (the create-ticket form uses this endpoint) send
+      // an invitation instead of a verification email.
+      const byStaff = !!req.user && isStaff(req.user);
+      const { user } = await AuthService.register(req.body, { sendVerificationEmail: !byStaff });
 
-    res.status(201).json({
-      message: 'User registered successfully',
-      user,
-      token: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
+      // No tokens: the new account can't sign in until its email is confirmed.
+      res.status(201).json({
+        message: byStaff
+          ? 'Contact created'
+          : 'Account created - check your email for a link to confirm your address',
+        requiresVerification: true,
+        user,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * POST /auth/resend-verification
+ * Email a new verification link. Always answers the same way, so it can't be
+ * used to find out which addresses have accounts.
+ */
+router.post('/resend-verification', authRateLimiter, async (req, res, next) => {
+  try {
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    if (!email) throw new AppError('Email is required', 400, 'EMAIL_REQUIRED');
+    await AuthService.resendVerification(email);
+    res.json({
+      message: 'If that address has an unconfirmed account, a new link is on its way.',
     });
   } catch (error) {
     next(error);

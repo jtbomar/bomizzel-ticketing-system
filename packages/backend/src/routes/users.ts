@@ -5,7 +5,9 @@ import { validate } from '@/utils/validation';
 import Joi from 'joi';
 import { updateUserSchema, userListSchema, uuidSchema } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
-import { requireTenantId, requireUserInTenant } from '@/utils/tenant';
+import { requireStaff, requireTenantId, requireUserInTenant } from '@/utils/tenant';
+import { AuthService } from '@/services/AuthService';
+import { db } from '@/config/database';
 
 const router = Router();
 
@@ -181,6 +183,38 @@ router.put(
  * POST /users/:userId/deactivate
  * Deactivate user account (Admin only)
  */
+/**
+ * POST /users/:userId/send-invitation
+ * Email a contact a link to set their password for the support portal. Staff
+ * of the contact's own subscriber only. Opening the link also confirms their
+ * email address.
+ */
+router.post(
+  '/:userId/send-invitation',
+  authenticate,
+  requireStaff,
+  requireUserInTenant(),
+  async (req, res, next) => {
+    try {
+      const company = await db('companies').where('id', req.user!.tenantId).first('name');
+      const sent = await AuthService.sendInvitation(
+        req.params.userId as string,
+        company?.name || 'Your support team'
+      );
+      if (!sent) {
+        throw new AppError(
+          "The invitation couldn't be emailed - email isn't set up yet",
+          503,
+          'EMAIL_NOT_CONFIGURED'
+        );
+      }
+      res.json({ message: 'Invitation sent' });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.post(
   '/:userId/deactivate',
   authenticate,

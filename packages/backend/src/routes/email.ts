@@ -204,36 +204,40 @@ router.post(
  * GET /email/status
  */
 
-emailRouter.get('/status', requirePlatformAdmin, async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const isInitialized = EmailService.isInitialized();
-    let isConnected = false;
+emailRouter.get(
+  '/status',
+  requirePlatformAdmin,
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const isInitialized = EmailService.isInitialized();
+      let isConnected = false;
 
-    if (isInitialized) {
-      isConnected = await EmailService.verifyConnection();
+      if (isInitialized) {
+        isConnected = await EmailService.verifyConnection();
+      }
+
+      const config = await EmailService.getEmailConfig();
+
+      res.json({
+        success: true,
+        data: {
+          isInitialized,
+          isConnected,
+          config: config
+            ? {
+                host: config.host,
+                port: config.port,
+                secure: config.secure,
+                from: config.from,
+              }
+            : null,
+        },
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const config = await EmailService.getEmailConfig();
-
-    res.json({
-      success: true,
-      data: {
-        isInitialized,
-        isConnected,
-        config: config
-          ? {
-              host: config.host,
-              port: config.port,
-              secure: config.secure,
-              from: config.from,
-            }
-          : null,
-      },
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 /**
  * Create email template

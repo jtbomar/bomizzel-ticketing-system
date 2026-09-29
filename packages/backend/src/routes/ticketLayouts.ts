@@ -37,18 +37,16 @@ router.param('teamId', async (req, _res, next, teamId) => {
   }
 });
 
-const teamFrom =
-  (source: 'query' | 'body') =>
-  async (req, res, next) => {
-    const teamId = req[source]?.teamId;
-    if (!teamId) return res.status(400).json({ error: 'Team ID is required' });
-    try {
-      await assertTeamInTenant(teamId, req.user?.tenantId);
-      next();
-    } catch (error) {
-      next(error);
-    }
-  };
+const teamFrom = (source: 'query' | 'body') => async (req, res, next) => {
+  const teamId = req[source]?.teamId;
+  if (!teamId) return res.status(400).json({ error: 'Team ID is required' });
+  try {
+    await assertTeamInTenant(teamId, req.user?.tenantId);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
 
 // Simplified validation - will add proper validation later
 

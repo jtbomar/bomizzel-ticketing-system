@@ -155,74 +155,79 @@ router.get('/download/:exportId/:fileName', async (req: Request, res: Response):
 // Import matches existing users by email across the whole platform and can
 // overwrite them, and takes roles from the file. Platform admins only until it
 // is rebuilt to stay inside one subscriber.
-router.post('/import', requirePlatformAdmin, uploadSingle, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.id;
-    const file = req.file;
+router.post(
+  '/import',
+  requirePlatformAdmin,
+  uploadSingle,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = req.user!.id;
+      const file = req.file;
 
-    if (!file) {
-      res.status(400).json({
-        success: false,
-        message: 'No file uploaded',
+      if (!file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded',
+        });
+        return;
+      }
+
+      // Parse options from request body
+      const options: ImportOptions = {
+        overwriteExisting: req.body.overwriteExisting === 'true',
+        skipDuplicates: req.body.skipDuplicates !== 'false',
+        validateOnly: req.body.validateOnly === 'true',
+      };
+
+      const companyId = req.body.companyId;
+
+      if (!companyId) {
+        res.status(400).json({
+          success: false,
+          message: 'Company ID is required',
+        });
+        return;
+      }
+
+      // Read and parse the uploaded file
+      const fileContent = fs.readFileSync(file.path, 'utf-8');
+      const importData = JSON.parse(fileContent);
+
+      // Clean up uploaded file
+      fs.unlinkSync(file.path);
+
+      logger.info('Import request received', { userId, companyId, options });
+
+      const result = await DataImportService.importCompanyData(
+        companyId,
+        userId,
+        importData,
+        options
+      );
+
+      res.json({
+        success: result.success,
+        message: result.success
+          ? 'Data import completed successfully'
+          : 'Data import validation failed',
+        data: result,
       });
-      return;
-    }
+    } catch (error) {
+      logger.error('Import failed', { error });
 
-    // Parse options from request body
-    const options: ImportOptions = {
-      overwriteExisting: req.body.overwriteExisting === 'true',
-      skipDuplicates: req.body.skipDuplicates !== 'false',
-      validateOnly: req.body.validateOnly === 'true',
-    };
+      // Clean up file if it exists
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
 
-    const companyId = req.body.companyId;
-
-    if (!companyId) {
-      res.status(400).json({
+      res.status(500).json({
         success: false,
-        message: 'Company ID is required',
+        message: error instanceof Error ? error.message : 'Import failed',
+        error: process.env.NODE_ENV === 'development' ? error : undefined,
       });
-      return;
     }
-
-    // Read and parse the uploaded file
-    const fileContent = fs.readFileSync(file.path, 'utf-8');
-    const importData = JSON.parse(fileContent);
-
-    // Clean up uploaded file
-    fs.unlinkSync(file.path);
-
-    logger.info('Import request received', { userId, companyId, options });
-
-    const result = await DataImportService.importCompanyData(
-      companyId,
-      userId,
-      importData,
-      options
-    );
-
-    res.json({
-      success: result.success,
-      message: result.success
-        ? 'Data import completed successfully'
-        : 'Data import validation failed',
-      data: result,
-    });
-  } catch (error) {
-    logger.error('Import failed', { error });
-
-    // Clean up file if it exists
-    if (req.file?.path && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : 'Import failed',
-      error: process.env.NODE_ENV === 'development' ? error : undefined,
-    });
   }
-});
+);
 
 /**
  * GET /api/data-export/history/:companyId
@@ -259,31 +264,35 @@ router.get('/history/:companyId', async (req: Request, res: Response): Promise<v
  * Clean up old export files (admin only)
  */
 // Deletes every subscriber's old export files - platform admins only.
-router.post('/cleanup', requirePlatformAdmin, async (req: Request, res: Response): Promise<void> => {
-  try {
-    // Check if user is admin
-    if (req.user!.role !== 'admin') {
-      res.status(403).json({
-        success: false,
-        message: 'Admin access required',
+router.post(
+  '/cleanup',
+  requirePlatformAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      // Check if user is admin
+      if (req.user!.role !== 'admin') {
+        res.status(403).json({
+          success: false,
+          message: 'Admin access required',
+        });
+        return;
+      }
+
+      const olderThanHours = req.body.olderThanHours || 24;
+      await DataExportService.cleanupOldExports(olderThanHours);
+
+      res.json({
+        success: true,
+        message: 'Cleanup completed successfully',
       });
-      return;
+    } catch (error) {
+      logger.error('Cleanup failed', { error });
+      res.status(500).json({
+        success: false,
+        message: 'Cleanup failed',
+      });
     }
-
-    const olderThanHours = req.body.olderThanHours || 24;
-    await DataExportService.cleanupOldExports(olderThanHours);
-
-    res.json({
-      success: true,
-      message: 'Cleanup completed successfully',
-    });
-  } catch (error) {
-    logger.error('Cleanup failed', { error });
-    res.status(500).json({
-      success: false,
-      message: 'Cleanup failed',
-    });
   }
-});
+);
 
 export default router;

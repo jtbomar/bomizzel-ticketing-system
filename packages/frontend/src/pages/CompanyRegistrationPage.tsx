@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getApiBaseUrl } from '../services/api';
 
 interface CompanyRegistrationData {
   // Company info
@@ -152,7 +153,9 @@ const CompanyRegistrationPage: React.FC = () => {
         startTrial: true,
       };
 
-      const response = await fetch('http://localhost:3001/api/company-registration/register', {
+      // This used to post to http://localhost:3001, so sign-up only ever
+      // worked on a developer's machine - never on bomizzel.com.
+      const response = await fetch(`${getApiBaseUrl()}/company-registration/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,19 +166,15 @@ const CompanyRegistrationPage: React.FC = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Store the token
-        localStorage.setItem('token', data.data.tokens.token);
-        if (data.data.tokens.refreshToken) {
-          localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
-        }
-
-        // Show success message
-        alert(`✅ Company registered successfully! Welcome to ${formData.companyName}!`);
-
-        // Redirect to admin dashboard
-        navigate('/admin');
+        // No sign-in yet: the owner confirms their email address first.
+        navigate(`/check-email?email=${encodeURIComponent(formData.adminEmail)}`);
       } else {
-        setError(data.message || 'Registration failed');
+        const apiError = data.error;
+        setError(
+          (typeof apiError === 'string' ? apiError : apiError?.message) ||
+            data.message ||
+            'Registration failed'
+        );
       }
     } catch (err) {
       console.error('Registration error:', err);

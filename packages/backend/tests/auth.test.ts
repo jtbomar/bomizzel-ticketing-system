@@ -2,6 +2,16 @@ import request from 'supertest';
 import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { resetDatabase } from './helpers/db';
+import { db } from '../src/config/database';
+
+const registerVerifiedAndLogin = async () => {
+  const credentials = { email: 'test@example.com', password: 'password123' };
+  await request(app)
+    .post('/api/auth/register')
+    .send({ ...credentials, firstName: 'Test', lastName: 'User' });
+  await db('users').where('email', credentials.email).update({ email_verified: true });
+  return request(app).post('/api/auth/login').send(credentials);
+};
 
 describe('Authentication Endpoints', () => {
   describe('POST /api/auth/register', () => {
@@ -15,15 +25,16 @@ describe('Authentication Endpoints', () => {
 
       const response = await request(app).post('/api/auth/register').send(userData).expect(201);
 
-      expect(response.body.message).toBe('User registered successfully');
+      // No login until the address is confirmed.
+      expect(response.body.requiresVerification).toBe(true);
       expect(response.body.user).toMatchObject({
         email: userData.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: 'customer',
       });
-      expect(response.body.token).toBeDefined();
-      expect(response.body.refreshToken).toBeDefined();
+      expect(response.body.token).toBeUndefined();
+      expect(response.body.refreshToken).toBeUndefined();
     });
 
     it('should not register user with existing email', async () => {
@@ -119,14 +130,8 @@ describe('Authentication Endpoints', () => {
     beforeEach(async () => {
       // Fixtures use fixed emails and are rebuilt per test.
       await resetDatabase();
-      // Register and get token
-      const response = await request(app).post('/api/auth/register').send({
-        email: 'test@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'User',
-      });
-
+      // Register, confirm the address (as opening the emailed link does), sign in
+      const response = await registerVerifiedAndLogin();
       authToken = response.body.token;
     });
 
@@ -166,14 +171,8 @@ describe('Authentication Endpoints', () => {
     beforeEach(async () => {
       // Fixtures use fixed emails and are rebuilt per test.
       await resetDatabase();
-      // Register and get refresh token
-      const response = await request(app).post('/api/auth/register').send({
-        email: 'test@example.com',
-        password: 'password123',
-        firstName: 'Test',
-        lastName: 'User',
-      });
-
+      // Register, confirm the address, sign in, and keep the refresh token
+      const response = await registerVerifiedAndLogin();
       refreshToken = response.body.refreshToken;
     });
 

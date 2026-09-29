@@ -26,6 +26,10 @@ const ColorPickerDemo = lazy(() => import('./pages/ColorPickerDemo'));
 const AdminCustomerProvisioning = lazy(() => import('./pages/AdminCustomerProvisioning'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdminDashboard'));
 const BSIAdminLogin = lazy(() => import('./pages/BSIAdminLogin'));
+const CheckEmailPage = lazy(() => import('./pages/account/CheckEmailPage'));
+const VerifyEmailPage = lazy(() => import('./pages/account/VerifyEmailPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/account/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/account/ResetPasswordPage'));
 const DataManagement = lazy(() => import('./pages/DataManagement'));
 const SQLQueryBuilder = lazy(() => import('./pages/SQLQueryBuilder'));
 const CustomerReports = lazy(() => import('./pages/CustomerReports'));
@@ -81,6 +85,10 @@ function App() {
 
                     {/* Customer Routes - For customers using the ticketing system */}
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/check-email" element={<CheckEmailPage />} />
+                    <Route path="/verify-email" element={<VerifyEmailPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/company-register" element={<CompanyRegistrationPage />} />
                     <Route

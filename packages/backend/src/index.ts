@@ -16,6 +16,7 @@ import { notFoundHandler } from './middleware/notFoundHandler';
 import { ForbiddenError } from './utils/errors';
 import { authenticate, authorize } from './middleware/auth';
 import { requireTenantId } from './utils/tenant';
+import { initializeEmailService } from './config/email';
 
 // Load environment variables first
 dotenv.config();
@@ -311,6 +312,10 @@ if (process.env.NODE_ENV === 'production' || process.env.ENABLE_ARCHIVAL_SCHEDUL
 }
 
 // Initialize Redis connection (optional)
+// Email (verification, password resets, invitations, ticket mail). This was
+// never called, so nothing was ever sent even with SMTP_* set.
+initializeEmailService();
+
 connectRedis().catch((err) => {
   console.warn('⚠️ Redis connection failed, continuing without caching:', err.message);
 });

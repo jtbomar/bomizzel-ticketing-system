@@ -42,7 +42,12 @@ noteRouter.param('noteId', async (req, _res, next, noteId) => {
   try {
     const note = await db('ticket_notes').where('id', noteId).first('ticket_id', 'is_internal');
     const ticket = note && (await db('tickets').where('id', note.ticket_id).first());
-    if (!note || !ticket || !canAccessTicket(req.user, ticket) || (note.is_internal && !isStaff(req.user))) {
+    if (
+      !note ||
+      !ticket ||
+      !canAccessTicket(req.user, ticket) ||
+      (note.is_internal && !isStaff(req.user))
+    ) {
       throw new AppError('Note not found', 404, 'NOTE_NOT_FOUND');
     }
     next();

@@ -3,9 +3,10 @@ import { User } from '@/models/User';
 import { EmailService } from '@/services/EmailService';
 import { AppError } from '@/middleware/errorHandler';
 import { db } from '@/config/database';
-import { JWTUtils } from '@/utils/jwt';
 import bcrypt from 'bcryptjs';
 import { TicketStatus } from '@/models/TicketStatus';
+import { AccountEmailService } from './AccountEmailService';
+import { CryptoUtils } from '@/utils/crypto';
 
 export interface CompanyRegistrationData {
   // Company basic info
@@ -95,7 +96,7 @@ export class CompanyRegistrationService {
   static async registerCompany(data: CompanyRegistrationData): Promise<{
     company: CompanyProfile;
     adminUser: any;
-    tokens: { token: string; refreshToken?: string };
+    requiresVerification: boolean;
   }> {
     const trx = await db.transaction();
 
@@ -186,15 +187,16 @@ export class CompanyRegistrationService {
           password_hash: hashedPassword,
           role: 'admin',
           is_active: true,
-          email_verified: true,
+          // Not until they open the link we email them - this used to be true,
+          // so anyone could sign up a company in someone else's name.
+          email_verified: false,
         })
         .returning('*');
 
-      // Generate tokens for the admin user
-      const tokens = JWTUtils.generateTokenPair({
-        userId: adminUserRecord.id,
-        email: adminUserRecord.email,
-        role: adminUserRecord.role,
+      const verification = CryptoUtils.generateEmailVerificationToken();
+      await trx('users').where('id', adminUserRecord.id).update({
+        email_verification_token: verification.token,
+        email_verification_expires_at: verification.expiresAt,
       });
 
       const adminUser = {
@@ -204,10 +206,6 @@ export class CompanyRegistrationService {
           firstName: adminUserRecord.first_name,
           lastName: adminUserRecord.last_name,
           role: adminUserRecord.role,
-        },
-        tokens: {
-          token: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
         },
       };
 
@@ -300,6 +298,11 @@ export class CompanyRegistrationService {
 
       await trx.commit();
 
+      await AccountEmailService.sendVerification(
+        { email: adminUserRecord.email, first_name: adminUserRecord.first_name },
+        verification.token
+      );
+
       // Send welcome email
       if (EmailService.isInitialized()) {
         try {
@@ -316,10 +319,11 @@ export class CompanyRegistrationService {
         }
       }
 
+      // No tokens: the owner signs in after confirming their email.
       return {
         company: this.formatCompanyProfile(createdCompany),
         adminUser: adminUser.user,
-        tokens: adminUser.tokens,
+        requiresVerification: true,
       };
     } catch (error) {
       await trx.rollback();

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/api';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,11 +12,25 @@ const LoginPage: React.FC = () => {
     password: '',
   });
   const [error, setError] = useState('');
+  // Set when the account exists but its email isn't confirmed yet.
+  const [unverified, setUnverified] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
+
+  const resendLink = async () => {
+    setResendState('sending');
+    try {
+      await apiService.resendVerification(formData.email);
+    } finally {
+      setResendState('sent');
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError('');
+    setUnverified(false);
+    setResendState('idle');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,6 +83,7 @@ const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Login error:', err);
+      setUnverified(err.code === 'EMAIL_NOT_VERIFIED');
       setError(err.message || 'Login failed. Please try again.');
     }
   };
@@ -122,9 +138,32 @@ const LoginPage: React.FC = () => {
           <div className="card">
             <div className="card-body">
               <form className="space-y-6" onSubmit={handleSubmit}>
-                {error && (
+                {error && !unverified && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                     {error}
+                  </div>
+                )}
+
+                {unverified && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded space-y-2">
+                    <p className="font-medium">Please confirm your email address first.</p>
+                    <p className="text-sm">
+                      We sent a link to {formData.email}. Open it, then sign in again.
+                    </p>
+                    {resendState === 'sent' ? (
+                      <p className="text-sm">
+                        A new link is on its way - check your inbox and spam.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={resendLink}
+                        disabled={resendState === 'sending'}
+                        className="text-sm font-medium text-blue-700 hover:text-blue-800 underline disabled:opacity-50"
+                      >
+                        {resendState === 'sending' ? 'Sending...' : 'Send me a new link'}
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -160,6 +199,14 @@ const LoginPage: React.FC = () => {
                     className="input mt-1"
                     placeholder="Enter your password"
                   />
+                  <div className="mt-2 text-right">
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-blue-600 hover:text-blue-500"
+                    >
+                      Forgot your password?
+                    </Link>
+                  </div>
                 </div>
 
                 <div>

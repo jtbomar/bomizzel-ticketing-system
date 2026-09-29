@@ -47,6 +47,7 @@ describe('signing in when the stored address has capitals', () => {
     builder.__rows.push({
       id: '33333333-3333-4333-8333-333333333333',
       email: 'Jeff@Bomizzel.com',
+      email_verified: true,
       password_hash: await bcrypt.hash('Welcome123!', 10),
       role: 'admin',
       is_active: true,

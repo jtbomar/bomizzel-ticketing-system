@@ -113,7 +113,7 @@ router.post('/register', validate(companyRegistrationSchema), async (req, res, n
 
     res.status(201).json({
       success: true,
-      message: 'Company registered successfully',
+      message: 'Company registered - check your email to confirm your address',
       data: {
         company: result.company,
         adminUser: {
@@ -123,7 +123,8 @@ router.post('/register', validate(companyRegistrationSchema), async (req, res, n
           lastName: result.adminUser.lastName,
           role: result.adminUser.role,
         },
-        tokens: result.tokens,
+        // No tokens until the owner confirms their email address.
+        requiresVerification: result.requiresVerification,
       },
     });
   } catch (error) {

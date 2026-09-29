@@ -196,6 +196,28 @@ class ApiService {
     return response.data;
   }
 
+  // Email confirmation and password reset. Each answers without saying whether
+  // an address has an account.
+  async verifyEmail(token: string): Promise<any> {
+    const response = await this.client.post('/auth/verify-email', { token });
+    return response.data;
+  }
+
+  async resendVerification(email: string): Promise<any> {
+    const response = await this.client.post('/auth/resend-verification', { email });
+    return response.data;
+  }
+
+  async forgotPassword(email: string): Promise<any> {
+    const response = await this.client.post('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async resetPassword(token: string, password: string): Promise<any> {
+    const response = await this.client.post('/auth/reset-password', { token, password });
+    return response.data;
+  }
+
   async getTicket(ticketId: string): Promise<any> {
     const response = await this.client.get(`/tickets/${ticketId}`);
     return response.data;

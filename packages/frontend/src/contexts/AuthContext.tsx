@@ -16,7 +16,7 @@ interface AuthContextType {
     role?: string;
     selectedPlanId?: string;
     startTrial?: boolean;
-  }) => Promise<void>;
+  }) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -94,7 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // otherwise a deploy-order skew shows the user "[object Object]".
       const apiError = error.response?.data?.error;
       const apiMessage = typeof apiError === 'string' ? apiError : apiError?.message;
-      throw new Error(apiMessage || error.message || 'Login failed');
+      // Keep the code so the login page can tell "wrong password" from
+      // "email not confirmed yet" (and offer to resend the link).
+      const failure = new Error(apiMessage || error.message || 'Login failed') as Error & {
+        code?: string;
+      };
+      failure.code = typeof apiError === 'object' ? apiError?.code : undefined;
+      throw failure;
     } finally {
       setIsLoading(false);
     }
@@ -135,14 +141,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         startTrial: userData.startTrial,
       });
 
-      const { user: registeredUser, token, refreshToken } = response;
-
-      // Store tokens
-      localStorage.setItem('token', token);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('user', JSON.stringify(registeredUser));
-
-      setUser(registeredUser);
+      // The account can't sign in until its email address is confirmed, so
+      // there are no tokens to store; the page tells them to check their inbox.
+      return response;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || error.message || 'Registration failed');
     } finally {

@@ -10,22 +10,26 @@ const router = Router();
  * DANGER: Drops all tables and recreates from migrations
  * Admin only, requires confirmation
  */
-router.post('/nuclear', authenticate, ...dangerousDatabaseRoute, async (req, res): Promise<void> => {
-  try {
-    const { confirmation } = req.body;
+router.post(
+  '/nuclear',
+  authenticate,
+  ...dangerousDatabaseRoute,
+  async (req, res): Promise<void> => {
+    try {
+      const { confirmation } = req.body;
 
-    if (confirmation !== 'DELETE_EVERYTHING') {
-      res.status(400).json({
-        success: false,
-        message: 'Confirmation required. Send { confirmation: "DELETE_EVERYTHING" }',
-      });
-      return;
-    }
+      if (confirmation !== 'DELETE_EVERYTHING') {
+        res.status(400).json({
+          success: false,
+          message: 'Confirmation required. Send { confirmation: "DELETE_EVERYTHING" }',
+        });
+        return;
+      }
 
-    console.log('💣 NUCLEAR RESET initiated by:', req.user?.email);
+      console.log('💣 NUCLEAR RESET initiated by:', req.user?.email);
 
-    // Drop all tables
-    await db.raw(`
+      // Drop all tables
+      await db.raw(`
       DO $$ DECLARE
         r RECORD;
       BEGIN
@@ -35,27 +39,28 @@ router.post('/nuclear', authenticate, ...dangerousDatabaseRoute, async (req, res
       END $$;
     `);
 
-    console.log('✅ All tables dropped');
+      console.log('✅ All tables dropped');
 
-    // Run migrations
-    await db.migrate.latest();
+      // Run migrations
+      await db.migrate.latest();
 
-    console.log('✅ Migrations completed');
+      console.log('✅ Migrations completed');
 
-    res.json({
-      success: true,
-      message: 'Database reset complete. All tables recreated from migrations.',
-    });
-    return;
-  } catch (error: any) {
-    console.error('❌ Database reset failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-    });
-    return;
+      res.json({
+        success: true,
+        message: 'Database reset complete. All tables recreated from migrations.',
+      });
+      return;
+    } catch (error: any) {
+      console.error('❌ Database reset failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+      });
+      return;
+    }
   }
-});
+);
 
 /**
  * POST /api/database-reset/cleanup-migrations

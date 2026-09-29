@@ -95,7 +95,8 @@ const RegisterPage: React.FC = () => {
         startTrial: selectedPlan.trialDays > 0 && selectedPlan.price > 0,
       });
 
-      navigate('/customer');
+      // Can't sign in until the address is confirmed.
+      navigate(`/check-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     }

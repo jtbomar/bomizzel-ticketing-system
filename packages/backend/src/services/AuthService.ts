@@ -11,13 +11,17 @@ import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
 import { db } from '@/config/database';
 import bcrypt from 'bcryptjs';
+import { AccountEmailService } from './AccountEmailService';
 
 export class AuthService {
   /**
    * Register a new user
    */
   static async register(
-    userData: CreateUserRequest
+    userData: CreateUserRequest,
+    // false when staff are adding a contact: the invitation they send does the
+    // verifying, and a "confirm your email" message first would only confuse.
+    options: { sendVerificationEmail?: boolean } = {}
   ): Promise<{ user: UserModel; tokens: TokenPair }> {
     try {
       // Check if user already exists
@@ -33,11 +37,20 @@ export class AuthService {
         firstName: userData.firstName,
         lastName: userData.lastName,
         role: userData.role || 'customer',
+        // Public sign-up: not confirmed until they open the emailed link.
+        emailVerified: false,
       });
 
-      // Generate email verification token
+      // The address isn't confirmed yet: they can't sign in until they open
+      // the link we email them.
       const { token: verificationToken, expiresAt } = CryptoUtils.generateEmailVerificationToken();
       await User.setEmailVerificationToken(user.id, verificationToken, expiresAt);
+      if (options.sendVerificationEmail !== false) {
+        await AccountEmailService.sendVerification(
+          { email: user.email, first_name: user.first_name },
+          verificationToken
+        );
+      }
 
       // Create subscription for customer users
       if (user.role === 'customer') {
@@ -164,6 +177,16 @@ export class AuthService {
         throw new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
       }
 
+      // Checked after the password, so it can't be used to find out which
+      // addresses have accounts.
+      if (!user.email_verified) {
+        throw new AppError(
+          'Please confirm your email address first - check your inbox for the link.',
+          403,
+          'EMAIL_NOT_VERIFIED'
+        );
+      }
+
       // Generate JWT tokens
       const tokens = JWTUtils.generateTokenPair({
         userId: user.id,
@@ -275,6 +298,41 @@ export class AuthService {
   }
 
   /**
+   * Send a new verification link. Says nothing about whether the address has
+   * an account, so it can't be used to look accounts up.
+   */
+  static async resendVerification(email: string): Promise<void> {
+    const user = await User.findByEmail(email);
+    if (!user || user.email_verified || !user.is_active) return;
+
+    const { token, expiresAt } = CryptoUtils.generateEmailVerificationToken();
+    await User.setEmailVerificationToken(user.id, token, expiresAt);
+    await AccountEmailService.sendVerification(
+      { email: user.email, first_name: user.first_name },
+      token
+    );
+  }
+
+  /**
+   * Invite a contact to set their password (and so confirm their address).
+   * The link is a password-reset link that lasts 7 days.
+   */
+  static async sendInvitation(userId: string, companyName: string): Promise<boolean> {
+    const user = await User.findById(userId);
+    if (!user || !user.is_active) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    const { token } = CryptoUtils.generatePasswordResetToken();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await User.setPasswordResetToken(user.id, token, expiresAt);
+    return AccountEmailService.sendInvitation(
+      { email: user.email, first_name: user.first_name },
+      token,
+      companyName
+    );
+  }
+
+  /**
    * Request password reset
    */
   static async requestPasswordReset(email: string): Promise<void> {
@@ -294,8 +352,11 @@ export class AuthService {
       const { token, expiresAt } = CryptoUtils.generatePasswordResetToken();
       await User.setPasswordResetToken(user.id, token, expiresAt);
 
-      // TODO: Send password reset email
-      logger.info(`Password reset token generated for user: ${user.email}`);
+      await AccountEmailService.sendPasswordReset(
+        { email: user.email, first_name: user.first_name },
+        token
+      );
+      logger.info(`Password reset requested for user: ${user.email}`);
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
@@ -316,6 +377,9 @@ export class AuthService {
       }
 
       await User.updatePassword(user.id, newPassword);
+      // The link came to their inbox, so the address is theirs. This is also
+      // how an invited contact becomes verified.
+      if (!user.email_verified) await User.verifyEmail(user.id);
 
       logger.info(`Password reset successfully for user: ${user.email}`);
     } catch (error) {

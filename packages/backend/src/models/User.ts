@@ -38,6 +38,10 @@ export class User extends BaseModel {
     firstName: string;
     lastName: string;
     role?: 'customer' | 'employee' | 'team_lead' | 'admin';
+    // Whether the address counts as confirmed. Trusted paths (an admin adding
+    // someone, platform provisioning, seeds) leave it true; public sign-up
+    // passes false so the person has to open the link we email them.
+    emailVerified?: boolean;
   }): Promise<UserTable> {
     const hashedPassword = await bcrypt.hash(userData.password, 12);
 
@@ -47,6 +51,7 @@ export class User extends BaseModel {
       first_name: userData.firstName,
       last_name: userData.lastName,
       role: userData.role || 'customer',
+      email_verified: userData.emailVerified ?? true,
       preferences: {
         theme: 'light',
         notifications: {
