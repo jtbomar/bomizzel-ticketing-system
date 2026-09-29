@@ -209,7 +209,7 @@ const CompanyProfile: React.FC = () => {
         const loadedData: CompanyData = {
           logo: data.logoUrl || '',
           companyName: data.name || 'Bomizzel',
-          website: data.websiteUrl || 'https://bomar.com',
+          website: data.websiteUrl || 'https://bomizzel.com',
           primaryContact: data.primaryContactName || 'Jeffrey Bomar',
           primaryEmail: data.primaryContactEmail || 'jeffrey.t.bomar@gmail.com',
           primaryPhone: data.primaryContactPhone || '(801) 389-0168',

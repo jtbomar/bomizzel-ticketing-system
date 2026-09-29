@@ -56,10 +56,6 @@ try {
       });
 
       console.log('✅ Seeds completed successfully');
-      console.log('🔐 Default login credentials:');
-      console.log('   - jeff@bomar.com / password123 (Super Admin)');
-      console.log('   - elena@bomar.com / password123 (Admin)');
-      console.log('   - jeremy@bomar.com / password123 (Agent)');
     } else {
       console.log('⏭️  Users already exist, skipping seeds');
     }

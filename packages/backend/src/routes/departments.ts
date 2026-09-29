@@ -14,7 +14,7 @@ router.get('/', authenticate, async (req, res) => {
 
     // CRITICAL: Implement tenant isolation for departments
     if (organizationId) {
-      // Organization users (like Bomar Corp) see only their organization's departments
+      // Organization users see only their organization's departments
       const departments = await db('departments')
         .where('organization_id', organizationId)
         .select('*')
