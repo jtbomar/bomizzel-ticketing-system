@@ -8,6 +8,7 @@ import { validate } from '@/utils/validation';
 import Joi from 'joi';
 import { updateUserSchema, paginationSchema, uuidSchema } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
+import { requireTenantId, requireUserInTenant } from '@/utils/tenant';
 
 const router = Router();
 
@@ -92,7 +93,7 @@ router.get('/users', authenticate, authorize('admin'), async (req, res, next) =>
       requestingUser: {
         id: req.user!.id,
         role: req.user!.role,
-        organizationId: req.user!.organizationId,
+        tenantId: req.user!.tenantId,
         companyId: req.user!.companyId,
         companies: req.user!.companies,
       },
@@ -108,21 +109,27 @@ router.get('/users', authenticate, authorize('admin'), async (req, res, next) =>
  * GET /admin/users/:userId
  * Get user by ID (Admin only)
  */
-router.get('/users/:userId', authenticate, authorize('admin'), async (req, res, next) => {
-  try {
-    const userId = req.params.userId as string;
-    const user = await UserService.getUserById(userId, {
-      id: req.user!.id,
-      role: req.user!.role,
-      organizationId: req.user!.organizationId,
-      companyId: req.user!.companyId,
-      companies: req.user!.companies,
-    });
-    res.json({ user });
-  } catch (error) {
-    next(error);
+router.get(
+  '/users/:userId',
+  authenticate,
+  authorize('admin'),
+  requireUserInTenant(),
+  async (req, res, next) => {
+    try {
+      const userId = req.params.userId as string;
+      const user = await UserService.getUserById(userId, {
+        id: req.user!.id,
+        role: req.user!.role,
+        tenantId: req.user!.tenantId,
+        companyId: req.user!.companyId,
+        companies: req.user!.companies,
+      });
+      res.json({ user });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 /**
  * POST /admin/users
@@ -131,7 +138,7 @@ router.get('/users/:userId', authenticate, authorize('admin'), async (req, res, 
 router.post('/users', authenticate, authorize('admin'), async (req, res, next) => {
   try {
     const userData = req.body;
-    const newUser = await UserService.createUser(userData, req.user!.id);
+    const newUser = await UserService.createUser(userData, req.user!.id, requireTenantId(req.user));
 
     res.status(201).json({
       message: 'User created successfully',
@@ -150,6 +157,7 @@ router.put(
   '/users/:userId',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   validate(updateUserSchema),
   async (req, res, next) => {
@@ -175,6 +183,7 @@ router.put(
   '/users/:userId/role',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
@@ -201,6 +210,7 @@ router.put(
   '/users/:userId/status',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
@@ -231,6 +241,7 @@ router.get(
   '/users/:userId/assigned-tickets',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
@@ -252,6 +263,7 @@ router.delete(
   '/users/:userId/permanent',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {

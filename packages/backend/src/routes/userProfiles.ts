@@ -1,13 +1,20 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
+import { requireTenantId } from '../utils/tenant';
+
+// Rows belong to the caller's subscriber (company_id). The list returned every
+// subscriber's rows, create took company_id from the body (default
+// 'bomizzel-internal'), and update/delete changed any row by id.
 
 const router = Router();
 
 // Get all user profiles
 router.get('/', authenticate, async (req, res, next) => {
   try {
-    const profiles = await db('user_profiles').where({ is_active: true }).orderBy('name', 'asc');
+    const profiles = await db('user_profiles')
+      .where({ is_active: true, company_id: requireTenantId(req.user) })
+      .orderBy('name', 'asc');
 
     res.json({ profiles });
   } catch (error) {
@@ -18,11 +25,11 @@ router.get('/', authenticate, async (req, res, next) => {
 // Create user profile (admin only)
 router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const { name, description, permissions, company_id } = req.body;
+    const { name, description, permissions } = req.body;
 
     const [profile] = await db('user_profiles')
       .insert({
-        company_id: company_id || 'bomizzel-internal',
+        company_id: requireTenantId(req.user),
         name,
         description,
         permissions: JSON.stringify(permissions || {}),
@@ -43,7 +50,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res, next) => {
     const { name, description, permissions, is_active } = req.body;
 
     const [profile] = await db('user_profiles')
-      .where({ id })
+      .where({ id, company_id: requireTenantId(req.user) })
       .update({
         name,
         description,
@@ -64,7 +71,9 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
   try {
     const { id } = req.params;
 
-    await db('user_profiles').where({ id }).update({ is_active: false, updated_at: db.fn.now() });
+    await db('user_profiles')
+      .where({ id, company_id: requireTenantId(req.user) })
+      .update({ is_active: false, updated_at: db.fn.now() });
 
     res.json({ message: 'User profile deactivated successfully' });
   } catch (error) {

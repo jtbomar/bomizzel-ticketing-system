@@ -12,13 +12,16 @@ export class Queue extends BaseModel {
     assignedToId?: string;
     teamId: string;
   }): Promise<QueueTable> {
+    // A queue belongs to its team's subscriber.
+    const team = await this.db('teams').where('id', queueData.teamId).first('org_id');
     return this.create({
       name: queueData.name,
       description: queueData.description,
       type: queueData.type,
       assigned_to_id: queueData.assignedToId,
       team_id: queueData.teamId,
-    });
+      org_id: team?.org_id,
+    } as any);
   }
 
   static async findByTeam(teamId: string): Promise<QueueTable[]> {

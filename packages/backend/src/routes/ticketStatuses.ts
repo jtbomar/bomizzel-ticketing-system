@@ -3,8 +3,42 @@ import { Router, Request, Response } from 'express';
 import { TicketStatusService } from '@/services/TicketStatusService';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/utils/validation';
+import { assertTeamInTenant } from '@/utils/tenant';
+import { AppError } from '@/middleware/errorHandler';
+import { db } from '@/config/database';
 
 const router = Router();
+
+// Router-level so it runs before the router.param checks below.
+router.use(authenticate);
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// A team's statuses: the team must be the caller's own subscriber's, and a
+// :statusId must belong to that team. These read and changed any team's.
+router.param('teamId', async (req, _res, next, teamId) => {
+  try {
+    if (!UUID.test(teamId)) throw new AppError('Invalid team ID', 400, 'VALIDATION_ERROR');
+    await assertTeamInTenant(teamId, req.user?.tenantId as string);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.param('statusId', async (req, _res, next, statusId) => {
+  try {
+    if (!UUID.test(statusId)) throw new AppError('Invalid status ID', 400, 'VALIDATION_ERROR');
+    const status = await db('ticket_statuses').where('id', statusId).first('team_id');
+    if (!status || (req.params.teamId && status.team_id !== req.params.teamId)) {
+      throw new AppError('Status not found', 404, 'STATUS_NOT_FOUND');
+    }
+    await assertTeamInTenant(status.team_id, req.user?.tenantId as string);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * GET /teams/:teamId/statuses

@@ -3,8 +3,15 @@ import { User } from '@/models/User';
 import { authenticate } from '@/middleware/auth';
 import { UserTable } from '@/types/database';
 import { UserService } from '@/services/UserService';
+import { requireStaff } from '@/utils/tenant';
+import { db } from '@/config/database';
 
 const router = Router();
+
+// The agent, contact and account directories are for a subscriber's staff,
+// and show only that subscriber's people and accounts. They were open to any
+// signed-in user and listed everyone on the platform.
+router.use(authenticate, requireStaff);
 
 /**
  * GET /agents
@@ -18,9 +25,14 @@ router.get('/', authenticate, async (req, res, next) => {
     const agentRoles = ['employee', 'team_lead', 'admin'];
     const allAgents: UserTable[] = [];
 
+    // Staff are members of the subscriber company itself.
+    const staffIds = db('user_company_associations')
+      .select('user_id')
+      .where('company_id', req.user!.tenantId);
+
     // Fetch users for each role
     for (const role of agentRoles) {
-      const users = await User.findActiveUsers({ role });
+      const users = await User.findActiveUsers({ role, idsIn: staffIds });
       allAgents.push(...users);
     }
 
@@ -68,7 +80,7 @@ router.get('/', authenticate, async (req, res, next) => {
  */
 router.get('/customers', authenticate, async (req, res, next) => {
   try {
-    const customers = await UserService.getCustomersWithCompanies();
+    const customers = await UserService.getCustomersWithCompanies(req.user!.tenantId!);
 
     res.json({
       success: true,
@@ -88,6 +100,7 @@ router.get('/accounts', authenticate, async (req, res, next) => {
     const { status } = req.query;
 
     const companies = await UserService.getAllCompanies(
+      req.user!.tenantId!,
       status === 'active' ? true : status === 'inactive' ? false : undefined
     );
 

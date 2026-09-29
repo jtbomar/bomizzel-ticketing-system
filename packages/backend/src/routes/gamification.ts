@@ -1,15 +1,14 @@
 import express from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
+import { tenantCompanyOf } from '../utils/tenant';
 
 const router = express.Router();
 
 // Get all trophies
 router.get('/trophies', authenticate, async (req, res) => {
   try {
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -32,9 +31,7 @@ router.post('/trophies', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { name, description, icon, category, criteria_type, criteria, points } = req.body;
 
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -65,10 +62,12 @@ router.post('/trophies', authenticate, authorize('admin'), async (req, res) => {
 router.put('/trophies/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
-
+    // Only fields a subscriber may set - spreading the body let company_id be
+    // changed - and only their own row. This updated any id on the platform.
+    const { company_id: _c, org_id: _o, id: _i, created_at: _ca, ...updates } = req.body || {};
     const [trophy] = await db('trophies')
       .where('id', id)
+      .where('company_id', req.user!.tenantId)
       .update({
         ...updates,
         updated_at: db.fn.now(),
@@ -85,9 +84,7 @@ router.put('/trophies/:id', authenticate, authorize('admin'), async (req, res) =
 // Get all badges
 router.get('/badges', authenticate, async (req, res) => {
   try {
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -109,9 +106,7 @@ router.post('/badges', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { name, description, icon, level, required_points } = req.body;
 
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -140,10 +135,12 @@ router.post('/badges', authenticate, authorize('admin'), async (req, res) => {
 router.put('/badges/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
-
+    // Only fields a subscriber may set - spreading the body let company_id be
+    // changed - and only their own row. This updated any id on the platform.
+    const { company_id: _c, org_id: _o, id: _i, created_at: _ca, ...updates } = req.body || {};
     const [badge] = await db('badges')
       .where('id', id)
+      .where('company_id', req.user!.tenantId)
       .update({
         ...updates,
         updated_at: db.fn.now(),
@@ -160,9 +157,7 @@ router.put('/badges/:id', authenticate, authorize('admin'), async (req, res) => 
 // Get leaderboard
 router.get('/leaderboard', authenticate, async (req, res) => {
   try {
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });

@@ -6,6 +6,7 @@ import { Team } from '../src/models/Team';
 import { Queue } from '../src/models/Queue';
 import { JWTUtils } from '../src/utils/jwt';
 import { TicketStatus } from '../src/models/TicketStatus';
+import { adoptSingleTenant } from './helpers/tenant';
 
 describe('Queue Management', () => {
   let adminToken: string;
@@ -84,6 +85,9 @@ describe('Queue Management', () => {
     // Add users to team
     await Team.addUserToTeam(teamLeadId, teamId, 'lead');
     await Team.addUserToTeam(employeeId, teamId, 'member');
+
+    // One company is the subscriber for this whole fixture.
+    await adoptSingleTenant(companyId);
   });
 
   describe('POST /queues', () => {

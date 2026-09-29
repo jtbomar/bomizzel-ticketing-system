@@ -9,6 +9,7 @@ describe('Company Management Endpoints', () => {
   let userToken: string;
   let testUserId: string;
   let testCompanyId: string;
+  let subscriberId: string;
 
   beforeEach(async () => {
     // Fixtures here use fixed emails and are rebuilt per test,
@@ -33,6 +34,15 @@ describe('Company Management Endpoints', () => {
     });
 
     testUserId = regularUser.id;
+
+    // The admin is staff of a subscriber; the companies these tests create
+    // are that subscriber's accounts. An admin with no subscriber sees none.
+    const subscriber = await Company.createCompany({
+      name: 'Admin Subscriber',
+      domain: 'sub.test',
+    });
+    subscriberId = subscriber.id;
+    await Company.addUserToCompany(adminUser.id, subscriberId, 'owner');
 
     // Get admin token
     const adminLoginResponse = await request(app).post('/api/auth/login').send({
@@ -114,6 +124,7 @@ describe('Company Management Endpoints', () => {
       const company = await Company.createCompany({
         name: 'Test Company',
         domain: 'test.com',
+        subscriber_id: subscriberId,
       });
       testCompanyId = company.id;
 
@@ -150,6 +161,7 @@ describe('Company Management Endpoints', () => {
       const company = await Company.createCompany({
         name: 'Test Company',
         domain: 'test.com',
+        subscriber_id: subscriberId,
       });
       testCompanyId = company.id;
 
@@ -195,9 +207,10 @@ describe('Company Management Endpoints', () => {
       const response = await request(app)
         .get(`/api/companies/${testCompanyId}`)
         .set('Authorization', `Bearer ${anotherToken}`)
-        .expect(403);
+        .expect(404);
 
-      expect(response.body.error.code).toBe('COMPANY_ACCESS_DENIED');
+      // 404, not 403: a company outside your subscriber doesn't exist for you.
+      expect(response.body.error.code).toBe('COMPANY_NOT_FOUND');
     });
   });
 
@@ -207,6 +220,7 @@ describe('Company Management Endpoints', () => {
       const company = await Company.createCompany({
         name: 'Test Company',
         domain: 'test.com',
+        subscriber_id: subscriberId,
       });
       testCompanyId = company.id;
     });

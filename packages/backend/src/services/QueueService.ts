@@ -4,6 +4,7 @@ import { User } from '@/models/User';
 import { QueueMetrics, Queue as QueueModel } from '@/types/models';
 import { QueueTable } from '@/types/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
+import { tenantContextFor } from '@/utils/tenant';
 
 /**
  * Team roles that carry lead authority. Mirrors Team.isTeamLead, which has
@@ -326,6 +327,11 @@ export class QueueService {
       allQueues.push(...additionalQueues);
     }
 
+    // Only the caller's own subscriber's queues (the admin branch above used
+    // to add every queue on the platform).
+    const { tenantId } = await tenantContextFor(userId);
+    allQueues = allQueues.filter((q: any) => tenantId && q.org_id === tenantId);
+
     // Remove duplicates and calculate metrics
     const uniqueQueues = Array.from(new Map(allQueues.map((q) => [q.id, q])).values());
 
@@ -390,6 +396,10 @@ export class QueueService {
 
       queues = await Queue.query.whereIn('id', queueIds).where('is_active', true);
     }
+
+    // Only the caller's own subscriber's queues.
+    const { tenantId } = await tenantContextFor(userId);
+    queues = queues.filter((q: any) => tenantId && q.org_id === tenantId);
 
     // Apply filters
     if (filters.type) {
@@ -456,8 +466,15 @@ export class QueueService {
       throw new ForbiddenError('Customers cannot access queues');
     }
 
+    // Only queues of the caller's own subscriber, whatever the role. Admins
+    // had full access to every subscriber's queues.
+    const { tenantId } = await tenantContextFor(userId);
+    if (!tenantId || (queue as any).org_id !== tenantId) {
+      throw new NotFoundError('Queue not found');
+    }
+
     if (userRole === 'admin') {
-      return; // Admins have full access
+      return; // Admins have full access within their subscriber
     }
 
     if (userRole === 'employee') {

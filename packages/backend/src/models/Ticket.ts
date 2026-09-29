@@ -10,6 +10,9 @@ export interface TicketSearchOptions {
   status?: string[];
   assignedToId?: string;
   submitterId?: string;
+  // The subscriber (tenant). Every caller-facing search sets it.
+  orgId?: string;
+  queueId?: string;
 }
 
 export class Ticket extends BaseModel {
@@ -80,9 +83,14 @@ export class Ticket extends BaseModel {
       limit?: number;
       offset?: number;
       status?: string;
+      orgId?: string;
     } = {}
   ): Promise<TicketTable[]> {
     let query = this.query.where('queue_id', queueId);
+
+    if (options.orgId) {
+      query = query.where('org_id', options.orgId);
+    }
 
     if (options.status) {
       query = query.where('status', options.status);
@@ -100,8 +108,12 @@ export class Ticket extends BaseModel {
   }
 
   /** Counted in the database, for the same reason countTickets is. */
-  static async countByQueue(queueId: string, status?: string): Promise<number> {
+  static async countByQueue(queueId: string, status?: string, orgId?: string): Promise<number> {
     let query = this.query.where('queue_id', queueId);
+
+    if (orgId) {
+      query = query.where('org_id', orgId);
+    }
 
     if (status) {
       query = query.where('status', status);
@@ -319,6 +331,14 @@ export class Ticket extends BaseModel {
 
     if (options.submitterId) {
       query = query.where('submitter_id', options.submitterId);
+    }
+
+    if (options.orgId) {
+      query = query.where('org_id', options.orgId);
+    }
+
+    if (options.queueId) {
+      query = query.where('queue_id', options.queueId);
     }
 
     return query;

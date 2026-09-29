@@ -9,6 +9,7 @@ import { createTestToken } from '../helpers/testUtils';
 import { isRedisAvailable, redisClient } from '../../src/config/redis';
 import { Queue } from '../../src/models/Queue';
 import { TicketStatus } from '../../src/models/TicketStatus';
+import { adoptSingleTenant } from '../helpers/tenant';
 
 describe('Authentication Security Tests', () => {
   let validToken: string;
@@ -51,6 +52,9 @@ describe('Authentication Security Tests', () => {
 
     await Company.addUserToCompany(userId, companyId);
     validToken = createTestToken(userId);
+
+    // One company is the subscriber for this whole fixture.
+    await adoptSingleTenant(companyId);
   });
 
   describe('JWT Token Security', () => {
@@ -146,11 +150,12 @@ describe('Authentication Security Tests', () => {
 
       const ticketId = ticketResponse.body.data.id;
 
-      // Try to access with other company's user token
+      // Try to access with other company's user token. 404, not 403: a ticket
+      // in another subscriber doesn't exist as far as this user can tell.
       await request(app)
         .get(`/api/tickets/${ticketId}`)
         .set('Authorization', `Bearer ${otherUserToken}`)
-        .expect(403);
+        .expect(404);
     });
 
     it('should prevent ticket creation for unauthorized companies', async () => {

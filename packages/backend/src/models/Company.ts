@@ -19,11 +19,13 @@ export class Company extends BaseModel {
     name: string;
     domain?: string;
     description?: string;
+    subscriber_id?: string;
   }): Promise<CompanyTable> {
     return this.create({
       name: companyData.name,
       domain: companyData.domain,
       description: companyData.description,
+      ...(companyData.subscriber_id ? { subscriber_id: companyData.subscriber_id } : {}),
     });
   }
 
@@ -32,9 +34,18 @@ export class Company extends BaseModel {
       limit?: number;
       offset?: number;
       search?: string;
+      // Tenant scope: a subscriber's accounts, or an explicit list of ids
+      subscriberId?: string;
+      ids?: string[];
     } = {}
   ): Promise<CompanyTable[]> {
     let query = this.query.where('is_active', true);
+
+    if (options.ids) {
+      query = query.whereIn('id', options.ids);
+    } else if (options.subscriberId) {
+      query = query.where('subscriber_id', options.subscriberId);
+    }
 
     if (options.search) {
       query = query.where(function () {

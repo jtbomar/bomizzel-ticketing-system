@@ -32,6 +32,8 @@ describe('UserService', () => {
       domain: 'test.com',
     });
     companyId = company.id;
+    // The admin is staff of Test Company (the subscriber here).
+    await Company.addUserToCompany(adminId, companyId, 'owner');
 
     const team = await Team.createTeam({
       name: 'Test Team',
@@ -265,8 +267,11 @@ describe('UserService', () => {
       // getUsers applies tenant isolation from requestingUser; without it the
       // call deliberately matches nothing, so the context has to be supplied.
       const ctx = {
-        requestingUser: { id: adminId, role: 'admin', companies: [companyId] },
+        requestingUser: { id: adminId, role: 'admin', tenantId: companyId, companies: [companyId] },
       };
+      // A contact of this subscriber, so there is a customer to find.
+      const linked = await Company.isUserInCompany(userId, companyId);
+      if (!linked) await Company.addUserToCompany(userId, companyId);
       const customers = await UserService.getUsers({ role: 'customer', ...ctx });
       const employees = await UserService.getUsers({ role: 'employee', ...ctx });
 
@@ -283,7 +288,7 @@ describe('UserService', () => {
     it('should return no users for a role nobody has', async () => {
       const users = await UserService.getUsers({
         role: 'invalid_role',
-        requestingUser: { id: adminId, role: 'admin', companies: [companyId] },
+        requestingUser: { id: adminId, role: 'admin', tenantId: companyId, companies: [companyId] },
       });
       expect(users.data).toHaveLength(0);
     });

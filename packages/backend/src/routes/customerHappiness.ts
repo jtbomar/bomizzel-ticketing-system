@@ -2,6 +2,7 @@ import express from 'express';
 import { CustomerHappinessService } from '../services/CustomerHappinessService';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
+import { tenantCompanyOf } from '../utils/tenant';
 
 const router = express.Router();
 
@@ -9,9 +10,7 @@ const router = express.Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -33,9 +32,7 @@ router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -59,9 +56,7 @@ router.get('/:id', authenticate, async (req, res) => {
 router.post('/', authenticate, authorize('admin'), async (req, res) => {
   try {
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -126,9 +121,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     const { id } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -187,9 +180,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
     const { id } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -216,9 +207,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
 router.get('/analytics/overview', authenticate, async (req, res) => {
   try {
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -249,9 +238,7 @@ router.get('/analytics/overview', authenticate, async (req, res) => {
 router.get('/feedback/recent', authenticate, async (req, res) => {
   try {
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });

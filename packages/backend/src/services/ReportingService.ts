@@ -3,6 +3,7 @@ import { Team } from '@/models/Team';
 import { Ticket } from '@/models/Ticket';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
+import { tenantContextFor, tenantUserIds } from '@/utils/tenant';
 
 export interface ReportFilters {
   startDate?: Date;
@@ -38,6 +39,13 @@ export interface TeamReport {
   customFieldUsage: { teamId: string; teamName: string; fieldCount: number }[];
 }
 
+/** The subscriber a report is for; a user with none gets a 403. */
+const reportTenant = async (userId: string): Promise<string> => {
+  const { tenantId } = await tenantContextFor(userId);
+  if (!tenantId) throw new AppError('No subscriber account for this user', 403, 'NO_TENANT');
+  return tenantId;
+};
+
 export class ReportingService {
   /**
    * Generate ticket analytics report
@@ -57,7 +65,10 @@ export class ReportingService {
         );
       }
 
-      let query = Ticket.query;
+      // Reports cover the caller's own subscriber only. They used to count and
+      // list every ticket, user and team on the platform.
+      const tenantId = await reportTenant(requestedById);
+      let query = Ticket.query.where('tickets.org_id', tenantId);
 
       // Apply filters
       if (filters.startDate) {
@@ -196,15 +207,27 @@ export class ReportingService {
       }
 
       // Get total users
-      const totalUsers = await User.query.count('* as count').first();
+      // Reports cover the caller's own subscriber only. They used to count and
+      // list every ticket, user and team on the platform.
+      const tenantId = await reportTenant(requestedById);
+
+      const totalUsers = await User.query
+        .whereIn('users.id', tenantUserIds(tenantId))
+        .count('* as count')
+        .first();
       const totalCount = parseInt(totalUsers?.count || '0', 10);
 
       // Get active users
-      const activeUsers = await User.query.where('is_active', true).count('* as count').first();
+      const activeUsers = await User.query
+        .whereIn('users.id', tenantUserIds(tenantId))
+        .where('is_active', true)
+        .count('* as count')
+        .first();
       const activeCount = parseInt(activeUsers?.count || '0', 10);
 
       // Get users by role
       const usersByRole = await User.query
+        .whereIn('users.id', tenantUserIds(tenantId))
         .select('role')
         .count('* as count')
         .groupBy('role')
@@ -215,6 +238,7 @@ export class ReportingService {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
       const recentRegistrations = await User.query
+        .whereIn('users.id', tenantUserIds(tenantId))
         .where('created_at', '>=', thirtyDaysAgo)
         .select(User.db.raw('DATE(created_at) as date'))
         .count('* as count')
@@ -258,15 +282,27 @@ export class ReportingService {
       }
 
       // Get total teams
-      const totalTeams = await Team.query.count('* as count').first();
+      // Reports cover the caller's own subscriber only. They used to count and
+      // list every ticket, user and team on the platform.
+      const tenantId = await reportTenant(requestedById);
+
+      const totalTeams = await Team.query
+        .where('teams.org_id', tenantId)
+        .count('* as count')
+        .first();
       const totalCount = parseInt(totalTeams?.count || '0', 10);
 
       // Get active teams
-      const activeTeams = await Team.query.where('is_active', true).count('* as count').first();
+      const activeTeams = await Team.query
+        .where('teams.org_id', tenantId)
+        .where('is_active', true)
+        .count('* as count')
+        .first();
       const activeCount = parseInt(activeTeams?.count || '0', 10);
 
       // Get team membership stats
       const teamMembershipStats = await Team.query
+        .where('teams.org_id', tenantId)
         .leftJoin('team_memberships', 'teams.id', 'team_memberships.team_id')
         .select('teams.id as teamId', 'teams.name as teamName')
         .count('team_memberships.user_id as memberCount')
@@ -275,6 +311,7 @@ export class ReportingService {
 
       // Get custom field usage
       const customFieldUsage = await Team.query
+        .where('teams.org_id', tenantId)
         .leftJoin('custom_fields', 'teams.id', 'custom_fields.team_id')
         .select('teams.id as teamId', 'teams.name as teamName')
         .count('custom_fields.id as fieldCount')
@@ -319,17 +356,18 @@ export class ReportingService {
         throw new AppError('Only administrators can export data', 403, 'ADMIN_REQUIRED');
       }
 
+      const tenantId = await reportTenant(requestedById);
       let csvData = '';
 
       switch (dataType) {
         case 'tickets':
-          csvData = await this.exportTicketsToCSV(filters);
+          csvData = await this.exportTicketsToCSV(filters, tenantId);
           break;
         case 'users':
-          csvData = await this.exportUsersToCSV();
+          csvData = await this.exportUsersToCSV(tenantId);
           break;
         case 'teams':
-          csvData = await this.exportTeamsToCSV();
+          csvData = await this.exportTeamsToCSV(tenantId);
           break;
         default:
           throw new AppError('Invalid data type for export', 400, 'INVALID_DATA_TYPE');
@@ -350,8 +388,12 @@ export class ReportingService {
   /**
    * Export tickets to CSV
    */
-  private static async exportTicketsToCSV(filters: ReportFilters): Promise<string> {
+  private static async exportTicketsToCSV(
+    filters: ReportFilters,
+    tenantId: string
+  ): Promise<string> {
     let query = Ticket.query
+      .where('tickets.org_id', tenantId)
       .join('teams', 'tickets.team_id', 'teams.id')
       .leftJoin('users as submitters', 'tickets.submitter_id', 'submitters.id')
       .leftJoin('users as assignees', 'tickets.assigned_to_id', 'assignees.id')
@@ -429,8 +471,9 @@ export class ReportingService {
   /**
    * Export users to CSV
    */
-  private static async exportUsersToCSV(): Promise<string> {
+  private static async exportUsersToCSV(tenantId: string): Promise<string> {
     const users = await User.query
+      .whereIn('users.id', tenantUserIds(tenantId))
       .select(
         'id',
         'email',
@@ -476,8 +519,9 @@ export class ReportingService {
   /**
    * Export teams to CSV
    */
-  private static async exportTeamsToCSV(): Promise<string> {
+  private static async exportTeamsToCSV(tenantId: string): Promise<string> {
     const teams = await Team.query
+      .where('teams.org_id', tenantId)
       .leftJoin('team_memberships', 'teams.id', 'team_memberships.team_id')
       .select('teams.id', 'teams.name', 'teams.description', 'teams.is_active', 'teams.created_at')
       .count('team_memberships.user_id as member_count')

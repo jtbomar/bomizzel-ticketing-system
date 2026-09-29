@@ -157,9 +157,15 @@ export class User extends BaseModel {
       role?: string;
       limit?: number;
       offset?: number;
+      // Tenant scope: a subquery (or list) of user ids
+      idsIn?: any;
     } = {}
   ): Promise<UserTable[]> {
     let query = this.query.where('is_active', true);
+
+    if (options.idsIn) {
+      query = query.whereIn('id', options.idsIn);
+    }
 
     if (options.role) {
       query = query.where('role', options.role);

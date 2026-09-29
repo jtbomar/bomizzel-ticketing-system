@@ -1,6 +1,11 @@
 import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
+import { requireTenantId } from '../utils/tenant';
+
+// Rows belong to the caller's subscriber (company_id). The list returned every
+// subscriber's rows, create took company_id from the body (default
+// 'bomizzel-internal'), and update/delete changed any row by id.
 
 const router = Router();
 
@@ -8,7 +13,7 @@ const router = Router();
 router.get('/', authenticate, async (req, res, next) => {
   try {
     const roles = await db('organizational_roles')
-      .where({ is_active: true })
+      .where({ is_active: true, company_id: requireTenantId(req.user) })
       .orderBy('hierarchy_level', 'asc');
 
     res.json({ roles });
@@ -20,11 +25,11 @@ router.get('/', authenticate, async (req, res, next) => {
 // Create organizational role (admin only)
 router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const { name, description, hierarchy_level, company_id } = req.body;
+    const { name, description, hierarchy_level } = req.body;
 
     const [role] = await db('organizational_roles')
       .insert({
-        company_id: company_id || 'bomizzel-internal',
+        company_id: requireTenantId(req.user),
         name,
         description,
         hierarchy_level,
@@ -45,7 +50,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res, next) => {
     const { name, description, hierarchy_level, is_active } = req.body;
 
     const [role] = await db('organizational_roles')
-      .where({ id })
+      .where({ id, company_id: requireTenantId(req.user) })
       .update({
         name,
         description,
@@ -67,7 +72,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res, next) =
     const { id } = req.params;
 
     await db('organizational_roles')
-      .where({ id })
+      .where({ id, company_id: requireTenantId(req.user) })
       .update({ is_active: false, updated_at: db.fn.now() });
 
     res.json({ message: 'Organizational role deactivated successfully' });

@@ -1,15 +1,14 @@
 import express from 'express';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
+import { tenantCompanyOf } from '../utils/tenant';
 
 const router = express.Router();
 
 // Get profile field configuration
 router.get('/', authenticate, async (req, res) => {
   try {
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -31,9 +30,7 @@ router.put('/', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { fields } = req.body;
 
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });

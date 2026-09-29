@@ -7,6 +7,7 @@ import { Queue } from '../src/models/Queue';
 import { JWTUtils } from '../src/utils/jwt';
 import { createTestToken } from './helpers/testUtils';
 import { TicketStatus } from '../src/models/TicketStatus';
+import { adoptSingleTenant } from './helpers/tenant';
 
 describe('Ticket Management', () => {
   let customerToken: string;
@@ -74,6 +75,9 @@ describe('Ticket Management', () => {
     // Generate tokens
     customerToken = createTestToken(customerId);
     employeeToken = createTestToken(employeeId);
+
+    // One company is the subscriber for this whole fixture.
+    await adoptSingleTenant(companyId);
   });
 
   describe('POST /api/tickets', () => {

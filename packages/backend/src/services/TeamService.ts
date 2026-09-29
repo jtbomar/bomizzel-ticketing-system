@@ -10,6 +10,7 @@ import {
 } from '@/types/models';
 import { TeamTable } from '@/types/database';
 import { TicketStatus } from '@/models/TicketStatus';
+import { tenantContextFor } from '@/utils/tenant';
 
 export class TeamService {
   /**
@@ -23,13 +24,19 @@ export class TeamService {
     createdById: string
   ): Promise<TeamModel> {
     try {
+      // A team belongs to its creator's subscriber, and names only need to be
+      // unique within that subscriber. Teams used to be created with no owner.
+      const { tenantId } = await tenantContextFor(createdById);
+
       // Check if team name already exists
-      const existingTeam = await Team.findByName(teamData.name);
+      let existing = Team.query.where('name', teamData.name);
+      existing = tenantId ? existing.where('org_id', tenantId) : existing.whereNull('org_id');
+      const existingTeam = await existing.first();
       if (existingTeam) {
         throw new AppError('Team with this name already exists', 409, 'TEAM_NAME_EXISTS');
       }
 
-      const team = await Team.createTeam(teamData);
+      const team = await Team.createTeam({ ...teamData, orgId: tenantId });
 
       // Add creator as team admin
       await Team.addUserToTeam(createdById, team.id, 'admin');
@@ -60,10 +67,15 @@ export class TeamService {
       limit?: number;
       search?: string;
       isActive?: boolean;
+      // Required: the subscriber whose teams to list
+      orgId?: string;
     } = {}
   ): Promise<PaginatedResponse<TeamModel>> {
     try {
-      const { page = 1, limit = 25, search, isActive } = options;
+      const { page = 1, limit = 25, search, isActive, orgId } = options;
+      if (!orgId) {
+        return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
+      }
       const offset = (page - 1) * limit;
 
       // Build query for teams with member counts
@@ -71,6 +83,7 @@ export class TeamService {
         .leftJoin('team_memberships', 'teams.id', 'team_memberships.team_id')
         .select('teams.*')
         .count('team_memberships.user_id as member_count')
+        .where('teams.org_id', orgId)
         .groupBy('teams.id');
 
       if (isActive !== undefined) {
@@ -84,7 +97,7 @@ export class TeamService {
       const teams = await teamsQuery.limit(limit).offset(offset).orderBy('teams.name', 'asc');
 
       // Get total count
-      let countQuery = Team.query;
+      let countQuery = Team.query.where('org_id', orgId);
 
       if (isActive !== undefined) {
         countQuery = countQuery.where('is_active', isActive);

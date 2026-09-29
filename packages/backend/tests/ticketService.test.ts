@@ -8,6 +8,7 @@ import { Ticket } from '../src/models/Ticket';
 import { MetricsService } from '../src/services/MetricsService';
 import { AdvancedSearchService } from '../src/services/AdvancedSearchService';
 import { TicketStatus } from '../src/models/TicketStatus';
+import { adoptSingleTenant } from './helpers/tenant';
 
 // Well-formed uuid that matches no row. A literal like 'non-existent-id'
 // fails Postgres' uuid cast before the service's own check runs.
@@ -78,6 +79,9 @@ describe('TicketService', () => {
       order: 1,
     });
     customFieldId = customField.id;
+
+    // One company is the subscriber for this whole fixture.
+    await adoptSingleTenant(companyId);
   });
 
   describe('createTicket', () => {

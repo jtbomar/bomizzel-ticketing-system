@@ -3,7 +3,9 @@ import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { Team } from '../src/models/Team';
 import { resetDatabase } from './helpers/db';
+import { db } from '../src/config/database';
 import { TicketStatus } from '../src/models/TicketStatus';
+import { adoptSingleTenant } from './helpers/tenant';
 
 describe('Custom Fields Endpoints', () => {
   let teamLeadToken: string;
@@ -66,6 +68,13 @@ describe('Custom Fields Endpoints', () => {
       .post('/api/auth/login')
       .send({ email: 'customer@example.com', password: 'password123' });
     customerToken = customerLogin.body.token;
+
+    const subscriber = await db('companies')
+      .insert({ name: 'Test Subscriber', domain: 'sub.test' })
+      .returning('*')
+      .then((r: any[]) => r[0]);
+    // One company is the subscriber for this whole fixture.
+    await adoptSingleTenant(subscriber.id);
   });
 
   describe('POST /api/custom-fields/teams/:teamId', () => {

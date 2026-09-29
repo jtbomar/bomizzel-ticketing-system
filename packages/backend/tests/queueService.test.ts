@@ -10,6 +10,13 @@ jest.mock('@/models/Queue');
 jest.mock('@/models/Team');
 jest.mock('@/models/User');
 
+// Tenant lookups hit the database directly; these tests stub the models, so
+// stub the lookup too. The fixtures below belong to tenant-1.
+jest.mock('../src/utils/tenant', () => ({
+  ...jest.requireActual('../src/utils/tenant'),
+  tenantContextFor: jest.fn().mockResolvedValue({ tenantId: 'tenant-1', companies: [] }),
+}));
+
 const MockedQueue = Queue as jest.Mocked<typeof Queue>;
 const MockedTeam = Team as jest.Mocked<typeof Team>;
 const MockedUser = User as jest.Mocked<typeof User>;
@@ -41,6 +48,7 @@ describe('QueueService', () => {
       description: 'Test Description',
       type: 'unassigned',
       team_id: 'team-123',
+      org_id: 'tenant-1',
       is_active: true,
       created_at: new Date(),
       updated_at: new Date(),
@@ -98,6 +106,7 @@ describe('QueueService', () => {
       id: 'queue-123',
       name: 'Test Queue',
       team_id: 'team-123',
+      org_id: 'tenant-1',
       type: 'unassigned',
       is_active: true,
       created_at: new Date(),
@@ -157,6 +166,7 @@ describe('QueueService', () => {
       id: 'queue-123',
       name: 'Test Queue',
       team_id: 'team-123',
+      org_id: 'tenant-1',
       type: 'unassigned',
       assigned_to_id: null,
       is_active: true,
@@ -231,6 +241,7 @@ describe('QueueService', () => {
           id: 'queue-1',
           name: 'Alpha Queue',
           team_id: 'team-123',
+          org_id: 'tenant-1',
           type: 'unassigned',
           is_active: true,
           created_at: new Date('2023-01-01'),
@@ -240,6 +251,7 @@ describe('QueueService', () => {
           id: 'queue-2',
           name: 'Beta Queue',
           team_id: 'team-123',
+          org_id: 'tenant-1',
           type: 'employee',
           is_active: true,
           created_at: new Date('2023-01-02'),

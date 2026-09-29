@@ -3,6 +3,7 @@ import { Company } from '@/models/Company';
 import { Team } from '@/models/Team';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
+import { isCompanyInTenant, isStaff, tenantUserIds } from '@/utils/tenant';
 import {
   User as UserModel,
   UserCompanyAssociation,
@@ -24,7 +25,7 @@ export class UserService {
       requestingUser?: {
         id: string;
         role: string;
-        organizationId?: string;
+        tenantId?: string;
         companyId?: string;
         companies?: string[];
       };
@@ -47,21 +48,18 @@ export class UserService {
       // Build search query with tenant isolation
       let searchQuery = User.query;
 
-      // CRITICAL: Implement tenant isolation based on organization
+      // Tenant isolation: staff see the people of their own subscriber (its
+      // staff and its accounts' contacts); contacts see their co-workers.
+      // Admins and team leads saw every user on the platform before.
       if (requestingUser) {
-        if (['admin', 'team_lead'].includes(requestingUser.role)) {
-          // Admins and team leads see everyone. This branch was missing, so an
-          // admin fell through to the company rule below and was scoped to the
-          // companies they happen to be associated with - on a desk whose admin
-          // belongs to one company, that meant the user list showed a handful of
-          // people out of twenty-five, while the companies list showed all
-          // eleven. Same login, two different isolation rules.
-          //
-          // GET /users is authorize('admin') already, so it was an admin-only
-          // endpoint hiding data from admins.
-        } else if (requestingUser.organizationId) {
-          // Organization users (service providers) can only see users from their own organization
-          searchQuery = searchQuery.where('organization_id', requestingUser.organizationId);
+        if (!requestingUser.tenantId) {
+          searchQuery = searchQuery.where('id', requestingUser.id);
+        } else if (isStaff(requestingUser)) {
+          // Admins, team leads and agents: everyone in their subscriber. (An
+          // admin used to be scoped to whatever companies they happened to be
+          // associated with, then to the whole platform; the subscriber is
+          // the rule that means something.)
+          searchQuery = searchQuery.whereIn('id', tenantUserIds(requestingUser.tenantId));
         } else if (requestingUser.companies?.length) {
           // Customer users can only see users from their own companies
           searchQuery = searchQuery.whereIn('id', function () {
@@ -144,6 +142,7 @@ export class UserService {
     requestingUser?: {
       id: string;
       role: string;
+      tenantId?: string;
       organizationId?: string;
       companyId?: string;
       companies?: string[];
@@ -406,16 +405,28 @@ export class UserService {
       limit?: number;
       excludeUserIds?: string[];
       role?: string;
+      // Required scope: the caller. Staff search their subscriber's people;
+      // contacts only their co-workers.
+      requestingUser?: { id: string; role: string; tenantId?: string; companies?: string[] };
     } = {}
   ): Promise<UserModel[]> {
     try {
-      const { limit = 10, excludeUserIds = [], role } = options;
+      const { limit = 10, excludeUserIds = [], role, requestingUser } = options;
+      if (!requestingUser?.tenantId) return [];
 
       let searchQuery = User.query.where('is_active', true).where(function () {
         this.where('first_name', 'ilike', `%${query}%`)
           .orWhere('last_name', 'ilike', `%${query}%`)
           .orWhere('email', 'ilike', `%${query}%`);
       });
+      searchQuery = isStaff(requestingUser)
+        ? searchQuery.whereIn('id', tenantUserIds(requestingUser.tenantId))
+        : searchQuery.whereIn(
+            'id',
+            User.db('user_company_associations')
+              .select('user_id')
+              .whereIn('company_id', requestingUser.companies || [])
+          );
 
       if (excludeUserIds.length > 0) {
         searchQuery = searchQuery.whereNotIn('id', excludeUserIds);
@@ -454,7 +465,7 @@ export class UserService {
   /**
    * Get user statistics
    */
-  static async getUserStats(): Promise<{
+  static async getUserStats(tenantId: string): Promise<{
     totalUsers: number;
     activeUsers: number;
     customerCount: number;
@@ -462,7 +473,8 @@ export class UserService {
     recentRegistrations: number;
   }> {
     try {
-      const stats = await User.db.raw(`
+      const stats = await User.db.raw(
+        `
         SELECT 
           COUNT(*) as total_users,
           COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
@@ -470,7 +482,14 @@ export class UserService {
           COUNT(CASE WHEN role IN ('employee', 'team_lead', 'admin') THEN 1 END) as employee_count,
           COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as recent_registrations
         FROM users
-      `);
+        WHERE id IN (
+          SELECT a.user_id FROM user_company_associations a
+            JOIN companies c ON c.id = a.company_id
+           WHERE c.id = ? OR c.subscriber_id = ?
+        )
+      `,
+        [tenantId, tenantId]
+      );
 
       const result = stats.rows[0];
 
@@ -490,11 +509,16 @@ export class UserService {
   /**
    * Get all customers with their company associations
    */
-  static async getCustomersWithCompanies(): Promise<
-    Array<UserModel & { companies: UserCompanyAssociation[] }>
-  > {
+  static async getCustomersWithCompanies(
+    tenantId: string
+  ): Promise<Array<UserModel & { companies: UserCompanyAssociation[] }>> {
     try {
-      const customers = await User.findActiveUsers({ role: 'customer' });
+      // Contacts of this subscriber's accounts only - this returned every
+      // contact on the platform.
+      const customers = await User.findActiveUsers({
+        role: 'customer',
+        idsIn: tenantUserIds(tenantId),
+      });
 
       const customersWithCompanies = await Promise.all(
         customers.map(async (customer) => {
@@ -516,9 +540,10 @@ export class UserService {
   /**
    * Get all companies (accounts)
    */
-  static async getAllCompanies(isActive?: boolean): Promise<any[]> {
+  static async getAllCompanies(tenantId: string, isActive?: boolean): Promise<any[]> {
     try {
-      let query = Company.query;
+      // This subscriber's accounts only - this returned every company.
+      let query = Company.query.where('subscriber_id', tenantId);
 
       if (isActive !== undefined) {
         query = query.where('is_active', isActive);
@@ -569,9 +594,26 @@ export class UserService {
       companyId?: string;
       teamId?: string;
     },
-    createdById: string
+    createdById: string,
+    // The creating admin's subscriber. Staff join the subscriber itself;
+    // a contact joins one of its accounts (companyId). A user created with no
+    // company used to belong to nobody, and an employee with no team then saw
+    // every ticket on the platform.
+    tenantId?: string
   ): Promise<UserModel> {
     try {
+      if (!tenantId) {
+        throw new AppError('No subscriber account for this user', 403, 'NO_TENANT');
+      }
+      const isContact = userData.role === 'customer';
+      const companyId = isContact ? userData.companyId : tenantId;
+      if (isContact && !(companyId && (await isCompanyInTenant(companyId, tenantId)))) {
+        throw new AppError(
+          'A contact needs an account (companyId) of this subscriber',
+          400,
+          'COMPANY_REQUIRED'
+        );
+      }
       // Check if user already exists
       const existingUser = await User.findByEmail(userData.email);
       if (existingUser) {
@@ -590,6 +632,13 @@ export class UserService {
       if (!newUser) {
         throw new AppError('Failed to create user', 500, 'CREATE_FAILED');
       }
+
+      await User.db('user_company_associations').insert({
+        user_id: newUser.id,
+        company_id: companyId,
+        role: 'member',
+      });
+      await User.db('users').where('id', newUser.id).update({ current_org_id: tenantId });
 
       logger.info(`User ${newUser.id} created by ${createdById}`);
 

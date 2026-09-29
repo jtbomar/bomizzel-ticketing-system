@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { TicketTable } from '../types/database';
 import { Ticket as TicketModel, PaginatedResponse } from '../types/models';
 import { ValidationError } from '../utils/errors';
+import { tenantContextFor } from '@/utils/tenant';
 
 export interface SearchFilter {
   field: string;
@@ -139,10 +140,17 @@ export class AdvancedSearchService {
         'q.name as queue_name'
       );
 
+    // Only the caller's own subscriber's tickets, for every role. Admins and
+    // team leads searched every ticket on the platform.
+    const tenant = await tenantContextFor(userId);
+    if (!tenant.tenantId) {
+      return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
+    }
+    dbQuery = dbQuery.where('t.org_id', tenant.tenantId);
+
     // Apply permission filtering
     if (userRole === 'customer') {
-      const userCompanies = await User.getUserCompanies(userId);
-      const userCompanyIds = userCompanies.map((uc) => uc.companyId);
+      const userCompanyIds = tenant.companies;
 
       if (userCompanyIds.length === 0) {
         return {

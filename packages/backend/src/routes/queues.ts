@@ -4,11 +4,49 @@ import { QueueService } from '@/services/QueueService';
 import { Queue } from '@/models/Queue';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/utils/validation';
+import { AppError } from '@/middleware/errorHandler';
+import {
+  assertQueueInTenant,
+  assertTeamInTenant,
+  assertUserInTenant,
+  requireStaff,
+} from '@/utils/tenant';
 
 const router = Router();
 
-// All queue routes require authentication
-router.use(authenticate);
+// All queue routes require authentication. Queues are internal to a
+// subscriber's staff, and every queue, team and assignee id must be the
+// caller's own subscriber's - these were readable and changeable across
+// subscribers, and open to contacts.
+router.use(authenticate, requireStaff);
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const inTenant =
+  (assert: (id: string, tenantId: string) => Promise<void>, what: string) =>
+  async (req: any, _res: any, next: any, id: string) => {
+    try {
+      if (!UUID.test(id)) throw new AppError(`Invalid ${what} ID`, 400, 'VALIDATION_ERROR');
+      await assert(id, req.user.tenantId);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+router.param('id', inTenant(assertQueueInTenant, 'queue'));
+router.param('teamId', inTenant(assertTeamInTenant, 'team'));
+
+// Query and body ids (teamId, assignedToId) must be in the tenant too.
+const idsInTenant = async (req: any, _res: any, next: any) => {
+  try {
+    const src = { ...req.query, ...req.body };
+    if (src.teamId) await assertTeamInTenant(String(src.teamId), req.user.tenantId);
+    if (src.assignedToId) await assertUserInTenant(String(src.assignedToId), req.user.tenantId);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+router.use(idsInTenant);
 
 /**
  * Get tickets in a specific queue
@@ -252,7 +290,9 @@ router.get(
         }
       }
 
-      const queueModels = queues.map((queue) => Queue.toModel(queue));
+      const queueModels = queues
+        .filter((queue: any) => queue && queue.org_id === req.user!.tenantId)
+        .map((queue) => Queue.toModel(queue));
 
       res.json({
         success: true,

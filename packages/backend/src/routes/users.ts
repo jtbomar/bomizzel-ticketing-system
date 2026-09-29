@@ -5,6 +5,7 @@ import { validate } from '@/utils/validation';
 import Joi from 'joi';
 import { updateUserSchema, userListSchema, uuidSchema } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
+import { requireTenantId, requireUserInTenant } from '@/utils/tenant';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.get(
         requestingUser: {
           id: req.user!.id,
           role: req.user!.role,
-          organizationId: req.user!.organizationId,
+          tenantId: req.user!.tenantId,
           companyId: req.user!.companyId,
           companies: req.user!.companies,
         },
@@ -53,7 +54,7 @@ router.get(
  */
 router.get('/stats', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const stats = await UserService.getUserStats();
+    const stats = await UserService.getUserStats(requireTenantId(req.user));
     res.json(stats);
   } catch (error) {
     next(error);
@@ -78,7 +79,7 @@ router.get('/list', authenticate, async (req, res, next) => {
       requestingUser: {
         id: req.user!.id,
         role: req.user!.role,
-        organizationId: req.user!.organizationId,
+        tenantId: req.user!.tenantId,
         companyId: req.user!.companyId,
         companies: req.user!.companies,
       },
@@ -105,6 +106,7 @@ router.get('/search', authenticate, async (req, res, next) => {
     const users = await UserService.searchUsers(query, {
       limit: limit ? parseInt(limit, 10) : 10,
       role,
+      requestingUser: req.user!,
     });
 
     res.json({ users });
@@ -121,13 +123,14 @@ router.get(
   authenticate,
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
+  requireUserInTenant(),
   async (req, res, next) => {
     try {
       const userId = req.params.userId as string;
       const user = await UserService.getUserById(userId, {
         id: req.user!.id,
         role: req.user!.role,
-        organizationId: req.user!.organizationId,
+        tenantId: req.user!.tenantId,
         companyId: req.user!.companyId,
         companies: req.user!.companies,
       });
@@ -148,6 +151,7 @@ router.put(
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   validate(updateUserSchema),
   authorizeOwnerOrAdmin('userId'),
+  requireUserInTenant(),
   async (req, res, next) => {
     try {
       const userId = req.params.userId as string;
@@ -181,6 +185,7 @@ router.post(
   '/:userId/deactivate',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
@@ -209,6 +214,7 @@ router.post(
   '/:userId/reactivate',
   authenticate,
   authorize('admin'),
+  requireUserInTenant(),
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   async (req, res, next) => {
     try {
@@ -233,6 +239,7 @@ router.get(
   authenticate,
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
+  requireUserInTenant(),
   async (req, res, next) => {
     try {
       const userId = req.params.userId as string;
@@ -253,6 +260,7 @@ router.get(
   authenticate,
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
+  requireUserInTenant(),
   async (req, res, next) => {
     try {
       const userId = req.params.userId as string;
@@ -273,6 +281,7 @@ router.put(
   authenticate,
   validate(Joi.object({ userId: uuidSchema }), 'params'),
   authorizeOwnerOrAdmin('userId'),
+  requireUserInTenant(),
   async (req, res, next) => {
     try {
       const userId = req.params.userId as string;

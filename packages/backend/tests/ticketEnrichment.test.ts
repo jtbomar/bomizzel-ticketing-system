@@ -5,6 +5,13 @@ import { Company } from '../src/models/Company';
 import { Queue } from '../src/models/Queue';
 import { Team } from '../src/models/Team';
 
+// Tenant lookups hit the database directly; these tests stub the models, so
+// stub the lookup too. The fixtures below belong to tenant-1.
+jest.mock('../src/utils/tenant', () => ({
+  ...jest.requireActual('../src/utils/tenant'),
+  tenantContextFor: jest.fn().mockResolvedValue({ tenantId: 'tenant-1', companies: ['company-1'] }),
+}));
+
 // Listing tickets used to issue five queries per row - submitter, company,
 // assignee, queue, team - run through Promise.all behind a ten-connection pool,
 // plus a "count" that fetched every matching row and took .length of it. A
@@ -21,6 +28,7 @@ const ticketRow = (i: number) => ({
   submitter_id: `user-${i % 3}`,
   assigned_to_id: `user-${i % 2}`,
   company_id: 'company-1',
+  org_id: 'tenant-1',
   queue_id: 'queue-1',
   team_id: 'team-1',
   created_at: new Date(),

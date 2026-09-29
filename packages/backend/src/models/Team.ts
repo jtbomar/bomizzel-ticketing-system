@@ -5,11 +5,17 @@ import { Team as TeamModel } from '@/types/models';
 export class Team extends BaseModel {
   protected static tableName = 'teams';
 
-  static async createTeam(teamData: { name: string; description?: string }): Promise<TeamTable> {
+  static async createTeam(teamData: {
+    name: string;
+    description?: string;
+    orgId?: string;
+  }): Promise<TeamTable> {
     return this.create({
       name: teamData.name,
       description: teamData.description,
-    });
+      // The subscriber (tenant) that owns the team.
+      ...(teamData.orgId ? { org_id: teamData.orgId } : {}),
+    } as any);
   }
 
   static async findByName(name: string): Promise<TeamTable | null> {

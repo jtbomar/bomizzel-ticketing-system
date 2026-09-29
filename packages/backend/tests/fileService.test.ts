@@ -35,6 +35,15 @@ jest.mock('sharp', () => {
   return jest.fn(() => chain);
 });
 
+// Tenant lookups hit the database directly; these tests stub the models, so
+// stub the lookup too. The fixtures below belong to tenant-1.
+jest.mock('../src/utils/tenant', () => ({
+  ...jest.requireActual('../src/utils/tenant'),
+  tenantContextFor: jest
+    .fn()
+    .mockResolvedValue({ tenantId: 'tenant-1', companies: ['company-123'] }),
+}));
+
 const mockFileAttachment = FileAttachment as jest.Mocked<typeof FileAttachment>;
 const mockTicket = Ticket as jest.Mocked<typeof Ticket>;
 const mockUser = User as jest.Mocked<typeof User>;
@@ -77,6 +86,7 @@ describe('FileService', () => {
       mockTicket.findById.mockResolvedValue({
         id: ticketId,
         company_id: 'company-123',
+        org_id: 'tenant-1',
       } as any);
 
       mockUser.findById.mockResolvedValue({
@@ -182,6 +192,7 @@ describe('FileService', () => {
       mockTicket.findById.mockResolvedValue({
         id: 'ticket-123',
         company_id: 'company-123',
+        org_id: 'tenant-1',
       } as any);
 
       mockUser.findById.mockResolvedValue({
@@ -226,6 +237,7 @@ describe('FileService', () => {
       mockTicket.findById.mockResolvedValue({
         id: 'ticket-123',
         company_id: 'company-123',
+        org_id: 'tenant-1',
       } as any);
 
       mockUser.findById.mockResolvedValue({
@@ -256,6 +268,7 @@ describe('FileService', () => {
       mockTicket.findById.mockResolvedValue({
         id: 'ticket-123',
         company_id: 'company-123',
+        org_id: 'tenant-1',
       } as any);
 
       mockUser.findById.mockResolvedValue({

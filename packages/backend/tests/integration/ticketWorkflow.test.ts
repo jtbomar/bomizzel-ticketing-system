@@ -8,6 +8,7 @@ import { JWTUtils } from '../../src/utils/jwt';
 import { createTestToken } from '../helpers/testUtils';
 import { Queue } from '../../src/models/Queue';
 import { TicketStatus } from '../../src/models/TicketStatus';
+import { adoptSingleTenant } from '../helpers/tenant';
 
 describe('Ticket Workflow Integration', () => {
   let customerToken: string;
@@ -106,6 +107,9 @@ describe('Ticket Workflow Integration', () => {
       options: ['Low', 'Medium', 'High', 'Critical'],
       order: 2,
     });
+
+    // One company is the subscriber for this whole fixture.
+    await adoptSingleTenant(companyId);
   });
 
   describe('Complete Ticket Lifecycle', () => {

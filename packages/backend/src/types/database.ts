@@ -40,6 +40,8 @@ export interface TeamTable {
   id: string;
   name: string;
   description?: string;
+  // The subscriber (tenant) that owns the team.
+  org_id?: string | null;
   is_active: boolean;
   created_at: Date;
   updated_at: Date;
@@ -57,6 +59,8 @@ export interface QueueTable {
   id: string;
   name: string;
   description?: string;
+  // The subscriber (tenant) that owns the queue.
+  org_id?: string | null;
   type: 'unassigned' | 'employee';
   assigned_to_id?: string;
   team_id: string;
@@ -101,6 +105,8 @@ export interface TicketTable {
   status: string;
   priority: number;
   submitter_id: string;
+  // The subscriber (tenant) the ticket belongs to; company_id is the account.
+  org_id?: string | null;
   company_id: string;
   assigned_to_id?: string;
   queue_id: string;

@@ -12,8 +12,44 @@ import {
   uuidSchema,
 } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
+import { db } from '@/config/database';
+import { isCompanyInTenant, isStaff, isUserInTenant, requireTenantId } from '@/utils/tenant';
 
 const router = Router();
+
+// Router-level so it runs before the router.param checks below.
+router.use(authenticate);
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Every /:companyId route: staff may reach their own subscriber and its
+// accounts; contacts only the account(s) they belong to. Anything else is a
+// 404. Admins could read, edit, delete and join any company on the platform.
+router.param('companyId', async (req, _res, next, companyId) => {
+  try {
+    if (!UUID.test(companyId)) throw new AppError('Invalid company ID', 400, 'VALIDATION_ERROR');
+    const user = req.user!;
+    const allowed = isStaff(user)
+      ? await isCompanyInTenant(companyId, user.tenantId as string)
+      : (user.companies || []).includes(companyId);
+    if (!allowed) throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.param('userId', async (req, _res, next, userId) => {
+  try {
+    if (!UUID.test(userId)) throw new AppError('Invalid user ID', 400, 'VALIDATION_ERROR');
+    if (!(await isUserInTenant(userId, req.user?.tenantId as string))) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * POST /companies
@@ -26,7 +62,12 @@ router.post(
   validate(createCompanySchema),
   async (req, res, next) => {
     try {
-      const company = await CompanyService.createCompany(req.body, req.user!.id);
+      // A new account belongs to the creating admin's subscriber.
+      const company = await CompanyService.createCompany(
+        req.body,
+        req.user!.id,
+        requireTenantId(req.user)
+      );
 
       res.status(201).json({
         message: 'Company created successfully',
@@ -55,7 +96,7 @@ router.get('/', authenticate, async (req, res, next) => {
       requestingUser: {
         id: req.user!.id,
         role: req.user!.role,
-        organizationId: req.user!.organizationId,
+        tenantId: req.user!.tenantId,
         companies: req.user!.companies,
       },
     });
@@ -72,7 +113,7 @@ router.get('/', authenticate, async (req, res, next) => {
  */
 router.get('/stats', authenticate, authorize('admin'), async (req, res, next) => {
   try {
-    const stats = await CompanyService.getCompanyStats();
+    const stats = await CompanyService.getCompanyStats(requireTenantId(req.user));
     res.json(stats);
   } catch (error) {
     next(error);
@@ -91,8 +132,10 @@ router.get('/search', authenticate, async (req, res, next) => {
       throw new AppError('Search query must be at least 2 characters', 400, 'INVALID_SEARCH_QUERY');
     }
 
+    const tenantId = requireTenantId(req.user);
     const companies = await CompanyService.searchCompanies(query, {
       limit: limit ? parseInt(limit, 10) : 10,
+      ...(isStaff(req.user) ? { subscriberId: tenantId } : { ids: req.user!.companies || [] }),
     });
 
     res.json({ companies });
@@ -158,6 +201,13 @@ router.delete(
   async (req, res, next) => {
     try {
       const { companyId } = req.params;
+      if (companyId === req.user!.tenantId) {
+        throw new AppError(
+          'A subscriber cannot delete its own company here',
+          400,
+          'CANNOT_DELETE_SUBSCRIBER'
+        );
+      }
       await CompanyService.deleteCompany(companyId, req.user!.id);
 
       res.json({
@@ -203,6 +253,17 @@ router.post(
     try {
       const { companyId } = req.params;
       const { userId, role } = req.body;
+
+      // Only a user already in this subscriber, or a brand-new user who
+      // belongs to no company yet (a contact just registered for an account).
+      // Pulling in another subscriber's user would hand them this subscriber.
+      const inTenant = await isUserInTenant(userId, req.user!.tenantId as string);
+      const hasAnyCompany = await db('user_company_associations')
+        .where('user_id', userId)
+        .first('user_id');
+      if (!inTenant && hasAnyCompany) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
 
       await CompanyService.addUserToCompany(companyId, userId, role, req.user!.id);
 

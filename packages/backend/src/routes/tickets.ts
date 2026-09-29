@@ -14,7 +14,12 @@ import {
 } from '@/middleware/subscriptionEnforcement';
 import { db } from '@/config/database';
 import { apiRateLimiter } from '@/middleware/rateLimiter';
-import { getTicketInTenant, requireStaff, requireTenantId } from '@/utils/tenant';
+import {
+  assertUserInTenant,
+  getTicketInTenant,
+  requireStaff,
+  requireTenantId,
+} from '@/utils/tenant';
 
 const router = Router();
 
@@ -47,9 +52,12 @@ router.post(
       const currentUserId = req.user!.id;
       const currentUserRole = req.user!.role;
 
-      // Allow agents to create tickets on behalf of customers
+      // Allow agents to create tickets on behalf of customers - of their own
+      // subscriber only. Naming another subscriber's contact here used to
+      // create the ticket in that subscriber.
       let submitterId = currentUserId;
       if (req.body.submitterId && ['admin', 'team_lead', 'employee'].includes(currentUserRole)) {
+        await assertUserInTenant(req.body.submitterId, requireTenantId(req.user));
         submitterId = req.body.submitterId;
       }
 

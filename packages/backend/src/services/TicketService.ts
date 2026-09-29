@@ -19,6 +19,7 @@ import { QueryPerformanceMonitor } from '@/middleware/performanceMonitoring';
 import { CacheService, CacheKeys, CacheConfigs } from '@/utils/cache';
 import { UsageTrackingService } from './UsageTrackingService';
 import { logger } from '@/utils/logger';
+import { isCompanyInTenant, isUserInTenant, tenantContextFor } from '@/utils/tenant';
 
 export class TicketService {
   /**
@@ -34,6 +35,17 @@ export class TicketService {
       throw new NotFoundError('Submitter not found');
     }
 
+    // The company (account) and team must belong to the submitter's
+    // subscriber. Staff could raise tickets against any company or team on
+    // the platform before.
+    const submitterTenant = await tenantContextFor(submitterId);
+    if (
+      !submitterTenant.tenantId ||
+      !(await isCompanyInTenant(ticketData.companyId, submitterTenant.tenantId))
+    ) {
+      throw new ForbiddenError('User does not have access to this company');
+    }
+
     // Validate company association (only for customers)
     if (submitterUser.role === 'customer') {
       const userCompanies = await User.getUserCompanies(submitterId);
@@ -47,7 +59,7 @@ export class TicketService {
 
     // Validate team exists
     const team = await Team.findById(ticketData.teamId);
-    if (!team) {
+    if (!team || (team as any).org_id !== submitterTenant.tenantId) {
       throw new NotFoundError('Team not found');
     }
 
@@ -142,16 +154,23 @@ export class TicketService {
     const limit = Math.min(options.limit || 20, 100); // Max 100 per page
     const offset = (page - 1) * limit;
 
+    // Only the caller's own subscriber's tickets, whatever their role. Admins
+    // and team leads saw every ticket on the platform before.
+    const tenant = await tenantContextFor(userId);
+    if (!tenant.tenantId) {
+      return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
+    }
+
     let searchOptions: any = {
       limit,
       offset,
+      orgId: tenant.tenantId,
     };
 
     // Apply permission filtering based on user role
     if (userRole === 'customer') {
       // Customers can only see tickets from their companies
-      const userCompanies = await User.getUserCompanies(userId);
-      const companyIds = userCompanies.map((uc) => uc.companyId);
+      const companyIds = tenant.companies;
 
       if (companyIds.length === 0) {
         return {
@@ -187,8 +206,19 @@ export class TicketService {
     }
     // Admins and team leads can see all tickets (no additional filtering)
 
+    // Contacts can filter by queue, but stay limited to their own accounts'
+    // tickets; the queue branch below is for staff.
+    if (options.queueId && userRole === 'customer') {
+      searchOptions.queueId = options.queueId;
+    }
+
     // Apply other filters
-    if (options.queueId) {
+    if (options.queueId && userRole !== 'customer') {
+      const queueRow = await Queue.findById(options.queueId);
+      if (!queueRow || (queueRow as any).org_id !== tenant.tenantId) {
+        throw new NotFoundError('Queue not found');
+      }
+
       // Validate queue access for employees
       if (userRole === 'employee') {
         const queue = await Queue.findById(options.queueId);
@@ -205,9 +235,10 @@ export class TicketService {
         ...(options.status && { status: options.status }),
         limit,
         offset,
+        orgId: tenant.tenantId,
       });
 
-      const total = await this.getQueueTicketCount(options.queueId, options.status);
+      const total = await Ticket.countByQueue(options.queueId, options.status, tenant.tenantId);
       const tickets = await this.enrichTickets(queueTickets);
 
       return {
@@ -299,14 +330,23 @@ export class TicketService {
     // TypeScript assertion - we know ticket is not null after the check above
     const ticketData = ticket as NonNullable<typeof ticket>;
 
+    // The ticket must be in the caller's subscriber.
+    await this.validateTicketAccess(ticketData, assignedById, userRole);
+
     // Validate assignment permissions
     if (userRole === 'customer') {
       throw new ForbiddenError('Customers cannot assign tickets');
     }
 
     // Validate assignee is an employee in the same team
+    // ...and in the ticket's subscriber; someone from another subscriber is
+    // just as invalid as someone who doesn't exist.
     const assignee = await User.findById(assignedToId);
-    if (!assignee || assignee.role === 'customer') {
+    if (
+      !assignee ||
+      assignee.role === 'customer' ||
+      !(await isUserInTenant(assignedToId, ticketData.org_id as string))
+    ) {
       throw new ValidationError('Invalid assignee');
     }
 
@@ -390,6 +430,7 @@ export class TicketService {
     if (userRole === 'customer') {
       throw new ForbiddenError('Customers cannot unassign tickets');
     }
+    await this.validateTicketAccess(ticketData, unassignedById, userRole);
 
     // Move back to team's unassigned queue
     const teamQueues = await Queue.findByTeam(ticketData.team_id);
@@ -419,6 +460,9 @@ export class TicketService {
     }
 
     const ticketData = ticket as NonNullable<typeof ticket>;
+
+    // The ticket must be one the caller may see (their subscriber's).
+    await this.validateTicketAccess(ticketData, updatedById, userRole);
 
     // Validate status exists for team
     const validStatuses = await this.getValidStatusesForTeam(ticketData.team_id);
@@ -532,6 +576,7 @@ export class TicketService {
     if (userRole === 'customer') {
       throw new ForbiddenError('Customers cannot update ticket priority');
     }
+    await this.validateTicketAccess(ticket as any, updatedById, userRole);
 
     if (priority < 0 || priority > 100) {
       throw new ValidationError('Priority must be between 0 and 100');
@@ -653,9 +698,10 @@ export class TicketService {
       limit?: number;
     } = {}
   ): Promise<PaginatedResponse<TicketModel>> {
-    // Validate queue access
+    // Validate queue access: staff of the queue's subscriber only
     const queue = await Queue.findById(queueId);
-    if (!queue) {
+    const tenant = await tenantContextFor(userId);
+    if (!queue || userRole === 'customer' || (queue as any).org_id !== tenant.tenantId) {
       throw new NotFoundError('Queue not found');
     }
 
@@ -676,9 +722,10 @@ export class TicketService {
       ...(options.status && { status: options.status }),
       limit,
       offset,
+      orgId: tenant.tenantId,
     });
 
-    const total = await this.getQueueTicketCount(queueId, options.status);
+    const total = await Ticket.countByQueue(queueId, options.status, tenant.tenantId);
 
     const enrichedTickets = await this.enrichTickets(tickets);
 
@@ -775,10 +822,15 @@ export class TicketService {
     userId: string,
     userRole: string
   ): Promise<void> {
+    // First, the ticket must be in the caller's subscriber - for every role.
+    const tenant = await tenantContextFor(userId);
+    if (!tenant.tenantId || ticket.org_id !== tenant.tenantId) {
+      throw new NotFoundError('Ticket not found');
+    }
+
     if (userRole === 'customer') {
       // Customers can only access tickets from their companies
-      const userCompanies = await User.getUserCompanies(userId);
-      const hasAccess = userCompanies.some((uc) => uc.companyId === ticket.company_id);
+      const hasAccess = tenant.companies.includes(ticket.company_id);
 
       if (!hasAccess) {
         throw new ForbiddenError('Access denied to ticket');

@@ -4,6 +4,8 @@ import { authenticate } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
 import { logger } from '@/utils/logger';
 import Joi from 'joi';
+import { assertTeamInTenant } from '@/utils/tenant';
+import { db } from '@/config/database';
 
 const router = Router();
 
@@ -85,8 +87,26 @@ const checkTeamAccess = async (req: Request, res: Response, next: Function): Pro
       return;
     }
 
-    // TODO: Add team membership validation when TeamService is available
-    // For now, allow all employees to access any team's custom fields
+    // The team (from the path, the body, or the field being changed) must be
+    // the caller's own subscriber's. This allowed any team's custom fields.
+    const teamId = req.params.teamId || req.body?.teamId;
+    let fieldTeamId: string | undefined;
+    if (req.params.fieldId) {
+      const field = await db('custom_fields').where('id', req.params.fieldId).first('team_id');
+      if (!field) {
+        res.status(404).json({ error: 'Custom field not found' });
+        return;
+      }
+      fieldTeamId = field.team_id;
+    }
+    try {
+      for (const id of [teamId, fieldTeamId].filter(Boolean) as string[]) {
+        await assertTeamInTenant(id, user.tenantId as string);
+      }
+    } catch {
+      res.status(404).json({ error: 'Team not found' });
+      return;
+    }
 
     next();
   } catch (error) {

@@ -3,6 +3,7 @@ import { DepartmentService } from '../services/DepartmentService';
 import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
+import { tenantCompanyOf } from '../utils/tenant';
 
 const router = express.Router();
 
@@ -23,9 +24,7 @@ router.get('/', authenticate, async (req, res) => {
     }
 
     // For customers, get departments for their associated company
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -47,9 +46,14 @@ router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;
     const userRole = req.user!.role;
 
-    // For admin/agent/team_lead, get department without company restriction
+    // Staff: a department of their own subscriber (this read any subscriber's)
     if (['admin', 'employee', 'team_lead'].includes(userRole)) {
-      const department = await db('departments').where('id', parseInt(id)).first();
+      const department = await db('departments')
+        .where('id', parseInt(id))
+        .where((q) =>
+          q.where('org_id', req.user!.tenantId).orWhere('company_id', req.user!.tenantId)
+        )
+        .first();
 
       if (!department) {
         return res.status(404).json({ error: 'Department not found' });
@@ -58,9 +62,7 @@ router.get('/:id', authenticate, async (req, res) => {
     }
 
     // For customers, verify they have access to this department's company
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -102,9 +104,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     }
 
     // Get user's company and org from associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     console.log('User company:', userCompany);
 
@@ -221,9 +221,7 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
       return res.json(updatedDepartment);
     } else {
       // Company user - use existing logic
-      const userCompany = await db('user_company_associations')
-        .where('user_id', req.user!.id)
-        .first();
+      const userCompany = tenantCompanyOf(req.user);
 
       if (!userCompany) {
         return res.status(400).json({ error: 'User not associated with any company' });
@@ -262,9 +260,7 @@ router.delete('/:id', authenticate, authorize('admin'), async (req, res) => {
     const { id } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -339,9 +335,7 @@ router.post('/:id/agents', authenticate, authorize('admin'), async (req, res) =>
       return res.json({ message: 'Agent added to department successfully' });
     } else {
       // Company user - use existing logic
-      const userCompany = await db('user_company_associations')
-        .where('user_id', req.user!.id)
-        .first();
+      const userCompany = tenantCompanyOf(req.user);
 
       if (!userCompany) {
         return res.status(400).json({ error: 'User not associated with any company' });
@@ -370,9 +364,7 @@ router.delete('/:id/agents/:userId', authenticate, authorize('admin'), async (re
     const { id, userId } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -412,9 +404,7 @@ router.get('/:id/templates', authenticate, async (req, res) => {
     const { id } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -439,9 +429,7 @@ router.post('/:id/templates', authenticate, authorize('admin'), async (req, res)
     const { id } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -490,9 +478,7 @@ router.put('/templates/:templateId', authenticate, authorize('admin'), async (re
     const { templateId } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });
@@ -538,9 +524,7 @@ router.delete('/templates/:templateId', authenticate, authorize('admin'), async 
     const { templateId } = req.params;
 
     // Get user's company ID from user_company_associations
-    const userCompany = await db('user_company_associations')
-      .where('user_id', req.user!.id)
-      .first();
+    const userCompany = tenantCompanyOf(req.user);
 
     if (!userCompany) {
       return res.status(400).json({ error: 'User not associated with any company' });

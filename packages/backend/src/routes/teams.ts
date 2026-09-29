@@ -3,8 +3,38 @@ import { TeamService } from '@/services/TeamService';
 import { authenticate } from '@/middleware/auth';
 import { validateRequest } from '@/utils/validation';
 import { requireRole } from '@/middleware/requireRole';
+import { AppError } from '@/middleware/errorHandler';
+import { assertTeamInTenant, assertUserInTenant, isStaff } from '@/utils/tenant';
 
 const router = Router();
+
+// Router-level so it runs before the router.param checks below.
+router.use(authenticate);
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Teams belong to a subscriber. Every /:teamId route needs a team of the
+// caller's own subscriber, and member ids must be in it too. These were open
+// across subscribers - listing, reading, editing, deleting and joining.
+router.param('teamId', async (req, _res, next, teamId) => {
+  try {
+    if (!UUID.test(teamId)) throw new AppError('Invalid team ID', 400, 'VALIDATION_ERROR');
+    await assertTeamInTenant(teamId, req.user?.tenantId as string);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.param('userId', async (req, _res, next, userId) => {
+  try {
+    if (!UUID.test(userId)) throw new AppError('Invalid user ID', 400, 'VALIDATION_ERROR');
+    await assertUserInTenant(userId, req.user?.tenantId as string);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * GET /teams
@@ -30,6 +60,7 @@ router.get(
         limit: limit ? parseInt(limit as string) : undefined,
         search: search as string,
         isActive: isActive ? isActive === 'true' : undefined,
+        orgId: req.user?.tenantId,
       });
 
       res.json(teams);
@@ -218,6 +249,14 @@ router.get(
     try {
       const { teamId } = req.params;
 
+      // Member lists show staff names and emails: staff only.
+      if (!isStaff(req.user)) {
+        res
+          .status(403)
+          .json({ error: { code: 'STAFF_ONLY', message: 'Insufficient permissions' } });
+        return;
+      }
+
       const members = await TeamService.getTeamMembers(teamId);
 
       res.json({ members });
@@ -262,6 +301,14 @@ router.post(
             message: 'User not authenticated',
           },
         });
+        return;
+      }
+
+      // Only a user of this subscriber can join its team.
+      try {
+        await assertUserInTenant(userId, req.user!.tenantId as string);
+      } catch {
+        res.status(404).json({ error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
         return;
       }
 

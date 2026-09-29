@@ -7,6 +7,7 @@ import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors'
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { canAccessTicket, tenantContextFor } from '@/utils/tenant';
 // sharp is loaded lazily inside generateThumbnail(), NOT at module scope.
 //
 // sharp is a native module and fails to load when its platform binary is
@@ -286,17 +287,12 @@ export class FileService {
       throw new NotFoundError('User not found');
     }
 
-    // Employees and admins can access all tickets
-    if (['employee', 'team_lead', 'admin'].includes(user.role)) {
-      return;
-    }
-
-    // Customers can only access tickets from their companies
-    const userCompanies = await User.getUserCompanies(userId);
-    const hasAccess = userCompanies.some((uc) => uc.companyId === ticket.company_id);
-
-    if (!hasAccess) {
-      throw new ForbiddenError('You do not have access to this ticket');
+    // Staff: tickets of their own subscriber. Contacts: tickets of their own
+    // account(s). Staff could read and attach files to every ticket on the
+    // platform before.
+    const tenant = await tenantContextFor(userId);
+    if (!canAccessTicket({ id: userId, role: user.role, ...tenant }, ticket as any)) {
+      throw new NotFoundError('Ticket not found');
     }
   }
 

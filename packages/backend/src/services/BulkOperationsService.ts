@@ -5,6 +5,7 @@ import { notificationService } from './NotificationService';
 import { MetricsService } from './MetricsService';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { logger } from '../utils/logger';
+import { assertQueueInTenant, tenantContextFor } from '@/utils/tenant';
 
 export interface BulkOperationResult {
   success: string[];
@@ -195,11 +196,15 @@ export class BulkOperationsService {
       throw new ForbiddenError('Insufficient permissions to delete tickets');
     }
 
+    // Only tickets of the caller's own subscriber. This deleted any ticket id
+    // it was given.
+    const { tenantId } = await tenantContextFor(performedById);
+
     // Process each ticket
     for (const ticketId of ticketIds) {
       try {
         const ticket = await Ticket.findById(ticketId);
-        if (!ticket) {
+        if (!ticket || !tenantId || (ticket as any).org_id !== tenantId) {
           throw new NotFoundError('Ticket not found');
         }
 
@@ -248,11 +253,16 @@ export class BulkOperationsService {
       throw new ForbiddenError('Customers cannot move tickets');
     }
 
+    // The queue and every ticket must be in the caller's subscriber.
+    const { tenantId } = await tenantContextFor(performedById);
+    if (!tenantId) throw new NotFoundError('Queue not found');
+    await assertQueueInTenant(queueId, tenantId);
+
     // Process each ticket
     for (const ticketId of ticketIds) {
       try {
         const ticket = await Ticket.findById(ticketId);
-        if (!ticket) {
+        if (!ticket || (ticket as any).org_id !== tenantId) {
           throw new NotFoundError('Ticket not found');
         }
 

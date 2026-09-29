@@ -3,6 +3,7 @@ import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { Company as CompanyModel, User as UserModel, PaginatedResponse } from '@/types/models';
+import { isStaff } from '@/utils/tenant';
 
 export class CompanyService {
   /**
@@ -14,18 +15,30 @@ export class CompanyService {
       domain?: string;
       description?: string;
     },
-    createdById: string
+    createdById: string,
+    // The subscriber the new account belongs to. Names and domains only have to
+    // be unique within it - two subscribers can each have a customer "Acme".
+    subscriberId?: string
   ): Promise<CompanyModel> {
     try {
+      const sameTenant = () =>
+        subscriberId
+          ? Company.query.where('subscriber_id', subscriberId)
+          : Company.query.whereNull('subscriber_id');
+
       // Check if company name already exists
-      const existingCompany = await Company.findByName(companyData.name);
+      const existingCompany = await sameTenant()
+        .whereRaw('lower(name) = lower(?)', [companyData.name])
+        .first();
       if (existingCompany) {
         throw new AppError('Company with this name already exists', 409, 'COMPANY_NAME_EXISTS');
       }
 
       // Check if domain already exists (if provided)
       if (companyData.domain) {
-        const existingDomain = await Company.findByDomain(companyData.domain);
+        const existingDomain = await sameTenant()
+          .whereRaw('lower(domain) = lower(?)', [companyData.domain])
+          .first();
         if (existingDomain) {
           throw new AppError(
             'Company with this domain already exists',
@@ -35,7 +48,10 @@ export class CompanyService {
         }
       }
 
-      const company = await Company.createCompany(companyData);
+      const company = await Company.createCompany({
+        ...companyData,
+        ...(subscriberId ? { subscriber_id: subscriberId } : {}),
+      });
 
       logger.info(`Company created: ${company.name} by user ${createdById}`);
 
@@ -61,7 +77,7 @@ export class CompanyService {
       requestingUser?: {
         id: string;
         role: string;
-        organizationId?: string;
+        tenantId?: string;
         companies?: string[];
       };
     } = {}
@@ -70,25 +86,22 @@ export class CompanyService {
       const { page = 1, limit = 25, search, isActive, requestingUser } = options;
       const offset = (page - 1) * limit;
 
-      // CRITICAL: Implement tenant isolation for companies
-      if (requestingUser?.organizationId) {
-        // Organization users should not see companies - they manage their own organization
-        return {
-          data: [],
-          pagination: {
-            page,
-            limit,
-            total: 0,
-            totalPages: 0,
-          },
-        };
+      // Tenant isolation: staff see their subscriber's accounts; contacts see
+      // only the account(s) they belong to. This returned every company on the
+      // platform to everyone.
+      const tenantId = requestingUser?.tenantId;
+      if (!tenantId) {
+        return { data: [], pagination: { page, limit, total: 0, totalPages: 0 } };
       }
+      const scope = isStaff(requestingUser)
+        ? { subscriberId: tenantId }
+        : { ids: requestingUser?.companies || [] };
 
-      // For customer users or fallback, use existing logic
       const companies = await Company.findActiveCompanies({
         limit,
         offset,
         search,
+        ...scope,
       });
 
       // Get total count.
@@ -98,6 +111,10 @@ export class CompanyService {
       // it, which meant deactivating a company left the page reading "11
       // accounts" over seven rows.
       let countQuery = Company.query.where('is_active', isActive === undefined ? true : isActive);
+      countQuery =
+        'ids' in scope
+          ? countQuery.whereIn('id', scope.ids as string[])
+          : countQuery.where('subscriber_id', scope.subscriberId);
 
       if (search) {
         countQuery = countQuery.where(function () {
@@ -434,14 +451,21 @@ export class CompanyService {
     options: {
       limit?: number;
       excludeCompanyIds?: string[];
+      // Required tenant scope: a subscriber's accounts, or explicit ids
+      subscriberId?: string;
+      ids?: string[];
     } = {}
   ): Promise<CompanyModel[]> {
     try {
       const { limit = 10, excludeCompanyIds = [] } = options;
+      if (!options.subscriberId && !options.ids) return [];
 
       let searchQuery = Company.query.where('is_active', true).where(function () {
         this.where('name', 'ilike', `%${query}%`).orWhere('domain', 'ilike', `%${query}%`);
       });
+      searchQuery = options.ids
+        ? searchQuery.whereIn('id', options.ids)
+        : searchQuery.where('subscriber_id', options.subscriberId);
 
       if (excludeCompanyIds.length > 0) {
         searchQuery = searchQuery.whereNotIn('id', excludeCompanyIds);
@@ -459,7 +483,7 @@ export class CompanyService {
   /**
    * Get company statistics
    */
-  static async getCompanyStats(): Promise<{
+  static async getCompanyStats(subscriberId: string): Promise<{
     totalCompanies: number;
     activeCompanies: number;
     companiesWithUsers: number;
@@ -467,24 +491,32 @@ export class CompanyService {
     recentCompanies: number;
   }> {
     try {
-      const stats = await Company.db.raw(`
+      const stats = await Company.db.raw(
+        `
         SELECT 
           COUNT(*) as total_companies,
           COUNT(CASE WHEN is_active = true THEN 1 END) as active_companies,
           COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as recent_companies
         FROM companies
-      `);
+        WHERE subscriber_id = ?
+      `,
+        [subscriberId]
+      );
 
-      const userStats = await Company.db.raw(`
+      const userStats = await Company.db.raw(
+        `
         SELECT 
           COUNT(DISTINCT company_id) as companies_with_users,
           COALESCE(AVG(user_count), 0) as avg_users_per_company
         FROM (
           SELECT company_id, COUNT(*) as user_count
           FROM user_company_associations
+          WHERE company_id IN (SELECT id FROM companies WHERE subscriber_id = ?)
           GROUP BY company_id
         ) company_user_counts
-      `);
+      `,
+        [subscriberId]
+      );
 
       const companyResult = stats.rows[0];
       const userResult = userStats.rows[0];

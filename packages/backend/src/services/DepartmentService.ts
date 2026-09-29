@@ -7,6 +7,7 @@ import {
 import { User } from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
+import { db } from '@/config/database';
 
 export interface CreateDepartmentRequest {
   name: string;
@@ -347,6 +348,10 @@ export class DepartmentService {
     data: Partial<CreateTemplateRequest>
   ): Promise<DepartmentTicketTemplate | null> {
     try {
+      // The template must belong to one of this subscriber's departments; this
+      // updated any template by id.
+      if (!(await this.templateInCompany(templateId, companyId))) return null;
+
       // Validate name if provided
       if (data.name !== undefined && !data.name?.trim()) {
         throw new AppError('Template name is required', 400, 'INVALID_TEMPLATE_NAME');
@@ -386,8 +391,18 @@ export class DepartmentService {
   }
 
   // Delete department template
+  private static async templateInCompany(templateId: number, companyId: string): Promise<boolean> {
+    const row = await db('department_ticket_templates as t')
+      .join('departments as d', 'd.id', 't.department_id')
+      .where('t.id', templateId)
+      .where((q) => q.where('d.company_id', companyId).orWhere('d.org_id', companyId))
+      .first('t.id');
+    return !!row;
+  }
+
   static async deleteTemplate(templateId: number, companyId: string): Promise<boolean> {
     try {
+      if (!(await this.templateInCompany(templateId, companyId))) return false;
       const success = await Department.deleteTemplate(templateId);
 
       if (success) {

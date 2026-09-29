@@ -34,13 +34,23 @@ describe('User Management Endpoints', () => {
 
     testUserId = regularUser.id;
 
+    // The admin is staff of a subscriber; Test Company is one of its accounts
+    // and the regular user a contact there. An admin only manages people of
+    // their own subscriber.
+    const subscriber = await Company.createCompany({
+      name: 'Admin Subscriber',
+      domain: 'sub.test',
+    });
+    await Company.addUserToCompany(adminUser.id, subscriber.id, 'owner');
+
     // Create test company
     const company = await Company.createCompany({
       name: 'Test Company',
       domain: 'test.com',
+      subscriber_id: subscriber.id,
     });
-
     testCompanyId = company.id;
+    await Company.addUserToCompany(regularUser.id, testCompanyId, 'member');
 
     // Get admin token
     const adminLoginResponse = await request(app).post('/api/auth/login').send({

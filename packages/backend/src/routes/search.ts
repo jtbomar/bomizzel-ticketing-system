@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth';
 import { AdvancedSearchService } from '../services/AdvancedSearchService';
 import { validateRequest, validate } from '../utils/validation';
 import Joi from 'joi';
+import { assertTeamInTenant } from '@/utils/tenant';
 
 const router = Router();
 
@@ -46,13 +47,15 @@ const advancedSearchSchema = Joi.object({
 router.get('/fields/:teamId', authenticate, async (req, res, next): Promise<void> => {
   try {
     const { teamId } = req.params;
-
     if (!teamId) {
       return res.status(400).json({
         success: false,
         error: 'Team ID is required',
       });
     }
+
+    // A team of the caller's own subscriber only.
+    await assertTeamInTenant(teamId, req.user!.tenantId as string);
 
     const fields = await AdvancedSearchService.getSearchableFields(teamId);
 
