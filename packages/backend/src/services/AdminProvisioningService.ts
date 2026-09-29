@@ -308,7 +308,14 @@ export class AdminProvisioningService {
   }
 
   /**
-   * Get all provisioned customers with their details
+   * Every subscriber on the platform: companies that signed up at bomizzel.com
+   * and companies provisioned here. A subscriber's own accounts (their
+   * customers' companies) are not included.
+   *
+   * Subscribers and accounts are both rows in `companies`. A company counts as
+   * a subscriber when it has an owner/admin who is staff (not a customer
+   * contact), or when it has a provisioned (is_custom) subscription. Sign-ups
+   * don't create a subscription row, so those fields come from the company.
    */
   static async getProvisionedCustomers(
     options: {
@@ -318,45 +325,100 @@ export class AdminProvisioningService {
     } = {}
   ) {
     try {
-      // Query the database for provisioned customers
-      const customers = await CustomerSubscription.db('customer_subscriptions as cs')
-        .join('companies as c', 'cs.company_id', 'c.id')
-        .join('users as u', 'cs.user_id', 'u.id')
-        .where('cs.is_custom', true)
+      const db = CustomerSubscription.db;
+      const rows = await db
         .select(
+          'c.id as company_id',
+          'c.name as company_name',
+          'c.domain',
+          'c.is_active',
+          'c.is_trial',
+          'c.trial_ends_at',
+          'c.max_users',
+          'c.max_tickets_per_month',
+          'c.created_at',
           'cs.id as subscription_id',
-          'cs.status',
+          'cs.status as subscription_status',
           'cs.limits',
           'cs.current_period_start',
           'cs.current_period_end',
-          'c.id as company_id',
-          'c.name as company_name',
-          'u.id as admin_id',
-          'u.email as admin_email',
-          'u.first_name',
-          'u.last_name'
+          'adm.id as admin_id',
+          'adm.email as admin_email',
+          'adm.first_name',
+          'adm.last_name',
+          db.raw(
+            `(SELECT count(*) FROM user_company_associations a
+                JOIN users u ON u.id = a.user_id
+               WHERE a.company_id = c.id AND u.role <> 'customer')::int AS staff_count`
+          )
         )
+        .from('companies as c')
+        .joinRaw(
+          `LEFT JOIN LATERAL (
+             SELECT * FROM customer_subscriptions s
+              WHERE s.company_id = c.id AND s.is_custom = true
+              ORDER BY s.created_at DESC LIMIT 1
+           ) cs ON true`
+        )
+        .joinRaw(
+          `LEFT JOIN LATERAL (
+             SELECT u.* FROM user_company_associations a
+               JOIN users u ON u.id = a.user_id
+              WHERE a.company_id = c.id
+                AND a.role IN ('owner', 'admin')
+                AND u.role IN ('admin', 'employee', 'team_lead')
+              ORDER BY (a.role = 'owner') DESC, a.created_at ASC LIMIT 1
+           ) adm ON true`
+        )
+        .where((q) => q.whereNotNull('adm.id').orWhereNotNull('cs.id'))
+        .orderBy('c.created_at', 'desc')
         .limit(options.limit || 50)
         .offset(options.offset || 0);
 
-      return customers.map((customer: any) => ({
-        subscriptionId: customer.subscription_id,
-        status: customer.status,
-        limits: customer.limits || {},
-        currentPeriod: {
-          start: customer.current_period_start,
-          end: customer.current_period_end,
-        },
-        company: {
-          id: customer.company_id,
-          name: customer.company_name,
-        },
-        admin: {
-          id: customer.admin_id,
-          email: customer.admin_email,
-          name: `${customer.first_name} ${customer.last_name}`,
-        },
-      }));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const customers = rows.map((row: any) => {
+        let status: string = row.subscription_status;
+        if (!status) {
+          if (!row.is_active) status = 'suspended';
+          else if (row.is_trial) {
+            status =
+              row.trial_ends_at && new Date(row.trial_ends_at) < today ? 'trial_expired' : 'trial';
+          } else status = 'active';
+        }
+
+        return {
+          subscriptionId: row.subscription_id || null,
+          source: row.subscription_id ? 'provisioned' : 'signup',
+          status,
+          limits: row.limits || {
+            maxUsers: row.max_users,
+            maxActiveTickets: row.max_tickets_per_month,
+            storageQuotaGB: null,
+          },
+          currentPeriod: {
+            start: row.current_period_start || row.created_at,
+            end: row.current_period_end || row.trial_ends_at || null,
+          },
+          company: {
+            id: row.company_id,
+            name: row.company_name,
+            domain: row.domain,
+          },
+          admin: row.admin_id
+            ? {
+                id: row.admin_id,
+                email: row.admin_email,
+                name: `${row.first_name || ''} ${row.last_name || ''}`.trim(),
+              }
+            : null,
+          staffCount: row.staff_count,
+          createdAt: row.created_at,
+        };
+      });
+
+      return options.status ? customers.filter((c) => c.status === options.status) : customers;
     } catch (error) {
       console.error('Failed to get provisioned customers - DETAILED ERROR:', error);
       logger.error('Failed to get provisioned customers', {

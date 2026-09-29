@@ -39,7 +39,7 @@ const SuperAdminDashboard: React.FC = () => {
       setStats({
         totalCustomers: customers.length,
         activeSubscriptions: customers.filter((c: any) => c.status === 'active').length,
-        trialSubscriptions: customers.filter((c: any) => c.status === 'trialing').length,
+        trialSubscriptions: customers.filter((c: any) => c.status === 'trial').length,
         totalRevenue: 0, // Calculate from pricing data
       });
     } catch (error) {

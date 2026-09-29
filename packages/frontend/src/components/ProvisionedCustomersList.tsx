@@ -2,27 +2,34 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getApiBaseUrl } from '../services/api';
 
+// A subscriber: a company that signed up at bomizzel.com or was provisioned
+// here. Sign-ups have no subscription row yet, so subscriptionId is null and
+// the Update / Disable / Delete actions (which work on a subscription) are hidden.
 interface Customer {
-  subscriptionId: string;
+  subscriptionId: string | null;
+  source: 'signup' | 'provisioned';
   status: string;
   limits: {
-    maxUsers: number;
-    maxActiveTickets: number;
-    storageQuotaGB: number;
+    maxUsers: number | null;
+    maxActiveTickets: number | null;
+    storageQuotaGB: number | null;
   };
   currentPeriod: {
     start: string;
-    end: string;
+    end: string | null;
   };
   company: {
     id: string;
     name: string;
+    domain?: string;
   };
   admin: {
     id: string;
     email: string;
     name: string;
-  };
+  } | null;
+  staffCount: number;
+  createdAt: string;
 }
 
 const ProvisionedCustomersList: React.FC = () => {
@@ -169,9 +176,9 @@ const ProvisionedCustomersList: React.FC = () => {
   const openUpdateModal = (customer: Customer) => {
     setSelectedCustomer(customer.subscriptionId);
     setUpdateLimits({
-      maxUsers: customer.limits.maxUsers,
-      storageQuotaGB: customer.limits.storageQuotaGB,
-      maxActiveTickets: customer.limits.maxActiveTickets,
+      maxUsers: customer.limits.maxUsers ?? 0,
+      storageQuotaGB: customer.limits.storageQuotaGB ?? 0,
+      maxActiveTickets: customer.limits.maxActiveTickets ?? 0,
       reason: '',
     });
     setShowUpdateModal(true);
@@ -197,7 +204,7 @@ const ProvisionedCustomersList: React.FC = () => {
     <div>
       <div className="mb-4 flex justify-between items-center">
         <h2 className="text-lg font-medium text-gray-900">
-          {customers.length} Provisioned Customer{customers.length !== 1 ? 's' : ''}
+          {customers.length} Subscriber{customers.length !== 1 ? 's' : ''}
         </h2>
         <button
           onClick={fetchCustomers}
@@ -230,9 +237,9 @@ const ProvisionedCustomersList: React.FC = () => {
               d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
             />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No customers yet</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No subscribers yet</h3>
           <p className="mt-1 text-sm text-gray-500">
-            Get started by provisioning your first customer.
+            Companies that sign up or that you provision will show here.
           </p>
         </div>
       ) : (
@@ -260,14 +267,19 @@ const ProvisionedCustomersList: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {customers.map((customer) => (
-                <tr key={customer.subscriptionId}>
+                <tr key={customer.company.id}>
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
                     <div className="font-medium text-gray-900">{customer.company.name}</div>
-                    <div className="text-gray-500">{customer.company.id}</div>
+                    <div className="text-gray-500">{customer.company.domain}</div>
+                    <div className="text-gray-400 text-xs">
+                      {customer.source === 'signup' ? 'Signed up' : 'Provisioned'}{' '}
+                      {new Date(customer.createdAt).toLocaleDateString()} · {customer.staffCount}{' '}
+                      staff
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>{customer.admin.name}</div>
-                    <div className="text-gray-400">{customer.admin.email}</div>
+                    <div>{customer.admin?.name || '—'}</div>
+                    <div className="text-gray-400">{customer.admin?.email}</div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm">
                     <span
@@ -285,44 +297,57 @@ const ProvisionedCustomersList: React.FC = () => {
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>Users: {customer.limits.maxUsers}</div>
-                    <div>Tickets: {customer.limits.maxActiveTickets}</div>
-                    <div>Storage: {customer.limits.storageQuotaGB}GB</div>
+                    <div>Users: {customer.limits.maxUsers ?? '—'}</div>
+                    <div>Tickets: {customer.limits.maxActiveTickets ?? '—'}</div>
+                    <div>
+                      Storage:{' '}
+                      {customer.limits.storageQuotaGB != null
+                        ? `${customer.limits.storageQuotaGB}GB`
+                        : '—'}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     <div>{new Date(customer.currentPeriod.start).toLocaleDateString()}</div>
                     <div className="text-gray-400">
-                      to {new Date(customer.currentPeriod.end).toLocaleDateString()}
+                      {customer.currentPeriod.end
+                        ? `to ${new Date(customer.currentPeriod.end).toLocaleDateString()}`
+                        : ''}
                     </div>
                   </td>
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => openUpdateModal(customer)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Update
-                    </button>
-                    {customer.status === 'suspended' ? (
-                      <button
-                        onClick={() => handleEnableCustomer(customer.subscriptionId)}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        Enable
-                      </button>
+                    {customer.subscriptionId ? (
+                      <>
+                        <button
+                          onClick={() => openUpdateModal(customer)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          Update
+                        </button>
+                        {customer.status === 'suspended' ? (
+                          <button
+                            onClick={() => handleEnableCustomer(customer.subscriptionId!)}
+                            className="text-green-600 hover:text-green-900"
+                          >
+                            Enable
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleDisableCustomer(customer.subscriptionId!)}
+                            className="text-yellow-600 hover:text-yellow-900"
+                          >
+                            Disable
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteCustomer(customer.subscriptionId!)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        onClick={() => handleDisableCustomer(customer.subscriptionId)}
-                        className="text-yellow-600 hover:text-yellow-900"
-                      >
-                        Disable
-                      </button>
+                      <span className="text-gray-400 font-normal">No subscription yet</span>
                     )}
-                    <button
-                      onClick={() => handleDeleteCustomer(customer.subscriptionId)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
                   </td>
                 </tr>
               ))}
