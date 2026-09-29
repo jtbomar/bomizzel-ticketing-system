@@ -2,7 +2,9 @@ import { Router } from 'express';
 import { SubscriptionService } from '@/services/SubscriptionService';
 import { UsageTrackingService } from '@/services/UsageTrackingService';
 import { TrialManagementService } from '@/services/TrialManagementService';
-import { authenticate, authorize } from '@/middleware/auth';
+import { authenticate } from '@/middleware/auth';
+// The /admin/* and trial-extend routes act on every subscriber's subscription.
+import { requirePlatformAdmin } from '@/middleware/platformAdmin';
 import { validateRequest } from '@/utils/validation';
 import { AppError } from '@/middleware/errorHandler';
 
@@ -576,7 +578,7 @@ router.get(
 router.post(
   '/:subscriptionId/trial/extend',
   authenticate,
-  authorize('admin'),
+  requirePlatformAdmin,
   validateRequest(subscriptionValidation.uuidParam),
   validateRequest(subscriptionValidation.extendTrial),
   async (req, res, next) => {
@@ -606,7 +608,7 @@ router.post(
  * GET /subscriptions/admin/stats
  * Get subscription statistics (Admin only)
  */
-router.get('/admin/stats', authenticate, authorize('admin'), async (req, res, next) => {
+router.get('/admin/stats', authenticate, requirePlatformAdmin, async (req, res, next) => {
   try {
     // Get expired trials
     const expiredTrials = await SubscriptionService.getExpiredTrials();
@@ -642,7 +644,7 @@ router.get('/admin/stats', authenticate, authorize('admin'), async (req, res, ne
 router.get(
   '/admin/users-approaching-limits',
   authenticate,
-  authorize('admin'),
+  requirePlatformAdmin,
   validateRequest({
     query: {
       threshold: { type: 'number', required: false, min: 50, max: 100 },
@@ -670,7 +672,7 @@ router.get(
 router.post(
   '/admin/process-expired-trials',
   authenticate,
-  authorize('admin'),
+  requirePlatformAdmin,
   async (req, res, next) => {
     try {
       const result = await TrialManagementService.processExpiredTrials();
@@ -693,7 +695,7 @@ router.post(
 router.post(
   '/admin/send-trial-reminders',
   authenticate,
-  authorize('admin'),
+  requirePlatformAdmin,
   async (req, res, next) => {
     try {
       const result = await TrialManagementService.sendTrialReminders();

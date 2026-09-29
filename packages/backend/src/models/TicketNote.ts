@@ -75,10 +75,16 @@ export class TicketNote extends BaseModel {
     authorId?: string;
     isInternal?: boolean;
     isEmailGenerated?: boolean;
+    ticketScope?: any;
     limit?: number;
     offset?: number;
   }): Promise<TicketNoteTable[]> {
     let query = this.query;
+
+    // Subquery of ticket ids the caller may see (tenant scope)
+    if (options.ticketScope) {
+      query = query.whereIn('ticket_id', options.ticketScope);
+    }
 
     if (options.query) {
       query = query.where('content', 'ilike', `%${options.query}%`);

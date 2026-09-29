@@ -17,10 +17,30 @@ declare global {
         organizationId?: string;
         companyId?: string;
         companies?: string[];
+        // The subscriber (SaaS account) this user belongs to. Every query for
+        // tenant data must filter on it. Undefined when the user belongs to no
+        // subscriber - such a user must see no tenant data at all.
+        tenantId?: string;
       };
     }
   }
 }
+
+/**
+ * The subscriber (SaaS account) a user belongs to.
+ *
+ * Staff belong to their subscriber's company directly; contacts belong to
+ * accounts, whose subscriber_id names the subscriber. Worked out from the
+ * user's memberships, not from users.current_org_id, which only picks between
+ * them when there is more than one.
+ */
+export const resolveTenantId = (
+  currentOrgId: string | null | undefined,
+  userCompanies: Array<{ companyId: string; subscriberId?: string | null }>
+): string | undefined => {
+  const tenantIds = [...new Set(userCompanies.map((uc) => uc.subscriberId || uc.companyId))];
+  return currentOrgId && tenantIds.includes(currentOrgId) ? currentOrgId : tenantIds[0];
+};
 
 /**
  * Middleware to authenticate requests using JWT tokens
@@ -65,6 +85,8 @@ export const authenticate = async (
     const userCompanies = await User.getUserCompanies(user.id);
     const companyIds = userCompanies.map((uc) => uc.companyId);
 
+    const tenantId = resolveTenantId(user.current_org_id, userCompanies);
+
     // Attach user info to request with organization and company context
     req.user = {
       id: user.id,
@@ -74,6 +96,7 @@ export const authenticate = async (
       organizationId: organizationId, // Organization for service provider employees
       companyId: companyIds[0], // Primary company for customers
       companies: companyIds, // All associated companies for customers
+      tenantId,
     };
 
     next();
@@ -133,11 +156,14 @@ export const optionalAuth = async (
       const user = await User.findById(payload.userId);
 
       if (user && user.is_active) {
+        const userCompanies = await User.getUserCompanies(user.id);
         req.user = {
           id: user.id,
           email: user.email,
           role: user.role,
           isActive: user.is_active,
+          companies: userCompanies.map((uc) => uc.companyId),
+          tenantId: resolveTenantId(user.current_org_id, userCompanies),
         };
       }
     }

@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { requestId } from './middleware/requestId';
 import { ipFilter, requestTimeout, validateUserAgent } from './middleware/security';
@@ -14,6 +14,8 @@ import { connectRedis } from './config/redis';
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
 import { ForbiddenError } from './utils/errors';
+import { authenticate, authorize } from './middleware/auth';
+import { requireTenantId } from './utils/tenant';
 
 // Load environment variables first
 dotenv.config();
@@ -147,190 +149,75 @@ const routes = require('./routes').default;
 app.use('/api', routes);
 console.log('✅ API routes registered successfully');
 
-// Company profile endpoints with database persistence
-app.get('/api/company-registration/profile', async (req: Request, res: Response) => {
-  try {
-    const { db } = await import('./config/database');
+// Branding (the Rebranding page). Each subscriber has its own company_profiles
+// row. These had no authentication and read/wrote one global row, so anyone on
+// the internet could change the branding.
+app.get(
+  '/api/company-registration/branding',
+  authenticate,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { db } = await import('./config/database');
+      const tenantId = requireTenantId(req.user);
 
-    // Get the first company profile (for now, we'll use a single profile)
-    const profile = await db('company_profiles').first();
+      const branding = await db('company_profiles').where('company_id', tenantId).first();
 
-    if (profile) {
-      res.json({
-        success: true,
-        data: {
-          id: profile.id,
-          name: profile.company_id, // We'll use company name from companies table later
-          logo: profile.logo,
-          website: profile.website,
-          primaryContact: profile.primary_contact,
-          primaryEmail: profile.primary_email,
-          primaryPhone: profile.primary_phone,
-          address: profile.address,
-          phoneNumbers: profile.phone_numbers,
-        },
-      });
-    } else {
-      // Return default data if no profile exists
-      res.json({
-        success: true,
-        data: {
-          id: null,
-          name: 'Bomizzel Services Inc.',
-          logo: '',
-          website: 'https://bomizzel.com',
-          primaryContact: 'Jeff Bomar',
-          primaryEmail: 'jeffrey.t.bomar@gmail.com',
-          primaryPhone: '(555) 123-4567',
-          address: {
-            street: '123 Business Street',
-            city: 'San Francisco',
-            state: 'CA',
-            zipCode: '94102',
-            country: 'United States',
+      if (branding) {
+        res.json({
+          success: true,
+          data: {
+            logo: branding.logo,
+            favicon: branding.favicon,
+            linkbackUrl: branding.linkback_url,
+            companyName: branding.company_name,
+            tagline: branding.tagline,
+            primaryColor: branding.primary_color,
+            secondaryColor: branding.secondary_color,
+            accentColor: branding.accent_color,
           },
-          phoneNumbers: {
-            main: '(555) 123-4567',
-            fax: '(555) 123-4568',
-            support: '(555) 123-4569',
-          },
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching company profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch company profile',
-    });
-  }
-});
-
-app.put('/api/company-registration/profile', async (req: Request, res: Response) => {
-  try {
-    const { db } = await import('./config/database');
-    const {
-      name,
-      logo,
-      website,
-      primaryContact,
-      primaryEmail,
-      primaryPhone,
-      address,
-      phoneNumbers,
-    } = req.body;
-
-    // Check if profile exists
-    const existingProfile = await db('company_profiles').first();
-
-    if (existingProfile) {
-      // Update existing profile
-      await db('company_profiles')
-        .where({ id: existingProfile.id })
-        .update({
-          logo,
-          website,
-          primary_contact: primaryContact,
-          primary_email: primaryEmail,
-          primary_phone: primaryPhone,
-          address: JSON.stringify(address),
-          phone_numbers: JSON.stringify(phoneNumbers),
-          updated_at: db.fn.now(),
         });
-    } else {
-      // Create new profile
-      await db('company_profiles').insert({
+      } else {
+        const company = await db('companies').where('id', tenantId).first('name');
+        res.json({
+          success: true,
+          data: {
+            logo: '',
+            favicon: '',
+            linkbackUrl: '',
+            companyName: company?.name || '',
+            tagline: '',
+            primaryColor: '#3B82F6',
+            secondaryColor: '#1E40AF',
+            accentColor: '#10B981',
+          },
+        });
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+app.put(
+  '/api/company-registration/branding',
+  authenticate,
+  authorize('admin'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { db } = await import('./config/database');
+      const tenantId = requireTenantId(req.user);
+      const {
         logo,
-        website,
-        primary_contact: primaryContact,
-        primary_email: primaryEmail,
-        primary_phone: primaryPhone,
-        address: JSON.stringify(address),
-        phone_numbers: JSON.stringify(phoneNumbers),
-      });
-    }
+        favicon,
+        linkbackUrl,
+        companyName,
+        tagline,
+        primaryColor,
+        secondaryColor,
+        accentColor,
+      } = req.body;
 
-    res.json({
-      success: true,
-      message: 'Company profile updated successfully',
-      data: req.body,
-    });
-  } catch (error) {
-    console.error('Error updating company profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update company profile',
-    });
-  }
-});
-
-// Branding endpoints
-app.get('/api/company-registration/branding', async (req: Request, res: Response) => {
-  try {
-    const { db } = await import('./config/database');
-
-    // Get the first branding profile
-    const branding = await db('company_profiles').first();
-
-    if (branding) {
-      res.json({
-        success: true,
-        data: {
-          logo: branding.logo,
-          favicon: branding.favicon,
-          linkbackUrl: branding.linkback_url,
-          companyName: branding.company_name,
-          tagline: branding.tagline,
-          primaryColor: branding.primary_color,
-          secondaryColor: branding.secondary_color,
-          accentColor: branding.accent_color,
-        },
-      });
-    } else {
-      // Return default branding data
-      res.json({
-        success: true,
-        data: {
-          logo: '',
-          favicon: '',
-          linkbackUrl: 'https://bomizzel.com',
-          companyName: 'Bomizzel Services Inc.',
-          tagline: 'Professional Ticketing Solutions',
-          primaryColor: '#3B82F6',
-          secondaryColor: '#1E40AF',
-          accentColor: '#10B981',
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching branding data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch branding data',
-    });
-  }
-});
-
-app.put('/api/company-registration/branding', async (req: Request, res: Response) => {
-  try {
-    const { db } = await import('./config/database');
-    const {
-      logo,
-      favicon,
-      linkbackUrl,
-      companyName,
-      tagline,
-      primaryColor,
-      secondaryColor,
-      accentColor,
-    } = req.body;
-
-    // Check if profile exists
-    const existingProfile = await db('company_profiles').first();
-
-    if (existingProfile) {
-      // Update existing profile
-      await db('company_profiles').where({ id: existingProfile.id }).update({
+      const fields = {
         logo,
         favicon,
         linkback_url: linkbackUrl,
@@ -339,46 +226,28 @@ app.put('/api/company-registration/branding', async (req: Request, res: Response
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         accent_color: accentColor,
-        updated_at: db.fn.now(),
+      };
+
+      const existingProfile = await db('company_profiles').where('company_id', tenantId).first();
+      if (existingProfile) {
+        await db('company_profiles')
+          .where({ id: existingProfile.id, company_id: tenantId })
+          .update({ ...fields, updated_at: db.fn.now() });
+      } else {
+        await db('company_profiles').insert({ ...fields, company_id: tenantId });
+      }
+
+      res.json({
+        success: true,
+        message: 'Branding updated successfully',
+        data: req.body,
       });
-    } else {
-      // Create new profile
-      await db('company_profiles').insert({
-        logo,
-        favicon,
-        linkback_url: linkbackUrl,
-        company_name: companyName,
-        tagline,
-        primary_color: primaryColor,
-        secondary_color: secondaryColor,
-        accent_color: accentColor,
-      });
+    } catch (error) {
+      next(error);
     }
-
-    res.json({
-      success: true,
-      message: 'Branding updated successfully',
-      data: req.body,
-    });
-  } catch (error) {
-    console.error('Error updating branding data:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update branding data',
-    });
   }
-});
+);
 
-// Setup endpoint for running migrations
-try {
-  const setupRoutes = require('./routes/setup').default;
-  app.use('/api/setup', setupRoutes);
-  console.log('🔧 Setup routes registered');
-} catch (error) {
-  console.warn('⚠️ Could not register setup routes:', error);
-}
-
-// Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
   res.json({
     status: 'ok',

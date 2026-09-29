@@ -14,6 +14,7 @@ import {
 } from '@/middleware/subscriptionEnforcement';
 import { db } from '@/config/database';
 import { apiRateLimiter } from '@/middleware/rateLimiter';
+import { getTicketInTenant, requireStaff, requireTenantId } from '@/utils/tenant';
 
 const router = Router();
 
@@ -450,7 +451,7 @@ router.get(
 
 /**
  * POST /tickets/delete-all
- * Delete all tickets (admin only, for cleanup)
+ * Delete all of the caller's subscriber's tickets (admin only, for cleanup)
  */
 router.post('/delete-all', authenticate, async (req, res, next) => {
   try {
@@ -462,7 +463,8 @@ router.post('/delete-all', authenticate, async (req, res, next) => {
       });
     }
 
-    const deleted = await db('tickets').del();
+    // This used to delete every ticket on the platform, every subscriber's.
+    const deleted = await db('tickets').where('org_id', requireTenantId(req.user)).del();
 
     return res.json({
       success: true,
@@ -476,16 +478,15 @@ router.post('/delete-all', authenticate, async (req, res, next) => {
 
 /**
  * DELETE /tickets/:ticketId
- * Delete a single ticket (admin and employee)
+ * Delete a single ticket (staff of the ticket's subscriber only)
  */
-router.delete('/:ticketId', authenticate, async (req, res, next) => {
+router.delete('/:ticketId', authenticate, requireStaff, async (req, res, next) => {
   try {
     const { ticketId } = req.params;
 
-    const ticket = await db('tickets').where('id', ticketId).first();
-    if (!ticket) {
-      return res.status(404).json({ success: false, message: 'Ticket not found' });
-    }
+    // Had no role or tenant check: any signed-in user, contacts included, could
+    // delete any ticket on the platform.
+    await getTicketInTenant(req.user, ticketId);
 
     // Delete related records first
     await db('ticket_notes').where('ticket_id', ticketId).del();

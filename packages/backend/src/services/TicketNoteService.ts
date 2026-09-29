@@ -161,6 +161,7 @@ export class TicketNoteService {
       authorId?: string;
       isInternal?: boolean;
       isEmailGenerated?: boolean;
+      ticketScope?: any; // subquery of ticket ids the caller may see
       page?: number;
       limit?: number;
     } = {}
@@ -172,6 +173,7 @@ export class TicketNoteService {
     const searchOptions: any = { limit, offset };
     if (options.query) searchOptions.query = options.query;
     if (options.ticketIds) searchOptions.ticketIds = options.ticketIds;
+    if (options.ticketScope) searchOptions.ticketScope = options.ticketScope;
     if (options.authorId) searchOptions.authorId = options.authorId;
     if (options.isInternal !== undefined) searchOptions.isInternal = options.isInternal;
     if (options.isEmailGenerated !== undefined)

@@ -5,6 +5,8 @@ import { AuthService } from '@/services/AuthService';
 import { EmailService } from '@/services/EmailService';
 import { TicketService } from '@/services/TicketService';
 import { CompanyService } from '@/services/CompanyService';
+import { User } from '@/models/User';
+import { JWTUtils } from '@/utils/jwt';
 import { TeamService } from '@/services/TeamService';
 import { QueueService } from '@/services/QueueService';
 
@@ -20,6 +22,7 @@ describe('Email API', () => {
   let queueId: string;
   let ticketId: string;
   let templateId: string;
+  let platformAdminToken: string;
 
   beforeAll(async () => {
     // Clean up database
@@ -42,6 +45,21 @@ describe('Email API', () => {
     employeeId = employee.user.id;
     employeeToken = employee.tokens.accessToken;
 
+    // Templates are shared by the whole platform and /email/status shows the
+    // SMTP settings, so only a platform admin may change or see them.
+    const platformAdmin = await User.createUser({
+      email: 'jeff@bomizzel.com',
+      password: 'password123',
+      firstName: 'Platform',
+      lastName: 'Admin',
+      role: 'admin',
+    });
+    platformAdminToken = JWTUtils.generateAccessToken({
+      userId: platformAdmin.id,
+      email: platformAdmin.email,
+      role: platformAdmin.role,
+    });
+
     // Create test company
     const company = await CompanyService.createCompany(
       {
@@ -51,6 +69,13 @@ describe('Email API', () => {
       employeeId
     );
     companyId = company.id;
+
+    // The employee is staff of this company (the subscriber).
+    await db('user_company_associations').insert({
+      user_id: employeeId,
+      company_id: companyId,
+      role: 'admin',
+    });
 
     // Create test team
     const team = await TeamService.createTeam(
@@ -223,7 +248,7 @@ describe('Email API', () => {
     it('should return email service status', async () => {
       const response = await request(app)
         .get('/api/email/status')
-        .set('Authorization', `Bearer ${employeeToken}`);
+        .set('Authorization', `Bearer ${platformAdminToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -243,7 +268,7 @@ describe('Email API', () => {
       it('should create email template', async () => {
         const response = await request(app)
           .post('/api/email/templates')
-          .set('Authorization', `Bearer ${employeeToken}`)
+          .set('Authorization', `Bearer ${platformAdminToken}`)
           .send({
             name: 'test_template',
             subject: 'Test Template: {{ticket.title}}',
@@ -260,7 +285,7 @@ describe('Email API', () => {
       it('should validate template fields', async () => {
         const response = await request(app)
           .post('/api/email/templates')
-          .set('Authorization', `Bearer ${employeeToken}`)
+          .set('Authorization', `Bearer ${platformAdminToken}`)
           .send({
             // An empty subject is rejected by the request schema first, with
             // VALIDATION_ERROR, so INVALID_TEMPLATE was unreachable. Send a
@@ -326,7 +351,7 @@ describe('Email API', () => {
       it('should update template', async () => {
         const response = await request(app)
           .put(`/api/email/templates/${templateId}`)
-          .set('Authorization', `Bearer ${employeeToken}`)
+          .set('Authorization', `Bearer ${platformAdminToken}`)
           .send({
             subject: 'Updated Template: {{ticket.title}}',
             htmlBody: '<p>Updated HTML content</p>',
@@ -360,7 +385,7 @@ describe('Email API', () => {
       it('should delete template', async () => {
         const response = await request(app)
           .delete(`/api/email/templates/${templateId}`)
-          .set('Authorization', `Bearer ${employeeToken}`);
+          .set('Authorization', `Bearer ${platformAdminToken}`);
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);

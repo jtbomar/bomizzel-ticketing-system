@@ -2,6 +2,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { TicketNoteService } from '@/services/TicketNoteService';
 import { authenticate } from '@/middleware/auth';
+import { AppError } from '@/middleware/errorHandler';
+import { db } from '@/config/database';
+import { canAccessTicket, getTicketInTenant, isStaff, requireTenantId } from '@/utils/tenant';
 import { validateRequest } from '@/utils/validation';
 import { CreateNoteRequest } from '@/types/models';
 
@@ -22,6 +25,32 @@ router.use(authenticate);
 const noteRouter = Router();
 noteRouter.use(authenticate);
 
+// Notes are only reachable through a ticket the caller may see (their own
+// subscriber's for staff, their own account's for contacts), and contacts
+// never see or write internal notes. None of these routes checked the ticket
+// before, so anyone signed in could read and post notes on any ticket.
+router.param('ticketId', async (req, _res, next, ticketId) => {
+  try {
+    await getTicketInTenant(req.user, ticketId);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+noteRouter.param('noteId', async (req, _res, next, noteId) => {
+  try {
+    const note = await db('ticket_notes').where('id', noteId).first('ticket_id', 'is_internal');
+    const ticket = note && (await db('tickets').where('id', note.ticket_id).first());
+    if (!note || !ticket || !canAccessTicket(req.user, ticket) || (note.is_internal && !isStaff(req.user))) {
+      throw new AppError('Note not found', 404, 'NOTE_NOT_FOUND');
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post(
   '/:ticketId/notes',
   validateRequest({
@@ -36,8 +65,9 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { ticketId } = req.params;
-      const noteData: CreateNoteRequest = req.body;
+      const noteData: CreateNoteRequest = { ...req.body };
       const userId = req.user!.id;
+      if (!isStaff(req.user)) noteData.isInternal = false;
 
       const note = await TicketNoteService.createNote(ticketId, userId, noteData);
 
@@ -74,8 +104,8 @@ router.get(
       const { includeInternal, page, limit } = req.query;
       const user = req.user!;
 
-      // Customers cannot see internal notes
-      const shouldIncludeInternal = user.role === 'customer' ? false : includeInternal === 'true';
+      // Only staff see internal notes
+      const shouldIncludeInternal = isStaff(user) ? includeInternal === 'true' : false;
 
       const result = await TicketNoteService.getTicketNotes(ticketId, {
         includeInternal: shouldIncludeInternal,
@@ -110,6 +140,8 @@ router.get(
     try {
       const { ticketId } = req.params;
 
+      // The history covers internal notes too, so it's for staff only.
+      if (!isStaff(req.user)) throw new AppError('Insufficient permissions', 403, 'STAFF_ONLY');
       const history = await TicketNoteService.getNotesHistory(ticketId);
 
       res.json({
@@ -148,10 +180,17 @@ noteRouter.get(
       // Parse ticket IDs if provided
       const ticketIdArray = ticketIds ? (ticketIds as string).split(',') : undefined;
 
-      // Customers cannot search internal notes
-      const shouldIncludeInternal = user.role === 'customer' ? false : isInternal === 'true';
+      // Only staff search internal notes
+      const shouldIncludeInternal = isStaff(user) ? isInternal === 'true' : false;
+
+      // Only notes on tickets the caller may see. This searched every note on
+      // the platform.
+      const tenantId = requireTenantId(user);
+      let ticketScope = db('tickets').select('id').where('org_id', tenantId);
+      if (!isStaff(user)) ticketScope = ticketScope.whereIn('company_id', user.companies || []);
 
       const searchOptions: any = {
+        ticketScope,
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 50,
         isInternal: shouldIncludeInternal,

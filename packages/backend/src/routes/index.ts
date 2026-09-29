@@ -29,7 +29,6 @@ import subscriptionAnalyticsRoutes from './subscriptionAnalytics';
 import ticketArchivalRoutes from './ticketArchival';
 import ticketLayoutRoutes from './ticketLayouts';
 import companyRegistrationRoutes from './companyRegistration';
-import enhancedRegistrationRoutes from './enhancedRegistration';
 import adminProvisioningRoutes from './adminProvisioning';
 import dataExportRoutes from './dataExport';
 import queryBuilderRoutes from './queryBuilder';
@@ -51,7 +50,6 @@ const router = Router();
 
 // Mount route modules
 router.use('/auth', authRoutes);
-router.use('/auth', enhancedRegistrationRoutes); // Enhanced registration endpoints
 router.use('/company-registration', companyRegistrationRoutes);
 router.use('/admin/provisioning', adminProvisioningRoutes); // Admin provisioning endpoints
 
@@ -158,7 +156,6 @@ router.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       auth: '/api/auth',
-      enhancedRegistration: '/api/auth/register-enhanced',
       adminProvisioning: '/api/admin/provisioning',
       users: '/api/users',
       agents: '/api/agents',
@@ -191,42 +188,5 @@ router.get('/', (req, res) => {
   });
 });
 
-/**
- * POST /fix-departments
- * Fix department associations - reassign all to Bomizzel organization
- */
-router.post('/fix-departments', authenticate, async (req, res, next) => {
-  try {
-    // Only allow admin users
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admins can fix departments',
-      });
-    }
-
-    const { bomizzelOrgId } = req.body;
-    if (!bomizzelOrgId) {
-      return res.status(400).json({
-        success: false,
-        message: 'bomizzelOrgId is required',
-      });
-    }
-
-    const { db } = require('../config/database');
-    const updated = await db('departments').update({
-      company_id: bomizzelOrgId,
-      updated_at: db.fn.now(),
-    });
-
-    return res.json({
-      success: true,
-      updated,
-      message: `Updated ${updated} departments to Bomizzel organization`,
-    });
-  } catch (error) {
-    return next(error);
-  }
-});
 
 export default router;

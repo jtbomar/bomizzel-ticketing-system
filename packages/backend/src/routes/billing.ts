@@ -8,6 +8,8 @@ import { CustomerSubscription } from '@/models/CustomerSubscription';
 import { stripe } from '@/config/stripe';
 import { User } from '@/models/User';
 import { authenticate } from '@/middleware/auth';
+// Revenue, invoices and billing jobs span every subscriber: platform admins only.
+import { isPlatformAdmin } from '@/middleware/platformAdmin';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { validateRequest, validate } from '@/utils/validation';
@@ -542,7 +544,7 @@ router.get('/revenue-stats', authenticate, async (req, res, next) => {
     const user = req.user!;
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (!isPlatformAdmin(user)) {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 
@@ -571,7 +573,7 @@ router.get('/monthly-revenue', authenticate, async (req, res, next) => {
     const user = req.user!;
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (!isPlatformAdmin(user)) {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 
@@ -596,7 +598,7 @@ router.get('/dashboard', authenticate, async (req, res, next) => {
     const user = req.user!;
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (!isPlatformAdmin(user)) {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 
@@ -620,7 +622,7 @@ router.get('/pending-payments', authenticate, async (req, res, next) => {
     const user = req.user!;
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (!isPlatformAdmin(user)) {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 
@@ -644,7 +646,7 @@ router.post('/sync-invoice', authenticate, async (req, res, next) => {
     const user = req.user!;
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (!isPlatformAdmin(user)) {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 
@@ -681,7 +683,7 @@ router.post('/run-jobs', authenticate, async (req, res, next) => {
     const user = req.user!;
 
     // Check if user is admin
-    if (user.role !== 'admin') {
+    if (!isPlatformAdmin(user)) {
       throw new AppError('Access denied. Admin role required.', 403);
     }
 

@@ -1,12 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { CustomerQueryBuilderService } from '../services/CustomerQueryBuilderService';
 import { authenticate } from '../middleware/auth';
+import { requirePlatformAdmin } from '../middleware/platformAdmin';
 import { logger } from '../utils/logger';
 
 const router = Router();
 
-// All routes require authentication (any authenticated user can access)
-router.use(authenticate);
+// This runs SQL typed by the user, and its "scope to your company" is string
+// replacement - `OR 1=1`, a UNION, or a table it doesn't rewrite all escape it.
+// It was open to every signed-in user. Platform admins only until reports are
+// rebuilt on fixed, tenant-scoped queries.
+router.use(authenticate, requirePlatformAdmin);
 
 /**
  * POST /api/customer-query-builder/execute

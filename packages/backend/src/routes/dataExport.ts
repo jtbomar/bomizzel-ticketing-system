@@ -3,6 +3,9 @@ import { Router, Request, Response } from 'express';
 import { DataExportService, ExportOptions } from '../services/DataExportService';
 import { DataImportService, ImportOptions } from '../services/DataImportService';
 import { authenticate } from '../middleware/auth';
+import { requirePlatformAdmin } from '../middleware/platformAdmin';
+import { AppError } from '../middleware/errorHandler';
+import { db } from '../config/database';
 import { validate } from '../utils/validation';
 import Joi from 'joi';
 import { logger } from '../utils/logger';
@@ -14,6 +17,26 @@ const router = Router();
 
 // All routes require authentication
 router.use(authenticate);
+
+/**
+ * Exports hold a subscriber's tickets (internal notes included) and users, so
+ * only an admin of that subscriber may export, download or view history, and
+ * only for their own subscriber. Previously any member of any company could
+ * export it, and download needed no check at all.
+ */
+const assertOwnTenantAdmin = (req: Request, companyId: string): void => {
+  if (req.user?.role !== 'admin' || !req.user.tenantId || companyId !== req.user.tenantId) {
+    throw new AppError('Admin access to this company required', 403, 'ACCESS_DENIED');
+  }
+};
+
+const sendError = (res: Response, error: unknown, fallback: string): void => {
+  if (error instanceof AppError) {
+    res.status(error.statusCode).json({ success: false, message: error.message });
+    return;
+  }
+  res.status(500).json({ success: false, message: fallback });
+};
 
 // Validation schemas
 const exportSchema = Joi.object({
@@ -45,6 +68,7 @@ router.post(
     try {
       const userId = req.user!.id;
       const { companyId, ...options } = req.body as ExportOptions & { companyId: string };
+      assertOwnTenantAdmin(req, companyId);
 
       logger.info('Export request received', { userId, companyId, options });
 
@@ -56,6 +80,7 @@ router.post(
         data: result,
       });
     } catch (error) {
+      if (error instanceof AppError) return sendError(res, error, 'Export failed');
       logger.error('Export failed', { error });
       res.status(500).json({
         success: false,
@@ -73,7 +98,26 @@ router.post(
 router.get('/download/:exportId/:fileName', async (req: Request, res: Response): Promise<void> => {
   try {
     const { exportId, fileName } = req.params;
-    const filePath = path.join(process.cwd(), 'exports', exportId, fileName);
+
+    // Only a file from an export of the caller's own subscriber, and only a
+    // plain file name - this joined `..` straight into the path, so it could
+    // read any file on the server.
+    const log = await db('data_export_logs').where('export_id', exportId).first();
+    if (!log) {
+      res.status(404).json({ success: false, message: 'Export file not found or has expired' });
+      return;
+    }
+    assertOwnTenantAdmin(req, log.company_id);
+
+    const exportsDir = path.resolve(process.cwd(), 'exports');
+    const filePath = path.resolve(exportsDir, exportId, fileName);
+    if (
+      path.basename(fileName) !== fileName ||
+      !filePath.startsWith(path.join(exportsDir, exportId) + path.sep)
+    ) {
+      res.status(400).json({ success: false, message: 'Invalid file name' });
+      return;
+    }
 
     if (!fs.existsSync(filePath)) {
       res.status(404).json({
@@ -95,6 +139,7 @@ router.get('/download/:exportId/:fileName', async (req: Request, res: Response):
       }
     });
   } catch (error) {
+    if (error instanceof AppError) return sendError(res, error, 'Download failed');
     logger.error('Download failed', { error });
     res.status(500).json({
       success: false,
@@ -107,7 +152,10 @@ router.get('/download/:exportId/:fileName', async (req: Request, res: Response):
  * POST /api/data-export/import
  * Import company data from file
  */
-router.post('/import', uploadSingle, async (req: Request, res: Response): Promise<void> => {
+// Import matches existing users by email across the whole platform and can
+// overwrite them, and takes roles from the file. Platform admins only until it
+// is rebuilt to stay inside one subscriber.
+router.post('/import', requirePlatformAdmin, uploadSingle, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const file = req.file;
@@ -183,6 +231,7 @@ router.post('/import', uploadSingle, async (req: Request, res: Response): Promis
 router.get('/history/:companyId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { companyId } = req.params;
+    assertOwnTenantAdmin(req, companyId);
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
 
     const exportHistory = await DataExportService.getExportHistory(companyId, limit);
@@ -196,6 +245,7 @@ router.get('/history/:companyId', async (req: Request, res: Response): Promise<v
       },
     });
   } catch (error) {
+    if (error instanceof AppError) return sendError(res, error, 'Failed to retrieve history');
     logger.error('Failed to get history', { error });
     res.status(500).json({
       success: false,
@@ -208,7 +258,8 @@ router.get('/history/:companyId', async (req: Request, res: Response): Promise<v
  * POST /api/data-export/cleanup
  * Clean up old export files (admin only)
  */
-router.post('/cleanup', async (req: Request, res: Response): Promise<void> => {
+// Deletes every subscriber's old export files - platform admins only.
+router.post('/cleanup', requirePlatformAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     // Check if user is admin
     if (req.user!.role !== 'admin') {

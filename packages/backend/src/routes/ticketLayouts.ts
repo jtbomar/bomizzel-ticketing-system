@@ -4,8 +4,51 @@ import { ticketLayoutService } from '../services/TicketLayoutService';
 // Note: Using simple validation for now since the full middleware has issues
 import { authenticate } from '../middleware/auth';
 import Joi from 'joi';
+import { db } from '../config/database';
+import { AppError } from '../middleware/errorHandler';
+import { assertTeamInTenant, requireStaff } from '../utils/tenant';
 
 const router = Router();
+// Router-level so it runs before the router.param checks below (param
+// callbacks run before a route's own middleware).
+router.use(authenticate);
+
+// Layouts belong to a team, and teams to a subscriber. These routes had no
+// role or tenant check, so anyone signed in - contacts included - could read,
+// change or delete any subscriber's layouts. Reads: any member of the team's
+// subscriber. Writes: its staff.
+router.param('id', async (req, _res, next, id) => {
+  try {
+    const layout = await db('ticket_layouts').where('id', id).first('team_id');
+    if (!layout) throw new AppError('Layout not found', 404, 'LAYOUT_NOT_FOUND');
+    await assertTeamInTenant(layout.team_id, req.user?.tenantId);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.param('teamId', async (req, _res, next, teamId) => {
+  try {
+    await assertTeamInTenant(teamId, req.user?.tenantId);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+const teamFrom =
+  (source: 'query' | 'body') =>
+  async (req, res, next) => {
+    const teamId = req[source]?.teamId;
+    if (!teamId) return res.status(400).json({ error: 'Team ID is required' });
+    try {
+      await assertTeamInTenant(teamId, req.user?.tenantId);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 
 // Simplified validation - will add proper validation later
 
@@ -13,7 +56,7 @@ const router = Router();
  * Get all layouts for a team
  * GET /ticket-layouts?teamId=xxx
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, teamFrom('query'), async (req, res) => {
   try {
     const { teamId } = req.query;
 
@@ -76,7 +119,7 @@ router.get('/team/:teamId/default', authenticate, async (req, res) => {
  * Create a new ticket layout
  * POST /ticket-layouts
  */
-router.post('/', authenticate, async (req, res) => {
+router.post('/', authenticate, requireStaff, teamFrom('body'), async (req, res) => {
   try {
     const { teamId } = req.body;
 
@@ -96,7 +139,7 @@ router.post('/', authenticate, async (req, res) => {
  * Update a ticket layout
  * PUT /ticket-layouts/:id
  */
-router.put('/:id', authenticate, async (req, res) => {
+router.put('/:id', authenticate, requireStaff, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -117,7 +160,7 @@ router.put('/:id', authenticate, async (req, res) => {
  * Delete a ticket layout (soft delete)
  * DELETE /ticket-layouts/:id
  */
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticate, requireStaff, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -138,7 +181,7 @@ router.delete('/:id', authenticate, async (req, res) => {
  * Duplicate a ticket layout
  * POST /ticket-layouts/:id/duplicate
  */
-router.post('/:id/duplicate', authenticate, async (req, res) => {
+router.post('/:id/duplicate', authenticate, requireStaff, async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;

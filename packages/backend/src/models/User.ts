@@ -185,6 +185,7 @@ export class User extends BaseModel {
         'uca.company_id as companyId',
         'uca.role',
         'uca.created_at as createdAt',
+        'c.subscriber_id as subscriberId',
         'c.id as company_id',
         'c.name as company_name',
         'c.domain as company_domain',
@@ -199,6 +200,7 @@ export class User extends BaseModel {
       companyId: c.companyId,
       role: c.role,
       createdAt: c.createdAt,
+      subscriberId: c.subscriberId ?? null,
       company: {
         id: c.company_id,
         name: c.company_name,

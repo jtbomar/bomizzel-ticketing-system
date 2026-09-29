@@ -75,6 +75,9 @@ describe('Ticket Workflow Integration', () => {
 
     // Set up associations
     await Company.addUserToCompany(customerId, companyId);
+    // Staff belong to the company as the subscriber they work for.
+    await Company.addUserToCompany(employeeId, companyId, 'admin');
+    await Company.addUserToCompany(teamLeadId, companyId, 'admin');
     await Team.addUserToTeam(employeeId, teamId);
     await Team.addUserToTeam(teamLeadId, teamId);
 

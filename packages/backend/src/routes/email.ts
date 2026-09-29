@@ -3,6 +3,9 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { EmailService, SendEmailRequest } from '@/services/EmailService';
 import { EmailTemplateService } from '@/services/EmailTemplateService';
 import { authenticate } from '@/middleware/auth';
+import { requirePlatformAdmin } from '@/middleware/platformAdmin';
+import { getTicketInTenant, isStaff } from '@/utils/tenant';
+import { AppError } from '@/middleware/errorHandler';
 import { validateRequest } from '@/utils/validation';
 
 /**
@@ -23,8 +26,26 @@ import { validateRequest } from '@/utils/validation';
 const router = Router();
 router.use(authenticate);
 
+// Sending mail about a ticket: staff of that ticket's subscriber only. These
+// had no role or ticket check, so anyone signed in could send mail from the
+// platform address about - and add a note to - any ticket on the platform.
+router.param('ticketId', async (req, _res, next, ticketId) => {
+  try {
+    if (!isStaff(req.user)) throw new AppError('Insufficient permissions', 403, 'STAFF_ONLY');
+    await getTicketInTenant(req.user, ticketId);
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Email templates are one table shared by the whole platform, and /status
+// shows the SMTP settings: staff may read templates, only platform admins may
+// change them or see the mail settings. They were open to every signed-in user.
 const emailRouter = Router();
-emailRouter.use(authenticate);
+emailRouter.use(authenticate, (req, _res, next) =>
+  isStaff(req.user) ? next() : next(new AppError('Insufficient permissions', 403, 'STAFF_ONLY'))
+);
 
 router.post(
   '/:ticketId/email',
@@ -183,7 +204,7 @@ router.post(
  * GET /email/status
  */
 
-emailRouter.get('/status', async (_req: Request, res: Response, next: NextFunction) => {
+emailRouter.get('/status', requirePlatformAdmin, async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const isInitialized = EmailService.isInitialized();
     let isConnected = false;
@@ -221,6 +242,7 @@ emailRouter.get('/status', async (_req: Request, res: Response, next: NextFuncti
 
 emailRouter.post(
   '/templates',
+  requirePlatformAdmin,
   validateRequest({
     body: {
       name: { type: 'string', required: true, minLength: 1, maxLength: 255 },
@@ -341,6 +363,7 @@ emailRouter.get(
 
 emailRouter.put(
   '/templates/:templateId',
+  requirePlatformAdmin,
   validateRequest({
     params: {
       templateId: { type: 'string', required: true, format: 'uuid' },
@@ -388,6 +411,7 @@ emailRouter.put(
 
 emailRouter.delete(
   '/templates/:templateId',
+  requirePlatformAdmin,
   validateRequest({
     params: {
       templateId: { type: 'string', required: true, format: 'uuid' },

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { UsageAlertService } from '@/services/UsageAlertService';
 import { UsageTrackingService } from '@/services/UsageTrackingService';
 import { authenticate } from '@/middleware/auth';
+import { isPlatformAdmin } from '@/middleware/platformAdmin';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 
@@ -153,8 +154,8 @@ router.get('/can-complete-ticket', authenticate, async (req, res, next) => {
  */
 router.post('/check-all-users', authenticate, async (req, res, next) => {
   try {
-    const userRole = req.user?.role;
-    if (userRole !== 'admin' && userRole !== 'team_lead') {
+    // Checks every user on the platform: platform admins only.
+    if (!isPlatformAdmin(req.user)) {
       throw new AppError('Insufficient permissions', 403);
     }
 

@@ -43,6 +43,9 @@ export interface UserCompanyAssociation {
   companyId: string;
   role: string;
   createdAt: Date;
+  // The subscriber that owns this company when it is an account; null when the
+  // company is itself a subscriber.
+  subscriberId?: string | null;
   company?: Company;
 }
 

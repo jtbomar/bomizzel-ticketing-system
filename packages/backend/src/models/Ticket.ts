@@ -24,15 +24,18 @@ export class Ticket extends BaseModel {
     teamId: string;
     customFieldValues?: Record<string, any>;
   }): Promise<TicketTable> {
+    // org_id is the subscriber (tenant) the ticket belongs to; company_id is the
+    // account. For an account that is companies.subscriber_id; for a ticket
+    // raised against the subscriber itself it is the company.
+    const company = await this.db('companies')
+      .where('id', ticketData.companyId)
+      .first('id', 'subscriber_id');
     return this.create({
       title: ticketData.title,
       description: ticketData.description,
       submitter_id: ticketData.submitterId,
       company_id: ticketData.companyId,
-      // org_id is a foreign key to companies(id) and the multi-tenancy migration
-      // backfills it from company_id. It was not being set on insert, so every
-      // ticket created after that migration had org_id = NULL.
-      org_id: ticketData.companyId,
+      org_id: company?.subscriber_id || ticketData.companyId,
       queue_id: ticketData.queueId,
       team_id: ticketData.teamId,
       custom_field_values: ticketData.customFieldValues || {},

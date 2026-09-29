@@ -20,7 +20,10 @@ export const registerSchema = Joi.object({
     'string.max': 'Last name must be less than 50 characters',
     'any.required': 'Last name is required',
   }),
-  role: Joi.string().valid('customer', 'employee').optional().default('customer'),
+  // Public sign-up only ever creates contacts. Staff are added by a
+  // subscriber's admin; allowing 'employee' here let anyone make themselves
+  // staff, and an employee with no team saw every ticket.
+  role: Joi.string().valid('customer').optional().default('customer'),
   selectedPlanId: Joi.string().uuid().optional().messages({
     'string.guid': 'Selected plan ID must be a valid UUID',
   }),

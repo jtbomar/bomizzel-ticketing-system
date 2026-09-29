@@ -2,7 +2,9 @@
 import { Router, Request, Response } from 'express';
 import { SystemConfigService } from '@/services/SystemConfigService';
 import { authenticate } from '@/middleware/auth';
-import { requireAdmin } from '@/middleware/requireRole';
+// System settings are global to the whole platform (SMTP password included),
+// so only platform admins may read or change them - not every subscriber's admin.
+import { requirePlatformAdmin as requireAdmin } from '@/middleware/platformAdmin';
 import { validateRequest } from '@/utils/validation';
 
 const router = Router();

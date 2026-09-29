@@ -202,7 +202,8 @@ export class AdvancedSearchService {
     // Apply sorting
     if (sortBy.startsWith('custom_field_')) {
       const customFieldName = sortBy.replace('custom_field_', '');
-      dbQuery = dbQuery.orderByRaw(`t.custom_field_values->>'${customFieldName}' ${sortOrder}`);
+      const direction = String(sortOrder).toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+      dbQuery = dbQuery.orderByRaw(`t.custom_field_values->>? ${direction}`, [customFieldName]);
     } else if (sortBy === 'submitter_name') {
       dbQuery = dbQuery
         .orderBy('submitter.first_name', sortOrder)
@@ -297,38 +298,45 @@ export class AdvancedSearchService {
     value: any,
     values?: any[]
   ): any {
-    const jsonPath = `custom_field_values->>'${fieldName}'`;
+    // The field name is passed as a bound parameter, never pasted into the SQL:
+    // it comes straight from the request, so `custom_field_x' OR 1=1 --`
+    // used to run as SQL. Each condition is wrapped in parentheses so an OR
+    // inside it can't escape the other filters (tenant scope included).
+    const jsonPath = `custom_field_values->>?`;
 
     switch (operator) {
       case 'equals':
-        return query.whereRaw(`${jsonPath} = ?`, [value]);
+        return query.whereRaw(`(${jsonPath} = ?)`, [fieldName, value]);
 
       case 'contains':
-        return query.whereRaw(`${jsonPath} ILIKE ?`, [`%${value}%`]);
+        return query.whereRaw(`(${jsonPath} ILIKE ?)`, [fieldName, `%${value}%`]);
 
       case 'starts_with':
-        return query.whereRaw(`${jsonPath} ILIKE ?`, [`${value}%`]);
+        return query.whereRaw(`(${jsonPath} ILIKE ?)`, [fieldName, `${value}%`]);
 
       case 'ends_with':
-        return query.whereRaw(`${jsonPath} ILIKE ?`, [`%${value}`]);
+        return query.whereRaw(`(${jsonPath} ILIKE ?)`, [fieldName, `%${value}`]);
 
       case 'greater_than':
-        return query.whereRaw(`(${jsonPath})::numeric > ?`, [value]);
+        return query.whereRaw(`((${jsonPath})::numeric > ?)`, [fieldName, value]);
 
       case 'less_than':
-        return query.whereRaw(`(${jsonPath})::numeric < ?`, [value]);
+        return query.whereRaw(`((${jsonPath})::numeric < ?)`, [fieldName, value]);
 
       case 'in':
-        return query.whereRaw(`${jsonPath} = ANY(?)`, [values]);
+        return query.whereRaw(`(${jsonPath} = ANY(?))`, [fieldName, values]);
 
       case 'not_in':
-        return query.whereRaw(`${jsonPath} != ALL(?)`, [values]);
+        return query.whereRaw(`(${jsonPath} != ALL(?))`, [fieldName, values]);
 
       case 'is_null':
-        return query.whereRaw(`${jsonPath} IS NULL OR ${jsonPath} = ''`);
+        return query.whereRaw(`(${jsonPath} IS NULL OR ${jsonPath} = '')`, [fieldName, fieldName]);
 
       case 'is_not_null':
-        return query.whereRaw(`${jsonPath} IS NOT NULL AND ${jsonPath} != ''`);
+        return query.whereRaw(`(${jsonPath} IS NOT NULL AND ${jsonPath} != '')`, [
+          fieldName,
+          fieldName,
+        ]);
 
       default:
         throw new ValidationError(`Unsupported operator for custom field: ${operator}`);

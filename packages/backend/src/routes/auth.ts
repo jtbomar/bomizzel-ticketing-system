@@ -271,28 +271,6 @@ router.get('/verify', authenticate, async (req, res, next) => {
 });
 
 /**
- * POST /auth/associate-company
- * Associate user with a company
- */
-router.post('/associate-company', authenticate, async (req, res, next) => {
-  try {
-    const { companyId, role = 'member' } = req.body;
-
-    if (!companyId) {
-      throw new AppError('Company ID is required', 400, 'COMPANY_ID_REQUIRED');
-    }
-
-    await AuthService.associateWithCompany(req.user!.id, companyId, role);
-
-    res.json({
-      message: 'Successfully associated with company',
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/**
  * GET /auth/me
  * Current user. The frontend calls this on every page load; it previously had no
  * implementation here and was served by a duplicate handler in index.ts.

@@ -60,6 +60,13 @@ describe('Ticket Notes API', () => {
 
     // Associate customer with company
     await CompanyService.addUserToCompany(companyId, customerId, 'member', employeeId);
+    // The employee is staff of this company (the subscriber). Without a
+    // subscriber, staff see no tickets at all.
+    await db('user_company_associations').insert({
+      user_id: employeeId,
+      company_id: companyId,
+      role: 'admin',
+    });
 
     // Create test team
     const team = await TeamService.createTeam(

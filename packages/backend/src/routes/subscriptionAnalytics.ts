@@ -1,13 +1,15 @@
 import express from 'express';
 import { SubscriptionAnalyticsService } from '@/services/SubscriptionAnalyticsService';
 import { authenticate } from '@/middleware/auth';
+import { requirePlatformAdmin } from '@/middleware/platformAdmin';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 
 const router = express.Router();
 
 // Apply authentication middleware to all routes
-router.use(authenticate);
+// Platform-wide revenue, MRR and churn: platform admins only.
+router.use(authenticate, requirePlatformAdmin);
 
 /**
  * GET /api/subscription-analytics/mrr
