@@ -32,43 +32,35 @@ try {
 
   console.log('✅ Migrations completed successfully');
 
-  // Check if we need to run seeds (if no users exist)
-  console.log('🔍 Checking if database needs seeding...');
-
-  try {
-    const checkUsersCommand = `cd ${backendDir} && npx knex raw "SELECT COUNT(*) as count FROM users" --knexfile knexfile.js --env ${env}`;
-    const userCountResult = execSync(checkUsersCommand, { encoding: 'utf-8' });
-
-    // Parse the result to check user count
-    const hasUsers =
-      userCountResult.includes('"count":"0"') === false &&
-      userCountResult.includes('count: 0') === false;
-
-    if (!hasUsers) {
-      console.log('🌱 No users found, running seeds...');
-      const seedCommand = `cd ${backendDir} && npx knex seed:run --knexfile knexfile.js --env ${env}`;
-      console.log(`⚙️  Running: ${seedCommand}`);
-
-      execSync(seedCommand, {
-        encoding: 'utf-8',
-        stdio: 'inherit',
-        shell: '/bin/bash',
-      });
-
-      console.log('✅ Seeds completed successfully');
-    } else {
-      console.log('⏭️  Users already exist, skipping seeds');
-    }
-  } catch (seedError) {
-    console.warn('⚠️  Could not check/run seeds:', seedError.message);
-    console.log('🌱 Attempting to run seeds anyway...');
+  // Seeds are test data (including logins with a password that's in this repo),
+  // so they never run in production unless ALLOW_PRODUCTION_SEED=true is set on
+  // purpose. Elsewhere they run only when the users table is empty.
+  if (env === 'production' && process.env.ALLOW_PRODUCTION_SEED !== 'true') {
+    console.log('⏭️  Production: skipping seeds (set ALLOW_PRODUCTION_SEED=true to run them)');
+  } else {
+    console.log('🔍 Checking if database needs seeding...');
 
     try {
-      const seedCommand = `cd ${backendDir} && npx knex seed:run --knexfile knexfile.js --env ${env}`;
-      execSync(seedCommand, { encoding: 'utf-8', stdio: 'inherit', shell: '/bin/bash' });
-      console.log('✅ Seeds completed successfully');
-    } catch (finalSeedError) {
-      console.warn('⚠️  Seeds failed, but continuing startup:', finalSeedError.message);
+      // Count users with knex itself (the knex CLI has no "raw" command)
+      const countScript =
+        "const k=require('knex')(require('./knexfile.js')[process.argv[1]]);" +
+        "k('users').count({c:'*'}).first().then(r=>{console.log(Number(r.c));return k.destroy()})" +
+        ".catch(e=>{console.error(e.message);process.exit(1)})";
+      const userCount = Number(
+        execSync(`node -e "${countScript}" ${env}`, { cwd: backendDir, encoding: 'utf-8' }).trim()
+      );
+
+      if (userCount === 0) {
+        console.log('🌱 No users found, running seeds...');
+        const seedCommand = `cd ${backendDir} && npx knex seed:run --knexfile knexfile.js --env ${env}`;
+        console.log(`⚙️  Running: ${seedCommand}`);
+        execSync(seedCommand, { encoding: 'utf-8', stdio: 'inherit', shell: '/bin/bash' });
+        console.log('✅ Seeds completed successfully');
+      } else {
+        console.log(`⏭️  ${userCount} users exist, skipping seeds`);
+      }
+    } catch (seedError) {
+      console.warn('⚠️  Could not check for users, skipping seeds:', seedError.message);
     }
   }
 } catch (error) {
