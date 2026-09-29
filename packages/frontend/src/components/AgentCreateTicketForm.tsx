@@ -9,6 +9,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { Team, CustomField, Ticket, User } from '../types';
+import DepartmentSelector from './DepartmentSelector';
 
 interface CustomerSearchResult {
   id: string;
@@ -74,6 +75,8 @@ const AgentCreateTicketForm: React.FC = () => {
   const [sendInvitation, setSendInvitation] = useState(true);
 
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+  // Left empty, the ticket goes to the subscriber's default department.
+  const [departmentId, setDepartmentId] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(true);
@@ -496,6 +499,7 @@ const AgentCreateTicketForm: React.FC = () => {
         teamId: formData.teamId,
         customFieldValues,
         submitterId: selectedCustomer!.id, // Set the customer as the submitter
+        ...(departmentId ? { departmentId } : {}),
       };
 
       const response = await apiService.createTicket(ticketData);
@@ -768,6 +772,19 @@ const AgentCreateTicketForm: React.FC = () => {
                 ))}
               </select>
               {errors.teamId && <p className="mt-1 text-sm text-red-600">{errors.teamId}</p>}
+            </div>
+
+            {/* Department */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+              <DepartmentSelector
+                selectedDepartmentId={departmentId}
+                onDepartmentChange={setDepartmentId}
+                showAllOption={false}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Leave blank to use your default department.
+              </p>
             </div>
 
             {/* Title */}

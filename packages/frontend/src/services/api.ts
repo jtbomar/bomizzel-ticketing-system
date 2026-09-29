@@ -185,6 +185,8 @@ class ApiService {
   // Ticket endpoints
   async getTickets(params?: {
     companyId?: string;
+    assignedToId?: string;
+    departmentId?: number;
     status?: string;
     search?: string;
     page?: number;
@@ -205,6 +207,8 @@ class ApiService {
     companyId: string;
     teamId: string;
     customFieldValues?: Record<string, any>;
+    submitterId?: string;
+    departmentId?: number;
   }): Promise<any> {
     const response = await this.client.post('/tickets', ticketData);
     return response.data;

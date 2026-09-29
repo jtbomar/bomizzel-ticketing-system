@@ -77,6 +77,14 @@ export class TicketService {
     }
 
     // Create the ticket
+    // Every ticket belongs to a department of its subscriber: the one asked
+    // for, or the subscriber's default. Tickets were created with none, so
+    // the department views all showed every ticket.
+    const departmentId = await this.resolveDepartment(
+      submitterTenant.tenantId,
+      ticketData.departmentId
+    );
+
     const ticket = await Ticket.createTicket({
       title: ticketData.title,
       description: ticketData.description,
@@ -84,6 +92,7 @@ export class TicketService {
       companyId: ticketData.companyId,
       queueId: defaultQueue.id,
       teamId: ticketData.teamId,
+      departmentId,
       customFieldValues: ticketData.customFieldValues || {},
     });
 
@@ -144,6 +153,7 @@ export class TicketService {
       companyId?: string;
       queueId?: string;
       assignedToId?: string;
+      departmentId?: number;
       status?: string;
       page?: number;
       limit?: number;
@@ -166,6 +176,10 @@ export class TicketService {
       offset,
       orgId: tenant.tenantId,
     };
+
+    if (options.departmentId) {
+      searchOptions.departmentId = options.departmentId;
+    }
 
     // Apply permission filtering based on user role
     if (userRole === 'customer') {
@@ -195,6 +209,10 @@ export class TicketService {
 
       if (options.assignedToId === userId) {
         searchOptions.assignedToId = userId;
+      } else if (options.assignedToId) {
+        // Another agent's tickets: only within this agent's own teams.
+        searchOptions.assignedToId = options.assignedToId;
+        if (teamIds.length > 0) searchOptions.teamIds = teamIds;
       } else if (teamIds.length > 0) {
         searchOptions.teamIds = teamIds;
       }
@@ -204,7 +222,11 @@ export class TicketService {
         searchOptions.companyIds = [options.companyId];
       }
     }
-    // Admins and team leads can see all tickets (no additional filtering)
+    // Admins and team leads see all of their subscriber's tickets, and can
+    // narrow to one assignee ("My tickets" was ignored for them).
+    else if (options.assignedToId) {
+      searchOptions.assignedToId = options.assignedToId;
+    }
 
     // Contacts can filter by queue, but stay limited to their own accounts'
     // tickets; the queue branch below is for staff.
@@ -815,6 +837,32 @@ export class TicketService {
         }
       }
     }
+  }
+
+  /**
+   * The department a new ticket goes to: the requested one if it belongs to
+   * the subscriber, otherwise the subscriber's default (or first) department.
+   */
+  private static async resolveDepartment(
+    tenantId: string | undefined,
+    requested?: number
+  ): Promise<number | null> {
+    if (!tenantId) return null;
+    const ownDepartments = () =>
+      Ticket.db('departments')
+        .where((q) => q.where('org_id', tenantId).orWhere('company_id', tenantId))
+        .where((q) => q.where('is_active', true).orWhereNull('is_active'));
+
+    if (requested) {
+      const row = await ownDepartments().where('id', requested).first('id');
+      if (!row) throw new ValidationError('Department not found');
+      return row.id;
+    }
+    const fallback = await ownDepartments()
+      .orderByRaw('is_default DESC NULLS LAST')
+      .orderBy('id', 'asc')
+      .first('id');
+    return fallback?.id ?? null;
   }
 
   private static async validateTicketAccess(

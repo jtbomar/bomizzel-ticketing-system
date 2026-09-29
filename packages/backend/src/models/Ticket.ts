@@ -13,6 +13,7 @@ export interface TicketSearchOptions {
   // The subscriber (tenant). Every caller-facing search sets it.
   orgId?: string;
   queueId?: string;
+  departmentId?: number;
 }
 
 export class Ticket extends BaseModel {
@@ -25,6 +26,7 @@ export class Ticket extends BaseModel {
     companyId: string;
     queueId: string;
     teamId: string;
+    departmentId?: number | null;
     customFieldValues?: Record<string, any>;
   }): Promise<TicketTable> {
     // org_id is the subscriber (tenant) the ticket belongs to; company_id is the
@@ -41,6 +43,7 @@ export class Ticket extends BaseModel {
       org_id: company?.subscriber_id || ticketData.companyId,
       queue_id: ticketData.queueId,
       team_id: ticketData.teamId,
+      department_id: ticketData.departmentId ?? null,
       custom_field_values: ticketData.customFieldValues || {},
       status: 'open',
       priority: 0,
@@ -341,6 +344,10 @@ export class Ticket extends BaseModel {
       query = query.where('queue_id', options.queueId);
     }
 
+    if (options.departmentId) {
+      query = query.where('department_id', options.departmentId);
+    }
+
     return query;
   }
 
@@ -464,6 +471,7 @@ export class Ticket extends BaseModel {
       assignedToId: ticket.assigned_to_id,
       queueId: ticket.queue_id,
       teamId: ticket.team_id,
+      departmentId: ticket.department_id ?? null,
       customFieldValues: ticket.custom_field_values,
       resolvedAt: ticket.resolved_at,
       closedAt: ticket.closed_at,

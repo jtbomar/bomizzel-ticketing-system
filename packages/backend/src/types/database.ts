@@ -107,6 +107,7 @@ export interface TicketTable {
   submitter_id: string;
   // The subscriber (tenant) the ticket belongs to; company_id is the account.
   org_id?: string | null;
+  department_id?: number | null;
   company_id: string;
   assigned_to_id?: string;
   queue_id: string;

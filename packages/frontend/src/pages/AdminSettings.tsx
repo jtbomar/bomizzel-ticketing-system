@@ -14,6 +14,27 @@ interface SettingSection {
   items: SettingItem[];
 }
 
+// Settings pages that exist. The rest of the list mirrors a full help desk
+// but hasn't been built; those used to be links that just reloaded this page.
+const BUILT_SETTINGS = new Set([
+  '/admin/layouts',
+  '/admin/settings/agents',
+  '/admin/settings/business-hours',
+  '/admin/settings/company-profile',
+  '/admin/settings/customer-happiness',
+  '/admin/settings/departments',
+  '/admin/settings/game-scope',
+  '/admin/settings/holidays',
+  '/admin/settings/products',
+  '/admin/settings/profiles',
+  '/admin/settings/rebranding',
+  '/admin/settings/roles',
+  '/admin/settings/teams',
+  '/admin/settings/ticket-statuses',
+  '/data-management',
+]);
+const isBuilt = (path: string): boolean => BUILT_SETTINGS.has(path.split('?')[0]);
+
 const AdminSettings: React.FC = () => {
   const { theme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -503,52 +524,86 @@ const AdminSettings: React.FC = () => {
               {section.title}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {section.items.map((item, itemIndex) => (
-                <Link
-                  key={itemIndex}
-                  to={item.path}
-                  className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
-                    theme === 'dark'
-                      ? 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
-                      : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-blue-100'
-                  }`}
-                >
-                  <div className="flex items-start space-x-4">
-                    <div className="text-3xl">{item.icon}</div>
-                    <div className="flex-1">
-                      <h3
-                        className={`font-semibold mb-1 transition-colors ${
-                          theme === 'dark' ? 'text-white' : 'text-gray-900'
+              {section.items.map((item, itemIndex) =>
+                isBuilt(item.path) ? (
+                  <Link
+                    key={itemIndex}
+                    to={item.path}
+                    className={`p-6 rounded-lg border transition-all hover:shadow-lg ${
+                      theme === 'dark'
+                        ? 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                        : 'bg-white border-gray-200 hover:border-blue-300 hover:shadow-blue-100'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="text-3xl">{item.icon}</div>
+                      <div className="flex-1">
+                        <h3
+                          className={`font-semibold mb-1 transition-colors ${
+                            theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}
+                        >
+                          {item.name}
+                        </h3>
+                        <p
+                          className={`text-sm transition-colors ${
+                            theme === 'dark' ? 'text-white/60' : 'text-gray-600'
+                          }`}
+                        >
+                          {item.description}
+                        </p>
+                      </div>
+                      <svg
+                        className={`w-5 h-5 transition-colors ${
+                          theme === 'dark' ? 'text-white/40' : 'text-gray-400'
                         }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        {item.name}
-                      </h3>
-                      <p
-                        className={`text-sm transition-colors ${
-                          theme === 'dark' ? 'text-white/60' : 'text-gray-600'
-                        }`}
-                      >
-                        {item.description}
-                      </p>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
                     </div>
-                    <svg
-                      className={`w-5 h-5 transition-colors ${
-                        theme === 'dark' ? 'text-white/40' : 'text-gray-400'
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
+                  </Link>
+                ) : (
+                  // Not built yet: shown so the layout matches, but not a link
+                  // that goes nowhere.
+                  <div
+                    key={itemIndex}
+                    aria-disabled="true"
+                    title="Coming soon"
+                    className={`p-6 rounded-lg border opacity-50 cursor-not-allowed ${
+                      theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="text-3xl">{item.icon}</div>
+                      <div className="flex-1">
+                        <h3
+                          className={`font-semibold mb-1 ${
+                            theme === 'dark' ? 'text-white' : 'text-gray-900'
+                          }`}
+                        >
+                          {item.name}{' '}
+                          <span className="ml-1 align-middle text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 text-gray-600">
+                            Coming soon
+                          </span>
+                        </h3>
+                        <p
+                          className={`text-sm ${theme === 'dark' ? 'text-white/60' : 'text-gray-600'}`}
+                        >
+                          {item.description}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </Link>
-              ))}
+                )
+              )}
             </div>
           </div>
         ))}

@@ -132,6 +132,7 @@ export interface Ticket {
   assignedToId?: string;
   queueId: string;
   teamId: string;
+  departmentId?: number | null;
   customFieldValues: Record<string, any>;
   resolvedAt?: Date;
   closedAt?: Date;
@@ -261,6 +262,9 @@ export interface CreateTicketRequest {
   description: string;
   companyId: string;
   teamId: string;
+  // Department (departments.id) of the caller's subscriber; the subscriber's
+  // default department when left out.
+  departmentId?: number;
   customFieldValues?: Record<string, any>;
 }
 

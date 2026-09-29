@@ -203,101 +203,13 @@ const AgentDashboard: React.FC = () => {
       try {
         return JSON.parse(saved);
       } catch {
-        // If parsing fails, use defaults
+        // If parsing fails, start empty
       }
     }
-    return [
-      {
-        id: 1,
-        title: 'Login Issue',
-        status: 'open',
-        priority: 'high',
-        customer: 'John Doe',
-        assigned: 'You',
-        created: '2024-01-15',
-        description: 'Cannot access account',
-        order: 1,
-        customerInfo: {
-          name: 'John Doe',
-          email: 'john.doe@acmecorp.com',
-          phone: '(555) 123-4567',
-          company: 'Acme Corporation',
-          website: 'www.acmecorp.com',
-        },
-      },
-      {
-        id: 2,
-        title: 'Feature Request',
-        status: 'in_progress',
-        priority: 'medium',
-        customer: 'Jane Smith',
-        assigned: 'Alice Johnson',
-        created: '2024-01-10',
-        description: 'Need dark mode',
-        order: 1,
-        customerInfo: {
-          name: 'Jane Smith',
-          email: 'jane.smith@techstart.io',
-          phone: '(555) 234-5678',
-          company: 'TechStart Inc.',
-          website: 'www.techstart.io',
-        },
-      },
-      {
-        id: 3,
-        title: 'Bug Report',
-        status: 'waiting',
-        priority: 'low',
-        customer: 'Bob Wilson',
-        assigned: 'You',
-        created: '2024-01-05',
-        description: 'Button not working',
-        order: 1,
-        customerInfo: {
-          name: 'Bob Wilson',
-          email: 'bob.wilson@globaltech.com',
-          phone: '(555) 345-6789',
-          company: 'Global Tech Solutions',
-          website: 'www.globaltech.com',
-        },
-      },
-      {
-        id: 4,
-        title: 'Account Setup',
-        status: 'open',
-        priority: 'medium',
-        customer: 'Sarah Davis',
-        assigned: 'Unassigned',
-        created: '2024-01-12',
-        description: 'Need help with setup',
-        order: 2,
-        customerInfo: {
-          name: 'Sarah Davis',
-          email: 'sarah.davis@innovate.co',
-          phone: '(555) 456-7890',
-          company: 'Innovate Co.',
-          website: 'www.innovate.co',
-        },
-      },
-      {
-        id: 5,
-        title: 'Payment Issue',
-        status: 'resolved',
-        priority: 'high',
-        customer: 'Mike Brown',
-        assigned: 'You',
-        created: '2024-01-08',
-        description: 'Payment not processing',
-        order: 1,
-        customerInfo: {
-          name: 'Mike Brown',
-          email: 'mike.brown@enterprise.net',
-          phone: '(555) 567-8901',
-          company: 'Enterprise Networks',
-          website: 'www.enterprise.net',
-        },
-      },
-    ];
+    // Start empty; the real tickets load from the server. This used to fall
+    // back to a list of made-up tickets, which stayed on screen whenever the
+    // server returned none.
+    return [];
   };
 
   // Migrate tickets to match current status configuration
@@ -369,18 +281,10 @@ const AgentDashboard: React.FC = () => {
         return;
       }
 
-      // Check if we already have tickets in localStorage for this user
-      const userKey = `agent-tickets-${user.id}`;
+      // Always load from the server. This skipped the request whenever
+      // tickets were cached in the browser, so the list went stale and the
+      // department picker never changed what was shown.
       const filterKey = `agent-filter-${user.id}`;
-      const existingTickets = localStorage.getItem(userKey);
-      const lastFilter = localStorage.getItem(filterKey);
-
-      // Only fetch from API if no local tickets exist OR filter has changed
-      const filterChanged = lastFilter !== showOnlyMyTickets.toString();
-      if (existingTickets && JSON.parse(existingTickets).length > 0 && !filterChanged) {
-        return;
-      }
-
       localStorage.setItem(filterKey, showOnlyMyTickets.toString());
 
       try {
@@ -388,6 +292,9 @@ const AgentDashboard: React.FC = () => {
         const ticketParams: any = { limit: 100 };
         if (showOnlyMyTickets && user) {
           ticketParams.assignedToId = user.id;
+        }
+        if (selectedDepartmentId) {
+          ticketParams.departmentId = selectedDepartmentId;
         }
 
         const response = await apiService.getTickets(ticketParams);
@@ -444,7 +351,9 @@ const AgentDashboard: React.FC = () => {
           });
         });
 
-        if (transformedTickets.length > 0) {
+        // Replace the list even when it's empty - a department with no
+        // tickets must show none, not whatever was on screen before.
+        {
           const migratedTickets = migrateTickets(transformedTickets, statuses);
           setTickets(migratedTickets);
           setTicketIdMap(idMapping);
@@ -460,7 +369,7 @@ const AgentDashboard: React.FC = () => {
     };
 
     fetchTickets();
-  }, [user, showOnlyMyTickets]); // Re-fetch when user changes or filter changes
+  }, [user, showOnlyMyTickets, selectedDepartmentId]); // Re-fetch when the user, filter or department changes
 
   // Fetch team statuses from API
   useEffect(() => {

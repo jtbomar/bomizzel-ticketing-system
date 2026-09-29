@@ -43,6 +43,7 @@ router.post(
       teamId: { type: 'string', required: true, format: 'uuid' },
       customFieldValues: { type: 'object', required: false },
       submitterId: { type: 'string', required: false, format: 'uuid' },
+      departmentId: { type: 'number', required: false, min: 1 },
     },
   }),
   ...enforceAndTrackTicketCreation,
@@ -84,6 +85,7 @@ router.get(
       companyId: { type: 'string', required: false, format: 'uuid' },
       queueId: { type: 'string', required: false, format: 'uuid' },
       assignedToId: { type: 'string', required: false, format: 'uuid' },
+      departmentId: { type: 'number', required: false, min: 1 },
       status: { type: 'string', required: false },
       search: { type: 'string', required: false },
       page: { type: 'number', required: false, min: 1 },
@@ -100,6 +102,7 @@ router.get(
       if (req.query.companyId) options.companyId = req.query.companyId as string;
       if (req.query.queueId) options.queueId = req.query.queueId as string;
       if (req.query.assignedToId) options.assignedToId = req.query.assignedToId as string;
+      if (req.query.departmentId) options.departmentId = parseInt(req.query.departmentId as string);
       if (req.query.status) options.status = req.query.status as string;
       if (req.query.search) options.search = req.query.search as string;
       if (req.query.page) options.page = parseInt(req.query.page as string);
