@@ -84,6 +84,10 @@ describe('Platform admin guard', () => {
       expect(isPlatformAdmin(LOOKS_LIKE_US)).toBe(false);
     });
 
+    it('accepts jeff@bomizzel.com by default', () => {
+      expect(isPlatformAdmin({ role: 'admin', email: 'jeff@bomizzel.com' })).toBe(true);
+    });
+
     it('rejects a listed email without the admin role', () => {
       expect(isPlatformAdmin({ role: 'employee', email: PLATFORM_ADMIN.email })).toBe(false);
     });
