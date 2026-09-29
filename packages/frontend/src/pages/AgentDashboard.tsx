@@ -31,6 +31,7 @@ interface Ticket {
   assigned: string;
   created: string;
   description?: string;
+  departmentId?: number | null;
   order: number;
   notes?: TicketNote[];
   attachments?: TicketAttachment[];
@@ -323,6 +324,7 @@ const AgentDashboard: React.FC = () => {
             assigned: isAssignedToCurrentUser ? 'You' : assignedName,
             created: new Date(t.createdAt).toLocaleDateString(),
             description: t.description || '',
+            departmentId: t.departmentId ?? null,
             order: 0, // Will be set below
             customerInfo: t.submitter
               ? {
@@ -1103,6 +1105,33 @@ const AgentDashboard: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to update ticket priority:', error);
+    }
+  };
+
+  const changeDepartment = async (ticketId: number, newDepartmentId: number | null) => {
+    if (!newDepartmentId) return;
+    const uuidTicketId = ticketIdMap.get(ticketId);
+    if (!uuidTicketId) return;
+
+    try {
+      await apiService.updateTicket(uuidTicketId, { departmentId: newDepartmentId });
+      setTickets((prev) =>
+        prev
+          .map((ticket) =>
+            ticket.id === ticketId ? { ...ticket, departmentId: newDepartmentId } : ticket
+          )
+          // Viewing one department? A ticket moved out of it leaves the list.
+          .filter(
+            (ticket) =>
+              !selectedDepartmentId ||
+              ticket.id !== ticketId ||
+              newDepartmentId === selectedDepartmentId
+          )
+      );
+    } catch (error: any) {
+      console.error('Failed to move ticket to department:', error);
+      alert(`Failed to move ticket: ${error.response?.data?.error?.message || error.message}`);
+      throw error;
     }
   };
 
@@ -2266,6 +2295,26 @@ const AgentDashboard: React.FC = () => {
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 dark:text-white mb-3">
+                        Department
+                      </label>
+                      <DepartmentSelector
+                        selectedDepartmentId={selectedTicket.departmentId ?? null}
+                        onDepartmentChange={async (departmentId) => {
+                          const previous = selectedTicket.departmentId ?? null;
+                          setSelectedTicket({ ...selectedTicket, departmentId });
+                          try {
+                            await changeDepartment(selectedTicket.id, departmentId);
+                          } catch {
+                            setSelectedTicket({ ...selectedTicket, departmentId: previous });
+                          }
+                        }}
+                        showAllOption={false}
+                        placeholder="No department"
+                      />
                     </div>
 
                     <div>

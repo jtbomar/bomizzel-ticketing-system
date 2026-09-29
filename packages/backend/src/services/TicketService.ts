@@ -679,10 +679,36 @@ export class TicketService {
       updates.custom_field_values = updateData.customFieldValues;
     }
 
+    // Moving to another department: it must be one of the ticket's own
+    // subscriber's departments. (Customers can't get here - see above.)
+    let departmentMove: { from: number | null; to: number } | undefined;
+    if (updateData.departmentId !== undefined) {
+      const to = (await this.resolveDepartment(
+        ticketData.org_id ?? undefined,
+        updateData.departmentId
+      )) as number;
+      if (to !== ticketData.department_id) {
+        updates.department_id = to;
+        departmentMove = { from: ticketData.department_id ?? null, to };
+      }
+    }
+
     // Update the ticket
     if (Object.keys(updates).length > 0) {
       await Ticket.update(ticketId, updates);
-      await Ticket.addHistory(ticketId, updatedById, 'updated');
+      if (departmentMove) {
+        await Ticket.addHistory(
+          ticketId,
+          updatedById,
+          'moved',
+          'department_id',
+          departmentMove.from === null ? undefined : String(departmentMove.from),
+          String(departmentMove.to)
+        );
+      }
+      if (Object.keys(updates).some((k) => k !== 'department_id')) {
+        await Ticket.addHistory(ticketId, updatedById, 'updated');
+      }
     }
 
     // Handle status update separately

@@ -126,4 +126,50 @@ describe('ticket departments', () => {
     const mine = await list(`assignedToId=${ADMIN}`);
     expect(mine.body.data.map((t: any) => t.title)).toEqual(['billing question']);
   });
+
+  describe('moving a ticket to another department', () => {
+    const move = (ticketId: string, departmentId: number, token = adminToken) =>
+      request(app)
+        .put(`/api/tickets/${ticketId}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ departmentId });
+
+    it('moves it and records the move in the history', async () => {
+      const [ticket] = await db('tickets').where('title', 'no department given');
+      const res = await move(ticket.id, billing);
+      expect(res.status).toBe(200);
+      expect((await db('tickets').where('id', ticket.id).first()).department_id).toBe(billing);
+
+      const history = await db('ticket_history').where({
+        ticket_id: ticket.id,
+        action: 'moved',
+        field_name: 'department_id',
+      });
+      expect(history).toHaveLength(1);
+      expect(history[0].old_value).toBe(String(general));
+      expect(history[0].new_value).toBe(String(billing));
+
+      const onlyBilling = await list(`departmentId=${billing}`);
+      expect(onlyBilling.body.data.map((t: any) => t.id)).toContain(ticket.id);
+    });
+
+    it("refuses another subscriber's department", async () => {
+      const [ticket] = await db('tickets').where('title', 'no department given');
+      const res = await move(ticket.id, otherSubsDept);
+      expect(res.status).toBe(400);
+      expect((await db('tickets').where('id', ticket.id).first()).department_id).toBe(billing);
+    });
+
+    it('a contact cannot move tickets', async () => {
+      const [ticket] = await db('tickets').where('title', 'no department given');
+      const contactToken = JWTUtils.generateAccessToken({
+        userId: CONTACT,
+        email: 'contact@acct.test',
+        role: 'customer',
+      });
+      const res = await move(ticket.id, general, contactToken);
+      expect(res.status).toBe(403);
+      expect((await db('tickets').where('id', ticket.id).first()).department_id).toBe(billing);
+    });
+  });
 });

@@ -781,6 +781,7 @@ const AgentCreateTicketForm: React.FC = () => {
                 selectedDepartmentId={departmentId}
                 onDepartmentChange={setDepartmentId}
                 showAllOption={false}
+                placeholder="Default department"
               />
               <p className="mt-1 text-xs text-gray-500">
                 Leave blank to use your default department.

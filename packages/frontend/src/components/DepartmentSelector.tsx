@@ -13,6 +13,9 @@ interface DepartmentSelectorProps {
   selectedDepartmentId?: number | null;
   onDepartmentChange: (departmentId: number | null) => void;
   showAllOption?: boolean;
+  // With showAllOption off: the empty choice's label. Without one, an empty
+  // value looked like the first department was selected.
+  placeholder?: string;
   className?: string;
 }
 
@@ -20,6 +23,7 @@ const DepartmentSelector: React.FC<DepartmentSelectorProps> = ({
   selectedDepartmentId,
   onDepartmentChange,
   showAllOption = true,
+  placeholder,
   className = '',
 }) => {
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -58,6 +62,11 @@ const DepartmentSelector: React.FC<DepartmentSelectorProps> = ({
         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
       >
         {showAllOption && <option value="">All Departments</option>}
+        {!showAllOption && (
+          <option value="" disabled={selectedDepartmentId != null}>
+            {placeholder || 'Select a department'}
+          </option>
+        )}
         {departments.map((department) => (
           <option key={department.id} value={department.id}>
             {department.name}

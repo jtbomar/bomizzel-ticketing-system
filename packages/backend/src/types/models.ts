@@ -274,6 +274,8 @@ export interface UpdateTicketRequest {
   status?: string;
   priority?: number;
   assignedToId?: string;
+  // Move the ticket to another department of its subscriber (staff only).
+  departmentId?: number;
   customFieldValues?: Record<string, any>;
 }
 

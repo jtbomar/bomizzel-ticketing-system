@@ -130,6 +130,7 @@ export interface Ticket {
   assignedToId?: string;
   queueId: string;
   teamId: string;
+  departmentId?: number | null;
   customFieldValues: Record<string, any>;
   resolvedAt?: Date;
   closedAt?: Date;

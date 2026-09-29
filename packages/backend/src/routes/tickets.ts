@@ -167,6 +167,7 @@ router.put(
       status: { type: 'string', required: false },
       priority: { type: 'number', required: false, min: 0, max: 100 },
       assignedToId: { type: 'string', required: false, format: 'uuid', nullable: true },
+      departmentId: { type: 'number', required: false, min: 1 },
       customFieldValues: { type: 'object', required: false },
     },
   }),

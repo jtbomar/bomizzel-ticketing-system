@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Ticket, TicketNote, FileAttachment, User } from '../types';
 import { apiService } from '../services/api';
 import AgentAssignmentDropdown from './AgentAssignmentDropdown';
+import DepartmentSelector from './DepartmentSelector';
 
 interface TicketDetailModalProps {
   ticket: Ticket;
@@ -24,6 +25,19 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
   const [editedDescription, setEditedDescription] = useState(ticket.description);
   const [saving, setSaving] = useState(false);
   const [currentAssignee, setCurrentAssignee] = useState<User | null>(ticket.assignedTo || null);
+  const [departmentId, setDepartmentId] = useState<number | null>(ticket.departmentId ?? null);
+
+  const moveToDepartment = async (newDepartmentId: number | null) => {
+    if (!newDepartmentId || newDepartmentId === departmentId) return;
+    const previous = departmentId;
+    setDepartmentId(newDepartmentId);
+    try {
+      await apiService.updateTicket(ticket.id, { departmentId: newDepartmentId });
+    } catch (error: any) {
+      setDepartmentId(previous);
+      alert(`Failed to move ticket: ${error.response?.data?.error?.message || error.message}`);
+    }
+  };
 
   useEffect(() => {
     loadTicketDetails();
@@ -161,6 +175,16 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
                   ticketId={ticket.id}
                   currentAssignee={currentAssignee}
                   onAssignmentChange={(assignee) => setCurrentAssignee(assignee)}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Department:</span>
+                <DepartmentSelector
+                  selectedDepartmentId={departmentId}
+                  onDepartmentChange={moveToDepartment}
+                  showAllOption={false}
+                  placeholder="No department"
+                  className="min-w-[180px]"
                 />
               </div>
             </div>
