@@ -44,7 +44,11 @@ const BSIAdminLogin: React.FC = () => {
       // Redirect to BSI admin dashboard
       navigate('/bsi/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
+      // The API returns `{ error: { code, message } }`. Rendering that object
+      // as text crashes React and leaves a blank page, so take the message.
+      const apiError = err.response?.data?.error;
+      const apiMessage = typeof apiError === 'string' ? apiError : apiError?.message;
+      setError(apiMessage || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
