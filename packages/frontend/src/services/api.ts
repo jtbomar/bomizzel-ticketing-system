@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 
-// Determine API base URL
-const getApiBaseUrl = () => {
+// Determine API base URL. Always ends in /api - callers add the path after it
+// (e.g. `${getApiBaseUrl()}/auth/verify`), never another /api.
+export const getApiBaseUrl = () => {
   // If explicitly set, use it as-is (it should already include /api)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;

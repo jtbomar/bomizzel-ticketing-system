@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiBaseUrl } from '../services/api';
 
 interface CompanyProfile {
   id: string;
@@ -54,12 +55,12 @@ const CompanyProfileSettings: React.FC = () => {
   const loadCompanyProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = getApiBaseUrl();
 
       console.log('Loading company profile...');
       console.log('Token:', token ? 'Present' : 'Missing');
 
-      const url = `${apiUrl}/api/company-registration/profile`;
+      const url = `${apiUrl}/company-registration/profile`;
       console.log('Fetching:', url);
 
       const response = await fetch(url, {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface DashboardStats {
   totalCustomers: number;
@@ -26,10 +27,10 @@ const SuperAdminDashboard: React.FC = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = getApiBaseUrl();
 
       // Fetch customer list to calculate stats
-      const response = await axios.get(`${apiUrl}/api/admin/provisioning/customers`, {
+      const response = await axios.get(`${apiUrl}/admin/provisioning/customers`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

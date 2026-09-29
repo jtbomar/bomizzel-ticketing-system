@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface TableInfo {
   tableName: string;
@@ -45,7 +46,7 @@ const VisualReportBuilder: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showSchema, setShowSchema] = useState(false);
 
-  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+  const apiUrl = getApiBaseUrl();
   const token = localStorage.getItem('token');
   const companyId = localStorage.getItem('companyId');
 
@@ -65,8 +66,8 @@ const VisualReportBuilder: React.FC = () => {
 
   const loadSchema = async () => {
     try {
-      console.log('Loading schema from:', `${apiUrl}/api/customer-query-builder/schema`);
-      const response = await axios.get(`${apiUrl}/api/customer-query-builder/schema`, {
+      console.log('Loading schema from:', `${apiUrl}/customer-query-builder/schema`);
+      const response = await axios.get(`${apiUrl}/customer-query-builder/schema`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       console.log('Schema response:', response.data);
@@ -273,7 +274,7 @@ const VisualReportBuilder: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/customer-query-builder/execute`,
+        `${apiUrl}/customer-query-builder/execute`,
         { query, companyId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -291,7 +292,7 @@ const VisualReportBuilder: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/customer-query-builder/export`,
+        `${apiUrl}/customer-query-builder/export`,
         { query, companyId },
         {
           headers: { Authorization: `Bearer ${token}` },

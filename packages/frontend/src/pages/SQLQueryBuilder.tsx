@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface QueryResult {
   columns: string[];
@@ -38,7 +39,7 @@ const SQLQueryBuilder: React.FC = () => {
   const [orderBy, setOrderBy] = useState('');
   const [limit, setLimit] = useState('100');
 
-  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+  const apiUrl = getApiBaseUrl();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -48,7 +49,7 @@ const SQLQueryBuilder: React.FC = () => {
 
   const loadSchema = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/query-builder/schema`, {
+      const response = await axios.get(`${apiUrl}/query-builder/schema`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setSchema(response.data.data);
@@ -59,7 +60,7 @@ const SQLQueryBuilder: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/query-builder/templates`, {
+      const response = await axios.get(`${apiUrl}/query-builder/templates`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTemplates(response.data.data);
@@ -80,7 +81,7 @@ const SQLQueryBuilder: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/query-builder/execute`,
+        `${apiUrl}/query-builder/execute`,
         { query },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -104,7 +105,7 @@ const SQLQueryBuilder: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/query-builder/export`,
+        `${apiUrl}/query-builder/export`,
         { query },
         {
           headers: { Authorization: `Bearer ${token}` },

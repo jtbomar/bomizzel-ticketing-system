@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface ExportOptions {
   includeUsers: boolean;
@@ -73,7 +74,7 @@ const DataManagement: React.FC = () => {
     imports: [],
   });
 
-  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+  const apiUrl = getApiBaseUrl();
   const token = localStorage.getItem('token');
   const companyId = localStorage.getItem('companyId'); // Assuming this is stored
 
@@ -85,7 +86,7 @@ const DataManagement: React.FC = () => {
 
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/data-export/history/${companyId}`, {
+      const response = await axios.get(`${apiUrl}/data-export/history/${companyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setHistory(response.data.data);
@@ -102,7 +103,7 @@ const DataManagement: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/data-export/export`,
+        `${apiUrl}/data-export/export`,
         {
           companyId,
           ...exportOptions,
@@ -157,7 +158,7 @@ const DataManagement: React.FC = () => {
       formData.append('skipDuplicates', importOptions.skipDuplicates.toString());
       formData.append('validateOnly', importOptions.validateOnly.toString());
 
-      const response = await axios.post(`${apiUrl}/api/data-export/import`, formData, {
+      const response = await axios.post(`${apiUrl}/data-export/import`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',

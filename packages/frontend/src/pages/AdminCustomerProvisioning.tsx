@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import ProvisionedCustomersList from '../components/ProvisionedCustomersList';
+import { getApiBaseUrl } from '../services/api';
 
 interface CustomLimits {
   maxUsers: number;
@@ -108,8 +109,8 @@ const AdminCustomerProvisioning: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.post(`${apiUrl}/api/admin/provisioning/customers`, formData, {
+      const apiUrl = getApiBaseUrl();
+      const response = await axios.post(`${apiUrl}/admin/provisioning/customers`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

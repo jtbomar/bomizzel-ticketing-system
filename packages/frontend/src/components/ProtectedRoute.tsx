@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -32,8 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
       try {
         const user = JSON.parse(userStr);
-        const apiUrl =
-          (import.meta as any).env?.VITE_API_URL || `http://${window.location.hostname}:3001/api`;
+        const apiUrl = getApiBaseUrl();
 
         console.log('[ProtectedRoute] Verifying token for user:', user.email, 'role:', user.role);
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 const ApiTest: React.FC = () => {
   const [result, setResult] = useState<string>('');
@@ -44,10 +45,10 @@ Stack: ${error.stack || 'No stack trace'}`);
     setResult('');
 
     try {
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      console.log('Testing login to:', `${apiUrl}/api/auth/login`);
+      const apiUrl = getApiBaseUrl();
+      console.log('Testing login to:', `${apiUrl}/auth/login`);
 
-      const response = await axios.post(`${apiUrl}/api/auth/login`, {
+      const response = await axios.post(`${apiUrl}/auth/login`, {
         email: 'admin@bomizzel.com',
         password: 'password123',
       });

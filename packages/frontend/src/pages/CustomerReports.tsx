@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface QueryResult {
   columns: string[];
@@ -24,7 +25,7 @@ const CustomerReports: React.FC = () => {
   const [templates, setTemplates] = useState<QueryTemplate[]>([]);
   const [showTemplates, setShowTemplates] = useState(true);
 
-  const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+  const apiUrl = getApiBaseUrl();
   const token = localStorage.getItem('token');
   const companyId = localStorage.getItem('companyId');
 
@@ -34,7 +35,7 @@ const CustomerReports: React.FC = () => {
 
   const loadTemplates = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/customer-query-builder/templates`, {
+      const response = await axios.get(`${apiUrl}/customer-query-builder/templates`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTemplates(response.data.data);
@@ -60,7 +61,7 @@ const CustomerReports: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/customer-query-builder/execute`,
+        `${apiUrl}/customer-query-builder/execute`,
         { query, companyId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -89,7 +90,7 @@ const CustomerReports: React.FC = () => {
 
     try {
       const response = await axios.post(
-        `${apiUrl}/api/customer-query-builder/export`,
+        `${apiUrl}/customer-query-builder/export`,
         { query, companyId },
         {
           headers: { Authorization: `Bearer ${token}` },

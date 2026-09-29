@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 const BSIAdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -15,8 +16,8 @@ const BSIAdminLogin: React.FC = () => {
     setLoading(true);
 
     try {
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.post(`${apiUrl}/api/auth/login`, {
+      const apiUrl = getApiBaseUrl();
+      const response = await axios.post(`${apiUrl}/auth/login`, {
         email,
         password,
       });
@@ -25,7 +26,7 @@ const BSIAdminLogin: React.FC = () => {
 
       // Ask the backend whether this account is a Bomizzel platform admin.
       // The list lives on the server (PLATFORM_ADMIN_EMAILS), not in the browser.
-      const verify = await axios.get(`${apiUrl}/api/auth/verify`, {
+      const verify = await axios.get(`${apiUrl}/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const isBSIAdmin = verify.data?.isPlatformAdmin === true;

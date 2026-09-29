@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getApiBaseUrl } from '../services/api';
 
 interface Customer {
   subscriptionId: string;
@@ -44,8 +45,8 @@ const ProvisionedCustomersList: React.FC = () => {
   const fetchCustomers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      const response = await axios.get(`${apiUrl}/api/admin/provisioning/customers`, {
+      const apiUrl = getApiBaseUrl();
+      const response = await axios.get(`${apiUrl}/admin/provisioning/customers`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -61,9 +62,9 @@ const ProvisionedCustomersList: React.FC = () => {
   const handleUpdateLimits = async (subscriptionId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = getApiBaseUrl();
       await axios.put(
-        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}/limits`,
+        `${apiUrl}/admin/provisioning/subscriptions/${subscriptionId}/limits`,
         updateLimits,
         {
           headers: {
@@ -93,9 +94,9 @@ const ProvisionedCustomersList: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = getApiBaseUrl();
       await axios.post(
-        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}/disable`,
+        `${apiUrl}/admin/provisioning/subscriptions/${subscriptionId}/disable`,
         { reason },
         {
           headers: {
@@ -116,9 +117,9 @@ const ProvisionedCustomersList: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+      const apiUrl = getApiBaseUrl();
       await axios.post(
-        `${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}/enable`,
+        `${apiUrl}/admin/provisioning/subscriptions/${subscriptionId}/enable`,
         { reason },
         {
           headers: {
@@ -151,8 +152,8 @@ const ProvisionedCustomersList: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
-      await axios.delete(`${apiUrl}/api/admin/provisioning/subscriptions/${subscriptionId}`, {
+      const apiUrl = getApiBaseUrl();
+      await axios.delete(`${apiUrl}/admin/provisioning/subscriptions/${subscriptionId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
