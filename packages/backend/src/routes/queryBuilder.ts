@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { QueryBuilderService } from '../services/QueryBuilderService';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePlatformAdmin } from '../middleware/platformAdmin';
 import { logger } from '../utils/logger';
 
 const router = Router();
 
 // All routes require admin authentication
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(requirePlatformAdmin); // Bomizzel platform admins only, not customer admins
 
 /**
  * POST /api/query-builder/execute

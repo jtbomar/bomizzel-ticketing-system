@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthService } from '@/services/AuthService';
 import { User } from '@/models/User';
 import { authenticate, optionalAuth } from '@/middleware/auth';
+import { isPlatformAdmin } from '@/middleware/platformAdmin';
 import { validate } from '@/utils/validation';
 import { JWTUtils } from '@/utils/jwt';
 import { revokeToken } from '@/utils/tokenBlocklist';
@@ -255,6 +256,7 @@ router.get('/verify', authenticate, async (req, res, next) => {
 
     res.json({
       valid: true,
+      isPlatformAdmin: isPlatformAdmin({ email: user.email, role: user.role }),
       user: {
         id: user.id,
         email: user.email,

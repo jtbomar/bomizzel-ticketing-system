@@ -4,7 +4,8 @@ import {
   ProvisionCustomerRequest,
   CustomSubscriptionLimits,
 } from '../services/AdminProvisioningService';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePlatformAdmin } from '../middleware/platformAdmin';
 import { validate } from '../utils/validation';
 import Joi from 'joi';
 import { logger } from '../utils/logger';
@@ -13,7 +14,7 @@ const router = Router();
 
 // All routes require admin authentication
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(requirePlatformAdmin); // Bomizzel platform admins only, not customer admins
 
 // Validation schemas
 const provisionCustomerSchema = Joi.object({

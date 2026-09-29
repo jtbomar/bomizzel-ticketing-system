@@ -23,13 +23,12 @@ const BSIAdminLogin: React.FC = () => {
 
       const { token, user } = response.data;
 
-      // Check if user is BSI admin (from Bomizzel Services Inc.)
-      // Allow Jeff Bomar's email and any @bomizzel.com emails
-      const isBSIAdmin =
-        user.role === 'admin' &&
-        (email === 'jeffrey.t.bomar@gmail.com' ||
-          email.includes('@bomizzel.com') ||
-          email.includes('bomizzel'));
+      // Ask the backend whether this account is a Bomizzel platform admin.
+      // The list lives on the server (PLATFORM_ADMIN_EMAILS), not in the browser.
+      const verify = await axios.get(`${apiUrl}/api/auth/verify`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const isBSIAdmin = verify.data?.isPlatformAdmin === true;
 
       if (!isBSIAdmin) {
         setError('Access denied. This portal is for Bomizzel Services Inc. administrators only.');

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { authenticate, authorize } from '@/middleware/auth';
+import { authenticate } from '@/middleware/auth';
+import { requirePlatformAdmin } from '@/middleware/platformAdmin';
 import { getPerformanceMetrics } from '@/middleware/performanceMonitoring';
 import { CacheService, CacheConfigs } from '@/utils/cache';
 import { enhancedLogger } from '@/utils/logger';
@@ -8,7 +9,7 @@ const router = Router();
 
 // Apply authentication and admin authorization to all monitoring routes
 router.use(authenticate);
-router.use(authorize('admin'));
+router.use(requirePlatformAdmin); // Bomizzel platform admins only, not customer admins
 
 /**
  * Get performance metrics

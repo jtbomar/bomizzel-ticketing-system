@@ -50,11 +50,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
           // Check BSI admin access
           if (requireBSI) {
-            const isBSIAdmin =
-              user.role === 'admin' &&
-              (user.email === 'jeffrey.t.bomar@gmail.com' ||
-                user.email?.includes('@bomizzel.com') ||
-                user.email?.includes('bomizzel'));
+            // The backend decides who is a platform admin (PLATFORM_ADMIN_EMAILS).
+            const isBSIAdmin = response.data.isPlatformAdmin === true;
 
             console.log('[ProtectedRoute] BSI admin check:', isBSIAdmin);
             setHasPermission(isBSIAdmin);

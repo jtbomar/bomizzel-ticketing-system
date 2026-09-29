@@ -65,6 +65,13 @@ const PLATFORM_ONLY = [
   ['post', '/api/seed/seed-business-hours'],
   ['post', '/api/seed/seed-holiday-lists'],
   ['post', '/api/setup/seed-statuses'],
+  // BSI customer management, the raw SQL query builder, and monitoring
+  ['get', '/api/admin/provisioning/customers'],
+  ['post', '/api/admin/provisioning/customers'],
+  ['post', '/api/query-builder/execute'],
+  ['get', '/api/query-builder/schema'],
+  ['get', '/api/monitoring/performance'],
+  ['get', '/api/monitoring/security-logs'],
 ] as const;
 
 describe('Platform admin guard', () => {
@@ -156,9 +163,30 @@ describe('Platform admin guard', () => {
     });
   });
 
+  describe('/auth/verify', () => {
+    it('reports isPlatformAdmin true for a platform admin', async () => {
+      const res = await request(app).get('/api/auth/verify').set('Authorization', `Bearer ${tokenFor(PLATFORM_ADMIN)}`);
+      expect(res.status).toBe(200);
+      expect(res.body.isPlatformAdmin).toBe(true);
+    });
+
+    it('reports isPlatformAdmin false for a customer admin and a look-alike', async () => {
+      for (const user of [CUSTOMER_ADMIN, LOOKS_LIKE_US]) {
+        const res = await request(app).get('/api/auth/verify').set('Authorization', `Bearer ${tokenFor(user)}`);
+        expect(res.status).toBe(200);
+        expect(res.body.isPlatformAdmin).toBe(false);
+      }
+    });
+  });
+
   describe('platform-only seed and check routes', () => {
     it.each(PLATFORM_ONLY)('refuses a customer admin: %s %s', async (method, path) => {
       const res = await request(app)[method](path).set('Authorization', `Bearer ${tokenFor(CUSTOMER_ADMIN)}`);
+      expect(res.status).toBe(403);
+    });
+
+    it.each(PLATFORM_ONLY)('refuses a look-alike email: %s %s', async (method, path) => {
+      const res = await request(app)[method](path).set('Authorization', `Bearer ${tokenFor(LOOKS_LIKE_US)}`);
       expect(res.status).toBe(403);
     });
   });
