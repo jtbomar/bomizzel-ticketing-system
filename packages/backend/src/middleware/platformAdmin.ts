@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
  * The email is the one loaded from the database by `authenticate`, not the
  * token, and the match is exact - no "contains bomizzel" style checks.
  */
-const DEFAULT_PLATFORM_ADMIN_EMAILS = 'jeffrey.t.bomar@gmail.com,jeff@bomizzel.com';
+const DEFAULT_PLATFORM_ADMIN_EMAILS = 'jeff@bomizzel.com';
 
 export const getPlatformAdminEmails = (): string[] =>
   (process.env.PLATFORM_ADMIN_EMAILS || DEFAULT_PLATFORM_ADMIN_EMAILS)

@@ -36,7 +36,7 @@ const LOOKS_LIKE_US = {
 };
 const PLATFORM_ADMIN = {
   id: '44444444-4444-4444-8444-444444444444',
-  email: 'jeffrey.t.bomar@gmail.com',
+  email: 'jeff@bomizzel.com',
   role: 'admin',
 };
 
@@ -83,7 +83,7 @@ describe('Platform admin guard', () => {
 
   describe('isPlatformAdmin', () => {
     it('accepts an admin whose email is on the list, ignoring case', () => {
-      expect(isPlatformAdmin({ role: 'admin', email: 'Jeffrey.T.Bomar@Gmail.com' })).toBe(true);
+      expect(isPlatformAdmin({ role: 'admin', email: 'Jeff@Bomizzel.com' })).toBe(true);
     });
 
     it('rejects a customer admin and a look-alike email', () => {
@@ -91,8 +91,9 @@ describe('Platform admin guard', () => {
       expect(isPlatformAdmin(LOOKS_LIKE_US)).toBe(false);
     });
 
-    it('accepts jeff@bomizzel.com by default', () => {
-      expect(isPlatformAdmin({ role: 'admin', email: 'jeff@bomizzel.com' })).toBe(true);
+    it('does not accept an email that has no account by default', () => {
+      // Sign-up doesn't verify email, so an unclaimed address on the list could be taken
+      expect(isPlatformAdmin({ role: 'admin', email: 'jeffrey.t.bomar@gmail.com' })).toBe(false);
     });
 
     it('rejects a listed email without the admin role', () => {

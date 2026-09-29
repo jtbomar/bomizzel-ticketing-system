@@ -336,7 +336,7 @@ const SuperAdminDashboard: React.FC = () => {
               </li>
             </ol>
             <p className="mt-4">
-              <strong>Your admin email:</strong> jeffrey.t.bomar@gmail.com
+              <strong>Your admin email:</strong> jeff@bomizzel.com
               <br />
               <strong>Company:</strong> Bomizzel Services Inc.
             </p>
