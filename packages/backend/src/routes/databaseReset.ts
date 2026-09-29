@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { dangerousDatabaseRoute } from '../middleware/platformAdmin';
 import { db } from '../config/database';
 
 const router = Router();
@@ -9,7 +10,7 @@ const router = Router();
  * DANGER: Drops all tables and recreates from migrations
  * Admin only, requires confirmation
  */
-router.post('/nuclear', authenticate, authorize('admin'), async (req, res): Promise<void> => {
+router.post('/nuclear', authenticate, ...dangerousDatabaseRoute, async (req, res): Promise<void> => {
   try {
     const { confirmation } = req.body;
 
@@ -60,7 +61,7 @@ router.post('/nuclear', authenticate, authorize('admin'), async (req, res): Prom
  * POST /api/database-reset/cleanup-migrations
  * Remove specific migration records
  */
-router.post('/cleanup-migrations', authenticate, authorize('admin'), async (req, res) => {
+router.post('/cleanup-migrations', authenticate, ...dangerousDatabaseRoute, async (req, res) => {
   try {
     const deleted = await db('knex_migrations')
       .whereIn('name', [

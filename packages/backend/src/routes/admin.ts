@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import { UserService } from '@/services/UserService';
 import { authenticate, authorize } from '@/middleware/auth';
+import { dangerousDatabaseRoute } from '@/middleware/platformAdmin';
 import { validate } from '@/utils/validation';
 import Joi from 'joi';
 import { updateUserSchema, paginationSchema, uuidSchema } from '@/utils/validation';
@@ -16,7 +17,7 @@ const router = Router();
  * Was unauthenticated: any anonymous caller could POST here and reseed the
  * production database. Now admin-only, like /api/database-reset and /api/reseed.
  */
-router.post('/emergency-reseed', authenticate, authorize('admin'), async (req, res) => {
+router.post('/emergency-reseed', authenticate, ...dangerousDatabaseRoute, async (req, res) => {
   try {
     console.log('🚨 EMERGENCY RESEED TRIGGERED');
 
@@ -42,11 +43,6 @@ router.post('/emergency-reseed', authenticate, authorize('admin'), async (req, r
     res.json({
       success: true,
       message: 'Database reseed completed successfully',
-      credentials: {
-        superAdmin: 'jeff@bomar.com / password123',
-        admin: 'elena@bomar.com / password123',
-        agent: 'jeremy@bomar.com / password123',
-      },
     });
   } catch (error) {
     console.error('❌ Emergency reseed failed:', error);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { dangerousDatabaseRoute } from '../middleware/platformAdmin';
 import authRoutes from './auth';
 import userRoutes from './users';
 import companyRoutes from './companies';
@@ -109,7 +110,7 @@ router.use('/setup', seedStatusesRoutes); // Mount at /setup so endpoint is /api
 router.use('/database-reset', databaseResetRoutes); // DANGER: Database reset endpoints
 
 // Simple cleanup endpoint
-router.post('/cleanup-now', authenticate, authorize('admin'), async (req, res) => {
+router.post('/cleanup-now', authenticate, ...dangerousDatabaseRoute, async (req, res) => {
   try {
     const { db } = require('../config/database');
 

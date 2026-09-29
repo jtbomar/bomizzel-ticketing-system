@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePlatformAdmin } from '../middleware/platformAdmin';
 import { db } from '../config/database';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,7 +11,7 @@ const router = Router();
  * One-time endpoint to seed default ticket statuses for all teams
  * Admin only
  */
-router.post('/seed-statuses', authenticate, authorize('admin'), async (req, res): Promise<void> => {
+router.post('/seed-statuses', authenticate, requirePlatformAdmin, async (req, res): Promise<void> => {
   try {
     console.log('🌱 Seeding default ticket statuses...');
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { dangerousDatabaseRoute } from '../middleware/platformAdmin';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 
@@ -11,7 +12,7 @@ const router = Router();
  * Reseed the database with test data (admin only)
  * WARNING: This will delete and recreate all test data
  */
-router.post('/', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/', authenticate, ...dangerousDatabaseRoute, async (req, res, next) => {
   try {
     console.log('🔄 Starting database reseed...');
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { requirePlatformAdmin } from '../middleware/platformAdmin';
 import { db } from '../config/database';
 
 const router = Router();
@@ -8,7 +9,7 @@ const router = Router();
  * POST /seed-business-hours
  * Create default business hours for all companies
  */
-router.post('/seed-business-hours', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/seed-business-hours', authenticate, requirePlatformAdmin, async (req, res, next) => {
   try {
     console.log('🕐 Creating business hours for all companies...');
 
@@ -112,7 +113,7 @@ router.post('/seed-business-hours', authenticate, authorize('admin'), async (req
  * POST /seed-holiday-lists
  * Create default holiday lists for all companies
  */
-router.post('/seed-holiday-lists', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/seed-holiday-lists', authenticate, requirePlatformAdmin, async (req, res, next) => {
   try {
     console.log('🎄 Creating holiday lists for all companies...');
 

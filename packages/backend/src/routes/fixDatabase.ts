@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
+import { dangerousDatabaseRoute, requirePlatformAdmin } from '../middleware/platformAdmin';
 import { db } from '../config/database';
 
 const router = Router();
@@ -8,7 +9,7 @@ const router = Router();
  * POST /fix-migrations
  * Remove orphaned migration records and fix constraints
  */
-router.post('/fix-migrations', authenticate, authorize('admin'), async (req, res, next) => {
+router.post('/fix-migrations', authenticate, ...dangerousDatabaseRoute, async (req, res, next) => {
   try {
     console.log('🔧 Fixing database issues...');
 
@@ -55,7 +56,7 @@ router.post('/fix-migrations', authenticate, authorize('admin'), async (req, res
  * GET /check-database
  * Check database status
  */
-router.get('/check-database', authenticate, authorize('admin'), async (req, res, next) => {
+router.get('/check-database', authenticate, requirePlatformAdmin, async (req, res, next) => {
   try {
     // Check migrations
     const migrations = await db('knex_migrations').select('*').orderBy('id', 'desc').limit(10);
