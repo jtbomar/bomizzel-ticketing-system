@@ -61,7 +61,22 @@ interface TicketNote {
   author: string;
   timestamp: string;
   isInternal: boolean;
+  // Came in as the customer's email reply
+  viaEmail?: boolean;
 }
+
+/** A note as the API returns it, in the dashboard's shape. */
+const toDashboardNote = (n: any): TicketNote => ({
+  id: n.id,
+  content: n.content,
+  author:
+    [n.author?.firstName, n.author?.lastName].filter((p: string) => p && p !== '-').join(' ') ||
+    n.author?.email ||
+    'Unknown',
+  timestamp: new Date(n.createdAt).toLocaleString(),
+  isInternal: !!n.isInternal,
+  viaEmail: !!n.isEmailGenerated,
+});
 
 interface StatusOption {
   id: string;
@@ -372,6 +387,32 @@ const AgentDashboard: React.FC = () => {
 
     fetchTickets();
   }, [user, showOnlyMyTickets, selectedDepartmentId]); // Re-fetch when the user, filter or department changes
+
+  // Load the opened ticket's notes from the server - internal ones too, and
+  // customers' email replies. The notes list was only ever what had been
+  // typed in this browser.
+  const selectedTicketId = selectedTicket?.id;
+  useEffect(() => {
+    const uuidTicketId = selectedTicketId ? ticketIdMap.get(selectedTicketId) : undefined;
+    if (!selectedTicketId || !uuidTicketId) return;
+    let cancelled = false;
+    apiService
+      .getTicketNotes(uuidTicketId, { includeInternal: true, limit: 100 })
+      .then((response: any) => {
+        if (cancelled) return;
+        const notes: TicketNote[] = (response.data || []).map(toDashboardNote);
+        setSelectedTicket((prev) =>
+          prev && prev.id === selectedTicketId ? { ...prev, notes } : prev
+        );
+        setTickets((prev) =>
+          prev.map((ticket) => (ticket.id === selectedTicketId ? { ...ticket, notes } : ticket))
+        );
+      })
+      .catch((error: any) => console.error('Failed to load ticket notes:', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTicketId, ticketIdMap]);
 
   // Fetch team statuses from API
   useEffect(() => {
@@ -736,17 +777,34 @@ const AgentDashboard: React.FC = () => {
     window.location.reload();
   };
 
-  // Add note to ticket
-  const addNoteToTicket = (ticketId: number, content: string, isInternal: boolean) => {
+  // Add note to ticket. Saved on the server - which emails a public note to
+  // the customer. This used to only add the note on screen: nothing was
+  // saved, nothing was emailed, and it was gone on the next reload.
+  const addNoteToTicket = async (ticketId: number, content: string, isInternal: boolean) => {
     if (!content.trim()) return;
+    const uuidTicketId = ticketIdMap.get(ticketId);
+    if (!uuidTicketId) {
+      alert('Could not find this ticket on the server - refresh and try again.');
+      return;
+    }
 
-    const newNote: TicketNote = {
-      id: Date.now().toString(),
-      content: content.trim(),
-      author: user?.firstName || 'You',
-      timestamp: new Date().toLocaleString(),
-      isInternal,
-    };
+    let newNote: TicketNote;
+    try {
+      const response = await apiService.createTicketNote(uuidTicketId, {
+        content: content.trim(),
+        isInternal,
+      });
+      const saved = response.data || response;
+      newNote = {
+        ...toDashboardNote({
+          ...saved,
+          author: { firstName: user?.firstName, lastName: user?.lastName },
+        }),
+      };
+    } catch (error: any) {
+      alert(`Failed to save note: ${error.response?.data?.error?.message || error.message}`);
+      return;
+    }
 
     setTickets((prev) =>
       prev.map((ticket) =>
@@ -770,8 +828,14 @@ const AgentDashboard: React.FC = () => {
   };
 
   // Edit note
-  const editNoteInTicket = (ticketId: number, noteId: string, newContent: string) => {
+  const editNoteInTicket = async (ticketId: number, noteId: string, newContent: string) => {
     if (!newContent.trim()) return;
+    try {
+      await apiService.updateNote(noteId, { content: newContent.trim() });
+    } catch (error: any) {
+      alert(`Failed to save note: ${error.response?.data?.error?.message || error.message}`);
+      return;
+    }
 
     setTickets((prev) =>
       prev.map((ticket) =>
@@ -805,7 +869,13 @@ const AgentDashboard: React.FC = () => {
   };
 
   // Delete note
-  const deleteNoteFromTicket = (ticketId: number, noteId: string) => {
+  const deleteNoteFromTicket = async (ticketId: number, noteId: string) => {
+    try {
+      await apiService.deleteNote(noteId);
+    } catch (error: any) {
+      alert(`Failed to delete note: ${error.response?.data?.error?.message || error.message}`);
+      return;
+    }
     setTickets((prev) =>
       prev.map((ticket) =>
         ticket.id === ticketId
@@ -2466,6 +2536,11 @@ const AgentDashboard: React.FC = () => {
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {note.timestamp}
+                                {note.viaEmail && (
+                                  <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+                                    ✉ via email
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </div>
