@@ -330,6 +330,22 @@ const AgentDashboard: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketIdMap, setTicketIdMap] = useState<Map<number, string>>(new Map()); // Maps numeric ID to UUID
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  // The ticket view's contact / ticket info panel can be hidden for more
+  // writing room; remembered in this browser.
+  const [showTicketSidebar, setShowTicketSidebar] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('ticket-sidebar-open') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem('ticket-sidebar-open', String(showTicketSidebar));
+    } catch {
+      // storage blocked: the choice just isn't remembered
+    }
+  }, [showTicketSidebar]);
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
 
   // Load initial tickets when user is available
@@ -2998,83 +3014,362 @@ const AgentDashboard: React.FC = () => {
             </div>
 
             {/* Sidebar - Customer Info */}
-            <div className="w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-y-auto">
-              <div className="p-6 space-y-6">
-                {/* Contact Info Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
-                      <svg
-                        className="w-4 h-4 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                      Contact Info
-                    </h3>
-                    {!isEditingContactInfo && (
-                      <button
-                        onClick={() => {
-                          setEditedContactInfo({
-                            name:
-                              selectedTicket.customerInfo?.name || selectedTicket.customer || '',
-                            email: selectedTicket.customerInfo?.email || '',
-                            phone: selectedTicket.customerInfo?.phone || '',
-                            company: selectedTicket.customerInfo?.company || '',
-                            companyId: selectedTicket.customerInfo?.companyId || '',
-                            website: selectedTicket.customerInfo?.website || '',
-                          });
-                          setIsEditingContactInfo(true);
-                        }}
-                        className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                        title={
-                          selectedTicket.customerInfo ? 'Edit contact info' : 'Add contact info'
-                        }
-                      >
-                        {selectedTicket.customerInfo ? (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                    )}
-                  </div>
+            {showTicketSidebar ? (
+              <div className="w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 overflow-y-auto relative">
+                {/* Hide the panel to give notes more room; the strip brings it back. */}
+                <button
+                  type="button"
+                  onClick={() => setShowTicketSidebar(false)}
+                  title="Hide contact and ticket info"
+                  aria-label="Hide contact and ticket info"
+                  className="absolute top-3 right-3 z-10 p-1.5 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-200 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+                <div className="p-6 pt-12 space-y-6">
+                  {/* Contact Info Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        Contact Info
+                      </h3>
+                      {!isEditingContactInfo && (
+                        <button
+                          onClick={() => {
+                            setEditedContactInfo({
+                              name:
+                                selectedTicket.customerInfo?.name || selectedTicket.customer || '',
+                              email: selectedTicket.customerInfo?.email || '',
+                              phone: selectedTicket.customerInfo?.phone || '',
+                              company: selectedTicket.customerInfo?.company || '',
+                              companyId: selectedTicket.customerInfo?.companyId || '',
+                              website: selectedTicket.customerInfo?.website || '',
+                            });
+                            setIsEditingContactInfo(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          title={
+                            selectedTicket.customerInfo ? 'Edit contact info' : 'Add contact info'
+                          }
+                        >
+                          {selectedTicket.customerInfo ? (
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                              />
+                            </svg>
+                          ) : (
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                              />
+                            </svg>
+                          )}
+                        </button>
+                      )}
+                    </div>
 
-                  {selectedTicket.customerInfo ? (
-                    isEditingContactInfo ? (
+                    {selectedTicket.customerInfo ? (
+                      isEditingContactInfo ? (
+                        <div className="space-y-3">
+                          {/* Edit Form */}
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                              Name
+                            </label>
+                            <input
+                              type="text"
+                              value={editedContactInfo.name}
+                              onChange={(e) =>
+                                setEditedContactInfo({ ...editedContactInfo, name: e.target.value })
+                              }
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                            />
+                          </div>
+                          <div className="relative">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                              Company
+                            </label>
+                            <input
+                              type="text"
+                              value={editedContactInfo.company}
+                              onChange={(e) => handleCompanyChange(e.target.value)}
+                              onFocus={() => {
+                                if (editedContactInfo.company) {
+                                  searchCompanies(editedContactInfo.company);
+                                }
+                              }}
+                              onBlur={() => {
+                                // Delay to allow clicking on dropdown
+                                setTimeout(() => {
+                                  setShowCompanyDropdown(false);
+                                }, 200);
+                              }}
+                              placeholder="Start typing company name..."
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                            />
+
+                            {/* Dropdown with search results */}
+                            {showCompanyDropdown && companySearchResults.length > 0 && (
+                              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                {companySearchResults.map((company) => (
+                                  <button
+                                    key={company.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setEditedContactInfo({
+                                        ...editedContactInfo,
+                                        company: company.name,
+                                        companyId: company.id,
+                                        website: company.domain || editedContactInfo.website,
+                                      });
+                                      setShowCompanyDropdown(false);
+                                      setShowCreateCompanyPrompt(false);
+                                    }}
+                                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+                                  >
+                                    <div className="font-medium text-gray-900 dark:text-white">
+                                      {company.name}
+                                    </div>
+                                    {company.domain && (
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        {company.domain}
+                                      </div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Create company prompt */}
+                            {showCreateCompanyPrompt && !showCompanyDropdown && (
+                              <div className="absolute z-10 w-full mt-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg shadow-lg p-3">
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                                  Company "{editedContactInfo.company}" does not exist.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setIsCreatingCompany(true);
+                                    setShowCreateCompanyPrompt(false);
+                                  }}
+                                  className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
+                                >
+                                  Create New Company
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              value={editedContactInfo.email}
+                              onChange={(e) =>
+                                setEditedContactInfo({
+                                  ...editedContactInfo,
+                                  email: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                              Phone
+                            </label>
+                            <input
+                              type="tel"
+                              value={editedContactInfo.phone}
+                              onChange={(e) =>
+                                setEditedContactInfo({
+                                  ...editedContactInfo,
+                                  phone: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
+                              Website
+                            </label>
+                            <input
+                              type="text"
+                              value={editedContactInfo.website}
+                              onChange={(e) =>
+                                setEditedContactInfo({
+                                  ...editedContactInfo,
+                                  website: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                            />
+                          </div>
+                          <div className="flex space-x-2 pt-2">
+                            <button
+                              onClick={() => {
+                                setIsEditingContactInfo(false);
+                              }}
+                              className="flex-1 px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => {
+                                updateContactInfo(selectedTicket.id, editedContactInfo);
+                                setSelectedTicket({
+                                  ...selectedTicket,
+                                  customerInfo: editedContactInfo,
+                                });
+                                setIsEditingContactInfo(false);
+                              }}
+                              className="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
+                            >
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Customer Name */}
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                              Name
+                            </div>
+                            <div className="text-sm text-gray-900 dark:text-white font-medium">
+                              {selectedTicket.customerInfo.name}
+                            </div>
+                          </div>
+
+                          {/* Company */}
+                          {selectedTicket.customerInfo.company && (
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                Company
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  if (selectedTicket.customerInfo?.companyId) {
+                                    // If we have the ID, navigate directly
+                                    navigate(
+                                      `/agent/accounts/${selectedTicket.customerInfo.companyId}`
+                                    );
+                                  } else {
+                                    // Otherwise, search for the company by name
+                                    try {
+                                      const response = await apiService.getCompanies({
+                                        search: selectedTicket.customerInfo?.company,
+                                        limit: 1,
+                                      });
+                                      const companies = response.companies || response.data || [];
+                                      if (companies.length > 0) {
+                                        navigate(`/agent/accounts/${companies[0].id}`);
+                                      } else {
+                                        alert('Company not found in the system.');
+                                      }
+                                    } catch (error) {
+                                      console.error('Failed to find company:', error);
+                                      alert('Failed to find company. Please try again.');
+                                    }
+                                  }
+                                }}
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline text-left"
+                              >
+                                {selectedTicket.customerInfo.company}
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Email */}
+                          {selectedTicket.customerInfo.email && (
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                Email
+                              </div>
+                              <a
+                                href={`mailto:${selectedTicket.customerInfo.email}`}
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {selectedTicket.customerInfo.email}
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Phone */}
+                          {selectedTicket.customerInfo.phone && (
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                Phone
+                              </div>
+                              <a
+                                href={`tel:${selectedTicket.customerInfo.phone}`}
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {selectedTicket.customerInfo.phone}
+                              </a>
+                            </div>
+                          )}
+
+                          {/* Website */}
+                          {selectedTicket.customerInfo.website && (
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                                Website
+                              </div>
+                              <a
+                                href={`https://${selectedTicket.customerInfo.website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                {selectedTicket.customerInfo.website}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    ) : isEditingContactInfo ? (
                       <div className="space-y-3">
-                        {/* Edit Form */}
+                        {/* Edit Form for new contact info */}
                         <div>
                           <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
                             Name
@@ -3122,7 +3417,6 @@ const AgentDashboard: React.FC = () => {
                                     setEditedContactInfo({
                                       ...editedContactInfo,
                                       company: company.name,
-                                      companyId: company.id,
                                       website: company.domain || editedContactInfo.website,
                                     });
                                     setShowCompanyDropdown(false);
@@ -3229,367 +3523,137 @@ const AgentDashboard: React.FC = () => {
                         </div>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {/* Customer Name */}
-                        <div>
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                            Name
-                          </div>
-                          <div className="text-sm text-gray-900 dark:text-white font-medium">
-                            {selectedTicket.customerInfo.name}
-                          </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        No customer information available
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Key Information Section */}
+                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      Key Information
+                    </h3>
+
+                    <div className="space-y-4">
+                      {/* Ticket ID */}
+                      <div>
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Ticket ID
                         </div>
-
-                        {/* Company */}
-                        {selectedTicket.customerInfo.company && (
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                              Company
-                            </div>
-                            <button
-                              onClick={async () => {
-                                if (selectedTicket.customerInfo?.companyId) {
-                                  // If we have the ID, navigate directly
-                                  navigate(
-                                    `/agent/accounts/${selectedTicket.customerInfo.companyId}`
-                                  );
-                                } else {
-                                  // Otherwise, search for the company by name
-                                  try {
-                                    const response = await apiService.getCompanies({
-                                      search: selectedTicket.customerInfo?.company,
-                                      limit: 1,
-                                    });
-                                    const companies = response.companies || response.data || [];
-                                    if (companies.length > 0) {
-                                      navigate(`/agent/accounts/${companies[0].id}`);
-                                    } else {
-                                      alert('Company not found in the system.');
-                                    }
-                                  } catch (error) {
-                                    console.error('Failed to find company:', error);
-                                    alert('Failed to find company. Please try again.');
-                                  }
-                                }
-                              }}
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline text-left"
-                            >
-                              {selectedTicket.customerInfo.company}
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Email */}
-                        {selectedTicket.customerInfo.email && (
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                              Email
-                            </div>
-                            <a
-                              href={`mailto:${selectedTicket.customerInfo.email}`}
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {selectedTicket.customerInfo.email}
-                            </a>
-                          </div>
-                        )}
-
-                        {/* Phone */}
-                        {selectedTicket.customerInfo.phone && (
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                              Phone
-                            </div>
-                            <a
-                              href={`tel:${selectedTicket.customerInfo.phone}`}
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {selectedTicket.customerInfo.phone}
-                            </a>
-                          </div>
-                        )}
-
-                        {/* Website */}
-                        {selectedTicket.customerInfo.website && (
-                          <div>
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                              Website
-                            </div>
-                            <a
-                              href={`https://${selectedTicket.customerInfo.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                            >
-                              {selectedTicket.customerInfo.website}
-                            </a>
-                          </div>
-                        )}
+                        <div className="text-sm text-gray-900 dark:text-white font-mono">
+                          #{selectedTicket.id}
+                        </div>
                       </div>
-                    )
-                  ) : isEditingContactInfo ? (
-                    <div className="space-y-3">
-                      {/* Edit Form for new contact info */}
+
+                      {/* Created Date */}
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          value={editedContactInfo.name}
-                          onChange={(e) =>
-                            setEditedContactInfo({ ...editedContactInfo, name: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                        />
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Created
+                        </div>
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {selectedTicket.created}
+                        </div>
                       </div>
-                      <div className="relative">
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
-                          Company
-                        </label>
-                        <input
-                          type="text"
-                          value={editedContactInfo.company}
-                          onChange={(e) => handleCompanyChange(e.target.value)}
-                          onFocus={() => {
-                            if (editedContactInfo.company) {
-                              searchCompanies(editedContactInfo.company);
-                            }
-                          }}
-                          onBlur={() => {
-                            // Delay to allow clicking on dropdown
-                            setTimeout(() => {
-                              setShowCompanyDropdown(false);
-                            }, 200);
-                          }}
-                          placeholder="Start typing company name..."
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                        />
 
-                        {/* Dropdown with search results */}
-                        {showCompanyDropdown && companySearchResults.length > 0 && (
-                          <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                            {companySearchResults.map((company) => (
-                              <button
-                                key={company.id}
-                                type="button"
-                                onClick={() => {
-                                  setEditedContactInfo({
-                                    ...editedContactInfo,
-                                    company: company.name,
-                                    website: company.domain || editedContactInfo.website,
-                                  });
-                                  setShowCompanyDropdown(false);
-                                  setShowCreateCompanyPrompt(false);
-                                }}
-                                className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-                              >
-                                <div className="font-medium text-gray-900 dark:text-white">
-                                  {company.name}
-                                </div>
-                                {company.domain && (
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {company.domain}
-                                  </div>
-                                )}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Create company prompt */}
-                        {showCreateCompanyPrompt && !showCompanyDropdown && (
-                          <div className="absolute z-10 w-full mt-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg shadow-lg p-3">
-                            <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
-                              Company "{editedContactInfo.company}" does not exist.
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCreatingCompany(true);
-                                setShowCreateCompanyPrompt(false);
-                              }}
-                              className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-                            >
-                              Create New Company
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      {/* Assigned To */}
                       <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
-                          Email
-                        </label>
-                        <input
-                          type="email"
-                          value={editedContactInfo.email}
-                          onChange={(e) =>
-                            setEditedContactInfo({ ...editedContactInfo, email: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
-                          Phone
-                        </label>
-                        <input
-                          type="tel"
-                          value={editedContactInfo.phone}
-                          onChange={(e) =>
-                            setEditedContactInfo({ ...editedContactInfo, phone: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1 block">
-                          Website
-                        </label>
-                        <input
-                          type="text"
-                          value={editedContactInfo.website}
-                          onChange={(e) =>
-                            setEditedContactInfo({ ...editedContactInfo, website: e.target.value })
-                          }
-                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                        />
-                      </div>
-                      <div className="flex space-x-2 pt-2">
-                        <button
-                          onClick={() => {
-                            setIsEditingContactInfo(false);
-                          }}
-                          className="flex-1 px-3 py-2 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => {
-                            updateContactInfo(selectedTicket.id, editedContactInfo);
-                            setSelectedTicket({
-                              ...selectedTicket,
-                              customerInfo: editedContactInfo,
-                            });
-                            setIsEditingContactInfo(false);
-                          }}
-                          className="flex-1 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      No customer information available
-                    </div>
-                  )}
-                </div>
-
-                {/* Key Information Section */}
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Key Information
-                  </h3>
-
-                  <div className="space-y-4">
-                    {/* Ticket ID */}
-                    <div>
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                        Ticket ID
-                      </div>
-                      <div className="text-sm text-gray-900 dark:text-white font-mono">
-                        #{selectedTicket.id}
-                      </div>
-                    </div>
-
-                    {/* Created Date */}
-                    <div>
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                        Created
-                      </div>
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {selectedTicket.created}
-                      </div>
-                    </div>
-
-                    {/* Assigned To */}
-                    <div>
-                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                        Assigned To
-                      </div>
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {selectedTicket.assigned}
+                        <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Assigned To
+                        </div>
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {selectedTicket.assigned}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Quick Actions */}
-                <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                    Quick Actions
-                  </h3>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => navigate(`/agent/customers/${selectedTicket.id}`)}
-                      className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
-                    >
-                      <svg
-                        className="w-4 h-4 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                  {/* Quick Actions */}
+                  <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                      Quick Actions
+                    </h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => navigate(`/agent/customers/${selectedTicket.id}`)}
+                        className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                        />
-                      </svg>
-                      View Customer Profile
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (selectedTicket.customerInfo?.email) {
-                          window.location.href = `mailto:${selectedTicket.customerInfo.email}`;
-                        }
-                      }}
-                      className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
-                    >
-                      <svg
-                        className="w-4 h-4 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        View Customer Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (selectedTicket.customerInfo?.email) {
+                            window.location.href = `mailto:${selectedTicket.customerInfo.email}`;
+                          }
+                        }}
+                        className="w-full px-3 py-2 text-sm text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                        />
-                      </svg>
-                      Send Email
-                    </button>
+                        <svg
+                          className="w-4 h-4 mr-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                          />
+                        </svg>
+                        Send Email
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowTicketSidebar(true)}
+                title="Show contact and ticket info"
+                aria-label="Show contact and ticket info"
+                className="w-10 flex flex-col items-center gap-3 pt-4 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 19l-7-7 7-7M19 19l-7-7 7-7"
+                  />
+                </svg>
+                <span className="text-xs font-medium [writing-mode:vertical-rl] rotate-180 tracking-wide">
+                  Contact &amp; ticket info
+                </span>
+              </button>
+            )}
           </div>
 
           {/* Footer */}
