@@ -1,4 +1,6 @@
-FROM node:18-alpine
+# Node 24 (LTS, supported to 2028). This was 18, which stopped getting
+# security updates in 2025 - and sharp (image previews) wouldn't load on it.
+FROM node:24-alpine
 
 WORKDIR /app
 
