@@ -1,5 +1,16 @@
 import crypto from 'crypto';
 import request from 'supertest';
+
+// Thumbnailing uses sharp, which needs a newer Node than some dev machines
+// have; the image itself isn't what's under test here.
+jest.mock('sharp', () => {
+  const chain = {
+    resize: jest.fn().mockReturnThis(),
+    jpeg: jest.fn().mockReturnThis(),
+    toFile: jest.fn().mockResolvedValue(undefined),
+  };
+  return jest.fn(() => chain);
+});
 import { app } from '../src/index';
 import { db } from '../src/config/database';
 import { JWTUtils } from '../src/utils/jwt';
@@ -31,6 +42,8 @@ const B_CONTACT = '00000000-0000-4000-8000-00000000c00b';
 
 // What the Resend "get received email" API returns for each id.
 const received: Record<string, any> = {};
+// Attachment bytes by attachment id, served from a fake signed download URL.
+const files: Record<string, Buffer> = {};
 let seq = 0;
 
 const deliver = async (mail: {
@@ -42,8 +55,20 @@ const deliver = async (mail: {
   headers?: Record<string, string>;
   dmarc?: string;
   id?: string;
+  attachments?: Array<{ filename: string; type: string; bytes: Buffer; inline?: boolean }>;
 }) => {
   const id = mail.id || `email-${++seq}`;
+  const attachments = (mail.attachments || []).map((a, i) => {
+    const attachmentId = `${id}-att-${i}`;
+    files[attachmentId] = a.bytes;
+    return {
+      id: attachmentId,
+      filename: a.filename,
+      content_type: a.type,
+      content_disposition: a.inline ? 'inline' : 'attachment',
+      size: a.bytes.length,
+    };
+  });
   received[id] = {
     id,
     from: mail.from,
@@ -56,6 +81,7 @@ const deliver = async (mail: {
     headers: { from: mail.from, ...(mail.headers || {}) },
     authentication: { spf: 'pass', dkim: 'pass', dmarc: mail.dmarc || 'pass' },
     message_id: `<${id}@mail.example.com>`,
+    attachments,
   };
   const body = JSON.stringify({
     type: 'email.received',
@@ -90,13 +116,28 @@ beforeAll(async () => {
 
   // Resend's API: serve the stored message for GET /emails/receiving/:id
   global.fetch = jest.fn(async (url: any) => {
-    const id = decodeURIComponent(String(url).split('/emails/receiving/')[1] || '');
+    const u = String(url);
+    if (u.startsWith('https://files.example.com/')) {
+      const bytes = files[u.slice('https://files.example.com/'.length)];
+      return { ok: !!bytes, status: bytes ? 200 : 404, arrayBuffer: async () => bytes } as any;
+    }
+    const attachment = u.match(/\/attachments\/([^/?]+)$/);
+    if (attachment) {
+      const attachmentId = decodeURIComponent(attachment[1]);
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ download_url: `https://files.example.com/${attachmentId}` }),
+      } as any;
+    }
+    const id = decodeURIComponent(u.split('/emails/receiving/')[1] || '');
     if (!received[id]) return { ok: false, status: 404, json: async () => ({}) } as any;
     return { ok: true, status: 200, json: async () => received[id] } as any;
   }) as any;
 
   jest.spyOn(EmailService, 'isInitialized').mockReturnValue(true);
-  sendSpy = jest.spyOn(EmailService, 'send').mockResolvedValue('out-id');
+  let outbound = 0;
+  sendSpy = jest.spyOn(EmailService, 'send').mockImplementation(async () => `out-${++outbound}`);
 
   await resetDatabase();
   await db('companies').insert([
@@ -370,6 +411,60 @@ describe('replies', () => {
     expect(res.body.outcome).toBe('ticket_created');
     expect(await db('ticket_notes').where('ticket_id', bTicket.id)).toHaveLength(0);
     expect((await db('tickets').where('id', res.body.ticketId).first()).org_id).toBe(A);
+  });
+});
+
+describe('attachments', () => {
+  // A "screenshot" big enough not to be taken for a signature logo, and a logo.
+  const png = (size: number) =>
+    Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(size, 1)]);
+  const screenshot = png(20 * 1024);
+  const logo = png(600);
+
+  it('saves an emailed screenshot on the new ticket, skipping signature logos and disallowed files', async () => {
+    expect(screenshot.length).toBeGreaterThan(5 * 1024);
+    const res = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject: 'See screenshot',
+      text: 'Error attached',
+      attachments: [
+        { filename: 'error.png', type: 'image/png', bytes: screenshot },
+        { filename: 'logo.png', type: 'image/png', bytes: logo, inline: true },
+        { filename: 'virus.exe', type: 'application/x-msdownload', bytes: Buffer.from('MZ') },
+      ],
+    });
+    expect(res.body.outcome).toBe('ticket_created');
+    const saved = await db('file_attachments').where('ticket_id', res.body.ticketId);
+    expect(saved.map((f: any) => f.original_name)).toEqual(['error.png']);
+    expect(saved[0]).toMatchObject({ is_image: true, uploaded_by_id: A_CONTACT });
+  });
+
+  it("links a reply's attachment to that reply's note", async () => {
+    const first = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject: 'Two',
+      text: 'x',
+    });
+    const token = first.body.ticketId.replace(/-/g, '').slice(0, 12);
+    const reply = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme+${token}@${DOMAIN}`],
+      subject: 'Re: Two',
+      text: 'Here it is',
+      attachments: [
+        { filename: 'report.pdf', type: 'application/pdf', bytes: Buffer.from('%PDF-1.4 test') },
+      ],
+    });
+    expect(reply.body.outcome).toBe('note_added');
+    const note = await db('ticket_notes')
+      .where('ticket_id', first.body.ticketId)
+      .orderBy('created_at', 'desc')
+      .first();
+    const saved = await db('file_attachments').where('ticket_id', first.body.ticketId);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ original_name: 'report.pdf', note_id: note.id });
   });
 });
 

@@ -61,6 +61,21 @@ const fetchReceivedEmail = async (emailId: string): Promise<any> => {
   return response.json();
 };
 
+/** One attachment's bytes, from its short-lived signed download URL. */
+const downloadAttachment = async (emailId: string, attachmentId: string): Promise<Buffer> => {
+  const key = process.env['RESEND_RECEIVING_API_KEY'] || process.env['RESEND_API_KEY'];
+  const meta = await fetch(
+    `https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}/attachments/${encodeURIComponent(attachmentId)}`,
+    { headers: { Authorization: `Bearer ${key}` } }
+  );
+  if (!meta.ok) throw new Error(`Resend ${meta.status} fetching attachment ${attachmentId}`);
+  const { download_url: url } = (await meta.json()) as { download_url?: string };
+  if (!url) throw new Error(`No download URL for attachment ${attachmentId}`);
+  const file = await fetch(url);
+  if (!file.ok) throw new Error(`Download ${file.status} for attachment ${attachmentId}`);
+  return Buffer.from(await file.arrayBuffer());
+};
+
 const router = Router();
 
 router.post('/email/resend', async (req: Request, res: Response): Promise<void> => {
@@ -104,6 +119,14 @@ router.post('/email/resend', async (req: Request, res: Response): Promise<void> 
       messageId: full.message_id || event.data.message_id || null,
       headers: full.headers || {},
       authentication: full.authentication || {},
+      attachments: (full.attachments || []).map((a: any) => ({
+        id: a.id,
+        filename: a.filename,
+        contentType: a.content_type,
+        size: Number(a.size) || 0,
+        inline: a.content_disposition === 'inline',
+      })),
+      downloadAttachment: (attachment) => downloadAttachment(event.data.email_id, attachment.id),
     };
     const result = await InboundEmailService.handle(email);
     logger.info('Inbound email handled', { emailId: event.data.email_id, ...result });

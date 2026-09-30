@@ -4,6 +4,7 @@ import { Ticket } from '@/models/Ticket';
 import { User } from '@/models/User';
 import { TicketService } from './TicketService';
 import { TicketEmailService } from './TicketEmailService';
+import { FileService } from './FileService';
 import { logger } from '@/utils/logger';
 import { inboundDomain, parseMailbox, parseSupportAddress } from '@/utils/supportEmail';
 
@@ -32,7 +33,24 @@ export interface ReceivedEmail {
   messageId?: string | null;
   headers: Record<string, string>;
   authentication?: { spf?: string; dkim?: string; dmarc?: string };
+  attachments?: InboundAttachment[];
+  // Fetches one attachment's bytes from the mail provider.
+  downloadAttachment?: (attachment: InboundAttachment) => Promise<Buffer>;
 }
+
+export interface InboundAttachment {
+  id: string;
+  filename: string;
+  contentType: string;
+  size: number;
+  inline: boolean;
+}
+
+// At most this many files from one email.
+const MAX_ATTACHMENTS = 10;
+// Inline images smaller than this are signature logos and social icons, not
+// screenshots.
+const MIN_INLINE_IMAGE_BYTES = 5 * 1024;
 
 export type InboundResult =
   | { outcome: 'ticket_created'; ticketId: string }
@@ -237,6 +255,7 @@ export class InboundEmailService {
           );
         }
         await this.log(email, ticket.id, tenantId, sender.email, subject, note.id);
+        await this.saveAttachments(email, ticket.id, author.id, note.id);
         logger.info('Email added to ticket', { ticketId: ticket.id, from: sender.email });
         return { outcome: 'note_added', ticketId: ticket.id };
       }
@@ -258,6 +277,7 @@ export class InboundEmailService {
     if (!created) return { outcome: 'ignored', reason: 'subscriber has no team' };
 
     await this.log(email, created.id, tenantId, sender.email, subject, null);
+    await this.saveAttachments(email, created.id, contact.userId);
     logger.info('Email created ticket', { ticketId: created.id, from: sender.email });
 
     // Tell them we have it, and give them the address that replies on it.
@@ -408,6 +428,50 @@ export class InboundEmailService {
       source: 'email',
     });
     return ticket;
+  }
+
+  /**
+   * Save the email's attachments to the ticket (screenshots, PDFs, ...),
+   * through the same checks as a portal upload: allowed types, size limit,
+   * and the sender's access to the ticket. A file that fails is skipped, not
+   * fatal - the ticket or reply still goes in.
+   */
+  private static async saveAttachments(
+    email: ReceivedEmail,
+    ticketId: string,
+    uploadedById: string,
+    noteId?: string
+  ): Promise<number> {
+    if (!email.attachments?.length || !email.downloadAttachment) return 0;
+    const wanted = email.attachments
+      .filter(
+        (a) => !(a.inline && a.contentType.startsWith('image/') && a.size < MIN_INLINE_IMAGE_BYTES)
+      )
+      .slice(0, MAX_ATTACHMENTS);
+
+    let saved = 0;
+    for (const attachment of wanted) {
+      try {
+        const buffer = await email.downloadAttachment(attachment);
+        const file = {
+          fieldname: 'file',
+          originalname: attachment.filename || 'attachment',
+          encoding: '7bit',
+          mimetype: attachment.contentType || 'application/octet-stream',
+          size: buffer.length,
+          buffer,
+        } as Express.Multer.File;
+        await FileService.uploadFile(file, ticketId, uploadedById, noteId);
+        saved++;
+      } catch (error) {
+        logger.warn('Email attachment not saved', {
+          ticketId,
+          filename: attachment.filename,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    return saved;
   }
 
   private static async log(
