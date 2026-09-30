@@ -305,9 +305,16 @@ class ApiService {
   }
 
   async downloadFile(fileId: string): Promise<Blob> {
-    const response = await this.client.get(`/files/${fileId}/download`, {
+    // GET /files/:id serves the file. This asked for /files/:id/download,
+    // which doesn't exist, so every download failed.
+    const response = await this.client.get(`/files/${fileId}`, {
       responseType: 'blob',
     });
+    return response.data;
+  }
+
+  async deleteFile(fileId: string): Promise<any> {
+    const response = await this.client.delete(`/files/${fileId}`);
     return response.data;
   }
 

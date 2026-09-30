@@ -15,6 +15,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { Ticket, TicketNote, FileAttachment } from '../types';
+import AuthImage from './AuthImage';
+import { droppedFiles, openAttachment, pastedFiles } from '../utils/attachments';
 
 interface CustomerTicketDetailProps {
   onTicketUpdated?: (ticket: Ticket) => void;
@@ -77,7 +79,9 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
         isInternal: false,
       });
 
-      const createdNote = noteResponse.note || noteResponse;
+      // The API answers { success, data: note }; reading .note missed the id,
+      // so files weren't linked to the comment they came with.
+      const createdNote = noteResponse.data || noteResponse.note || noteResponse;
 
       // Upload attachments if any
       if (newAttachments.length > 0) {
@@ -296,6 +300,20 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
                 key={attachment.id}
                 className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
               >
+                {attachment.isImage && (
+                  <AuthImage
+                    fileId={attachment.id}
+                    alt={attachment.originalName || attachment.fileName}
+                    className="w-full h-32 object-cover rounded mb-3"
+                    onClick={() =>
+                      openAttachment(
+                        attachment.id,
+                        attachment.originalName || attachment.fileName,
+                        attachment.mimeType
+                      )
+                    }
+                  />
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
@@ -328,17 +346,37 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
         </h3>
 
         {/* Add New Note */}
-        <form onSubmit={handleAddNote} className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <form
+          onSubmit={handleAddNote}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const files = droppedFiles(e);
+            if (files.length) setNewAttachments((prev) => [...prev, ...files]);
+          }}
+          className="mb-6 p-4 bg-gray-50 rounded-lg"
+        >
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Add a comment</label>
               <textarea
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
+                onPaste={(e) => {
+                  // Paste a screenshot straight in: it's attached to the comment.
+                  const files = pastedFiles(e);
+                  if (files.length) {
+                    e.preventDefault();
+                    setNewAttachments((prev) => [...prev, ...files]);
+                  }
+                }}
                 rows={4}
                 className="input w-full"
                 placeholder="Add additional information or ask a question..."
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Tip: paste a screenshot (Ctrl+V) or drag files here to attach them.
+              </p>
             </div>
 
             {/* File attachments for note */}

@@ -21,6 +21,8 @@ import {
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableTicketCard from '../components/SortableTicketCard';
 import DroppableColumn from '../components/DroppableColumn';
+import AuthImage from '../components/AuthImage';
+import { droppedFiles, openAttachment, pastedFiles } from '../utils/attachments';
 
 interface Ticket {
   id: number;
@@ -53,7 +55,22 @@ interface TicketAttachment {
   url: string;
   uploadedBy: string;
   uploadedAt: string;
+  uploadedById?: string;
+  isImage?: boolean;
 }
+
+/** An attachment as the API returns it, in the dashboard's shape. */
+const toDashboardAttachment = (a: any, uploadedBy: string): TicketAttachment => ({
+  id: a.id,
+  name: a.originalName || a.fileName,
+  size: a.fileSize,
+  type: a.mimeType || '',
+  url: '',
+  uploadedBy,
+  uploadedAt: new Date(a.createdAt).toLocaleString(),
+  uploadedById: a.uploadedById,
+  isImage: !!a.isImage,
+});
 
 interface TicketNote {
   id: string;
@@ -409,6 +426,27 @@ const AgentDashboard: React.FC = () => {
         );
       })
       .catch((error: any) => console.error('Failed to load ticket notes:', error));
+
+    // Attachments too - including files that came in by email. These were
+    // also only ever what had been added in this browser.
+    apiService
+      .getTicketAttachments(uuidTicketId)
+      .then((response: any) => {
+        if (cancelled) return;
+        const list = Array.isArray(response) ? response : response.data || [];
+        const attachments: TicketAttachment[] = list.map((a: any) =>
+          toDashboardAttachment(a, a.uploadedById === user?.id ? 'You' : 'Customer or team')
+        );
+        setSelectedTicket((prev) =>
+          prev && prev.id === selectedTicketId ? { ...prev, attachments } : prev
+        );
+        setTickets((prev) =>
+          prev.map((ticket) =>
+            ticket.id === selectedTicketId ? { ...ticket, attachments } : ticket
+          )
+        );
+      })
+      .catch((error: any) => console.error('Failed to load ticket attachments:', error));
     return () => {
       cancelled = true;
     };
@@ -901,16 +939,24 @@ const AgentDashboard: React.FC = () => {
   };
 
   // Add attachment to ticket
-  const addAttachmentToTicket = (ticketId: number, file: File) => {
-    const newAttachment: TicketAttachment = {
-      id: Date.now().toString(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      url: URL.createObjectURL(file),
-      uploadedBy: user?.firstName || 'You',
-      uploadedAt: new Date().toLocaleString(),
-    };
+  // Upload a file to the ticket. Saved on the server; this used to keep the
+  // file in the browser only, so it was never actually attached.
+  const addAttachmentToTicket = async (ticketId: number, file: File) => {
+    const uuidTicketId = ticketIdMap.get(ticketId);
+    if (!uuidTicketId) {
+      alert('Could not find this ticket on the server - refresh and try again.');
+      return;
+    }
+    let newAttachment: TicketAttachment;
+    try {
+      const response = await apiService.uploadFile(uuidTicketId, file);
+      newAttachment = toDashboardAttachment(response.data || response, 'You');
+    } catch (error: any) {
+      alert(
+        `Couldn't attach ${file.name}: ${error.response?.data?.error?.message || error.message}`
+      );
+      return;
+    }
 
     setTickets((prev) =>
       prev.map((ticket) =>
@@ -934,7 +980,13 @@ const AgentDashboard: React.FC = () => {
   };
 
   // Delete attachment
-  const deleteAttachmentFromTicket = (ticketId: number, attachmentId: string) => {
+  const deleteAttachmentFromTicket = async (ticketId: number, attachmentId: string) => {
+    try {
+      await apiService.deleteFile(attachmentId);
+    } catch (error: any) {
+      alert(`Failed to delete file: ${error.response?.data?.error?.message || error.message}`);
+      return;
+    }
     setTickets((prev) =>
       prev.map((ticket) =>
         ticket.id === ticketId
@@ -2424,6 +2476,14 @@ const AgentDashboard: React.FC = () => {
                       <textarea
                         value={newNoteContent}
                         onChange={(e) => setNewNoteContent(e.target.value)}
+                        onPaste={(e) => {
+                          // A pasted screenshot is attached to the ticket; text pastes as normal.
+                          const files = pastedFiles(e);
+                          if (files.length) {
+                            e.preventDefault();
+                            files.forEach((file) => addAttachmentToTicket(selectedTicket.id, file));
+                          }
+                        }}
                         placeholder="Add a note to this ticket..."
                         rows={4}
                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors placeholder-gray-400 dark:placeholder-gray-500"
@@ -2614,8 +2674,25 @@ const AgentDashboard: React.FC = () => {
 
               {activeModalTab === 'attachments' && (
                 <div className="space-y-6">
-                  {/* Upload Area */}
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors">
+                  {/* Upload Area: click, drag and drop, or paste a screenshot */}
+                  <div
+                    tabIndex={0}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      droppedFiles(e).forEach((file) =>
+                        addAttachmentToTicket(selectedTicket.id, file)
+                      );
+                    }}
+                    onPaste={(e) => {
+                      const files = pastedFiles(e);
+                      if (files.length) {
+                        e.preventDefault();
+                        files.forEach((file) => addAttachmentToTicket(selectedTicket.id, file));
+                      }
+                    }}
+                    className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+                  >
                     <input
                       type="file"
                       id="file-upload"
@@ -2649,10 +2726,10 @@ const AgentDashboard: React.FC = () => {
                         />
                       </svg>
                       <p className="text-gray-600 dark:text-gray-400 mb-2 font-medium">
-                        Click to upload or drag and drop
+                        Click to upload, drag and drop, or paste a screenshot
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-500">
-                        Any file type supported (Max 10MB per file)
+                        Images, PDFs, Office documents, text and zip files - up to 10 MB each
                       </p>
                     </label>
                   </div>
@@ -2666,9 +2743,18 @@ const AgentDashboard: React.FC = () => {
                           className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow group"
                         >
                           <div className="flex items-center space-x-3 flex-1 min-w-0">
-                            {/* File Icon */}
+                            {/* File Icon, or a preview for images */}
                             <div className="flex-shrink-0">
-                              {attachment.type.startsWith('image/') ? (
+                              {attachment.isImage ? (
+                                <AuthImage
+                                  fileId={attachment.id}
+                                  alt={attachment.name}
+                                  className="w-16 h-16 object-cover rounded border border-gray-200"
+                                  onClick={() =>
+                                    openAttachment(attachment.id, attachment.name, attachment.type)
+                                  }
+                                />
+                              ) : attachment.type.startsWith('image/') ? (
                                 <svg
                                   className="w-10 h-10 text-blue-500"
                                   fill="none"
@@ -2728,8 +2814,15 @@ const AgentDashboard: React.FC = () => {
                           {/* Actions */}
                           <div className="flex items-center space-x-2 ml-4">
                             <a
-                              href={attachment.url}
-                              download={attachment.name}
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                openAttachment(
+                                  attachment.id,
+                                  attachment.name,
+                                  attachment.type
+                                ).catch(() => alert(`Couldn't open ${attachment.name}`));
+                              }}
                               className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
                               title="Download"
                             >
