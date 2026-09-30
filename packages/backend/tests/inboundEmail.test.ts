@@ -200,6 +200,9 @@ describe('new tickets by email', () => {
     expect(receipt.fromName).toBe('Acme Desk Support');
     const token = ticket.id.replace(/-/g, '').slice(0, 12);
     expect(receipt.replyTo).toBe(`acme+${token}@${DOMAIN}`);
+    // Sent from the ticket's support address itself, so replies reach it
+    // even when a mail app ignores Reply-To.
+    expect(receipt.fromAddress).toBe(`acme+${token}@${DOMAIN}`);
     expect(receipt.subject).toContain(`[#${token}]`);
   });
 
@@ -430,6 +433,21 @@ describe('emailing notes to the customer', () => {
     expect(mail.to).toEqual(['pat@globex.example.com']);
     expect(mail.text).toContain('Have you tried turning it off and on again?');
     expect(mail.replyTo).toBe(`acme+${ticketId.replace(/-/g, '').slice(0, 12)}@${DOMAIN}`);
+  });
+
+  it('falls back to the platform address if the support address is refused', async () => {
+    sendSpy.mockClear();
+    sendSpy.mockRejectedValueOnce(new Error('Resend 403: domain not verified'));
+    await request(app)
+      .post(`/api/tickets/${ticketId}/notes`)
+      .set('Authorization', `Bearer ${agentToken()}`)
+      .send({ content: 'Second try' });
+    for (let i = 0; i < 50 && sendSpy.mock.calls.length < 2; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(sendSpy).toHaveBeenCalledTimes(2);
+    expect(sendSpy.mock.calls[1][0].fromAddress).toBeUndefined();
+    expect(sendSpy.mock.calls[1][0].replyTo).toContain(`@${DOMAIN}`);
   });
 
   it('an internal note is never emailed', async () => {

@@ -69,7 +69,7 @@ const send = async (
     return false;
   }
   const replyTo = supportAddress(context.subscriber.support_email_slug, context.ticket.id);
-  const providerId = await EmailService.send({
+  const message = {
     to: [context.customer.email],
     subject,
     html,
@@ -78,7 +78,22 @@ const send = async (
     replyTo,
     // Keep the ticket's messages together in the customer's mail app.
     headers: { 'X-Bomizzel-Ticket': ticketToken(context.ticket.id) },
-  });
+  };
+
+  // Send *from* the ticket's own support address, so a reply reaches the
+  // ticket even in mail apps that ignore Reply-To (some reply to From - the
+  // first live test's reply went to noreply@). If the provider won't send as
+  // that domain yet, fall back to the platform address with Reply-To.
+  let providerId: string;
+  try {
+    providerId = await EmailService.send({ ...message, fromAddress: replyTo });
+  } catch (error) {
+    logger.warn('Could not send from the support address; using the platform address', {
+      ticketId: context.ticket.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    providerId = await EmailService.send(message);
+  }
   await db('ticket_email_messages').insert({
     ticket_id: context.ticket.id,
     org_id: context.subscriber.id,

@@ -573,13 +573,17 @@ Need help? Contact our support team at support@bomizzel.com
     html: string;
     text: string;
     fromName?: string;
+    // Send as this address instead of the configured one (it must be on a
+    // domain the mail provider is set up to send for).
+    fromAddress?: string;
     replyTo?: string;
     headers?: Record<string, string>;
   }): Promise<string> {
     if (!this.transporter || !this.config) {
       throw new Error('Email service not initialized');
     }
-    const address = (this.config.from.match(/<([^>]+)>/)?.[1] || this.config.from).trim();
+    const address =
+      message.fromAddress || (this.config.from.match(/<([^>]+)>/)?.[1] || this.config.from).trim();
     const from = message.fromName
       ? `"${message.fromName.replace(/["\\\r\n]/g, '')}" <${address}>`
       : this.config.from;
