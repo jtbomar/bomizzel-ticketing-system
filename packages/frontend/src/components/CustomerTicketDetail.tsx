@@ -16,7 +16,9 @@ import {
 import { apiService } from '../services/api';
 import { Ticket, TicketNote, FileAttachment } from '../types';
 import AuthImage from './AuthImage';
-import { droppedFiles, openAttachment, pastedFiles } from '../utils/attachments';
+import { droppedFiles, openAttachment } from '../utils/attachments';
+import RichTextEditor from './RichTextEditor';
+import RichTextContent from './RichTextContent';
 
 interface CustomerTicketDetailProps {
   onTicketUpdated?: (ticket: Ticket) => void;
@@ -29,6 +31,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
   const [notes, setNotes] = useState<TicketNote[]>([]);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [newNoteHtml, setNewNoteHtml] = useState('');
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -76,6 +79,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
       // Create the note
       const noteResponse = await apiService.createTicketNote(ticketId, {
         content: newNote.trim(),
+        contentHtml: newNoteHtml || undefined,
         isInternal: false,
       });
 
@@ -99,6 +103,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
 
       // Clear form
       setNewNote('');
+      setNewNoteHtml('');
       setNewAttachments([]);
     } catch (err: any) {
       console.error('Failed to add note:', err);
@@ -359,19 +364,14 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Add a comment</label>
-              <textarea
-                value={newNote}
-                onChange={(e) => setNewNote(e.target.value)}
-                onPaste={(e) => {
-                  // Paste a screenshot straight in: it's attached to the comment.
-                  const files = pastedFiles(e);
-                  if (files.length) {
-                    e.preventDefault();
-                    setNewAttachments((prev) => [...prev, ...files]);
-                  }
+              <RichTextEditor
+                value={newNoteHtml}
+                onChange={({ html, text, isEmpty }) => {
+                  setNewNoteHtml(isEmpty ? '' : html);
+                  setNewNote(isEmpty ? '' : text);
                 }}
-                rows={4}
-                className="input w-full"
+                // A pasted or dropped screenshot is attached to the comment.
+                onFiles={(files) => setNewAttachments((prev) => [...prev, ...files])}
                 placeholder="Add additional information or ask a question..."
               />
               <p className="mt-1 text-xs text-gray-500">
@@ -446,7 +446,11 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
                   </div>
                   <span className="text-xs text-gray-500">{formatDate(note.createdAt)}</span>
                 </div>
-                <div className="text-gray-700 whitespace-pre-wrap">{note.content}</div>
+                <RichTextContent
+                  html={note.contentHtml}
+                  text={note.content}
+                  className="text-gray-700"
+                />
 
                 {/* Note attachments */}
                 {note.attachments && note.attachments.length > 0 && (

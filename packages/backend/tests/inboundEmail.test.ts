@@ -545,6 +545,28 @@ describe('emailing notes to the customer', () => {
     expect(sendSpy.mock.calls[1][0].replyTo).toContain(`@${DOMAIN}`);
   });
 
+  it('a formatted note is saved cleaned, and emailed with its formatting', async () => {
+    sendSpy.mockClear();
+    const res = await request(app)
+      .post(`/api/tickets/${ticketId}/notes`)
+      .set('Authorization', `Bearer ${agentToken()}`)
+      .send({
+        content: 'ignored - derived from the HTML',
+        contentHtml:
+          '<p><strong>Fixed</strong> <span style="color: #dc2626">now</span></p><script>steal()</script>',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body.data.content).toBe('Fixed now');
+    expect(res.body.data.contentHtml).toBe(
+      '<p><strong>Fixed</strong> <span style="color:#dc2626">now</span></p>'
+    );
+    await waitForSend();
+    const mail = sendSpy.mock.calls[0][0];
+    expect(mail.html).toContain('<strong>Fixed</strong>');
+    expect(mail.html).not.toContain('script');
+    expect(mail.text).toContain('Fixed now');
+  });
+
   it('an internal note is never emailed', async () => {
     sendSpy.mockClear();
     await request(app)

@@ -23,6 +23,8 @@ import SortableTicketCard from '../components/SortableTicketCard';
 import DroppableColumn from '../components/DroppableColumn';
 import AuthImage from '../components/AuthImage';
 import { droppedFiles, openAttachment, pastedFiles } from '../utils/attachments';
+import RichTextEditor from '../components/RichTextEditor';
+import RichTextContent from '../components/RichTextContent';
 
 interface Ticket {
   id: number;
@@ -80,7 +82,23 @@ interface TicketNote {
   isInternal: boolean;
   // Came in as the customer's email reply
   viaEmail?: boolean;
+  // Formatted version (bold, colours, highlight, lists); null for plain notes
+  contentHtml?: string | null;
 }
+
+/** Plain text as editor HTML, for editing a note that has no formatting yet. */
+const textToEditorHtml = (text: string): string =>
+  text
+    .split(/\n{2,}/)
+    .map(
+      (p) =>
+        `<p>${p
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>')}</p>`
+    )
+    .join('');
 
 /** A note as the API returns it, in the dashboard's shape. */
 const toDashboardNote = (n: any): TicketNote => ({
@@ -93,6 +111,7 @@ const toDashboardNote = (n: any): TicketNote => ({
   timestamp: new Date(n.createdAt).toLocaleString(),
   isInternal: !!n.isInternal,
   viaEmail: !!n.isEmailGenerated,
+  contentHtml: n.contentHtml ?? null,
 });
 
 interface StatusOption {
@@ -538,6 +557,7 @@ const AgentDashboard: React.FC = () => {
     'details'
   );
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [newNoteHtml, setNewNoteHtml] = useState('');
   const [newNoteIsInternal, setNewNoteIsInternal] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
@@ -545,6 +565,7 @@ const AgentDashboard: React.FC = () => {
   const [editedDescription, setEditedDescription] = useState('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editedNoteContent, setEditedNoteContent] = useState('');
+  const [editedNoteHtml, setEditedNoteHtml] = useState('');
   const [isEditingContactInfo, setIsEditingContactInfo] = useState(false);
   const [editedContactInfo, setEditedContactInfo] = useState({
     name: '',
@@ -818,7 +839,12 @@ const AgentDashboard: React.FC = () => {
   // Add note to ticket. Saved on the server - which emails a public note to
   // the customer. This used to only add the note on screen: nothing was
   // saved, nothing was emailed, and it was gone on the next reload.
-  const addNoteToTicket = async (ticketId: number, content: string, isInternal: boolean) => {
+  const addNoteToTicket = async (
+    ticketId: number,
+    content: string,
+    isInternal: boolean,
+    contentHtml?: string
+  ) => {
     if (!content.trim()) return;
     const uuidTicketId = ticketIdMap.get(ticketId);
     if (!uuidTicketId) {
@@ -830,6 +856,7 @@ const AgentDashboard: React.FC = () => {
     try {
       const response = await apiService.createTicketNote(uuidTicketId, {
         content: content.trim(),
+        contentHtml: contentHtml || undefined,
         isInternal,
       });
       const saved = response.data || response;
@@ -863,13 +890,24 @@ const AgentDashboard: React.FC = () => {
     }
 
     setNewNoteContent('');
+    setNewNoteHtml('');
   };
 
   // Edit note
-  const editNoteInTicket = async (ticketId: number, noteId: string, newContent: string) => {
+  const editNoteInTicket = async (
+    ticketId: number,
+    noteId: string,
+    newContent: string,
+    newHtml?: string
+  ) => {
     if (!newContent.trim()) return;
+    let savedHtml: string | null = null;
     try {
-      await apiService.updateNote(noteId, { content: newContent.trim() });
+      const response = await apiService.updateNote(noteId, {
+        content: newContent.trim(),
+        contentHtml: newHtml || undefined,
+      });
+      savedHtml = (response.data || response)?.contentHtml ?? null;
     } catch (error: any) {
       alert(`Failed to save note: ${error.response?.data?.error?.message || error.message}`);
       return;
@@ -881,7 +919,9 @@ const AgentDashboard: React.FC = () => {
           ? {
               ...ticket,
               notes: (ticket.notes || []).map((note) =>
-                note.id === noteId ? { ...note, content: newContent.trim() } : note
+                note.id === noteId
+                  ? { ...note, content: newContent.trim(), contentHtml: savedHtml }
+                  : note
               ),
             }
           : ticket
@@ -895,7 +935,9 @@ const AgentDashboard: React.FC = () => {
           ? {
               ...prev,
               notes: (prev.notes || []).map((note) =>
-                note.id === noteId ? { ...note, content: newContent.trim() } : note
+                note.id === noteId
+                  ? { ...note, content: newContent.trim(), contentHtml: savedHtml }
+                  : note
               ),
             }
           : null
@@ -2473,20 +2515,17 @@ const AgentDashboard: React.FC = () => {
                   {/* Add New Note */}
                   <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-900/30">
                     <div className="space-y-4">
-                      <textarea
-                        value={newNoteContent}
-                        onChange={(e) => setNewNoteContent(e.target.value)}
-                        onPaste={(e) => {
-                          // A pasted screenshot is attached to the ticket; text pastes as normal.
-                          const files = pastedFiles(e);
-                          if (files.length) {
-                            e.preventDefault();
-                            files.forEach((file) => addAttachmentToTicket(selectedTicket.id, file));
-                          }
+                      <RichTextEditor
+                        value={newNoteHtml}
+                        onChange={({ html, text, isEmpty }) => {
+                          setNewNoteHtml(isEmpty ? '' : html);
+                          setNewNoteContent(isEmpty ? '' : text);
                         }}
+                        // A pasted or dropped screenshot is attached to the ticket.
+                        onFiles={(files) =>
+                          files.forEach((file) => addAttachmentToTicket(selectedTicket.id, file))
+                        }
                         placeholder="Add a note to this ticket..."
-                        rows={4}
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors placeholder-gray-400 dark:placeholder-gray-500"
                       />
                       <div className="flex items-center justify-between">
                         <label className="flex items-center space-x-3 cursor-pointer">
@@ -2502,7 +2541,12 @@ const AgentDashboard: React.FC = () => {
                         </label>
                         <button
                           onClick={() =>
-                            addNoteToTicket(selectedTicket.id, newNoteContent, newNoteIsInternal)
+                            addNoteToTicket(
+                              selectedTicket.id,
+                              newNoteContent,
+                              newNoteIsInternal,
+                              newNoteHtml
+                            )
                           }
                           disabled={!newNoteContent.trim()}
                           className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
@@ -2540,6 +2584,9 @@ const AgentDashboard: React.FC = () => {
                                 onClick={() => {
                                   setEditingNoteId(note.id);
                                   setEditedNoteContent(note.content);
+                                  setEditedNoteHtml(
+                                    note.contentHtml || textToEditorHtml(note.content)
+                                  );
                                 }}
                                 className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                                 title="Edit note"
@@ -2607,12 +2654,13 @@ const AgentDashboard: React.FC = () => {
 
                           {editingNoteId === note.id ? (
                             <div className="space-y-3">
-                              <textarea
-                                value={editedNoteContent}
-                                onChange={(e) => setEditedNoteContent(e.target.value)}
-                                rows={4}
-                                className="w-full px-4 py-3 border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white resize-none"
-                                autoFocus
+                              <RichTextEditor
+                                value={editedNoteHtml}
+                                onChange={({ html, text, isEmpty }) => {
+                                  setEditedNoteHtml(isEmpty ? '' : html);
+                                  setEditedNoteContent(isEmpty ? '' : text);
+                                }}
+                                placeholder="Edit note..."
                               />
                               <div className="flex justify-end space-x-2">
                                 <button
@@ -2626,7 +2674,12 @@ const AgentDashboard: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    editNoteInTicket(selectedTicket.id, note.id, editedNoteContent);
+                                    editNoteInTicket(
+                                      selectedTicket.id,
+                                      note.id,
+                                      editedNoteContent,
+                                      editedNoteHtml
+                                    );
                                   }}
                                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
                                 >
@@ -2635,11 +2688,11 @@ const AgentDashboard: React.FC = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="prose prose-sm max-w-none">
-                              <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                                {note.content}
-                              </p>
-                            </div>
+                            <RichTextContent
+                              html={note.contentHtml}
+                              text={note.content}
+                              className="text-gray-700 dark:text-gray-300 leading-relaxed"
+                            />
                           )}
                         </div>
                       ))

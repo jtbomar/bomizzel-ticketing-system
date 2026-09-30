@@ -66,6 +66,7 @@ router.post(
     },
     body: {
       content: { type: 'string', required: true, minLength: 1 },
+      contentHtml: { type: 'string', required: false },
       isInternal: { type: 'boolean', required: false },
     },
   }),
@@ -299,14 +300,17 @@ noteRouter.put(
     },
     body: {
       content: { type: 'string', required: false, minLength: 1 },
+      contentHtml: { type: 'string', required: false },
       isInternal: { type: 'boolean', required: false },
     },
   }),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { noteId } = req.params;
-      const updates = req.body;
+      const updates = { ...req.body };
       const userId = req.user!.id;
+      // Only staff decide whether a note is internal.
+      if (!isStaff(req.user)) delete updates.isInternal;
 
       const note = await TicketNoteService.updateNote(noteId, userId, updates);
 

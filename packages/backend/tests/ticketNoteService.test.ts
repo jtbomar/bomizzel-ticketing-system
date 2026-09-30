@@ -68,6 +68,7 @@ describe('TicketNoteService', () => {
         ticketId: mockTicketId,
         authorId: mockAuthorId,
         content: 'Test note content',
+        contentHtml: null, // a plain note has no formatted version
         isInternal: false,
       });
       expect(MockedTicket.addHistory).toHaveBeenCalledWith(
@@ -160,6 +161,7 @@ describe('TicketNoteService', () => {
 
       expect(MockedTicketNote.updateNote).toHaveBeenCalledWith(mockNoteId, {
         content: 'Updated content',
+        contentHtml: null, // editing as plain text drops any old formatting
       });
       expect(result?.content).toBe('Updated content');
     });

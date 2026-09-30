@@ -7,6 +7,7 @@ import {
   PaginatedResponse,
 } from '@/types/models';
 import { ValidationError, NotFoundError, ForbiddenError } from '@/utils/errors';
+import { noteContent } from '@/utils/richText';
 
 export class TicketNoteService {
   static async createNote(
@@ -20,10 +21,14 @@ export class TicketNoteService {
       throw new NotFoundError('Ticket not found');
     }
 
+    const { content, contentHtml } = noteContent(noteData.content, noteData.contentHtml);
+    if (!content) throw new ValidationError('Note content is required');
+
     const note = await TicketNote.createNote({
       ticketId,
       authorId,
-      content: noteData.content,
+      content,
+      contentHtml,
       isInternal: noteData.isInternal || false,
     });
 
@@ -111,6 +116,7 @@ export class TicketNoteService {
     authorId: string,
     updates: {
       content?: string;
+      contentHtml?: string | null;
       isInternal?: boolean;
     }
   ): Promise<TicketNoteModel | null> {
@@ -130,7 +136,16 @@ export class TicketNoteService {
       throw new ValidationError('Email-generated notes cannot be edited');
     }
 
-    const updatedNote = await TicketNote.updateNote(noteId, updates);
+    const cleaned =
+      updates.content !== undefined || updates.contentHtml
+        ? noteContent(updates.content, updates.contentHtml)
+        : undefined;
+    if (cleaned && !cleaned.content) throw new ValidationError('Note content is required');
+
+    const updatedNote = await TicketNote.updateNote(noteId, {
+      ...(cleaned ? { content: cleaned.content, contentHtml: cleaned.contentHtml } : {}),
+      ...(updates.isInternal !== undefined ? { isInternal: updates.isInternal } : {}),
+    });
     return updatedNote ? TicketNote.toModel(updatedNote) : null;
   }
 

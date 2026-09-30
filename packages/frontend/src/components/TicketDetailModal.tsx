@@ -3,6 +3,8 @@ import { Ticket, TicketNote, FileAttachment, User } from '../types';
 import { apiService } from '../services/api';
 import AgentAssignmentDropdown from './AgentAssignmentDropdown';
 import DepartmentSelector from './DepartmentSelector';
+import RichTextEditor from './RichTextEditor';
+import RichTextContent from './RichTextContent';
 
 interface TicketDetailModalProps {
   ticket: Ticket;
@@ -15,6 +17,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [newNote, setNewNote] = useState('');
+  const [newNoteHtml, setNewNoteHtml] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [addingNote, setAddingNote] = useState(false);
 
@@ -66,13 +69,16 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
 
     try {
       setAddingNote(true);
-      const note = await apiService.createTicketNote(ticket.id, {
+      const response = await apiService.createTicketNote(ticket.id, {
         content: newNote,
+        contentHtml: newNoteHtml || undefined,
         isInternal,
       });
 
-      setNotes((prev) => [note, ...prev]);
+      // The API answers { success, data: note }; this added the wrapper.
+      setNotes((prev) => [response.data || response, ...prev]);
       setNewNote('');
+      setNewNoteHtml('');
       setIsInternal(false);
     } catch (err) {
       console.error('Error adding note:', err);
@@ -365,12 +371,14 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
             <div className="mb-6">
               <h3 className="text-lg font-medium text-gray-900 mb-2">Add Note</h3>
               <form onSubmit={handleAddNote} className="space-y-3">
-                <textarea
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  rows={3}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                <RichTextEditor
+                  value={newNoteHtml}
+                  onChange={({ html, text, isEmpty }) => {
+                    setNewNoteHtml(isEmpty ? '' : html);
+                    setNewNote(isEmpty ? '' : text);
+                  }}
                   placeholder="Add a note to this ticket..."
+                  minHeight={90}
                 />
                 <div className="flex items-center justify-between">
                   <label className="flex items-center">
@@ -431,7 +439,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
                         </div>
                         <span className="text-xs text-gray-500">{formatDate(note.createdAt)}</span>
                       </div>
-                      <p className="text-gray-700 whitespace-pre-wrap">{note.content}</p>
+                      <RichTextContent
+                        html={note.contentHtml}
+                        text={note.content}
+                        className="text-gray-700"
+                      />
                     </div>
                   ))}
                 </div>

@@ -9,6 +9,7 @@ export class TicketNote extends BaseModel {
     ticketId: string;
     authorId: string;
     content: string;
+    contentHtml?: string | null;
     isInternal?: boolean;
     isEmailGenerated?: boolean;
     emailMetadata?: Record<string, any>;
@@ -17,6 +18,7 @@ export class TicketNote extends BaseModel {
       ticket_id: noteData.ticketId,
       author_id: noteData.authorId,
       content: noteData.content,
+      content_html: noteData.contentHtml ?? null,
       is_internal: noteData.isInternal || false,
       is_email_generated: noteData.isEmailGenerated || false,
       email_metadata: noteData.emailMetadata || null,
@@ -121,6 +123,7 @@ export class TicketNote extends BaseModel {
     noteId: string,
     updates: {
       content?: string;
+      contentHtml?: string | null;
       isInternal?: boolean;
     }
   ): Promise<TicketNoteTable | null> {
@@ -128,6 +131,8 @@ export class TicketNote extends BaseModel {
 
     if (updates.content !== undefined) {
       updateData.content = updates.content;
+      // Editing the text replaces any formatting that went with it.
+      updateData.content_html = updates.contentHtml ?? null;
     }
 
     if (updates.isInternal !== undefined) {
@@ -193,6 +198,7 @@ export class TicketNote extends BaseModel {
           ticketId: row.ticket_id,
           authorId: row.author_id,
           content: row.content,
+          contentHtml: row.content_html ?? null,
           isInternal: row.is_internal,
           isEmailGenerated: row.is_email_generated,
           emailMetadata: row.email_metadata,
@@ -250,6 +256,7 @@ export class TicketNote extends BaseModel {
       ticketId: note.ticket_id,
       authorId: note.author_id,
       content: note.content,
+      contentHtml: (note as any).content_html ?? null,
       isInternal: note.is_internal,
       isEmailGenerated: note.is_email_generated,
       emailMetadata: note.email_metadata as any,

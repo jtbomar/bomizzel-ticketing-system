@@ -260,6 +260,7 @@ class ApiService {
     ticketId: string,
     noteData: {
       content: string;
+      contentHtml?: string;
       isInternal?: boolean;
     }
   ): Promise<any> {
@@ -271,6 +272,7 @@ class ApiService {
     noteId: string,
     updates: {
       content?: string;
+      contentHtml?: string;
       isInternal?: boolean;
     }
   ): Promise<any> {

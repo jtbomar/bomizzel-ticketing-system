@@ -154,6 +154,7 @@ export interface TicketNote {
   ticketId: string;
   authorId: string;
   content: string;
+  contentHtml?: string | null;
   isInternal: boolean;
   isEmailGenerated: boolean;
   emailMetadata?: EmailMetadata;
@@ -281,6 +282,9 @@ export interface UpdateTicketRequest {
 
 export interface CreateNoteRequest {
   content: string;
+  // Formatted version from the editor; cleaned on the server, and the plain
+  // content is then derived from it.
+  contentHtml?: string | null;
   isInternal?: boolean;
 }
 

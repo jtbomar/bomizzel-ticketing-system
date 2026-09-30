@@ -148,8 +148,12 @@ export class TicketEmailService {
     const { ticket, subscriber } = context;
     const ref = `#${ticketToken(ticket.id)}`;
     const signature = [author.first_name, author.last_name].filter(Boolean).join(' ');
+    // Formatted notes go out formatted. content_html was cleaned down to
+    // formatting-only tags when it was saved.
     const body =
-      paragraphs(note.content) +
+      (note.content_html
+        ? `<div style="line-height:1.5;">${note.content_html}</div>`
+        : paragraphs(note.content)) +
       (signature
         ? `<p style="margin:16px 0 0;color:#374151;">${escapeHtml(signature)}<br>${escapeHtml(subscriber.name)}</p>`
         : '');

@@ -150,6 +150,8 @@ export interface TicketNote {
   ticketId: string;
   authorId: string;
   content: string;
+  // Formatted version (bold, colours, highlight, lists); null for plain notes
+  contentHtml?: string | null;
   isInternal: boolean;
   isEmailGenerated: boolean;
   emailMetadata?: EmailMetadata;
