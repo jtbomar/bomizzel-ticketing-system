@@ -9,6 +9,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { Ticket } from '../types';
+import { priorityLabel } from '../utils/priority';
 
 interface CustomerTicketListProps {
   tickets: Ticket[];
@@ -283,7 +284,9 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
                   <div className="flex flex-col items-end space-y-2 ml-4">
                     <div className="text-right">
                       <div className="text-xs text-gray-500">Priority</div>
-                      <div className="text-sm font-medium text-gray-900">{ticket.priority}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {priorityLabel(ticket.priority)}
+                      </div>
                     </div>
 
                     {ticket.notes && ticket.notes.length > 0 && (

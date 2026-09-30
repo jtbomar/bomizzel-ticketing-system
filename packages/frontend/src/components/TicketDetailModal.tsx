@@ -5,6 +5,7 @@ import AgentAssignmentDropdown from './AgentAssignmentDropdown';
 import DepartmentSelector from './DepartmentSelector';
 import RichTextEditor from './RichTextEditor';
 import RichTextContent from './RichTextContent';
+import { priorityBadgeClass, priorityLabel } from '../utils/priority';
 
 interface TicketDetailModalProps {
   ticket: Ticket;
@@ -123,19 +124,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
     });
   };
 
-  const getPriorityColor = (priority: number) => {
-    if (priority >= 80) return 'bg-red-100 text-red-800 border-red-200';
-    if (priority >= 60) return 'bg-orange-100 text-orange-800 border-orange-200';
-    if (priority >= 40) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-green-100 text-green-800 border-green-200';
-  };
-
-  const getPriorityLabel = (priority: number) => {
-    if (priority >= 80) return 'High';
-    if (priority >= 60) return 'Medium';
-    if (priority >= 40) return 'Low';
-    return 'Lowest';
-  };
+  // One priority scale for every screen (utils/priority).
+  const getPriorityColor = priorityBadgeClass;
+  const getPriorityLabel = priorityLabel;
 
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">

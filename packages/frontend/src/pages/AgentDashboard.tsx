@@ -26,6 +26,12 @@ import { droppedFiles, openAttachment, pastedFiles } from '../utils/attachments'
 import RichTextEditor from '../components/RichTextEditor';
 import RichTextContent from '../components/RichTextContent';
 
+// The board's Resolved and Closed lanes hold only recently finished tickets;
+// with thousands of tickets they'd otherwise hold every one ever finished.
+const DONE_LANE_DAYS = 7;
+// Pages of 100 loaded for the board (unfinished + recently finished tickets).
+const MAX_BOARD_PAGES = 10;
+
 interface Ticket {
   id: number;
   title: string;
@@ -34,6 +40,9 @@ interface Ticket {
   customer: string;
   assigned: string;
   created: string;
+  // When it was resolved / closed (ISO), for "Resolved Today" and the done lanes
+  resolvedAt?: string | null;
+  closedAt?: string | null;
   description?: string;
   departmentId?: number | null;
   order: number;
@@ -245,6 +254,25 @@ const AgentDashboard: React.FC = () => {
   });
   const [priorities] = useState<PriorityOption[]>(getPriorities());
 
+  // Priority is a number on the server (0, 1, 2, ...) and a named option here,
+  // matched by the options' order: low=0, medium=1, high=2, critical=3 by
+  // default. Every view uses this one mapping - the Kanban card had its own
+  // capitalised "High"/"Medium"/"Low" list, which matched nothing, so every
+  // card showed High.
+  const orderedPriorities = [...priorities]
+    .filter((p) => p.isActive !== false)
+    .sort((a, b) => a.order - b.order);
+  const priorityFromNumber = (n: number): string => {
+    if (!orderedPriorities.length) return 'low';
+    const i = Math.min(Math.max(Number(n) || 0, 0), orderedPriorities.length - 1);
+    return orderedPriorities[i].value;
+  };
+  const numberFromPriority = (value: string): number =>
+    Math.max(
+      0,
+      orderedPriorities.findIndex((p) => p.value === value)
+    );
+
   // Load tickets from localStorage or use defaults
   const getInitialTickets = (): Ticket[] => {
     if (!user) return [];
@@ -349,8 +377,17 @@ const AgentDashboard: React.FC = () => {
           ticketParams.departmentId = selectedDepartmentId;
         }
 
-        const response = await apiService.getTickets(ticketParams);
-        const apiTickets = response.data || response.tickets || [];
+        // Every unfinished ticket, but resolved/closed ones only from the last
+        // DONE_LANE_DAYS days - and page through them, rather than stopping at
+        // the first 100 tickets (older open work used to just not appear).
+        ticketParams.finishedWithinDays = DONE_LANE_DAYS;
+        const apiTickets: any[] = [];
+        for (let page = 1; page <= MAX_BOARD_PAGES; page++) {
+          const response = await apiService.getTickets({ ...ticketParams, page });
+          apiTickets.push(...(response.data || response.tickets || []));
+          const totalPages = response.pagination?.totalPages || 1;
+          if (page >= totalPages) break;
+        }
 
         // Create ID mapping from numeric to UUID
         const idMapping = new Map<number, string>();
@@ -370,10 +407,12 @@ const AgentDashboard: React.FC = () => {
             id: numericId,
             title: t.title,
             status: t.status,
-            priority: t.priority === 0 ? 'low' : t.priority === 1 ? 'medium' : 'high',
+            priority: priorityFromNumber(t.priority),
             customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
             assigned: isAssignedToCurrentUser ? 'You' : assignedName,
             created: new Date(t.createdAt).toLocaleDateString(),
+            resolvedAt: t.resolvedAt || null,
+            closedAt: t.closedAt || null,
             description: t.description || '',
             departmentId: t.departmentId ?? null,
             order: 0, // Will be set below
@@ -650,22 +689,14 @@ const AgentDashboard: React.FC = () => {
     },
     {
       id: 'closed-today',
-      name: 'Closed Today',
+      name: 'Resolved Today',
       icon: '✅',
       filter: (ticket: Ticket) => {
-        // Check if ticket is closed/resolved
-        const isClosedStatus = ticket.status === 'closed' || ticket.status === 'resolved';
-        if (!isClosedStatus) return false;
-
-        // Check if created today (as a proxy for closed date since we don't have closedAt)
-        // In a real system, you'd check ticket.closedAt or ticket.updatedAt
-        const today = new Date();
-        const ticketDate = new Date(ticket.created);
-        return (
-          ticketDate.getDate() === today.getDate() &&
-          ticketDate.getMonth() === today.getMonth() &&
-          ticketDate.getFullYear() === today.getFullYear()
-        );
+        // Resolved or closed today, by when that happened. This used to check
+        // the date the ticket was created, as a stand-in.
+        const when = ticket.resolvedAt || ticket.closedAt;
+        if (!when || !['resolved', 'closed'].includes(ticket.status)) return false;
+        return new Date(when).toDateString() === new Date().toDateString();
       },
       isDefault: true,
     },
@@ -1217,8 +1248,20 @@ const AgentDashboard: React.FC = () => {
       const maxOrder =
         targetStatusTickets.length > 0 ? Math.max(...targetStatusTickets.map((t) => t.order)) : 0;
 
+      const now = new Date().toISOString();
       return prev.map((ticket) =>
-        ticket.id === ticketId ? { ...ticket, status: newStatus, order: maxOrder + 1 } : ticket
+        ticket.id === ticketId
+          ? {
+              ...ticket,
+              status: newStatus,
+              order: maxOrder + 1,
+              // Mirrors what the server records, so "Resolved Today" counts it now.
+              ...(newStatus === 'resolved' && ticket.status !== 'resolved'
+                ? { resolvedAt: now }
+                : {}),
+              ...(newStatus === 'closed' && ticket.status !== 'closed' ? { closedAt: now } : {}),
+            }
+          : ticket
       );
     });
 
@@ -1262,8 +1305,8 @@ const AgentDashboard: React.FC = () => {
     try {
       const uuidTicketId = ticketIdMap.get(ticketId);
       if (uuidTicketId) {
-        // Convert priority string to number for API
-        const priorityValue = newPriority === 'low' ? 0 : newPriority === 'medium' ? 1 : 2;
+        // Convert priority to the server's number (same mapping as every view)
+        const priorityValue = numberFromPriority(newPriority);
         await apiService.updateTicket(uuidTicketId, { priority: priorityValue });
         console.log(`Updated ticket ${ticketId} priority to ${newPriority}`);
       }
@@ -1711,6 +1754,14 @@ const AgentDashboard: React.FC = () => {
                   >
                     <h3 className="font-medium text-gray-900 dark:text-white mb-4">
                       {statusConfig.label} ({statusTickets.length})
+                      {['resolved', 'closed'].includes(statusConfig.value) && (
+                        <span
+                          className="block text-xs font-normal text-gray-500 dark:text-gray-400"
+                          title="Older finished tickets stay in the list view and search"
+                        >
+                          Last {DONE_LANE_DAYS} days
+                        </span>
+                      )}
                     </h3>
                     <div className="space-y-3">
                       {statusTickets.map((ticket, index) => (
@@ -1761,19 +1812,16 @@ const AgentDashboard: React.FC = () => {
                               <div className="flex flex-col items-end space-y-1">
                                 <select
                                   value={ticket.priority}
-                                  onChange={(e) =>
-                                    changePriority(
-                                      ticket.id,
-                                      e.target.value as 'High' | 'Medium' | 'Low'
-                                    )
-                                  }
+                                  onChange={(e) => changePriority(ticket.id, e.target.value)}
                                   className={`text-xs font-medium border-none bg-transparent ${getPriorityColor(ticket.priority)} cursor-pointer`}
                                   onClick={(e) => e.stopPropagation()}
                                   onPointerDown={(e) => e.stopPropagation()}
                                 >
-                                  <option value="High">High</option>
-                                  <option value="Medium">Medium</option>
-                                  <option value="Low">Low</option>
+                                  {orderedPriorities.map((p) => (
+                                    <option key={p.value} value={p.value}>
+                                      {p.label}
+                                    </option>
+                                  ))}
                                 </select>
                                 {boardSettings.showPriorityArrows && (
                                   <div className="flex flex-col space-y-1">

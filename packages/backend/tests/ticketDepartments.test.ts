@@ -172,4 +172,23 @@ describe('ticket departments', () => {
       expect((await db('tickets').where('id', ticket.id).first()).department_id).toBe(billing);
     });
   });
+
+  it('finishedWithinDays keeps open tickets but only recently finished ones', async () => {
+    const [recent] = await db('tickets').where('title', 'billing question');
+    const [old] = await db('tickets').where('title', 'no department given');
+    await db('tickets')
+      .where('id', recent.id)
+      .update({ status: 'resolved', resolved_at: new Date() });
+    await db('tickets')
+      .where('id', old.id)
+      .update({ status: 'closed', closed_at: new Date(Date.now() - 30 * 24 * 3600 * 1000) });
+
+    const board = await list('finishedWithinDays=7');
+    const titles = board.body.data.map((t: any) => t.title);
+    expect(titles).toContain('billing question'); // resolved today
+    expect(titles).not.toContain('no department given'); // closed a month ago
+
+    const everything = await list('');
+    expect(everything.body.data.map((t: any) => t.title)).toContain('no department given');
+  });
 });

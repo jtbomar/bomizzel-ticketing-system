@@ -14,6 +14,9 @@ export interface TicketSearchOptions {
   orgId?: string;
   queueId?: string;
   departmentId?: number;
+  // Unfinished tickets, plus resolved/closed ones only from the last N days
+  // (the board's done lanes would otherwise hold every ticket ever finished).
+  finishedWithinDays?: number;
 }
 
 export class Ticket extends BaseModel {
@@ -346,6 +349,15 @@ export class Ticket extends BaseModel {
 
     if (options.departmentId) {
       query = query.where('department_id', options.departmentId);
+    }
+
+    if (options.finishedWithinDays) {
+      const since = new Date(Date.now() - options.finishedWithinDays * 24 * 60 * 60 * 1000);
+      query = query.where(function () {
+        this.whereNotIn('status', ['resolved', 'closed'])
+          .orWhere('resolved_at', '>=', since)
+          .orWhere('closed_at', '>=', since);
+      });
     }
 
     return query;

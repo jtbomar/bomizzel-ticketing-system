@@ -154,6 +154,7 @@ export class TicketService {
       queueId?: string;
       assignedToId?: string;
       departmentId?: number;
+      finishedWithinDays?: number;
       status?: string;
       page?: number;
       limit?: number;
@@ -179,6 +180,9 @@ export class TicketService {
 
     if (options.departmentId) {
       searchOptions.departmentId = options.departmentId;
+    }
+    if (options.finishedWithinDays) {
+      searchOptions.finishedWithinDays = options.finishedWithinDays;
     }
 
     // Apply permission filtering based on user role

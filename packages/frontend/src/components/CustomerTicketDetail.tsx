@@ -19,6 +19,7 @@ import AuthImage from './AuthImage';
 import { droppedFiles, openAttachment } from '../utils/attachments';
 import RichTextEditor from './RichTextEditor';
 import RichTextContent from './RichTextContent';
+import { priorityLabel } from '../utils/priority';
 
 interface CustomerTicketDetailProps {
   onTicketUpdated?: (ticket: Ticket) => void;
@@ -250,7 +251,9 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
             </div>
             <div className="text-right">
               <div className="text-xs text-gray-500">Priority</div>
-              <div className="text-sm font-medium text-gray-900">{ticket.priority}</div>
+              <div className="text-sm font-medium text-gray-900">
+                {priorityLabel(ticket.priority)}
+              </div>
             </div>
           </div>
         </div>
