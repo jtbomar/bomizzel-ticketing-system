@@ -562,6 +562,39 @@ Need help? Contact our support team at support@bomizzel.com
     `.trim();
   }
 
+  /**
+   * Send one message. `fromName` shows as the sender's name; the address is
+   * always the configured one (the only address the mail provider will send
+   * as). Replies go to `replyTo`.
+   */
+  static async send(message: {
+    to: string[];
+    subject: string;
+    html: string;
+    text: string;
+    fromName?: string;
+    replyTo?: string;
+    headers?: Record<string, string>;
+  }): Promise<string> {
+    if (!this.transporter || !this.config) {
+      throw new Error('Email service not initialized');
+    }
+    const address = (this.config.from.match(/<([^>]+)>/)?.[1] || this.config.from).trim();
+    const from = message.fromName
+      ? `"${message.fromName.replace(/["\\\r\n]/g, '')}" <${address}>`
+      : this.config.from;
+    const info = await this.transporter.sendMail({
+      from,
+      to: message.to,
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+      replyTo: message.replyTo,
+      headers: message.headers,
+    });
+    return info.messageId;
+  }
+
   static async getEmailConfig(): Promise<EmailConfig | null> {
     return this.config;
   }

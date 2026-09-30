@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 import { TicketStatus } from '@/models/TicketStatus';
 import { AccountEmailService } from './AccountEmailService';
 import { CryptoUtils } from '@/utils/crypto';
+import { ensureSupportSlug } from '@/utils/supportEmail';
 
 export interface CompanyRegistrationData {
   // Company basic info
@@ -297,6 +298,9 @@ export class CompanyRegistrationService {
       });
 
       await trx.commit();
+
+      // The subscriber's support address (<slug>@support.bomizzel.com).
+      await ensureSupportSlug(createdCompany.id);
 
       await AccountEmailService.sendVerification(
         { email: adminUserRecord.email, first_name: adminUserRecord.first_name },

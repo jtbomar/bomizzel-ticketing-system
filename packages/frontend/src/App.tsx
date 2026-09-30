@@ -38,6 +38,7 @@ const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const CompanyProfile = lazy(() => import('./pages/CompanyProfile'));
 const Rebranding = lazy(() => import('./pages/Rebranding'));
 const BusinessHours = lazy(() => import('./pages/BusinessHours'));
+const EmailSettings = lazy(() => import('./pages/EmailSettings'));
 const HolidayList = lazy(() => import('./pages/HolidayList'));
 const Departments = lazy(() => import('./pages/Departments'));
 const CustomerHappiness = lazy(() => import('./pages/CustomerHappiness'));
@@ -226,6 +227,14 @@ function App() {
                       element={
                         <ProtectedRoute requiredRole="admin">
                           <Rebranding />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/settings/email"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <EmailSettings />
                         </ProtectedRoute>
                       }
                     />

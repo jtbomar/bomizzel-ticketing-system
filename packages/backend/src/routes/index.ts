@@ -45,6 +45,7 @@ import seedMissingDataRoutes from './seedMissingData';
 import seedStatusesRoutes from './seedStatuses';
 import organizationsRoutes from './organizations';
 import databaseResetRoutes from './databaseReset';
+import inboundEmailRoutes from './inboundEmail';
 
 const router = Router();
 
@@ -148,6 +149,8 @@ router.post('/cleanup-now', authenticate, ...dangerousDatabaseRoute, async (req,
 // the template endpoints at /api/email/email/templates.
 router.use('/tickets', ticketEmailRoutes);
 router.use('/email', emailRouter);
+// Email received at subscribers' support addresses (signed webhook, no login)
+router.use('/inbound', inboundEmailRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {

@@ -5,6 +5,7 @@ import { EmailTemplateService } from '@/services/EmailTemplateService';
 import { authenticate } from '@/middleware/auth';
 import { requirePlatformAdmin } from '@/middleware/platformAdmin';
 import { getTicketInTenant, isStaff } from '@/utils/tenant';
+import { ensureSupportSlug, supportAddress } from '@/utils/supportEmail';
 import { AppError } from '@/middleware/errorHandler';
 import { validateRequest } from '@/utils/validation';
 
@@ -198,6 +199,28 @@ router.post(
     }
   }
 );
+
+/**
+ * GET /email/support-address
+ * The caller's subscriber's support address: email sent there becomes a
+ * ticket. Staff only (emailRouter), own subscriber only.
+ */
+emailRouter.get('/support-address', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) throw new AppError('No subscriber account for this user', 403, 'NO_TENANT');
+    const slug = await ensureSupportSlug(tenantId);
+    res.json({
+      success: true,
+      data: {
+        address: supportAddress(slug),
+        emailEnabled: EmailService.isInitialized(),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * Get email service status

@@ -7,6 +7,8 @@ import { db } from '@/config/database';
 import { canAccessTicket, getTicketInTenant, isStaff, requireTenantId } from '@/utils/tenant';
 import { validateRequest } from '@/utils/validation';
 import { CreateNoteRequest } from '@/types/models';
+import { TicketEmailService } from '@/services/TicketEmailService';
+import { logger } from '@/utils/logger';
 
 // Two routers, because this file serves two different path families.
 //
@@ -75,6 +77,14 @@ router.post(
       if (!isStaff(req.user)) noteData.isInternal = false;
 
       const note = await TicketNoteService.createNote(ticketId, userId, noteData);
+
+      // A public note from staff is the reply to the customer: email it. In
+      // the background, so a slow mail provider never holds up the page.
+      if (isStaff(req.user) && !noteData.isInternal) {
+        TicketEmailService.sendNote(ticketId, (note as any).id).catch((error) =>
+          logger.error('Could not email note to customer', { ticketId, error: String(error) })
+        );
+      }
 
       res.status(201).json({
         success: true,

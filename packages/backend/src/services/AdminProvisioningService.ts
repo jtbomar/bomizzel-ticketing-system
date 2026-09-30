@@ -5,6 +5,7 @@ import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureSupportSlug } from '@/utils/supportEmail';
 
 export interface CustomSubscriptionLimits {
   maxUsers?: number;
@@ -101,6 +102,9 @@ export class AdminProvisioningService {
         description: request.companyDescription,
         is_active: true,
       });
+
+      // The new subscriber's support address (<slug>@support.bomizzel.com).
+      await ensureSupportSlug(company.id);
 
       // 4. Generate temporary password for admin
       const temporaryPassword = this.generateTemporaryPassword();

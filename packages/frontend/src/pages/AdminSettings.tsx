@@ -23,6 +23,7 @@ const BUILT_SETTINGS = new Set([
   '/admin/settings/company-profile',
   '/admin/settings/customer-happiness',
   '/admin/settings/departments',
+  '/admin/settings/email',
   '/admin/settings/game-scope',
   '/admin/settings/holidays',
   '/admin/settings/products',

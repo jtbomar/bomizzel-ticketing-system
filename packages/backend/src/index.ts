@@ -129,7 +129,16 @@ app.use(
 
 // Increase payload limit for image uploads
 app.use(exceptHealth(validateContentType));
-app.use(express.json({ limit: '10mb' }));
+app.use(
+  express.json({
+    limit: '10mb',
+    // Keep the exact bytes too: webhook signatures (inbound email) are made
+    // over the raw body, and re-serialising the parsed JSON changes it.
+    verify: (req, _res, buf) => {
+      (req as any).rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(sanitizeInput); // after body parsing, so it can clean the parsed body
 

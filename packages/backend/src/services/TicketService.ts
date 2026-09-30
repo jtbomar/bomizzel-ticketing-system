@@ -869,7 +869,7 @@ export class TicketService {
    * The department a new ticket goes to: the requested one if it belongs to
    * the subscriber, otherwise the subscriber's default (or first) department.
    */
-  private static async resolveDepartment(
+  static async resolveDepartment(
     tenantId: string | undefined,
     requested?: number
   ): Promise<number | null> {
