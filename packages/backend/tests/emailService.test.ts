@@ -87,12 +87,16 @@ describe('EmailService', () => {
   describe('initialize', () => {
     it('should initialize email service with config', () => {
       EmailService.initialize(mockConfig);
-      expect(mockCreateTransporter).toHaveBeenCalledWith({
-        host: mockConfig.host,
-        port: mockConfig.port,
-        secure: mockConfig.secure,
-        auth: mockConfig.auth,
-      });
+      expect(mockCreateTransporter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          host: mockConfig.host,
+          port: mockConfig.port,
+          secure: mockConfig.secure,
+          auth: mockConfig.auth,
+          // Fails fast rather than hanging the request on a blocked server
+          connectionTimeout: 10000,
+        })
+      );
     });
 
     it('should return true for isInitialized after initialization', () => {
