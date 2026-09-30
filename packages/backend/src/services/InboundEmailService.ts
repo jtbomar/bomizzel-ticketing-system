@@ -288,12 +288,24 @@ export class InboundEmailService {
     return { outcome: 'ticket_created', ticketId: created.id };
   }
 
-  /** The ticket a reply is for: from the +token, or "[#token]" in the subject. */
+  /**
+   * The ticket a reply is for: from the +token in the address, else "[#1001]"
+   * (the ticket number) or an older "[#<token>]" in the subject.
+   */
   private static async findReplyTicket(
     tenantId: string,
     token: string | undefined,
     subject: string
   ) {
+    if (!token) {
+      const number = subject.match(/\[#(\d{1,9})\]/)?.[1];
+      if (number) {
+        const byNumber = await db('tickets')
+          .where({ org_id: tenantId, ticket_number: Number(number) })
+          .first();
+        if (byNumber) return byNumber;
+      }
+    }
     const fromSubject = subject.match(/\[#([0-9a-f]{12})\]/i)?.[1]?.toLowerCase();
     const wanted = token || fromSubject;
     if (!wanted) return null;

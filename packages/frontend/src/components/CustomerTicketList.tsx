@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Ticket } from '../types';
 import { priorityLabel } from '../utils/priority';
+import { ticketRef } from '../utils/ticketRef';
 
 interface CustomerTicketListProps {
   tickets: Ticket[];
@@ -270,7 +271,7 @@ const CustomerTicketList: React.FC<CustomerTicketListProps> = ({
                     </p>
 
                     <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span>ID: {ticket.id.slice(-8)}</span>
+                      <span>Ticket {ticketRef(ticket)}</span>
                       <span>Created: {formatDate(ticket.createdAt)}</span>
                       <span>Updated: {formatDate(ticket.updatedAt)}</span>
                       {ticket.assignedTo && (

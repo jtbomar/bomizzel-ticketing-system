@@ -123,6 +123,8 @@ export interface TicketStatus {
 
 export interface Ticket {
   id: string;
+  // Permanent number within its subscriber: #1001, #1002, ...
+  ticketNumber?: number | null;
   title: string;
   description: string;
   status: string;

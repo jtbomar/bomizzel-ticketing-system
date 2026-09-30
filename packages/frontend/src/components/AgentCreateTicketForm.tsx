@@ -10,6 +10,7 @@ import {
 import { apiService } from '../services/api';
 import { Team, CustomField, Ticket, User } from '../types';
 import DepartmentSelector from './DepartmentSelector';
+import { ticketRef } from '../utils/ticketRef';
 
 interface CustomerSearchResult {
   id: string;
@@ -506,7 +507,7 @@ const AgentCreateTicketForm: React.FC = () => {
       const newTicket = response.ticket || response.data || response;
 
       // Show success message
-      alert(`Ticket #${newTicket.id.slice(-8)} created successfully!`);
+      alert(`Ticket ${ticketRef(newTicket)} created successfully!`);
 
       // Navigate back to dashboard
       navigate('/agent');

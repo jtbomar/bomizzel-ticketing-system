@@ -10,6 +10,7 @@ import {
   GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
+import { ticketRef } from '../utils/ticketRef';
 
 interface Account {
   id: string;
@@ -493,7 +494,7 @@ const AgentAccountDetail: React.FC = () => {
                           {ticket.title}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          #{ticket.id.slice(-8)}
+                          {ticketRef(ticket)}
                         </p>
                       </div>
                       <span

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Ticket } from '../types';
+import { ticketRef } from '../utils/ticketRef';
 
 interface TicketListViewProps {
   tickets: Ticket[];
@@ -198,7 +199,7 @@ const TicketListView: React.FC<TicketListViewProps> = ({
                       <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
                         {ticket.title}
                       </div>
-                      <div className="text-sm text-gray-500">#{ticket.id.slice(-8)}</div>
+                      <div className="text-sm text-gray-500">{ticketRef(ticket)}</div>
                     </div>
                   </div>
                 </td>

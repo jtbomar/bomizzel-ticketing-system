@@ -6,6 +6,7 @@ import DepartmentSelector from './DepartmentSelector';
 import RichTextEditor from './RichTextEditor';
 import RichTextContent from './RichTextContent';
 import { priorityBadgeClass, priorityLabel } from '../utils/priority';
+import { ticketRef } from '../utils/ticketRef';
 
 interface TicketDetailModalProps {
   ticket: Ticket;
@@ -160,7 +161,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose }
             </div>
             <div className="text-sm text-gray-500 space-y-1">
               <p>
-                Ticket #{ticket.id.slice(-8)} • Created {formatDate(ticket.createdAt)}
+                Ticket {ticketRef(ticket)} • Created {formatDate(ticket.createdAt)}
               </p>
               <p>
                 Submitted by: {ticket.submitter?.firstName} {ticket.submitter?.lastName}

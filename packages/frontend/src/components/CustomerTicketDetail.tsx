@@ -20,6 +20,7 @@ import { droppedFiles, openAttachment } from '../utils/attachments';
 import RichTextEditor from './RichTextEditor';
 import RichTextContent from './RichTextContent';
 import { priorityLabel } from '../utils/priority';
+import { ticketRef } from '../utils/ticketRef';
 
 interface CustomerTicketDetailProps {
   onTicketUpdated?: (ticket: Ticket) => void;
@@ -229,7 +230,7 @@ const CustomerTicketDetail: React.FC<CustomerTicketDetailProps> = () => {
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <span className="flex items-center space-x-1">
                 <TagIcon className="h-4 w-4" />
-                <span>ID: {ticket.id.slice(-8)}</span>
+                <span>Ticket {ticketRef(ticket)}</span>
               </span>
               <span className="flex items-center space-x-1">
                 <CalendarIcon className="h-4 w-4" />

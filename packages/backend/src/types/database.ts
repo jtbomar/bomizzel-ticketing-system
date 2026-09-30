@@ -108,6 +108,8 @@ export interface TicketTable {
   // The subscriber (tenant) the ticket belongs to; company_id is the account.
   org_id?: string | null;
   department_id?: number | null;
+  // Permanent number within its subscriber (#1001, #1002, ...); set by a trigger
+  ticket_number?: number | null;
   company_id: string;
   assigned_to_id?: string;
   queue_id: string;

@@ -2,6 +2,7 @@ import React from 'react';
 // TODO: Implement @dnd-kit drag and drop
 // import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { Ticket, TicketStatus } from '../types';
+import { ticketRef } from '../utils/ticketRef';
 // import TicketCard from './TicketCard'; // TODO: Use TicketCard component
 
 interface KanbanBoardProps {
@@ -70,7 +71,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                   <h4 className="font-medium text-gray-900">{ticket.title}</h4>
                   <p className="text-sm text-gray-600 mt-1">{ticket.description}</p>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-xs text-gray-500">#{ticket.id}</span>
+                    <span className="text-xs text-gray-500">{ticketRef(ticket)}</span>
                     <span className="text-xs text-gray-500">{ticket.priority}</span>
                   </div>
                 </div>

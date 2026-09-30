@@ -310,12 +310,15 @@ export class Ticket extends BaseModel {
     options: TicketSearchOptions
   ): Knex.QueryBuilder {
     if (options.query) {
+      const number = options.query.trim().match(/^#?(\d{1,9})$/)?.[1];
       query = query.where(function () {
         this.where('title', 'ilike', `%${options.query}%`).orWhere(
           'description',
           'ilike',
           `%${options.query}%`
         );
+        // "#1001" (or "1001") finds ticket number 1001
+        if (number) this.orWhere('ticket_number', Number(number));
       });
     }
 
@@ -474,6 +477,7 @@ export class Ticket extends BaseModel {
   static toModel(ticket: TicketTable): TicketModel {
     return {
       id: ticket.id,
+      ticketNumber: ticket.ticket_number ?? null,
       title: ticket.title,
       description: ticket.description,
       status: ticket.status,

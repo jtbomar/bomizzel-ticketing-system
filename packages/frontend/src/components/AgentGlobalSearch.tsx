@@ -8,6 +8,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
+import { ticketRef } from '../utils/ticketRef';
 
 interface SearchResult {
   type: 'customer' | 'account' | 'ticket';
@@ -107,7 +108,7 @@ const AgentGlobalSearch: React.FC = () => {
           type: 'ticket',
           id: ticket.id,
           title: ticket.title,
-          subtitle: `#${ticket.id.slice(-8)} • ${ticket.status}`,
+          subtitle: `${ticketRef(ticket)} • ${ticket.status}`,
           metadata: ticket.company?.name,
         });
       });

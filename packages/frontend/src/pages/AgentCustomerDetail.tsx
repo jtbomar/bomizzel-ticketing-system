@@ -10,6 +10,7 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
+import { ticketRef } from '../utils/ticketRef';
 
 interface Customer {
   id: string;
@@ -440,7 +441,7 @@ const AgentCustomerDetail: React.FC = () => {
                         </p>
                         <div className="flex items-center space-x-2 mt-1">
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            #{ticket.id.slice(-8)}
+                            {ticketRef(ticket)}
                           </span>
                           <span className="text-xs text-gray-400">•</span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">

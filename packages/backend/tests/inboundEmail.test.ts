@@ -244,7 +244,9 @@ describe('new tickets by email', () => {
     // Sent from the ticket's support address itself, so replies reach it
     // even when a mail app ignores Reply-To.
     expect(receipt.fromAddress).toBe(`acme+${token}@${DOMAIN}`);
-    expect(receipt.subject).toContain(`[#${token}]`);
+    // The ticket's permanent number: the first ticket for this subscriber.
+    expect(ticket.ticket_number).toBe(1001);
+    expect(receipt.subject).toBe('Re: [#1001] Printer is on fire');
   });
 
   it('ignores the same email delivered twice', async () => {
@@ -465,6 +467,82 @@ describe('attachments', () => {
     const saved = await db('file_attachments').where('ticket_id', first.body.ticketId);
     expect(saved).toHaveLength(1);
     expect(saved[0]).toMatchObject({ original_name: 'report.pdf', note_id: note.id });
+  });
+});
+
+describe('ticket numbers', () => {
+  it("numbers each subscriber's tickets separately, in order", async () => {
+    const a1 = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject: 'n1',
+      text: 'x',
+    });
+    const a2 = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject: 'n2',
+      text: 'x',
+    });
+    const b1 = await deliver({
+      from: 'sam@initrode.example.com',
+      to: [`beta@${DOMAIN}`],
+      subject: 'n3',
+      text: 'x',
+    });
+    const [t1, t2, t3] = await Promise.all(
+      [a1, a2, b1].map((r) => db('tickets').where('id', r.body.ticketId).first())
+    );
+    expect(t2.ticket_number).toBe(t1.ticket_number + 1);
+    // Beta's numbering is its own, not continuing Acme's
+    const betaNumbers = (await db('tickets').where('org_id', B).pluck('ticket_number')).sort();
+    expect(betaNumbers[0]).toBe(1001);
+    expect(t3.org_id).toBe(B);
+  });
+
+  it('a reply with just "[#number]" in the subject lands on that ticket - for someone allowed on it', async () => {
+    const first = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject: 'By number',
+      text: 'x',
+    });
+    const ticket = await db('tickets').where('id', first.body.ticketId).first();
+    const subject = `Re: [#${ticket.ticket_number}] By number`;
+
+    const reply = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject,
+      text: 'more info',
+    });
+    expect(reply.body).toEqual({ outcome: 'note_added', ticketId: ticket.id });
+
+    const stranger = await deliver({
+      from: 'eve@elsewhere.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject,
+      text: 'hi',
+    });
+    expect(stranger.body.outcome).toBe('ticket_created');
+  });
+
+  it('searching "#number" finds the ticket', async () => {
+    const [ticket] = await db('tickets')
+      .where('org_id', A)
+      .orderBy('ticket_number', 'desc')
+      .limit(1);
+    const agent = JWTUtils.generateAccessToken({
+      userId: A_AGENT,
+      email: 'agent@acme-desk.example.com',
+      role: 'employee',
+    });
+    const res = await request(app)
+      .get(`/api/tickets?search=${encodeURIComponent('#' + ticket.ticket_number)}`)
+      .set('Authorization', `Bearer ${agent}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.map((t: any) => t.id)).toContain(ticket.id);
+    expect(res.body.data[0].ticketNumber).toBeDefined();
   });
 });
 

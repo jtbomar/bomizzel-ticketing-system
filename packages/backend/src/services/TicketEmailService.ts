@@ -107,7 +107,11 @@ const send = async (
   return true;
 };
 
-const subjectFor = (ticket: any) => `[#${ticketToken(ticket.id)}] ${ticket.title}`;
+/** "#1001" - the ticket's permanent number (the token for any without one). */
+const refFor = (ticket: any) =>
+  ticket.ticket_number ? `#${ticket.ticket_number}` : `#${ticketToken(ticket.id)}`;
+
+const subjectFor = (ticket: any) => `[${refFor(ticket)}] ${ticket.title}`;
 
 export class TicketEmailService {
   /** "We've received your request" for a ticket opened by email. */
@@ -116,7 +120,7 @@ export class TicketEmailService {
     if (!context) return false;
     const { ticket, subscriber, customer } = context;
     const hi = customer.first_name ? `Hi ${customer.first_name},` : 'Hi,';
-    const ref = `#${ticketToken(ticket.id)}`;
+    const ref = refFor(ticket);
     const body =
       paragraphs(
         `${hi}\n\nThanks for getting in touch. We've received your request and someone from ${subscriber.name} will get back to you soon.\n\nYou can reply to this email to add anything else.`
@@ -146,7 +150,7 @@ export class TicketEmailService {
     if (!author || author.role === 'customer') return false;
 
     const { ticket, subscriber } = context;
-    const ref = `#${ticketToken(ticket.id)}`;
+    const ref = refFor(ticket);
     const signature = [author.first_name, author.last_name].filter(Boolean).join(' ');
     // Formatted notes go out formatted. content_html was cleaned down to
     // formatting-only tags when it was saved.

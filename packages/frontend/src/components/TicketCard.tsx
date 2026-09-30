@@ -1,5 +1,6 @@
 import React from 'react';
 import { Ticket } from '../types';
+import { ticketRef } from '../utils/ticketRef';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -52,7 +53,7 @@ const TicketCard: React.FC<TicketCardProps> = ({
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-gray-900 truncate">{ticket.title}</h3>
           <p className="text-xs text-gray-500 mt-1">
-            #{ticket.id.slice(-8)} • {formatDate(ticket.createdAt)}
+            {ticketRef(ticket)} • {formatDate(ticket.createdAt)}
           </p>
         </div>
         <div

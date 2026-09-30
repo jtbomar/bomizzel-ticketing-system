@@ -34,6 +34,8 @@ const MAX_BOARD_PAGES = 10;
 
 interface Ticket {
   id: number;
+  // Permanent number (#1001...). `id` above is only this page's local key.
+  ticketNumber?: number | null;
   title: string;
   status: string;
   priority: string;
@@ -427,6 +429,7 @@ const AgentDashboard: React.FC = () => {
             customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
             assigned: isAssignedToCurrentUser ? 'You' : assignedName,
             created: new Date(t.createdAt).toLocaleDateString(),
+            ticketNumber: t.ticketNumber ?? null,
             resolvedAt: t.resolvedAt || null,
             closedAt: t.closedAt || null,
             description: t.description || '',
@@ -1807,7 +1810,8 @@ const AgentDashboard: React.FC = () => {
                                     {ticket.title}
                                   </h4>
                                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    {boardSettings.showTicketIds && `#${ticket.id} • `}
+                                    {boardSettings.showTicketIds &&
+                                      `#${ticket.ticketNumber ?? ticket.id} • `}
                                     {ticket.customer}
                                   </p>
                                   {boardSettings.showAssignee && (
@@ -1934,7 +1938,7 @@ const AgentDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                    #{ticket.id}
+                    #{ticket.ticketNumber ?? ticket.id}
                   </span>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -2222,7 +2226,7 @@ const AgentDashboard: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-3 mb-2">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                    #{selectedTicket.id}
+                    #{selectedTicket.ticketNumber ?? selectedTicket.id}
                   </span>
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTicket.status)}`}
@@ -3555,7 +3559,7 @@ const AgentDashboard: React.FC = () => {
                           Ticket ID
                         </div>
                         <div className="text-sm text-gray-900 dark:text-white font-mono">
-                          #{selectedTicket.id}
+                          #{selectedTicket.ticketNumber ?? selectedTicket.id}
                         </div>
                       </div>
 
