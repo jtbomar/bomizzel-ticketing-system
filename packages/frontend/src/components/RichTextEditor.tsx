@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { EditorContent, useEditor, type Editor } from '@tiptap/react';
+import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import Highlight from '@tiptap/extension-highlight';
@@ -123,6 +123,22 @@ const Swatches: React.FC<{
 };
 
 const Toolbar: React.FC<{ editor: Editor }> = ({ editor }) => {
+  // Re-render on every editor change so the buttons show what's on at the
+  // cursor. Without this the toolbar didn't redraw as you typed: after turning
+  // bold off, B still looked on, so a second click turned it back on.
+  const active = useEditorState({
+    editor,
+    selector: ({ editor: e }) => ({
+      bold: e.isActive('bold'),
+      italic: e.isActive('italic'),
+      underline: e.isActive('underline'),
+      strike: e.isActive('strike'),
+      bulletList: e.isActive('bulletList'),
+      orderedList: e.isActive('orderedList'),
+      link: e.isActive('link'),
+    }),
+  });
+
   const addLink = () => {
     const previous = editor.getAttributes('link').href as string | undefined;
     const url = window.prompt('Link address', previous || 'https://');
@@ -139,28 +155,28 @@ const Toolbar: React.FC<{ editor: Editor }> = ({ editor }) => {
     <div className="flex flex-wrap items-center gap-0.5 px-2 py-1 border-b border-gray-200 dark:border-gray-700">
       <ToolbarButton
         label="Bold (Ctrl+B)"
-        active={editor.isActive('bold')}
+        active={active.bold}
         onClick={() => editor.chain().focus().toggleBold().run()}
       >
         <strong>B</strong>
       </ToolbarButton>
       <ToolbarButton
         label="Italic (Ctrl+I)"
-        active={editor.isActive('italic')}
+        active={active.italic}
         onClick={() => editor.chain().focus().toggleItalic().run()}
       >
         <em>I</em>
       </ToolbarButton>
       <ToolbarButton
         label="Underline (Ctrl+U)"
-        active={editor.isActive('underline')}
+        active={active.underline}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
       >
         <span className="underline">U</span>
       </ToolbarButton>
       <ToolbarButton
         label="Strikethrough"
-        active={editor.isActive('strike')}
+        active={active.strike}
         onClick={() => editor.chain().focus().toggleStrike().run()}
       >
         <span className="line-through">S</span>
@@ -191,19 +207,19 @@ const Toolbar: React.FC<{ editor: Editor }> = ({ editor }) => {
       <span className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
       <ToolbarButton
         label="Bulleted list"
-        active={editor.isActive('bulletList')}
+        active={active.bulletList}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
       >
         • List
       </ToolbarButton>
       <ToolbarButton
         label="Numbered list"
-        active={editor.isActive('orderedList')}
+        active={active.orderedList}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
       >
         1. List
       </ToolbarButton>
-      <ToolbarButton label="Link" active={editor.isActive('link')} onClick={addLink}>
+      <ToolbarButton label="Link" active={active.link} onClick={addLink}>
         🔗
       </ToolbarButton>
       <ToolbarButton
