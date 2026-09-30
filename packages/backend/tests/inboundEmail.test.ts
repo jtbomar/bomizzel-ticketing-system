@@ -367,6 +367,31 @@ describe('replies', () => {
     expect((await db('tickets').where('id', ticketId).first()).status).toBe('open');
   });
 
+  it('a reply to a closed ticket opens a follow-up ticket instead of reopening it', async () => {
+    const res0 = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme@${DOMAIN}`],
+      subject: 'Done',
+      text: 'x',
+    });
+    const done = await db('tickets').where('id', res0.body.ticketId).first();
+    await db('tickets')
+      .where('id', done.id)
+      .update({ status: 'closed', closed_at: new Date(), resolution: 'fixed' });
+    const t = done.id.replace(/-/g, '').slice(0, 12);
+
+    const res = await deliver({
+      from: 'pat@globex.example.com',
+      to: [`acme+${t}@${DOMAIN}`],
+      subject: 'Re: Done',
+      text: 'It broke again',
+    });
+    expect(res.body.outcome).toBe('ticket_created');
+    const followUp = await db('tickets').where('id', res.body.ticketId).first();
+    expect(followUp.description).toContain(`Follow-up to #${done.ticket_number}`);
+    expect((await db('tickets').where('id', done.id).first()).status).toBe('closed');
+  });
+
   it('a co-worker at the same account can reply on it too', async () => {
     const res = await deliver({
       from: 'lee@globex.example.com',

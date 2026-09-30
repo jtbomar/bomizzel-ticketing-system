@@ -19,6 +19,9 @@ export interface TicketSearchOptions {
   finishedWithinDays?: number;
 }
 
+export const FINISHED_STATUSES = ['resolved', 'closed'];
+export const RESOLUTIONS = ['fixed', 'wont_do', 'duplicate', 'no_response'];
+
 export class Ticket extends BaseModel {
   protected static tableName = 'tickets';
 
@@ -199,10 +202,19 @@ export class Ticket extends BaseModel {
   static async updateStatus(
     ticketId: string,
     status: string,
-    updatedById: string
+    updatedById: string,
+    resolution?: string
   ): Promise<TicketTable | null> {
     const currentTicket = await this.findById(ticketId);
     const updateData: any = { status };
+
+    // Why it was finished. Finishing without a reason counts as fixed;
+    // reopening clears it.
+    if (FINISHED_STATUSES.includes(status)) {
+      updateData.resolution = resolution || currentTicket?.resolution || 'fixed';
+    } else {
+      updateData.resolution = null;
+    }
 
     // Set resolved_at or closed_at based on status
     if (status === 'resolved' && currentTicket?.status !== 'resolved') {
@@ -478,6 +490,7 @@ export class Ticket extends BaseModel {
     return {
       id: ticket.id,
       ticketNumber: ticket.ticket_number ?? null,
+      resolution: ticket.resolution ?? null,
       title: ticket.title,
       description: ticket.description,
       status: ticket.status,

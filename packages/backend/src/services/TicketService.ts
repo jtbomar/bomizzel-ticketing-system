@@ -1,4 +1,4 @@
-import { Ticket } from '@/models/Ticket';
+import { Ticket, RESOLUTIONS } from '@/models/Ticket';
 import { Queue } from '@/models/Queue';
 import { CustomField } from '@/models/CustomField';
 import { Team } from '@/models/Team';
@@ -478,8 +478,12 @@ export class TicketService {
     ticketId: string,
     status: string,
     updatedById: string,
-    userRole: string
+    userRole: string,
+    resolution?: string
   ): Promise<TicketModel> {
+    if (resolution && !RESOLUTIONS.includes(resolution)) {
+      throw new ValidationError(`Invalid resolution: ${resolution}`);
+    }
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
       throw new NotFoundError('Ticket not found');
@@ -510,7 +514,7 @@ export class TicketService {
     }
 
     const oldStatus = ticketData.status;
-    await Ticket.updateStatus(ticketId, status, updatedById);
+    await Ticket.updateStatus(ticketId, status, updatedById, resolution);
 
     const updatedTicket = await this.getTicketWithRelations(ticketId);
 
@@ -717,7 +721,13 @@ export class TicketService {
 
     // Handle status update separately
     if (updateData.status !== undefined) {
-      await this.updateTicketStatus(ticketId, updateData.status, updatedById, userRole);
+      await this.updateTicketStatus(
+        ticketId,
+        updateData.status,
+        updatedById,
+        userRole,
+        updateData.resolution
+      );
     }
 
     // Handle priority update separately

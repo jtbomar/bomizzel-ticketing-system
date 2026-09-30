@@ -210,9 +210,13 @@ export class InboundEmailService {
 
     // A reply on an existing ticket?
     const ticket = await this.findReplyTicket(tenantId, target.token, subject);
+    let followUpOf: { ticket_number?: number | null } | null = null;
     if (ticket) {
       const author = await this.allowedOnTicket(sender.email, ticket, tenantId);
-      if (author) {
+      // A closed ticket is finished: a reply to it starts a new ticket that
+      // says which one it follows up, rather than reopening it.
+      if (author && ticket.status === 'closed') followUpOf = ticket;
+      if (author && ticket.status !== 'closed') {
         const content = stripQuotedReply(text) || '(empty reply)';
         const [note] = await db('ticket_notes')
           .insert({
@@ -240,11 +244,11 @@ export class InboundEmailService {
             source: 'email',
           }
         );
-        // A customer writing back reopens a ticket that was waiting on them.
-        if (!STAFF_ROLES.includes(author.role) && ['resolved', 'closed'].includes(ticket.status)) {
+        // A customer writing back reopens a resolved ticket (waiting on them).
+        if (!STAFF_ROLES.includes(author.role) && ticket.status === 'resolved') {
           await db('tickets')
             .where('id', ticket.id)
-            .update({ status: 'open', updated_at: db.fn.now() });
+            .update({ status: 'open', resolution: null, updated_at: db.fn.now() });
           await Ticket.addHistory(
             ticket.id,
             author.id,
@@ -273,7 +277,10 @@ export class InboundEmailService {
     }
 
     const contact = await this.findOrCreateContact(tenantId, sender);
-    const created = await this.createTicket(tenantId, contact, subject, text);
+    const description = followUpOf?.ticket_number
+      ? `Follow-up to #${followUpOf.ticket_number} (closed).\n\n${text}`
+      : text;
+    const created = await this.createTicket(tenantId, contact, subject, description);
     if (!created) return { outcome: 'ignored', reason: 'subscriber has no team' };
 
     await this.log(email, created.id, tenantId, sender.email, subject, null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -32,6 +32,16 @@ const DONE_LANE_DAYS = 7;
 // Pages of 100 loaded for the board (unfinished + recently finished tickets).
 const MAX_BOARD_PAGES = 10;
 
+// Why a ticket was finished. Asked for when it's resolved; 'no_response' is
+// only ever set by the server.
+const RESOLUTION_LABELS: Record<string, string> = {
+  fixed: 'Fixed',
+  wont_do: "Won't do",
+  duplicate: 'Duplicate',
+  no_response: 'No response',
+};
+const RESOLUTION_CHOICES = ['fixed', 'wont_do', 'duplicate'];
+
 interface Ticket {
   id: number;
   // Permanent number (#1001...). `id` above is only this page's local key.
@@ -45,6 +55,8 @@ interface Ticket {
   // When it was resolved / closed (ISO), for "Resolved Today" and the done lanes
   resolvedAt?: string | null;
   closedAt?: string | null;
+  // Why it was resolved or closed (see RESOLUTION_LABELS)
+  resolution?: string | null;
   description?: string;
   departmentId?: number | null;
   order: number;
@@ -349,6 +361,12 @@ const AgentDashboard: React.FC = () => {
     }
   }, [showTicketSidebar]);
   const [activeDragId, setActiveDragId] = useState<number | null>(null);
+  // A move to Resolved waiting on "how was it resolved?". Cancel puts the
+  // ticket back in previousStatus.
+  const [pendingResolution, setPendingResolution] = useState<{
+    ticketId: number;
+    previousStatus: string;
+  } | null>(null);
 
   // Load initial tickets when user is available
   useEffect(() => {
@@ -432,6 +450,7 @@ const AgentDashboard: React.FC = () => {
             ticketNumber: t.ticketNumber ?? null,
             resolvedAt: t.resolvedAt || null,
             closedAt: t.closedAt || null,
+            resolution: t.resolution || null,
             description: t.description || '',
             departmentId: t.departmentId ?? null,
             order: 0, // Will be set below
@@ -1258,60 +1277,88 @@ const AgentDashboard: React.FC = () => {
     return colorMap[color] || 'text-gray-600 dark:text-gray-400';
   };
 
-  const moveTicket = async (ticketId: number, newStatus: string) => {
-    console.log(`[moveTicket] Moving ticket ${ticketId} to status ${newStatus}`);
-
-    // Update local state optimistically
+  // Show a ticket in a new status (board and open ticket view).
+  const applyStatus = (ticketId: number, newStatus: string, resolution?: string | null) => {
+    const now = new Date().toISOString();
+    const finished = ['resolved', 'closed'].includes(newStatus);
+    const update = (ticket: Ticket): Ticket => ({
+      ...ticket,
+      status: newStatus,
+      // Mirrors what the server records, so "Resolved Today" counts it now.
+      ...(newStatus === 'resolved' && !ticket.resolvedAt ? { resolvedAt: now } : {}),
+      ...(newStatus === 'closed' && !ticket.closedAt ? { closedAt: now } : {}),
+      resolution: finished ? (resolution ?? ticket.resolution ?? null) : null,
+    });
     setTickets((prev) => {
-      const targetStatusTickets = prev.filter((t) => t.status === newStatus);
-      const maxOrder =
-        targetStatusTickets.length > 0 ? Math.max(...targetStatusTickets.map((t) => t.order)) : 0;
-
-      const now = new Date().toISOString();
-      return prev.map((ticket) =>
-        ticket.id === ticketId
-          ? {
-              ...ticket,
-              status: newStatus,
-              order: maxOrder + 1,
-              // Mirrors what the server records, so "Resolved Today" counts it now.
-              ...(newStatus === 'resolved' && ticket.status !== 'resolved'
-                ? { resolvedAt: now }
-                : {}),
-              ...(newStatus === 'closed' && ticket.status !== 'closed' ? { closedAt: now } : {}),
-            }
-          : ticket
+      const current = prev.find((t) => t.id === ticketId);
+      if (!current) return prev;
+      const moved = current.status !== newStatus;
+      const maxOrder = Math.max(
+        0,
+        ...prev.filter((t) => t.status === newStatus).map((t) => t.order)
+      );
+      return prev.map((t) =>
+        t.id === ticketId ? { ...update(t), ...(moved ? { order: maxOrder + 1 } : {}) } : t
       );
     });
+    setSelectedTicket((prev) => (prev && prev.id === ticketId ? update(prev) : prev));
+  };
 
-    // Persist to API
+  // Save a status change; on failure the ticket goes back to previousStatus.
+  const persistStatus = async (
+    ticketId: number,
+    newStatus: string,
+    previousStatus: string,
+    resolution?: string
+  ) => {
+    applyStatus(ticketId, newStatus, resolution);
+    const uuidTicketId = ticketIdMap.get(ticketId);
+    if (!uuidTicketId) {
+      console.error(`[moveTicket] No UUID found for ticket ${ticketId}`);
+      applyStatus(ticketId, previousStatus);
+      return;
+    }
     try {
-      const uuidTicketId = ticketIdMap.get(ticketId);
-      console.log(`[moveTicket] UUID for ticket ${ticketId}:`, uuidTicketId);
-
-      if (!uuidTicketId) {
-        console.error(`[moveTicket] No UUID found for ticket ${ticketId}`);
-        console.log('[moveTicket] Available ticket IDs:', Array.from(ticketIdMap.keys()));
-        return;
-      }
-
-      console.log(`[moveTicket] Calling API to update ticket ${uuidTicketId}`);
-      console.log(`[moveTicket] Request body:`, { status: newStatus });
-      const response = await apiService.updateTicket(uuidTicketId, { status: newStatus });
-      console.log(`[moveTicket] API response:`, response);
+      await apiService.updateTicket(uuidTicketId, {
+        status: newStatus,
+        ...(resolution ? { resolution } : {}),
+      });
     } catch (error: any) {
       console.error('[moveTicket] Failed to update ticket status:', error);
-      console.error('[moveTicket] Error details:', error.response?.data || error.message);
-
-      // Revert the optimistic update
-      setTickets((prev) =>
-        prev.map((ticket) =>
-          ticket.id === ticketId ? { ...ticket, status: ticket.status } : ticket
-        )
-      );
-
+      applyStatus(ticketId, previousStatus);
       alert(`Failed to move ticket: ${error.response?.data?.message || error.message}`);
     }
+  };
+
+  // Moving to Resolved asks why first; any other move saves straight away.
+  const requestStatusChange = (ticketId: number, newStatus: string, previousStatus: string) => {
+    if (newStatus === previousStatus) return;
+    if (newStatus === 'resolved') {
+      applyStatus(ticketId, newStatus);
+      setPendingResolution({ ticketId, previousStatus });
+      return;
+    }
+    persistStatus(ticketId, newStatus, previousStatus);
+  };
+  // The drag handlers are memoised once, so they reach the current one here.
+  const requestStatusChangeRef = useRef(requestStatusChange);
+  requestStatusChangeRef.current = requestStatusChange;
+
+  const chooseResolution = (resolution: string | null) => {
+    const pending = pendingResolution;
+    setPendingResolution(null);
+    if (!pending) return;
+    if (resolution) {
+      persistStatus(pending.ticketId, 'resolved', pending.previousStatus, resolution);
+    } else {
+      applyStatus(pending.ticketId, pending.previousStatus);
+    }
+  };
+
+  const moveTicket = (ticketId: number, newStatus: string) => {
+    const ticket = tickets.find((t) => t.id === ticketId);
+    if (!ticket) return;
+    requestStatusChange(ticketId, newStatus, ticket.status);
   };
 
   const changePriority = async (ticketId: number, newPriority: string) => {
@@ -1507,65 +1554,90 @@ const AgentDashboard: React.FC = () => {
   };
 
   // dnd-kit drag handlers
+  // Status when the drag began. Dragging over another lane moves the card
+  // there as you go, so by the drop the card already shows the new status.
+  const dragStartStatusRef = useRef<string | null>(null);
+  const ticketsRef = useRef(tickets);
+  ticketsRef.current = tickets;
+
   const handleDndDragStart = useCallback((event: DragStartEvent) => {
     const id = Number(event.active.id);
     setActiveDragId(id);
+    dragStartStatusRef.current = ticketsRef.current.find((t) => t.id === id)?.status ?? null;
   }, []);
 
   const handleDndDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setActiveDragId(null);
 
-    if (!over || active.id === over.id) return;
-
     const activeId = Number(active.id);
+    const startStatus = dragStartStatusRef.current;
+    dragStartStatusRef.current = null;
+    const dragged = ticketsRef.current.find((t) => t.id === activeId);
+    if (!dragged || !startStatus) return;
+
+    if (!over) {
+      // Dropped outside the board: back where it started.
+      if (dragged.status !== startStatus) {
+        setTickets((prev) =>
+          prev.map((t) => (t.id === activeId ? { ...t, status: startStatus } : t))
+        );
+      }
+      return;
+    }
+
     const overId = String(over.id);
+    let targetStatus = dragged.status;
+    if (overId.startsWith('column-')) {
+      targetStatus = overId.replace('column-', '');
+    } else if (overId !== String(activeId)) {
+      const overTicket = ticketsRef.current.find((t) => t.id === Number(overId));
+      if (overTicket) targetStatus = overTicket.status;
+    }
 
-    setTickets((prev) => {
-      const draggedTicket = prev.find((t) => t.id === activeId);
-      if (!draggedTicket) return prev;
+    if (overId !== String(activeId)) {
+      setTickets((prev) => {
+        const draggedTicket = prev.find((t) => t.id === activeId);
+        if (!draggedTicket) return prev;
 
-      // Determine target status
-      let targetStatus: string;
-      if (overId.startsWith('column-')) {
-        targetStatus = overId.replace('column-', '');
-      } else {
-        const overTicket = prev.find((t) => t.id === Number(overId));
-        if (!overTicket) return prev;
-        targetStatus = overTicket.status;
-      }
+        // Get tickets in the target column, sorted by order
+        const columnTickets = prev
+          .filter((t) => t.status === targetStatus && t.id !== activeId)
+          .sort((a, b) => a.order - b.order);
 
-      // Get tickets in the target column, sorted by order
-      const columnTickets = prev
-        .filter((t) => t.status === targetStatus && t.id !== activeId)
-        .sort((a, b) => a.order - b.order);
-
-      // Find where to insert
-      let insertIndex = columnTickets.length; // default: end
-      if (!overId.startsWith('column-')) {
-        const overIndex = columnTickets.findIndex((t) => t.id === Number(overId));
-        if (overIndex !== -1) {
-          insertIndex = overIndex;
+        // Find where to insert
+        let insertIndex = columnTickets.length; // default: end
+        if (!overId.startsWith('column-')) {
+          const overIndex = columnTickets.findIndex((t) => t.id === Number(overId));
+          if (overIndex !== -1) {
+            insertIndex = overIndex;
+          }
         }
-      }
 
-      // Insert dragged ticket at the right position
-      columnTickets.splice(insertIndex, 0, { ...draggedTicket, status: targetStatus });
+        // Insert dragged ticket at the right position
+        columnTickets.splice(insertIndex, 0, { ...draggedTicket, status: targetStatus });
 
-      // Reassign clean integer orders
-      const updatedIds = new Map<number, { status: string; order: number }>();
-      columnTickets.forEach((t, i) => {
-        updatedIds.set(t.id, { status: targetStatus, order: i + 1 });
+        // Reassign clean integer orders
+        const updatedIds = new Map<number, { status: string; order: number }>();
+        columnTickets.forEach((t, i) => {
+          updatedIds.set(t.id, { status: targetStatus, order: i + 1 });
+        });
+
+        return prev.map((t) => {
+          const update = updatedIds.get(t.id);
+          if (update) {
+            return { ...t, status: update.status, order: update.order };
+          }
+          return t;
+        });
       });
+    }
 
-      return prev.map((t) => {
-        const update = updatedIds.get(t.id);
-        if (update) {
-          return { ...t, status: update.status, order: update.order };
-        }
-        return t;
-      });
-    });
+    // This used to change the board only, so a dragged ticket went back to
+    // its old status on the next reload.
+    if (targetStatus !== startStatus) {
+      requestStatusChangeRef.current(activeId, targetStatus, startStatus);
+    }
   }, []);
 
   const handleDndDragOver = useCallback((event: DragOverEvent) => {
@@ -1930,7 +2002,11 @@ const AgentDashboard: React.FC = () => {
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ticket.status).replace('border-', 'border ')}`}
                   >
-                    {statuses.find((s) => s.value === ticket.status)?.label || ticket.status}
+                    {statuses.find((s) => s.value === ticket.status)?.label ||
+                      (ticket.status === 'closed' ? 'Closed' : ticket.status)}
+                    {ticket.resolution &&
+                      ['resolved', 'closed'].includes(ticket.status) &&
+                      ` · ${RESOLUTION_LABELS[ticket.resolution] || ticket.resolution}`}
                   </span>
                   <div className="text-sm text-gray-500 dark:text-gray-400">{ticket.created}</div>
                 </div>
@@ -2206,7 +2282,10 @@ const AgentDashboard: React.FC = () => {
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(selectedTicket.status)}`}
                   >
                     {statuses.find((s) => s.value === selectedTicket.status)?.label ||
-                      selectedTicket.status}
+                      (selectedTicket.status === 'closed' ? 'Closed' : selectedTicket.status)}
+                    {selectedTicket.resolution &&
+                      ['resolved', 'closed'].includes(selectedTicket.status) &&
+                      ` · ${RESOLUTION_LABELS[selectedTicket.resolution] || selectedTicket.resolution}`}
                   </span>
                   <span
                     className={`text-xs font-medium ${getPriorityColor(selectedTicket.priority)}`}
@@ -2469,10 +2548,7 @@ const AgentDashboard: React.FC = () => {
                       </label>
                       <select
                         value={selectedTicket.status}
-                        onChange={(e) => {
-                          moveTicket(selectedTicket.id, e.target.value);
-                          setSelectedTicket({ ...selectedTicket, status: e.target.value });
-                        }}
+                        onChange={(e) => moveTicket(selectedTicket.id, e.target.value)}
                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       >
                         {statuses.map((status) => (
@@ -2480,7 +2556,22 @@ const AgentDashboard: React.FC = () => {
                             {status.label}
                           </option>
                         ))}
+                        {selectedTicket.status === 'closed' && (
+                          <option value="closed" disabled>
+                            Closed
+                          </option>
+                        )}
                       </select>
+                      {selectedTicket.resolution &&
+                        ['resolved', 'closed'].includes(selectedTicket.status) && (
+                          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            {selectedTicket.status === 'closed' ? 'Closed' : 'Resolved'} as{' '}
+                            {RESOLUTION_LABELS[selectedTicket.resolution] ||
+                              selectedTicket.resolution}
+                            {selectedTicket.status === 'resolved' &&
+                              ' · closes automatically after 7 days without a reply'}
+                          </p>
+                        )}
                     </div>
 
                     <div>
@@ -4645,6 +4736,52 @@ const AgentDashboard: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {pendingResolution && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm h-full w-full z-[60] flex items-center justify-center p-4"
+          onClick={() => chooseResolution(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="resolution-title"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm p-6"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === 'Escape' && chooseResolution(null)}
+          >
+            <h3
+              id="resolution-title"
+              className="text-lg font-semibold text-gray-900 dark:text-white mb-1"
+            >
+              How was it resolved?
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              It closes automatically after 7 days unless the customer replies.
+            </p>
+            <div className="grid gap-2">
+              {RESOLUTION_CHOICES.map((value, i) => (
+                <button
+                  key={value}
+                  type="button"
+                  autoFocus={i === 0}
+                  onClick={() => chooseResolution(value)}
+                  className="w-full px-4 py-2 text-left rounded-lg border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-blue-500"
+                >
+                  {RESOLUTION_LABELS[value]}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => chooseResolution(null)}
+              className="mt-4 w-full px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:underline"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

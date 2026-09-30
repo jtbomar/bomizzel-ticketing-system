@@ -125,6 +125,7 @@ export interface Ticket {
   id: string;
   // Permanent number within its subscriber: #1001, #1002, ...
   ticketNumber?: number | null;
+  resolution?: string | null;
   title: string;
   description: string;
   status: string;
@@ -277,6 +278,8 @@ export interface UpdateTicketRequest {
   status?: string;
   priority?: number;
   assignedToId?: string;
+  // With status resolved/closed: why (fixed, wont_do, duplicate, no_response)
+  resolution?: string;
   // Move the ticket to another department of its subscriber (staff only).
   departmentId?: number;
   customFieldValues?: Record<string, any>;

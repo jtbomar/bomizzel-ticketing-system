@@ -172,6 +172,11 @@ router.put(
       priority: { type: 'number', required: false, min: 0, max: 100 },
       assignedToId: { type: 'string', required: false, format: 'uuid', nullable: true },
       departmentId: { type: 'number', required: false, min: 1 },
+      resolution: {
+        type: 'string',
+        required: false,
+        enum: ['fixed', 'wont_do', 'duplicate', 'no_response'],
+      },
       customFieldValues: { type: 'object', required: false },
     },
   }),
@@ -271,6 +276,11 @@ router.put(
     },
     body: {
       status: { type: 'string', required: true },
+      resolution: {
+        type: 'string',
+        required: false,
+        enum: ['fixed', 'wont_do', 'duplicate', 'no_response'],
+      },
     },
   }),
   async (req, res, next) => {
@@ -308,11 +318,17 @@ router.put(
 
       // Proceed with route handler
       const ticketId = req.params.id;
-      const { status } = req.body;
+      const { status, resolution } = req.body;
       const userId = req.user!.id;
       const userRole = req.user!.role;
 
-      const ticket = await TicketService.updateTicketStatus(ticketId, status, userId, userRole);
+      const ticket = await TicketService.updateTicketStatus(
+        ticketId,
+        status,
+        userId,
+        userRole,
+        resolution
+      );
 
       res.json({
         success: true,

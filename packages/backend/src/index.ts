@@ -309,6 +309,13 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// Close resolved tickets after 7 days without a reply (hourly)
+if (process.env.NODE_ENV === 'production' || process.env.ENABLE_AUTO_CLOSE === 'true') {
+  const { TicketAutoCloseJob } = require('./services/TicketAutoCloseJob');
+  TicketAutoCloseJob.start();
+  console.log('🔒 Auto-close of resolved tickets started');
+}
+
 // Start archival scheduler (only in production or when enabled)
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_ARCHIVAL_SCHEDULER === 'true') {
   try {
