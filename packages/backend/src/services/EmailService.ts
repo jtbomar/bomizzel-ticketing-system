@@ -54,7 +54,8 @@ export interface EmailMetadata {
 }
 
 export class EmailService {
-  private static transporter: Transporter | null = null;
+  // A nodemailer SMTP transporter, or ResendTransport (same sendMail/verify).
+  private static transporter: Pick<Transporter, 'sendMail' | 'verify'> | null = null;
   private static config: EmailConfig | null = null;
 
   static initialize(config: EmailConfig): void {
@@ -64,7 +65,22 @@ export class EmailService {
       port: config.port,
       secure: config.secure,
       auth: config.auth,
+      // Give up quickly instead of after nodemailer's two-minute default: a
+      // blocked or unreachable mail server otherwise hangs the request that
+      // sent the mail (sign-up, forgot password) until it times out.
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000,
     });
+  }
+
+  /** Send through an HTTPS email API instead of SMTP (see ResendTransport). */
+  static initializeWithTransport(
+    transport: Pick<Transporter, 'sendMail' | 'verify'>,
+    config: EmailConfig
+  ): void {
+    this.config = config;
+    this.transporter = transport;
   }
 
   static async verifyConnection(): Promise<boolean> {
