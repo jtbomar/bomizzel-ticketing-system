@@ -1682,61 +1682,35 @@ const AgentDashboard: React.FC = () => {
       );
     }
 
-    // Show debug info if no tickets at all
     if (tickets.length === 0) {
       return (
         <div className="text-center py-12">
-          <div className="text-gray-400 text-6xl mb-4">🔍</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No Tickets Found
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            No tickets are available. Check the browser console for debugging information.
+          <div className="text-gray-400 text-6xl mb-4">📭</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No tickets yet</h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            {showOnlyMyTickets || selectedDepartmentId
+              ? 'Nothing here with the current filters - try All Tickets or All Departments.'
+              : 'New tickets from your customers, the portal or email will show up here.'}
           </p>
-          <div className="text-sm text-gray-500 space-y-1">
-            <p>User: {user ? `${user.email} (${user.role})` : 'Not logged in'}</p>
-            <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
-            <p>Total tickets: {tickets.length}</p>
-            <p>Filtered tickets: {filteredTickets.length}</p>
-            <p>Statuses: {statuses.map((s) => s.value).join(', ')}</p>
-          </div>
         </div>
       );
     }
 
-    // Show debug info if we have tickets but filtered tickets is empty
-    if (tickets.length > 0 && filteredTickets.length === 0) {
+    if (filteredTickets.length === 0) {
       return (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No Filtered Tickets
+            No tickets match this view
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Tickets exist but none match the current filter. Check console for details.
+            Try a different view on the left, or clear the filter.
           </p>
-          <div className="text-sm text-gray-500 space-y-1">
-            <p>Total tickets: {tickets.length}</p>
-            <p>Filtered tickets: {filteredTickets.length}</p>
-            <p>Filter: {showOnlyMyTickets ? 'My Tickets' : 'All Tickets'}</p>
-            <p>
-              Sample ticket statuses:{' '}
-              {tickets
-                .slice(0, 3)
-                .map((t) => t.status)
-                .join(', ')}
-            </p>
-            <p>Expected statuses: {statuses.map((s) => s.value).join(', ')}</p>
-          </div>
           <button
-            onClick={() => {
-              console.log('All tickets:', tickets);
-              console.log('Statuses:', statuses);
-              console.log('Filtered tickets:', filteredTickets);
-            }}
-            className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            onClick={() => setActiveViewFilter('all-tickets')}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           >
-            Log Debug Info
+            Show all tickets
           </button>
         </div>
       );
@@ -4112,35 +4086,6 @@ const AgentDashboard: React.FC = () => {
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Debug/Reset Section */}
-            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-              <div className="text-xs text-yellow-800 dark:text-yellow-200 space-y-2">
-                <div className="font-medium">Debug Info:</div>
-                <div>Total tickets: {tickets.length}</div>
-                <div>Filtered: {filteredTickets.length}</div>
-                <div className="text-xs break-all">
-                  Statuses: {statuses.map((s) => s.value).join(', ')}
-                </div>
-                <div className="text-xs break-all">
-                  Ticket statuses: {[...new Set(tickets.map((t) => t.status))].join(', ')}
-                </div>
-                <button
-                  onClick={() => {
-                    if (confirm('Reset to default tickets? This will clear all current tickets.')) {
-                      if (user) {
-                        const userKey = `agent-tickets-${user.id}`;
-                        localStorage.removeItem(userKey);
-                      }
-                      window.location.reload();
-                    }
-                  }}
-                  className="mt-2 w-full px-3 py-1.5 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700"
-                >
-                  Reset to Default Tickets
                 </button>
               </div>
             </div>
