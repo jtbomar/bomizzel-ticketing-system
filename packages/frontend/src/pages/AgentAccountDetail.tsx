@@ -454,39 +454,7 @@ const AgentAccountDetail: React.FC = () => {
                       key={ticket.id}
                       className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer"
                       onClick={() => {
-                        // Store ticket data temporarily
-                        sessionStorage.setItem(
-                          'openTicket',
-                          JSON.stringify({
-                            id: ticket.id,
-                            title: ticket.title,
-                            status: ticket.status,
-                            priority: ticket.priority || 'medium',
-                            customer: ticket.submitter
-                              ? `${ticket.submitter.firstName} ${ticket.submitter.lastName}`
-                              : 'Unknown',
-                            assigned: ticket.assignedTo
-                              ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}`
-                              : 'Unassigned',
-                            created: new Date(ticket.createdAt).toLocaleDateString('en-US', {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            }),
-                            description: ticket.description || 'No description provided',
-                            order: 1,
-                            customerInfo: ticket.submitter
-                              ? {
-                                  name: `${ticket.submitter.firstName} ${ticket.submitter.lastName}`,
-                                  email: ticket.submitter.email,
-                                  phone: '',
-                                  company: account?.name || '',
-                                  website: account?.domain || '',
-                                }
-                              : undefined,
-                          })
-                        );
-                        navigate('/agent');
+                        navigate(`/agent?ticket=${encodeURIComponent(ticket.id)}`);
                       }}
                     >
                       <div className="flex-1">

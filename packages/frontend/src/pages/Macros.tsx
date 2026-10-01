@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { Editor } from '@tiptap/react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -154,16 +155,14 @@ const Macros: React.FC = () => {
     return parts;
   };
 
+  // Placeholders go in where the cursor is (the buttons keep the editor's
+  // cursor: see onMouseDown below); with no cursor yet, at the end.
+  const replyEditor = useRef<Editor | null>(null);
   const insertPlaceholder = (key: string) => {
-    if (!draft) return;
-    const token = `{{${key}}}`;
-    const html = draft.replyHtml;
-    // Added at the end of the last paragraph (the editor isn't focused
-    // while the button is clicked, so there's no cursor to insert at).
-    const next = /<\/p>\s*$/.test(html)
-      ? html.replace(/<\/p>\s*$/, ` ${token}</p>`)
-      : `${html}<p>${token}</p>`;
-    setDraft({ ...draft, replyHtml: next });
+    const editor = replyEditor.current;
+    if (!editor) return;
+    const chain = editor.isFocused ? editor.chain().focus() : editor.chain().focus('end');
+    chain.insertContent(`{{${key}}}`).run();
   };
 
   const save = async () => {
@@ -308,13 +307,16 @@ const Macros: React.FC = () => {
                     setDraft((d) => (d ? { ...d, replyHtml: isEmpty ? '' : html } : d))
                   }
                   placeholder="Hi {{customer.firstName}}, ..."
+                  editorRef={replyEditor}
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-gray-500">Insert:</span>
+                  <span className="text-xs text-gray-500">Insert at the cursor:</span>
                   {options.placeholders.map((p) => (
                     <button
                       key={p.key}
                       type="button"
+                      // Keep the editor's cursor where it is
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => insertPlaceholder(p.key)}
                       className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
                     >

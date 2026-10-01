@@ -22,7 +22,7 @@ const BSIAdminLogin: React.FC = () => {
         password,
       });
 
-      const { token, user } = response.data;
+      const { token, refreshToken, user } = response.data;
 
       // Ask the backend whether this account is a Bomizzel platform admin.
       // The list lives on the server (PLATFORM_ADMIN_EMAILS), not in the browser.
@@ -39,6 +39,7 @@ const BSIAdminLogin: React.FC = () => {
 
       // Store token and user info
       localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
 
       // Redirect to BSI admin dashboard

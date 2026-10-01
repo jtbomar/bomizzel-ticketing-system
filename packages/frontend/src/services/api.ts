@@ -50,18 +50,66 @@ class ApiService {
       (error) => Promise.reject(error)
     );
 
-    // Response interceptor to handle auth errors
+    // A 401 usually just means the access token expired (after 15 minutes).
+    // Renew it with the refresh token and retry once; only sign out if that
+    // fails. This used to sign out on the first 401, so any click or reload
+    // 15 minutes after logging in went back to the login page.
     this.client.interceptors.response.use(
       (response) => response,
-      (error) => {
-        if (error.response?.status === 401) {
+      async (error) => {
+        const original = error.config;
+        const isTokenCall = /\/auth\/(login|refresh|logout)/.test(original?.url || '');
+        if (error.response?.status === 401 && original && !original._retried && !isTokenCall) {
+          original._retried = true;
+          try {
+            const token = await this.renewToken();
+            original.headers = { ...original.headers, Authorization: `Bearer ${token}` };
+            return this.client(original);
+          } catch {
+            // fall through to signing out
+          }
+        }
+        if (error.response?.status === 401 && !isTokenCall) {
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
-          window.location.href = '/login';
+          localStorage.removeItem('user');
+          window.location.href = window.location.pathname.startsWith('/bsi')
+            ? '/bsi/login'
+            : '/login';
         }
         return Promise.reject(error);
       }
     );
+  }
+
+  // One renewal at a time: refresh tokens are single-use, so two requests
+  // failing together must share the same renewal.
+  private renewing: Promise<string> | null = null;
+
+  private renewToken(): Promise<string> {
+    if (!this.renewing) {
+      const refreshToken = localStorage.getItem('refreshToken');
+      this.renewing = (async () => {
+        if (!refreshToken) throw new Error('No refresh token');
+        const response = await axios.post(`${this.client.defaults.baseURL}/auth/refresh`, {
+          refreshToken,
+        });
+        const { token, refreshToken: next } = response.data;
+        if (!token) throw new Error('No token in refresh response');
+        localStorage.setItem('token', token);
+        if (next) localStorage.setItem('refreshToken', next);
+        return token as string;
+      })().finally(() => {
+        this.renewing = null;
+      });
+    }
+    return this.renewing;
+  }
+
+  /** Is the saved login still good? (Renews it if it has only expired.) */
+  async verifySession(): Promise<any> {
+    const response = await this.client.get('/auth/verify');
+    return response.data;
   }
 
   // Auth endpoints

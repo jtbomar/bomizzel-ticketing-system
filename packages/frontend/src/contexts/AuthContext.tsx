@@ -53,10 +53,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Use the backend API for authentication
       const response = await apiService.login(email, password);
-      const { token, user: backendUser } = response;
+      const { token, refreshToken, user: backendUser } = response;
 
-      // Store the token
+      // Store the tokens. The refresh token renews the login when the access
+      // token expires; it wasn't kept, so every login lasted 15 minutes.
       localStorage.setItem('token', token);
+      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
 
       // Convert backend user to frontend User type
       const frontendUser: User = {

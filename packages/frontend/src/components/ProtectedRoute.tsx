@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
-import { getApiBaseUrl } from '../services/api';
+import { apiService } from '../services/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -33,14 +32,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
       try {
         const user = JSON.parse(userStr);
-        const apiUrl = getApiBaseUrl();
 
         console.log('[ProtectedRoute] Verifying token for user:', user.email, 'role:', user.role);
 
-        // Verify token is still valid
-        const response = await axios.get(`${apiUrl}/auth/verify`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        // Verify the login is still good - through the API client, so an
+        // expired access token is renewed rather than treated as signed out
+        // (which is what reloading a page after 15 minutes used to do).
+        const response = { data: await apiService.verifySession() };
 
         console.log('[ProtectedRoute] Auth verify response:', response.data);
 
@@ -82,13 +80,31 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           setIsAuthenticated(false);
           setHasPermission(false);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('[ProtectedRoute] Auth verification failed:', error);
-        // Token is invalid, clear it
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setIsAuthenticated(false);
-        setHasPermission(false);
+        if (error?.response?.status === 401 || requireBSI) {
+          // Really signed out (the login couldn't be renewed)
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setIsAuthenticated(false);
+          setHasPermission(false);
+          return;
+        }
+        // The check itself failed (network, server restarting): don't sign
+        // out over it. The server still checks the login on every request.
+        try {
+          const user = JSON.parse(userStr);
+          setIsAuthenticated(true);
+          setHasPermission(
+            !requiredRole ||
+              user.role === requiredRole ||
+              (requiredRole === 'employee' && user.role === 'admin') ||
+              (requiredRole === 'customer' && user.role === 'admin')
+          );
+        } catch {
+          setIsAuthenticated(false);
+          setHasPermission(false);
+        }
       }
     };
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import AgentProfile from '../components/AgentProfile';
@@ -283,6 +283,40 @@ const AgentDashboard: React.FC = () => {
     const i = Math.min(Math.max(Number(n) || 0, 0), orderedPriorities.length - 1);
     return orderedPriorities[i].value;
   };
+
+  // A ticket from the API in the shape this page uses. `id` is a local key;
+  // the ticket's UUID goes in ticketIdMap.
+  const toDashboardTicket = (t: any, numericId: number): Ticket => {
+    const assignedName = t.assignedTo
+      ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}`
+      : 'Unassigned';
+    const isAssignedToCurrentUser = user && t.assignedTo?.id === user.id;
+    return {
+      id: numericId,
+      title: t.title,
+      status: t.status,
+      priority: priorityFromNumber(t.priority),
+      customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
+      assigned: isAssignedToCurrentUser ? 'You' : assignedName,
+      created: new Date(t.createdAt).toLocaleDateString(),
+      ticketNumber: t.ticketNumber ?? null,
+      resolvedAt: t.resolvedAt || null,
+      closedAt: t.closedAt || null,
+      resolution: t.resolution || null,
+      boardPosition: t.boardPosition ?? null,
+      description: t.description || '',
+      departmentId: t.departmentId ?? null,
+      order: 0, // set when the lanes are ordered
+      customerInfo: t.submitter
+        ? {
+            name: `${t.submitter.firstName} ${t.submitter.lastName}`,
+            email: t.submitter.email,
+            company: t.company?.name || '',
+            companyId: t.companyId,
+          }
+        : undefined,
+    };
+  };
   const numberFromPriority = (value: string): number =>
     Math.max(
       0,
@@ -345,6 +379,7 @@ const AgentDashboard: React.FC = () => {
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketIdMap, setTicketIdMap] = useState<Map<number, string>>(new Map()); // Maps numeric ID to UUID
+  const [ticketsLoaded, setTicketsLoaded] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   // The ticket view's contact / ticket info panel can be hidden for more
   // writing room; remembered in this browser.
@@ -394,6 +429,7 @@ const AgentDashboard: React.FC = () => {
   // Fetch real tickets from API only on initial load or filter change
   useEffect(() => {
     const fetchTickets = async () => {
+      setTicketsLoaded(false);
       // Only fetch if user is authenticated
       if (!user) {
         return;
@@ -432,40 +468,10 @@ const AgentDashboard: React.FC = () => {
 
         // Transform API tickets to dashboard format
         const transformedTickets = apiTickets.map((t: any, index: number) => {
-          const assignedName = t.assignedTo
-            ? `${t.assignedTo.firstName} ${t.assignedTo.lastName}`
-            : 'Unassigned';
-          const isAssignedToCurrentUser = user && t.assignedTo?.id === user.id;
-
-          // Create a unique numeric ID from the UUID
-          const numericId = index + 1000; // Simple sequential IDs starting from 1000
-          idMapping.set(numericId, t.id); // Store UUID mapping
-
-          return {
-            id: numericId,
-            title: t.title,
-            status: t.status,
-            priority: priorityFromNumber(t.priority),
-            customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
-            assigned: isAssignedToCurrentUser ? 'You' : assignedName,
-            created: new Date(t.createdAt).toLocaleDateString(),
-            ticketNumber: t.ticketNumber ?? null,
-            resolvedAt: t.resolvedAt || null,
-            closedAt: t.closedAt || null,
-            resolution: t.resolution || null,
-            boardPosition: t.boardPosition ?? null,
-            description: t.description || '',
-            departmentId: t.departmentId ?? null,
-            order: 0, // Will be set below
-            customerInfo: t.submitter
-              ? {
-                  name: `${t.submitter.firstName} ${t.submitter.lastName}`,
-                  email: t.submitter.email,
-                  company: t.company?.name || '',
-                  companyId: t.companyId,
-                }
-              : undefined,
-          };
+          // A numeric key for this page; the UUID is kept in idMapping
+          const numericId = index + 1000;
+          idMapping.set(numericId, t.id);
+          return toDashboardTicket(t, numericId);
         });
 
         // Assign proper order within each status column
@@ -507,6 +513,8 @@ const AgentDashboard: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch tickets:', error);
         // Keep using localStorage tickets on error
+      } finally {
+        setTicketsLoaded(true);
       }
     };
 
@@ -766,46 +774,27 @@ const AgentDashboard: React.FC = () => {
 
   // Memoized filtered tickets to prevent excessive re-renders during drag operations
   const filteredTickets = useMemo(() => {
-    // Use activeViewFilter (sidebar) as primary filter
-    if (activeViewFilter === 'my-queue') {
-      // Check for tickets assigned to current user - handle multiple formats
-      const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
-      const myTickets = tickets.filter((ticket) => {
-        const isAssignedToMe =
-          ticket.assigned === 'You' ||
-          ticket.assigned === currentUserName ||
-          (user && ticket.assigned === user.email);
-        return isAssignedToMe;
-      });
+    const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
+    const isMine = (ticket: Ticket) =>
+      ticket.assigned === 'You' ||
+      ticket.assigned === currentUserName ||
+      (!!user && ticket.assigned === user.email);
 
-      return myTickets;
-    } else if (activeViewFilter === 'all-tickets') {
-      return tickets;
-    } else if (activeViewFilter === 'unassigned') {
-      const unassignedTickets = tickets.filter((ticket) => ticket.assigned === 'Unassigned');
-
-      return unassignedTickets;
-    } else if (activeViewFilter === 'all-open') {
-      const openTickets = tickets.filter((ticket) => ticket.status === 'open');
-
-      return openTickets;
-    } else {
-      // Fallback to showOnlyMyTickets for backward compatibility
-      if (showOnlyMyTickets) {
-        const currentUserName = user ? `${user.firstName} ${user.lastName}` : '';
-        const myTickets = tickets.filter((ticket) => {
-          const isAssignedToMe =
-            ticket.assigned === 'You' ||
-            ticket.assigned === currentUserName ||
-            (user && ticket.assigned === user.email);
-          return isAssignedToMe;
-        });
-
-        return myTickets;
-      } else {
-        return tickets;
-      }
+    // One agent's tickets (the "Agent queues" list)
+    if (activeViewFilter.startsWith('agent-')) {
+      const name = activeViewFilter.slice('agent-'.length);
+      return tickets.filter(
+        (t) => t.assigned === name || (name === currentUserName && t.assigned === 'You')
+      );
     }
+    // The built-in views use their own filter. Only four of them were wired
+    // up here, so "Resolved Today" (and the agent queues) showed every ticket.
+    const view = defaultViews.find((v) => v.id === activeViewFilter);
+    if (view) return tickets.filter(view.filter);
+
+    return showOnlyMyTickets ? tickets.filter(isMine) : tickets;
+    // defaultViews is rebuilt each render but only depends on user
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tickets, activeViewFilter, showOnlyMyTickets, user]);
 
   // Board settings state
@@ -829,21 +818,45 @@ const AgentDashboard: React.FC = () => {
     }
   }, [tickets, user]);
 
-  // Open ticket modal if ticket data is in sessionStorage
+  // Open a ticket asked for by another page: search results and the
+  // account/customer pages link to /agent?ticket=<id>. Those used to go to
+  // /agent/tickets/<id>, a page that doesn't exist (so you landed on the
+  // home page), or pass a copy of the ticket that couldn't be saved.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const ticketToOpen = searchParams.get('ticket');
   useEffect(() => {
-    const openTicketData = sessionStorage.getItem('openTicket');
-    if (openTicketData) {
-      try {
-        const ticket = JSON.parse(openTicketData);
-        setSelectedTicket(ticket);
-        // Clear the sessionStorage after opening
-        sessionStorage.removeItem('openTicket');
-      } catch (error) {
-        console.error('Failed to parse ticket data:', error);
-        sessionStorage.removeItem('openTicket');
-      }
+    if (!ticketToOpen || !ticketsLoaded) return;
+    const clear = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete('ticket');
+      setSearchParams(next, { replace: true });
+    };
+    const existing = Array.from(ticketIdMap.entries()).find(([, uuid]) => uuid === ticketToOpen);
+    const onBoard = existing && tickets.find((t) => t.id === existing[0]);
+    if (onBoard) {
+      setSelectedTicket(onBoard);
+      clear();
+      return;
     }
-  }, []);
+    // Not on the board (finished a while ago, or another department): load it.
+    let cancelled = false;
+    apiService
+      .getTicket(ticketToOpen)
+      .then((response: any) => {
+        if (cancelled) return;
+        const t = response.data || response.ticket || response;
+        const numericId = Math.max(999, ...Array.from(ticketIdMap.keys())) + 1;
+        const ticket = toDashboardTicket(t, numericId);
+        setTicketIdMap((prev) => new Map(prev).set(numericId, t.id));
+        setTickets((prev) => [...prev, ticket]);
+        setSelectedTicket(ticket);
+      })
+      .catch(() => alert("Couldn't open that ticket."))
+      .finally(() => !cancelled && clear());
+    return () => {
+      cancelled = true;
+    };
+  }, [ticketToOpen, ticketsLoaded]);
 
   // Load agents from API
   useEffect(() => {
@@ -2672,7 +2685,12 @@ const AgentDashboard: React.FC = () => {
                         Assigned To
                       </label>
                       <select
-                        value={selectedTicket.assigned}
+                        // The board shows "You"; the options are names
+                        value={
+                          selectedTicket.assigned === 'You' && user
+                            ? `${user.firstName} ${user.lastName}`
+                            : selectedTicket.assigned
+                        }
                         onChange={(e) => {
                           changeAssignment(selectedTicket.id, e.target.value);
                           setSelectedTicket({ ...selectedTicket, assigned: e.target.value });

@@ -45,6 +45,8 @@ interface Props {
   placeholder?: string;
   minHeight?: number;
   disabled?: boolean;
+  /** Gets the editor, e.g. to insert text where the cursor is. */
+  editorRef?: React.MutableRefObject<Editor | null>;
 }
 
 const ToolbarButton: React.FC<{
@@ -250,6 +252,7 @@ const RichTextEditor: React.FC<Props> = ({
   placeholder = 'Write a note...',
   minHeight = 120,
   disabled = false,
+  editorRef,
 }) => {
   const editor = useEditor({
     extensions: [
@@ -303,6 +306,14 @@ const RichTextEditor: React.FC<Props> = ({
   useEffect(() => {
     editor?.setEditable(!disabled);
   }, [disabled, editor]);
+
+  useEffect(() => {
+    if (!editorRef) return;
+    editorRef.current = editor;
+    return () => {
+      editorRef.current = null;
+    };
+  }, [editor, editorRef]);
 
   return (
     <div className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-blue-500">

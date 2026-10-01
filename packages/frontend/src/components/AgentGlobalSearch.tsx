@@ -137,8 +137,8 @@ const AgentGlobalSearch: React.FC = () => {
         navigate(`/agent/accounts/${result.id}`);
         break;
       case 'ticket':
-        // Navigate to ticket detail page
-        navigate(`/agent/tickets/${result.id}`);
+        // Opens in the dashboard
+        navigate(`/agent?ticket=${encodeURIComponent(result.id)}`);
         break;
     }
   };
