@@ -19,6 +19,7 @@ const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
 const FieldLayout = lazy(() => import('./pages/FieldLayout'));
 const ModuleSettings = lazy(() => import('./pages/ModuleSettings'));
+const Billing = lazy(() => import('./pages/Billing'));
 const ModuleRecords = lazy(() => import('./pages/ModuleRecords'));
 const ModuleRecordPage = lazy(() => import('./pages/ModuleRecordPage'));
 const CreateTicketPage = lazy(() => import('./pages/CreateTicketPage'));
@@ -143,6 +144,14 @@ function App() {
                       element={
                         <ProtectedRoute requiredRole="employee">
                           <ModuleRecordPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/settings/billing"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <Billing />
                         </ProtectedRoute>
                       }
                     />

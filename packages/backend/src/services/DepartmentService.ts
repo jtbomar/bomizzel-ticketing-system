@@ -8,6 +8,7 @@ import { User } from '../models/User';
 import { AppError } from '../middleware/errorHandler';
 import { logger } from '../utils/logger';
 import { db } from '@/config/database';
+import { PlanService } from './PlanService';
 
 export interface CreateDepartmentRequest {
   name: string;
@@ -72,6 +73,7 @@ export class DepartmentService {
       if (!data.name?.trim()) {
         throw new AppError('Department name is required', 400, 'INVALID_DEPARTMENT_NAME');
       }
+      await PlanService.assertCan(companyId, 'department');
 
       // Check if department name already exists for this company
       const existingDepartments = await Department.getByCompany(companyId);

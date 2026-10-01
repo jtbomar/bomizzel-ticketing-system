@@ -1,5 +1,6 @@
 import { db } from '@/config/database';
 import { ValidationError, NotFoundError } from '@/utils/errors';
+import { PlanService } from './PlanService';
 
 /**
  * Custom modules (Settings > Modules): a subscriber's own record types, like
@@ -39,6 +40,7 @@ export class ModuleService {
   }
 
   static async create(orgId: string, input: { name?: unknown; singular?: unknown }) {
+    await PlanService.assertCan(orgId, 'customModule');
     const name = cleanName(input.name, 'a name');
     const singular = cleanName(input.singular ?? name, 'a name for one record');
     if (RESERVED.includes(name.toLowerCase())) {

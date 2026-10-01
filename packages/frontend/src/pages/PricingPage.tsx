@@ -1,73 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { planFeatures, type PlanInfo } from '../utils/plans';
 import { CheckIcon } from '@heroicons/react/24/outline';
 import apiService from '../services/api';
 
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  currency: string;
-  billingInterval: string;
-  limits: {
-    activeTickets: number;
-    completedTickets: number;
-    totalTickets: number;
-  };
-  features: string[];
-  trialDays: number;
-  description: string;
-  sortOrder: number;
-}
-
 const PricingPage: React.FC = () => {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [plans, setPlans] = useState<PlanInfo[]>([]);
+  const [trialDays, setTrialDays] = useState(14);
+  const [interval, setInterval] = useState<'month' | 'year'>('month');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchPlans = async () => {
-      try {
-        const response = await apiService.getAvailablePlans();
-        // The API answers { success, data: { plans: [...] } }. Reading `data`
-        // as the list crashed the page ("plans.map is not a function").
-        const list = Array.isArray(response)
-          ? response
-          : response?.data?.plans || response?.plans || response?.data || [];
-        setPlans(Array.isArray(list) ? list : []);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching plans:', err);
-        setError('Failed to load pricing plans');
-        setLoading(false);
-      }
-    };
-
-    fetchPlans();
+    apiService
+      .getPlans()
+      .then((r) => {
+        setPlans(r.plans || []);
+        setTrialDays(r.trialDays || 14);
+      })
+      .catch(() => setError('Failed to load pricing plans'))
+      .finally(() => setLoading(false));
   }, []);
-
-  const formatPrice = (price: number) => {
-    return price === 0 ? 'Free' : `$${price}`;
-  };
-
-  const formatTicketLimit = (limit: number) => {
-    return limit === -1 ? 'Unlimited' : limit.toLocaleString();
-  };
-
-  const getPlanButtonText = (plan: SubscriptionPlan) => {
-    if (plan.price === 0) return 'Get Started Free';
-    if (plan.trialDays > 0) return `Start ${plan.trialDays}-Day Free Trial`;
-    return 'Get Started';
-  };
-
-  const getPlanButtonStyle = (index: number) => {
-    // Highlight the Professional plan (index 2) as most popular
-    if (index === 2) {
-      return 'btn-primary w-full text-lg py-3';
-    }
-    return 'btn-outline w-full text-lg py-3';
-  };
 
   if (loading) {
     return (
@@ -125,100 +78,88 @@ const PricingPage: React.FC = () => {
           {plans.length > 0 && (
             <div className="inline-flex items-center bg-white rounded-full px-6 py-2 shadow-sm">
               <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-sm text-gray-600">14-day free trial on all paid plans</span>
+              <span className="text-sm text-gray-600">
+                {trialDays}-day free trial of Professional · no credit card needed
+              </span>
             </div>
           )}
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          {plans.length === 0 && (
-            <div className="col-span-full max-w-md mx-auto w-full bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-              <h3 className="text-xl font-semibold text-gray-900">Free 30-day trial</h3>
-              <p className="mt-2 text-gray-600">
-                Every feature, for your whole team. No credit card needed.
-              </p>
-              <Link to="/register" className="btn-primary inline-block mt-6 px-6 py-2">
-                Start free trial
-              </Link>
-            </div>
-          )}
-          {plans.map((plan, index) => (
-            <div
-              key={plan.id}
-              className={`relative bg-white rounded-2xl shadow-lg overflow-hidden ${
-                index === 2 ? 'ring-2 ring-primary-500 scale-105' : ''
-              }`}
-            >
-              {/* Most Popular Badge */}
-              {index === 2 && (
-                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                  <div className="bg-primary-600 text-white px-4 py-1 rounded-full text-sm font-medium">
-                    Most Popular
+        <div className="flex justify-center mb-8">
+          <div
+            role="radiogroup"
+            aria-label="Billing period"
+            className="inline-flex rounded-full bg-white shadow-sm p-1 text-sm"
+          >
+            {(
+              [
+                ['month', 'Monthly'],
+                ['year', 'Yearly · save ~17%'],
+              ] as const
+            ).map(([value, text]) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={interval === value}
+                onClick={() => setInterval(value)}
+                className={`px-4 py-1.5 rounded-full ${
+                  interval === value ? 'bg-primary-600 text-white' : 'text-gray-600'
+                }`}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-20">
+          {plans.map((plan) => {
+            const price = interval === 'year' ? plan.yearly : plan.monthly;
+            const featured = plan.key === 'professional';
+            return (
+              <div
+                key={plan.key}
+                className={`relative bg-white rounded-2xl shadow-lg p-8 flex flex-col ${
+                  featured ? 'ring-2 ring-primary-500' : ''
+                }`}
+              >
+                {featured && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary-600 text-white px-4 py-1 rounded-full text-sm font-medium">
+                    Most popular
                   </div>
-                </div>
-              )}
-
-              <div className="p-8">
-                {/* Plan Header */}
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold text-gray-900">
-                      {formatPrice(plan.price)}
-                    </span>
-                    {plan.price > 0 && <span className="text-gray-500 ml-1">/month</span>}
-                  </div>
-                  <p className="text-gray-600 text-sm">{plan.description}</p>
-                </div>
-
-                {/* Ticket Limits */}
-                <div className="mb-8">
-                  <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-3">Ticket Limits</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Active Tickets:</span>
-                        <span className="font-medium">
-                          {formatTicketLimit(plan.limits.activeTickets)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Completed Tickets:</span>
-                        <span className="font-medium">
-                          {formatTicketLimit(plan.limits.completedTickets)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between border-t pt-2">
-                        <span className="text-gray-900 font-medium">Total Tickets:</span>
-                        <span className="font-bold text-primary-600">
-                          {formatTicketLimit(plan.limits.totalTickets)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Features */}
-                <div className="mb-8">
-                  <h4 className="font-semibold text-gray-900 mb-4">Features Included</h4>
-                  <ul className="space-y-3">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start">
-                        <CheckIcon className="h-5 w-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-600 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* CTA Button */}
-                <Link to={`/register?plan=${plan.slug}`} className={getPlanButtonStyle(index)}>
-                  {getPlanButtonText(plan)}
+                )}
+                <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                <p className="mt-4">
+                  <span className="text-4xl font-bold text-gray-900">${price}</span>
+                  <span className="text-gray-500"> / agent / month</span>
+                </p>
+                <p className="text-sm text-gray-500 h-5">
+                  {price > 0 && interval === 'year'
+                    ? `$${price * 12} per agent, billed yearly`
+                    : ''}
+                </p>
+                <ul className="mt-6 space-y-3 flex-1">
+                  {planFeatures(plan).map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-gray-700">
+                      <CheckIcon className="h-5 w-5 text-green-500 shrink-0" aria-hidden="true" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/register"
+                  className={`mt-8 block text-center py-3 rounded-lg font-medium ${
+                    featured
+                      ? 'bg-primary-600 text-white hover:bg-primary-700'
+                      : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                  }`}
+                >
+                  {plan.key === 'free' ? 'Get started free' : `Start ${trialDays}-day free trial`}
                 </Link>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* FAQ Section */}
@@ -232,9 +173,9 @@ const PricingPage: React.FC = () => {
                 What happens when I reach my ticket limit?
               </h3>
               <p className="text-gray-600 text-sm">
-                When you reach your active ticket limit, you won't be able to create new tickets
-                until you complete some existing ones or upgrade your plan. You can always complete
-                existing tickets regardless of your completed ticket limit.
+                On the Free plan, once 100 tickets have come in through the web that month, new ones
+                wait until next month or until you upgrade. Tickets your customers email in always
+                get through, and paid plans have no ticket limit.
               </p>
             </div>
 
@@ -243,18 +184,17 @@ const PricingPage: React.FC = () => {
                 Can I upgrade or downgrade my plan anytime?
               </h3>
               <p className="text-gray-600 text-sm">
-                Yes! You can upgrade your plan at any time and the changes take effect immediately.
-                Downgrades take effect at the end of your current billing cycle to ensure you don't
-                lose access to features you've paid for.
+                Yes. Changes take effect straight away, and Stripe prorates them: you're charged, or
+                credited, only for the difference. Adding or removing an agent works the same way.
               </p>
             </div>
 
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="font-semibold text-gray-900 mb-3">How does the free trial work?</h3>
               <p className="text-gray-600 text-sm">
-                All paid plans include a 14-day free trial with full access to all features. No
-                credit card required to start. You can cancel anytime during the trial period
-                without being charged.
+                Every new account gets 14 days of Professional, free, with no credit card. Pick a
+                plan any time in Settings &gt; Billing; if you don't, you move to the Free plan and
+                keep all your data.
               </p>
             </div>
 

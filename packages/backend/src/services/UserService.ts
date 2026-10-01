@@ -3,13 +3,15 @@ import { Company } from '@/models/Company';
 import { Team } from '@/models/Team';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { isCompanyInTenant, isStaff, tenantUserIds } from '@/utils/tenant';
+import { isCompanyInTenant, isStaff, tenantContextFor, tenantUserIds } from '@/utils/tenant';
 import {
   User as UserModel,
   UserCompanyAssociation,
   TeamMembership,
   PaginatedResponse,
 } from '@/types/models';
+import { PlanService } from './PlanService';
+import { OrgBillingService } from './OrgBillingService';
 
 export class UserService {
   /**
@@ -262,6 +264,13 @@ export class UserService {
   /**
    * Deactivate user account
    */
+  /** An agent added or removed: the paid seat count follows (Settings > Billing). */
+  private static async syncSeatsFor(user: { id: string; role: string }): Promise<void> {
+    if (user.role === 'customer') return;
+    const tenant = (await tenantContextFor(user.id)).tenantId;
+    if (tenant) await OrgBillingService.syncSeats(tenant);
+  }
+
   static async deactivateUser(userId: string, deactivatedById: string): Promise<void> {
     try {
       const user = await User.findById(userId);
@@ -274,6 +283,7 @@ export class UserService {
       }
 
       await User.update(userId, { is_active: false });
+      await this.syncSeatsFor(user);
 
       logger.info(`User ${userId} deactivated by ${deactivatedById}`);
     } catch (error) {
@@ -299,7 +309,10 @@ export class UserService {
         throw new AppError('User is already active', 400, 'USER_ALREADY_ACTIVE');
       }
 
+      const tenant = user.role === 'customer' ? null : (await tenantContextFor(userId)).tenantId;
+      if (tenant) await PlanService.assertCan(tenant, 'agent');
       await User.update(userId, { is_active: true });
+      await this.syncSeatsFor(user);
 
       logger.info(`User ${userId} reactivated by ${reactivatedById}`);
     } catch (error) {
@@ -606,6 +619,7 @@ export class UserService {
         throw new AppError('No subscriber account for this user', 403, 'NO_TENANT');
       }
       const isContact = userData.role === 'customer';
+      if (!isContact) await PlanService.assertCan(tenantId, 'agent');
       const companyId = isContact ? userData.companyId : tenantId;
       if (isContact && !(companyId && (await isCompanyInTenant(companyId, tenantId)))) {
         throw new AppError(
@@ -638,6 +652,7 @@ export class UserService {
         company_id: companyId,
         role: 'member',
       });
+      if (!isContact) await OrgBillingService.syncSeats(tenantId);
       await User.db('users').where('id', newUser.id).update({ current_org_id: tenantId });
 
       logger.info(`User ${newUser.id} created by ${createdById}`);

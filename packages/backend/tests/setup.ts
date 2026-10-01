@@ -4,6 +4,9 @@ import { resetDatabase } from './helpers/db';
 
 // Load test environment variables
 dotenv.config({ path: path.resolve(__dirname, '../.env.test') });
+// Plan limits (Settings > Billing) are tested on their own (planLimits.test.ts);
+// the other suites build companies that would otherwise be on the Free plan.
+process.env['PLAN_LIMITS'] = 'off';
 
 // NOTE: the database is deliberately NOT mocked.
 //

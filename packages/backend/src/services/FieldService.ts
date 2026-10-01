@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { db } from '@/config/database';
 import { ValidationError, NotFoundError } from '@/utils/errors';
+import { PlanService } from './PlanService';
 
 /**
  * Fields and layouts (Settings > Ticket Layout).
@@ -232,9 +233,7 @@ export const resolveModule = async (orgId: string, module: string): Promise<Reso
   return {
     key: row.key,
     system: [std('name', `${row.singular} name`, 'text', 'name', true)],
-    defaults: [
-      { id: 'information', title: `${row.singular} Information`, fields: ['name'] },
-    ],
+    defaults: [{ id: 'information', title: `${row.singular} Information`, fields: ['name'] }],
     custom: { id: row.id, name: row.name, singular: row.singular },
   };
 };
@@ -382,9 +381,9 @@ export class FieldService {
       db('module_layouts').where({ org_id: orgId, module: m }).first(),
     ]);
     const known = new Set([...resolved.system.map((f) => f.key), ...custom.map((f) => f.key)]);
-    const sections: Section[] = (
-      row ? parse<Section[]>(row.sections, []) : resolved.defaults
-    ).map((s) => ({ ...s, fields: [...s.fields] }));
+    const sections: Section[] = (row ? parse<Section[]>(row.sections, []) : resolved.defaults).map(
+      (s) => ({ ...s, fields: [...s.fields] })
+    );
     const seen = new Set<string>();
     for (const s of sections) {
       s.fields = s.fields.filter((k) => known.has(k) && !seen.has(k) && seen.add(k));
@@ -444,6 +443,10 @@ export class FieldService {
   static async createField(orgId: string, module: string, input: FieldInput) {
     const resolved = await resolveModule(orgId, module);
     const m = resolved.key;
+    await PlanService.assertCan(
+      orgId,
+      m === 'tickets' ? 'ticketField' : resolved.custom ? 'customModule' : 'recordField'
+    );
     const label = typeof input.label === 'string' ? input.label.trim() : '';
     if (!label || label.length > 120) throw new ValidationError('Give the field a name');
     if (!(FIELD_TYPES as readonly string[]).includes(String(input.type))) {

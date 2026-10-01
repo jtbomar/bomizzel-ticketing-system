@@ -673,6 +673,31 @@ class ApiService {
   }
 
   // Subscription endpoints
+  // Billing (Settings > Billing)
+  async getBilling(): Promise<any> {
+    const response = await this.client.get('/org-billing');
+    return response.data;
+  }
+
+  async startCheckout(
+    plan: string,
+    interval: 'month' | 'year'
+  ): Promise<{ url?: string; changed?: boolean }> {
+    const response = await this.client.post('/org-billing/checkout', { plan, interval });
+    return response.data;
+  }
+
+  async openBillingPortal(): Promise<{ url: string }> {
+    const response = await this.client.post('/org-billing/portal', {});
+    return response.data;
+  }
+
+  /** The public price list (pricing and sign-up pages). */
+  async getPlans(): Promise<{ plans: any[]; trialDays: number }> {
+    const response = await this.client.get('/plans');
+    return response.data;
+  }
+
   /** A business signs up: its company and owner. The owner confirms their email to sign in. */
   async registerCompany(data: {
     companyName: string;

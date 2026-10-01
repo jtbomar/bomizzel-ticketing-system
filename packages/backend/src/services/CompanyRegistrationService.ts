@@ -8,6 +8,7 @@ import { TicketStatus } from '@/models/TicketStatus';
 import { AccountEmailService } from './AccountEmailService';
 import { CryptoUtils } from '@/utils/crypto';
 import { ensureSupportSlug } from '@/utils/supportEmail';
+import { TRIAL_DAYS } from './PlanService';
 
 export interface CompanyRegistrationData {
   // Company basic info
@@ -121,9 +122,9 @@ export class CompanyRegistrationService {
         throw new AppError('Admin email already exists', 400, 'EMAIL_EXISTS');
       }
 
-      // Calculate trial end date (30 days from now)
+      // A trial of Professional (Settings > Billing); Free after, unless they pay
       const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 30);
+      trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
 
       // Create company
       const companyData = {

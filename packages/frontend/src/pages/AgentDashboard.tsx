@@ -6,6 +6,7 @@ import AgentProfile from '../components/AgentProfile';
 import DepartmentSelector from '../components/DepartmentSelector';
 import AgentGlobalSearch from '../components/AgentGlobalSearch';
 import ModulesNav from '../components/ModulesNav';
+import TrialBanner from '../components/TrialBanner';
 import KanbanTemplates, { Template } from '../components/KanbanTemplates';
 import { apiService } from '../services/api';
 import {
@@ -1727,6 +1728,7 @@ const AgentDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <TrialBanner />
       {/* Top Navigation Bar */}
       <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

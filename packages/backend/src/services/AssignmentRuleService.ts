@@ -3,6 +3,7 @@ import { logger } from '@/utils/logger';
 import { ValidationError, NotFoundError } from '@/utils/errors';
 import { STAFF_ROLES, tenantUserIds } from '@/utils/tenant';
 import { FieldService } from './FieldService';
+import { PlanService } from './PlanService';
 
 /**
  * Assignment rules (Settings > Assignment Rules): who gets a new ticket.
@@ -241,6 +242,7 @@ export class AssignmentRuleService {
   }
 
   static async create(tenantId: string, userId: string, input: RuleInput) {
+    await this.assertPlan(tenantId, input);
     const data = await this.validate(tenantId, input);
     const last = await db('assignment_rules')
       .where('org_id', tenantId)
@@ -257,7 +259,15 @@ export class AssignmentRuleService {
     return toModel(row);
   }
 
+  /** Rules start with Standard; round-robin is Professional. */
+  private static async assertPlan(tenantId: string, input: RuleInput) {
+    if (input.isActive === false) return; // keeping one switched off is fine
+    await PlanService.assertCan(tenantId, 'assignmentRule');
+    if (input.method === 'round_robin') await PlanService.assertCan(tenantId, 'roundRobin');
+  }
+
   static async update(tenantId: string, ruleId: string, input: RuleInput) {
+    await this.assertPlan(tenantId, input);
     const data = await this.validate(tenantId, input);
     const [row] = await db('assignment_rules')
       .where({ id: ruleId, org_id: tenantId })
@@ -294,11 +304,16 @@ export class AssignmentRuleService {
       if (!ticket || ticket.assigned_to_id || !ticket.org_id) return null;
       if (['resolved', 'closed'].includes(ticket.status)) return null;
 
+      // On a plan without rules (Free), they don't run
+      if (!(await PlanService.allows(ticket.org_id, 'assignmentRules'))) return null;
+      const roundRobinAllowed = await PlanService.allows(ticket.org_id, 'roundRobin');
+
       const rules = await db('assignment_rules')
         .where({ org_id: ticket.org_id, is_active: true })
         .orderBy([{ column: 'position' }, { column: 'created_at' }]);
 
       for (const rule of rules) {
+        if (rule.method === 'round_robin' && !roundRobinAllowed) continue;
         if (!ruleMatches(parse<RuleConditions>(rule.conditions, {}), ticket)) continue;
         const agentId = await this.pickAgent(ticket.org_id, rule.id);
         if (!agentId) continue; // nobody available: try the next rule

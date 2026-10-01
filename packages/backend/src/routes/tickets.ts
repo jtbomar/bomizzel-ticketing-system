@@ -20,6 +20,7 @@ import {
   requireStaff,
   requireTenantId,
 } from '@/utils/tenant';
+import { PlanService } from '@/services/PlanService';
 
 const router = Router();
 
@@ -67,6 +68,8 @@ router.post(
 
       // Staff filling in the form must fill in required custom fields;
       // customers never see them.
+      // Free plan: tickets a month (email always gets through - see InboundEmailService)
+      await PlanService.assertCan(requireTenantId(req.user), 'ticket');
       const ticket = await TicketService.createTicket(ticketData, submitterId, {
         enforceRequiredFields: ['admin', 'team_lead', 'employee'].includes(currentUserRole),
       });

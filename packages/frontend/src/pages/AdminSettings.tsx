@@ -19,6 +19,7 @@ interface SettingSection {
 const BUILT_SETTINGS = new Set([
   '/admin/layouts',
   '/admin/settings/assignment-rules',
+  '/admin/settings/billing',
   '/admin/settings/agents',
   '/admin/settings/business-hours',
   '/admin/settings/company-profile',
@@ -47,6 +48,12 @@ const AdminSettings: React.FC = () => {
     {
       title: 'ORGANIZATION',
       items: [
+        {
+          name: 'Billing',
+          description: 'Your plan, trial, agents and payment',
+          path: '/admin/settings/billing',
+          icon: '💳',
+        },
         {
           name: 'Company Profile',
           description: 'Manage company information and settings',

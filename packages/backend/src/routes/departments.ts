@@ -4,6 +4,7 @@ import { authenticate, authorize } from '../middleware/auth';
 import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { tenantCompanyOf } from '../utils/tenant';
+import { PlanService } from '../services/PlanService';
 
 const router = express.Router();
 
@@ -130,6 +131,15 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     }
 
     const companyId = userCompany.company_id;
+
+    // Plan limit (Settings > Billing): Free has 1 department, Standard 5
+    try {
+      await PlanService.assertCan(companyId, 'department');
+    } catch (limit: any) {
+      return res
+        .status(limit.statusCode || 402)
+        .json({ error: { code: limit.code || 'PLAN_LIMIT', message: limit.message } });
+    }
 
     // Create department with org_id
     const departmentData: any = {

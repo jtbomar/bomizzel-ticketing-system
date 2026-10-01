@@ -4,6 +4,7 @@ import { STAFF_ROLES, tenantUserIds } from '@/utils/tenant';
 import { sanitizeNoteHtml, noteHtmlToText } from '@/utils/richText';
 import { TicketService } from './TicketService';
 import { FieldService } from './FieldService';
+import { PlanService } from './PlanService';
 
 /**
  * Macros: a saved reply plus ticket changes, applied to a ticket in one go.
@@ -223,6 +224,7 @@ export class MacroService {
   }
 
   static async create(caller: Caller, input: MacroInput) {
+    await PlanService.assertCan(caller.tenantId, 'macro');
     const shared = !!input.shared;
     this.assertCanEdit(caller, shared, shared ? null : caller.id);
     const data = await this.validate(caller, input);
