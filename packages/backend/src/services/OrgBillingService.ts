@@ -33,6 +33,39 @@ const frontend = () =>
 const lookupKey = (plan: PlanKey, interval: Interval) => `bomizzel_${plan}_${interval}`;
 
 const priceCache = new Map<string, string>();
+const productsChecked = new Set<string>();
+
+// Stripe's tax category for the products: software as a service, business
+// use. Stripe needs one to work out tax, and Managed Payments (on by default
+// for new accounts) refuses checkout without it.
+const TAX_CODE = () => process.env['STRIPE_TAX_CODE'] || 'txcd_10103001';
+
+/** The Stripe product for a plan, created if missing, with its tax code set. */
+const productFor = async (planKey: PlanKey): Promise<string> => {
+  const productId = `bomizzel_${planKey}`;
+  if (productsChecked.has(productId)) return productId;
+  const s = stripe();
+  const plan = planByKey(planKey);
+  let product: Stripe.Product | null = null;
+  try {
+    product = await s.products.retrieve(productId);
+  } catch {
+    product = null;
+  }
+  if (!product) {
+    await s.products.create({
+      id: productId,
+      name: `Bomizzel ${plan.name}`,
+      description: 'Per agent',
+      tax_code: TAX_CODE(),
+    });
+  } else if (!product.tax_code) {
+    // Made before the tax code was set
+    await s.products.update(productId, { tax_code: TAX_CODE() });
+  }
+  productsChecked.add(productId);
+  return productId;
+};
 
 /** The Stripe price for a plan and interval, created if it doesn't exist yet. */
 const priceFor = async (planKey: PlanKey, interval: Interval): Promise<string> => {
@@ -42,20 +75,12 @@ const priceFor = async (planKey: PlanKey, interval: Interval): Promise<string> =
   const s = stripe();
   const found = await s.prices.list({ lookup_keys: [key], active: true, limit: 1 });
   if (found.data[0]) {
+    await productFor(planKey);
     priceCache.set(key, found.data[0].id);
     return found.data[0].id;
   }
   const plan = planByKey(planKey);
-  const productId = `bomizzel_${plan.key}`;
-  try {
-    await s.products.retrieve(productId);
-  } catch {
-    await s.products.create({
-      id: productId,
-      name: `Bomizzel ${plan.name}`,
-      description: 'Per agent',
-    });
-  }
+  const productId = await productFor(plan.key);
   const price = await s.prices.create({
     product: productId,
     currency: 'usd',

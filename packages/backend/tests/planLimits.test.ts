@@ -47,7 +47,12 @@ describe('plans and billing', () => {
     prices: {
       list: async (args: any) => ({ data: [{ id: `price_for_${args.lookup_keys[0]}` }] }),
     },
-    products: { retrieve: async () => ({}), create: async () => ({}) },
+    products: {
+      // Made earlier without a tax code
+      retrieve: async (id: string) => ({ id }),
+      create: async (args: any) => record('products.create', args),
+      update: async (id: string, args: any) => record('products.update', { id, ...args }),
+    },
     customers: {
       create: async (args: any) => record('customers.create', { id: 'cus_1', ...args }),
     },
@@ -311,6 +316,11 @@ describe('plans and billing', () => {
       customer: 'cus_1',
       client_reference_id: SUB,
       line_items: [{ price: 'price_for_bomizzel_standard_year', quantity: 2 }],
+    });
+    // The product gets Stripe's tax code (SaaS) - checkout is refused without one
+    expect(calls['products.update']!.at(-1)).toMatchObject({
+      id: 'bomizzel_standard',
+      tax_code: 'txcd_10103001',
     });
     expect(
       (await api().post('/org-billing/checkout', { plan: 'gold', interval: 'month' })).status
