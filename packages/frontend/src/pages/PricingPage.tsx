@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { planFeatures, type PlanInfo } from '../utils/plans';
+import { planFeatures, priceExample, type PlanInfo } from '../utils/plans';
 import { CheckIcon } from '@heroicons/react/24/outline';
 import apiService from '../services/api';
 
@@ -132,12 +132,13 @@ const PricingPage: React.FC = () => {
                 <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                 <p className="mt-4">
                   <span className="text-4xl font-bold text-gray-900">${price}</span>
-                  <span className="text-gray-500"> / agent / month</span>
+                  <span className="text-gray-500">
+                    {price > 0 ? ' / agent / month' : ` for up to ${plan.limits.agents} agents`}
+                  </span>
                 </p>
-                <p className="text-sm text-gray-500 h-5">
-                  {price > 0 && interval === 'year'
-                    ? `$${price * 12} per agent, billed yearly`
-                    : ''}
+                <p className="text-sm text-gray-500 min-h-[2.5rem]">
+                  {price > 0 &&
+                    `For each agent on your team - e.g. ${priceExample(price, 3)}${interval === 'year' ? ', billed yearly' : ''}.`}
                 </p>
                 <ul className="mt-6 space-y-3 flex-1">
                   {planFeatures(plan).map((f) => (

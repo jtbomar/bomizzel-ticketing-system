@@ -17,13 +17,17 @@ export interface PlanInfo {
   };
 }
 
+/** What a plan costs for some number of agents, e.g. "3 agents: $36 a month". */
+export const priceExample = (perAgent: number, agents: number): string =>
+  `${agents} agent${agents === 1 ? '' : 's'}: $${perAgent * agents} a month`;
+
 /** One line per thing a plan includes, for the plan cards. */
 export const planFeatures = (p: PlanInfo): string[] => {
   const l = p.limits;
   const n = (v: number | null, one: string, many: string) =>
     v === null ? `Unlimited ${many}` : `${v} ${v === 1 ? one : many}`;
   return [
-    l.agents === null ? 'Unlimited agents' : `Up to ${l.agents} agents`,
+    l.agents === null ? 'Add as many agents as you need' : `Up to ${l.agents} agents, free`,
     l.ticketsPerMonth === null ? 'Unlimited tickets' : `${l.ticketsPerMonth} tickets a month`,
     'Email to ticket, board, attachments',
     n(l.departments, 'department', 'departments'),

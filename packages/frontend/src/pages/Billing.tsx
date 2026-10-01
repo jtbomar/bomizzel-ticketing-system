@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckIcon } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { errorText } from '../components/ui';
-import { planFeatures, type PlanInfo } from '../utils/plans';
+import { planFeatures, priceExample, type PlanInfo } from '../utils/plans';
 
 /**
  * Settings > Billing: the company's plan (and why: paid, trial, given free),
@@ -249,10 +249,19 @@ const Billing: React.FC = () => {
                 <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                   ${price}
                 </span>
-                <span className="text-sm text-gray-500"> / agent / month</span>
+                <span className="text-sm text-gray-500">
+                  {price > 0 ? ' / agent / month' : ` for up to ${p.limits.agents} agents`}
+                </span>
               </p>
-              <p className="text-xs text-gray-500 h-4">
-                {price > 0 && interval === 'year' ? `$${price * 12} per agent, billed yearly` : ''}
+              <p className="text-xs text-gray-500 min-h-[2rem]">
+                {price > 0 && (
+                  <>
+                    For each agent on your team.
+                    <br />
+                    You have {priceExample(price, Math.max(1, data.usage.agents))}
+                    {interval === 'year' ? ', billed yearly' : ''}.
+                  </>
+                )}
               </p>
               <ul className="mt-4 space-y-1.5 text-sm text-gray-700 dark:text-gray-300 flex-1">
                 {planFeatures(p).map((f) => (
@@ -294,7 +303,8 @@ const Billing: React.FC = () => {
         })}
       </div>
       <p className="mt-4 text-xs text-gray-500">
-        Priced per agent: adding or removing an agent changes the bill automatically, prorated.
+        Paid plans are priced per agent - each person on your team who answers tickets. Your
+        customers are free. Adding or removing an agent changes the bill automatically, prorated.
         Payments are handled by Stripe; Bomizzel never sees your card.
       </p>
     </div>
