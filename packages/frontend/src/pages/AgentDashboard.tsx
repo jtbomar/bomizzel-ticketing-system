@@ -18,7 +18,7 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import SortableTicketCard from '../components/SortableTicketCard';
 import DroppableColumn from '../components/DroppableColumn';
 import AuthImage from '../components/AuthImage';
@@ -57,6 +57,8 @@ interface Ticket {
   closedAt?: string | null;
   // Why it was resolved or closed (see RESOLUTION_LABELS)
   resolution?: string | null;
+  // Saved place in its lane (lower = higher up); null if never placed
+  boardPosition?: number | null;
   description?: string;
   departmentId?: number | null;
   order: number;
@@ -451,6 +453,7 @@ const AgentDashboard: React.FC = () => {
             resolvedAt: t.resolvedAt || null,
             closedAt: t.closedAt || null,
             resolution: t.resolution || null,
+            boardPosition: t.boardPosition ?? null,
             description: t.description || '',
             departmentId: t.departmentId ?? null,
             order: 0, // Will be set below
@@ -474,11 +477,20 @@ const AgentDashboard: React.FC = () => {
           ticketsByStatus[ticket.status].push(ticket);
         });
 
-        // Set order for each status group
+        // Set order for each status group: tickets someone placed on the
+        // board first, in their saved order, then the rest as the server
+        // listed them.
         Object.keys(ticketsByStatus).forEach((status) => {
-          ticketsByStatus[status].forEach((ticket, index) => {
-            ticket.order = index + 1;
-          });
+          ticketsByStatus[status]
+            .map((ticket, index) => ({ ticket, index }))
+            .sort(
+              (a, b) =>
+                (a.ticket.boardPosition ?? Infinity) - (b.ticket.boardPosition ?? Infinity) ||
+                a.index - b.index
+            )
+            .forEach(({ ticket }, index) => {
+              ticket.order = index + 1;
+            });
         });
 
         // Replace the list even when it's empty - a department with no
@@ -1489,68 +1501,48 @@ const AgentDashboard: React.FC = () => {
     }
   };
 
+  // Save a lane's order, top to bottom, so it's the same after a reload
+  // and for everyone else. It used to live only in this page.
+  const saveLaneOrder = async (lane: Ticket[]) => {
+    const ids = lane
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((t) => ticketIdMap.get(t.id))
+      .filter((id): id is string => !!id);
+    if (ids.length === 0) return;
+    try {
+      await apiService.updateBoardOrder(ids);
+    } catch (error: any) {
+      console.error('[AgentDashboard] Failed to save board order:', error);
+      alert(`Couldn't save the new order: ${error.response?.data?.error || error.message}`);
+    }
+  };
+  const saveLaneOrderRef = useRef(saveLaneOrder);
+  saveLaneOrderRef.current = saveLaneOrder;
+
   const moveTicketInColumn = (ticketId: number, direction: 'up' | 'down') => {
-    console.log(
-      `[AgentDashboard] moveTicketInColumn called - ticketId: ${ticketId}, direction: ${direction}`
-    );
-
     const ticket = tickets.find((t) => t.id === ticketId);
-    if (!ticket) {
-      console.log(`[AgentDashboard] Ticket ${ticketId} not found`);
-      return;
-    }
+    if (!ticket) return;
 
-    const statusTickets = getStatusTickets(ticket.status);
-    const currentIndex = statusTickets.findIndex((t) => t.id === ticketId);
+    // The whole lane, not just what the current filter shows
+    const lane = tickets
+      .filter((t) => t.status === ticket.status)
+      .sort((a, b) => a.order - b.order);
+    const visible = getStatusTickets(ticket.status);
+    const visibleIndex = visible.findIndex((t) => t.id === ticketId);
+    const neighbour = visible[direction === 'up' ? visibleIndex - 1 : visibleIndex + 1];
+    if (!neighbour) return;
 
-    console.log(`[AgentDashboard] Current ticket:`, ticket);
-    console.log(
-      `[AgentDashboard] Status tickets:`,
-      statusTickets.map((t) => ({ id: t.id, title: t.title, order: t.order }))
+    const from = lane.findIndex((t) => t.id === ticketId);
+    const to = lane.findIndex((t) => t.id === neighbour.id);
+    lane.splice(from, 1);
+    lane.splice(to, 0, ticket);
+    const order = new Map(lane.map((t, i) => [t.id, i + 1]));
+
+    setTickets((prev) =>
+      prev.map((t) => (order.has(t.id) ? { ...t, order: order.get(t.id)! } : t))
     );
-    console.log(`[AgentDashboard] Current index: ${currentIndex} of ${statusTickets.length}`);
-
-    if (direction === 'up' && currentIndex > 0) {
-      const otherTicket = statusTickets[currentIndex - 1];
-      console.log(`[AgentDashboard] Moving up - swapping with:`, otherTicket);
-
-      // Use a more robust reordering system
-      const newOrder = otherTicket.order - 0.1; // Place slightly before the other ticket
-
-      setTickets((prev) =>
-        prev.map((t) => {
-          if (t.id === ticketId) {
-            console.log(
-              `[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`
-            );
-            return { ...t, order: newOrder };
-          }
-          return t;
-        })
-      );
-    } else if (direction === 'down' && currentIndex < statusTickets.length - 1) {
-      const otherTicket = statusTickets[currentIndex + 1];
-      console.log(`[AgentDashboard] Moving down - swapping with:`, otherTicket);
-
-      // Use a more robust reordering system
-      const newOrder = otherTicket.order + 0.1; // Place slightly after the other ticket
-
-      setTickets((prev) =>
-        prev.map((t) => {
-          if (t.id === ticketId) {
-            console.log(
-              `[AgentDashboard] Updated ticket ${ticketId} order from ${t.order} to ${newOrder}`
-            );
-            return { ...t, order: newOrder };
-          }
-          return t;
-        })
-      );
-    } else {
-      console.log(
-        `[AgentDashboard] Cannot move ${direction} - at boundary (index: ${currentIndex}, length: ${statusTickets.length})`
-      );
-    }
+    saveLaneOrder(lane.map((t) => ({ ...t, order: order.get(t.id)! })));
   };
 
   // dnd-kit drag handlers
@@ -1595,42 +1587,31 @@ const AgentDashboard: React.FC = () => {
       if (overTicket) targetStatus = overTicket.status;
     }
 
-    if (overId !== String(activeId)) {
-      setTickets((prev) => {
-        const draggedTicket = prev.find((t) => t.id === activeId);
-        if (!draggedTicket) return prev;
+    const prev = ticketsRef.current;
 
-        // Get tickets in the target column, sorted by order
-        const columnTickets = prev
-          .filter((t) => t.status === targetStatus && t.id !== activeId)
-          .sort((a, b) => a.order - b.order);
+    // The target lane in order. Dragging into a lane already put the card
+    // there (at the end); otherwise add it at the end.
+    let lane = prev.filter((t) => t.status === targetStatus).sort((a, b) => a.order - b.order);
+    if (!lane.some((t) => t.id === activeId)) lane = [...lane, dragged];
+    // Dropped on a card: take that card's place. On the lane itself, or on
+    // its own spot: stay where it is.
+    const from = lane.findIndex((t) => t.id === activeId);
+    const overIndex = lane.findIndex((t) => String(t.id) === overId);
+    const columnTickets = arrayMove(lane, from, overIndex === -1 ? from : overIndex).map((t) =>
+      t.id === activeId ? { ...t, status: targetStatus } : t
+    );
 
-        // Find where to insert
-        let insertIndex = columnTickets.length; // default: end
-        if (!overId.startsWith('column-')) {
-          const overIndex = columnTickets.findIndex((t) => t.id === Number(overId));
-          if (overIndex !== -1) {
-            insertIndex = overIndex;
-          }
-        }
-
-        // Insert dragged ticket at the right position
-        columnTickets.splice(insertIndex, 0, { ...draggedTicket, status: targetStatus });
-
-        // Reassign clean integer orders
-        const updatedIds = new Map<number, { status: string; order: number }>();
-        columnTickets.forEach((t, i) => {
-          updatedIds.set(t.id, { status: targetStatus, order: i + 1 });
-        });
-
-        return prev.map((t) => {
-          const update = updatedIds.get(t.id);
-          if (update) {
-            return { ...t, status: update.status, order: update.order };
-          }
-          return t;
-        });
-      });
+    const order = new Map(columnTickets.map((t, i) => [t.id, i + 1]));
+    const unchanged =
+      targetStatus === startStatus &&
+      columnTickets.every((t) => prev.find((p) => p.id === t.id)?.order === order.get(t.id));
+    if (!unchanged) {
+      setTickets((current) =>
+        current.map((t) =>
+          order.has(t.id) ? { ...t, status: targetStatus, order: order.get(t.id)! } : t
+        )
+      );
+      saveLaneOrderRef.current(columnTickets.map((t) => ({ ...t, order: order.get(t.id)! })));
     }
 
     // This used to change the board only, so a dragged ticket went back to

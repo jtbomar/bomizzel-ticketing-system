@@ -126,6 +126,7 @@ export interface Ticket {
   // Permanent number within its subscriber: #1001, #1002, ...
   ticketNumber?: number | null;
   resolution?: string | null;
+  boardPosition?: number | null;
   title: string;
   description: string;
   status: string;

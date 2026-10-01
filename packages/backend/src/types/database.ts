@@ -110,6 +110,7 @@ export interface TicketTable {
   department_id?: number | null;
   // Permanent number within its subscriber (#1001, #1002, ...); set by a trigger
   ticket_number?: number | null;
+  board_position?: number | null;
   // Why it was finished: fixed | wont_do | duplicate | no_response
   resolution?: string | null;
   company_id: string;

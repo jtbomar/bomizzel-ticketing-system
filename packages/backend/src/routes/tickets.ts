@@ -156,6 +156,44 @@ router.get(
 );
 
 /**
+ * Board order: the tickets of one lane, top to bottom
+ * PUT /tickets/board-order { ticketIds: [...] }
+ *
+ * Staff only. Saved per ticket, so everyone at the subscriber sees the same
+ * order. Ids outside the user's subscriber are ignored.
+ */
+router.put(
+  '/board-order',
+  requireStaff,
+  validateRequest({
+    body: {
+      ticketIds: { type: 'array', required: true },
+    },
+  }),
+  async (req, res, next) => {
+    try {
+      const tenantId = requireTenantId(req.user);
+      const ids: unknown[] = req.body.ticketIds;
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (ids.length > 1000 || !ids.every((id) => typeof id === 'string' && uuid.test(id))) {
+        res.status(400).json({ error: 'ticketIds must be up to 1000 ticket ids' });
+        return;
+      }
+      await db.transaction(async (trx) => {
+        for (const [index, id] of (ids as string[]).entries()) {
+          await trx('tickets')
+            .where({ id, org_id: tenantId })
+            .update({ board_position: index + 1 });
+        }
+      });
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
  * Update a ticket
  * PUT /tickets/:id
  */

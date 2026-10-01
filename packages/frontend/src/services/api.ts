@@ -236,6 +236,12 @@ class ApiService {
     return response.data;
   }
 
+  /** Save one board lane's order, top to bottom (ticket ids). */
+  async updateBoardOrder(ticketIds: string[]): Promise<any> {
+    const response = await this.client.put('/tickets/board-order', { ticketIds });
+    return response.data;
+  }
+
   async updateTicket(ticketId: string, updates: any): Promise<any> {
     console.log('[API] updateTicket called:', { ticketId, updates });
     const response = await this.client.put(`/tickets/${ticketId}`, updates);

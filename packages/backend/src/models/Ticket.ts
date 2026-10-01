@@ -491,6 +491,7 @@ export class Ticket extends BaseModel {
       id: ticket.id,
       ticketNumber: ticket.ticket_number ?? null,
       resolution: ticket.resolution ?? null,
+      boardPosition: ticket.board_position ?? null,
       title: ticket.title,
       description: ticket.description,
       status: ticket.status,
