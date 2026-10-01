@@ -1338,6 +1338,32 @@ class ApiService {
     return response.data;
   }
 
+  // Assignment rules (Settings > Assignment Rules)
+  async getAssignmentRules(): Promise<any> {
+    const response = await this.client.get('/assignment-rules');
+    return response.data;
+  }
+
+  async createAssignmentRule(rule: any): Promise<any> {
+    const response = await this.client.post('/assignment-rules', rule);
+    return response.data;
+  }
+
+  async updateAssignmentRule(id: string, rule: any): Promise<any> {
+    const response = await this.client.put(`/assignment-rules/${id}`, rule);
+    return response.data;
+  }
+
+  async deleteAssignmentRule(id: string): Promise<any> {
+    const response = await this.client.delete(`/assignment-rules/${id}`);
+    return response.data;
+  }
+
+  async reorderAssignmentRules(ruleIds: string[]): Promise<any> {
+    const response = await this.client.put('/assignment-rules/order', { ruleIds });
+    return response.data;
+  }
+
   // Gamification
   async getTrophies(): Promise<any> {
     const response = await this.client.get('/gamification/trophies');

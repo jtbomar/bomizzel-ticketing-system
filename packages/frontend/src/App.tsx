@@ -47,6 +47,7 @@ const Teams = lazy(() => import('./pages/Teams'));
 const OrganizationalRoles = lazy(() => import('./pages/OrganizationalRoles'));
 const Profiles = lazy(() => import('./pages/Profiles'));
 const Products = lazy(() => import('./pages/Products'));
+const AssignmentRules = lazy(() => import('./pages/AssignmentRules'));
 const Gamification = lazy(() => import('./pages/Gamification'));
 const TicketStatusManagement = lazy(() => import('./pages/TicketStatusManagement'));
 const AgentCreateTicketForm = lazy(() => import('./components/AgentCreateTicketForm'));
@@ -307,6 +308,14 @@ function App() {
                       element={
                         <ProtectedRoute requiredRole="admin">
                           <Products />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/settings/assignment-rules"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <AssignmentRules />
                         </ProtectedRoute>
                       }
                     />

@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { db } from '@/config/database';
 import { Ticket } from '@/models/Ticket';
 import { User } from '@/models/User';
+import { AssignmentRuleService } from './AssignmentRuleService';
 import { TicketService } from './TicketService';
 import { TicketEmailService } from './TicketEmailService';
 import { FileService } from './FileService';
@@ -446,6 +447,8 @@ export class InboundEmailService {
     await Ticket.addHistory(ticket.id, contact.userId, 'created', undefined, undefined, undefined, {
       source: 'email',
     });
+    // After source is set, so "came in by email" rules match
+    await AssignmentRuleService.apply(ticket.id);
     return ticket;
   }
 

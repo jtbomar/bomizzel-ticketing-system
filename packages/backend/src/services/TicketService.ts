@@ -12,6 +12,7 @@ import {
 } from '@/types/models';
 import { TicketTable } from '@/types/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
+import { AssignmentRuleService } from './AssignmentRuleService';
 import { notificationService } from './NotificationService';
 import { MetricsService } from './MetricsService';
 import { EmailService } from './EmailService';
@@ -98,6 +99,9 @@ export class TicketService {
 
     // Add creation history
     await Ticket.addHistory(ticket.id, submitterId, 'created');
+
+    // Settings > Assignment Rules
+    await AssignmentRuleService.apply(ticket.id);
 
     const createdTicket = await this.getTicketWithRelations(ticket.id);
 
@@ -596,7 +600,8 @@ export class TicketService {
     ticketId: string,
     priority: number,
     updatedById: string,
-    userRole: string
+    userRole: string,
+    runAssignmentRules = true
   ): Promise<TicketModel> {
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
@@ -614,6 +619,10 @@ export class TicketService {
 
     const oldPriority = ticket.priority;
     await Ticket.updatePriority(ticketId, priority, updatedById);
+    // An unassigned ticket may now match a priority rule
+    if (runAssignmentRules && oldPriority !== priority) {
+      await AssignmentRuleService.apply(ticketId);
+    }
 
     const updatedTicket = await this.getTicketWithRelations(ticketId);
 
@@ -732,7 +741,17 @@ export class TicketService {
 
     // Handle priority update separately
     if (updateData.priority !== undefined) {
-      await this.updateTicketPriority(ticketId, updateData.priority, updatedById, userRole);
+      await this.updateTicketPriority(ticketId, updateData.priority, updatedById, userRole, false);
+    }
+
+    // An unassigned ticket moved to another department or priority may now
+    // match an assignment rule - unless this same change assigns it.
+    if (
+      updateData.assignedToId === undefined &&
+      (departmentMove ||
+        (updateData.priority !== undefined && updateData.priority !== ticketData.priority))
+    ) {
+      await AssignmentRuleService.apply(ticketId);
     }
 
     // Handle assignment update separately

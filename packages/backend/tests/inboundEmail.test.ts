@@ -249,6 +249,28 @@ describe('new tickets by email', () => {
     expect(receipt.subject).toBe('Re: [#1001] Printer is on fire');
   });
 
+  it('runs assignment rules on an emailed ticket, matching the email channel', async () => {
+    await db('assignment_rules').insert({
+      org_id: A,
+      name: 'Email to the agent',
+      method: 'specific',
+      agent_ids: JSON.stringify([A_AGENT]),
+      conditions: JSON.stringify({ channels: ['email'] }),
+    });
+    try {
+      const res = await deliver({
+        from: 'Pat <pat@globex.example.com>',
+        to: [`acme@${DOMAIN}`],
+        subject: 'Assign me',
+        text: 'hello',
+      });
+      const ticket = await db('tickets').where('id', res.body.ticketId).first();
+      expect(ticket.assigned_to_id).toBe(A_AGENT);
+    } finally {
+      await db('assignment_rules').where('org_id', A).del();
+    }
+  });
+
   it('ignores the same email delivered twice', async () => {
     const before = (await ticketsOf(A)).length;
     await deliver({

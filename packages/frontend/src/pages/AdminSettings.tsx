@@ -18,6 +18,7 @@ interface SettingSection {
 // but hasn't been built; those used to be links that just reloaded this page.
 const BUILT_SETTINGS = new Set([
   '/admin/layouts',
+  '/admin/settings/assignment-rules',
   '/admin/settings/agents',
   '/admin/settings/business-hours',
   '/admin/settings/company-profile',

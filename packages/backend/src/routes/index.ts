@@ -6,6 +6,7 @@ import userRoutes from './users';
 import companyRoutes from './companies';
 import departmentRoutes from './departments';
 import productRoutes from './products';
+import assignmentRuleRoutes from './assignmentRules';
 import gamificationRoutes from './gamification';
 import teamRoutes from './teams';
 import customFieldRoutes from './customFields';
@@ -62,6 +63,7 @@ router.use('/agents', agentsRoutes); // Agent management endpoints
 router.use('/companies', companyRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/products', productRoutes);
+router.use('/assignment-rules', assignmentRuleRoutes);
 router.use('/gamification', gamificationRoutes);
 router.use('/teams', teamRoutes);
 router.use('/teams', ticketStatusRoutes);
