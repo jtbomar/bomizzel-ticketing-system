@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import RecordFields from '../components/RecordFields';
 import {
   UserIcon,
   ArrowLeftIcon,
-  BuildingOfficeIcon,
   TicketIcon,
-  EnvelopeIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -37,13 +36,6 @@ const AgentCustomerDetail: React.FC = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<any[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-  });
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (customerId) {
@@ -63,11 +55,6 @@ const AgentCustomerDetail: React.FC = () => {
         setCustomer(customerData);
 
         // Initialize edit form
-        setEditForm({
-          firstName: customerData.firstName || '',
-          lastName: customerData.lastName || '',
-          email: customerData.email || '',
-        });
 
         // Load tickets for this customer
         if (customerData.companies && customerData.companies.length > 0) {
@@ -84,33 +71,6 @@ const AgentCustomerDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      await apiService.updateUser(customerId!, editForm);
-
-      // Reload customer details
-      await loadCustomerDetails();
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update customer:', error);
-      alert('Failed to update customer. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (customer) {
-      setEditForm({
-        firstName: customer.firstName || '',
-        lastName: customer.lastName || '',
-        email: customer.email || '',
-      });
-    }
-    setIsEditing(false);
   };
 
   const formatDate = (date: string) => {
@@ -195,12 +155,6 @@ const AgentCustomerDetail: React.FC = () => {
                   Verified
                 </span>
               )}
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-              >
-                {isEditing ? 'Cancel' : 'Edit Customer'}
-              </button>
             </div>
           </div>
         </div>
@@ -246,141 +200,13 @@ const AgentCustomerDetail: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Customer Info */}
+          {/* Fields from the contacts layout (Settings > Layouts), edited in place */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Customer Information
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">First Name</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.firstName}
-                      onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                      {customer.firstName}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Last Name</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.lastName}
-                      onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                      {customer.lastName}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Email</label>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  ) : (
-                    <div className="flex items-center mt-1">
-                      <EnvelopeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      <a
-                        href={`mailto:${customer.email}`}
-                        className="text-sm text-primary-600 hover:text-primary-700"
-                      >
-                        {customer.email}
-                      </a>
-                    </div>
-                  )}
-                </div>
-
-                {customer.companies && customer.companies.length > 0 && (
-                  <div>
-                    <label className="text-sm text-gray-600 dark:text-gray-400">Company</label>
-                    <div
-                      className="flex items-center mt-1 cursor-pointer hover:text-primary-600"
-                      onClick={() =>
-                        navigate(`/agent/accounts/${customer.companies![0].companyId}`)
-                      }
-                    >
-                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        {customer.companies[0].company.name}
-                      </span>
-                    </div>
-                    {customer.companies[0].company.domain && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 ml-6 mt-1">
-                        {customer.companies[0].company.domain}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Status</label>
-                  <div className="mt-1 space-y-2">
-                    <div className="flex items-center">
-                      {customer.isActive ? (
-                        <CheckCircleIcon className="h-4 w-4 text-green-500 mr-2" />
-                      ) : (
-                        <XCircleIcon className="h-4 w-4 text-red-500 mr-2" />
-                      )}
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        {customer.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      {customer.emailVerified ? (
-                        <CheckCircleIcon className="h-4 w-4 text-blue-500 mr-2" />
-                      ) : (
-                        <XCircleIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      )}
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        {customer.emailVerified ? 'Email Verified' : 'Email Not Verified'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Member Since</label>
-                  <p className="text-sm text-gray-900 dark:text-white mt-1">
-                    {formatDate(customer.createdAt)}
-                  </p>
-                </div>
-
-                {isEditing && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex space-x-3">
-                    <button
-                      onClick={handleCancel}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <RecordFields
+              module="contacts"
+              recordId={customerId!}
+              onSaved={() => loadCustomerDetails()}
+            />
           </div>
 
           {/* Tickets */}

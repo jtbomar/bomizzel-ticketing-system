@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
@@ -50,13 +50,17 @@ import {
 } from '../utils/fields';
 
 /**
- * Settings > Ticket Layout. Field types on the left (click one to add a
+ * Settings > Layouts (tickets, accounts, contacts). Field types on the left (click one to add a
  * field); the ticket's sections on the right, two columns like the form.
  * Drag a field to reorder it or move it to another section. Standard fields
  * (locked) can be moved but not removed. Every change is saved as it's made.
  */
 
-const MODULE = 'tickets';
+const MODULES = [
+  { key: 'tickets', label: 'Tickets', path: '/admin/layouts', what: 'the ticket form' },
+  { key: 'accounts', label: 'Accounts', path: '/admin/layouts/accounts', what: 'an account' },
+  { key: 'contacts', label: 'Contacts', path: '/admin/layouts/contacts', what: 'a contact' },
+] as const;
 
 const TYPE_ICONS: Record<FieldType, React.ComponentType<{ className?: string }>> = {
   text: Bars3BottomLeftIcon,
@@ -199,6 +203,9 @@ const SectionGrid: React.FC<{ id: string; empty: boolean; children: React.ReactN
 
 const FieldLayout: React.FC = () => {
   const navigate = useNavigate();
+  const { module: moduleParam } = useParams();
+  const current = MODULES.find((m) => m.key === moduleParam) || MODULES[0];
+  const MODULE = current.key;
   const [layout, setLayout] = useState<ModuleLayout | null>(null);
   // The sections while dragging (fields move between them live)
   const [dragSections, setDragSections] = useState<LayoutSection[] | null>(null);
@@ -224,8 +231,11 @@ const FieldLayout: React.FC = () => {
   };
 
   useEffect(() => {
+    setLayout(null);
+    setDraft(null);
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [MODULE]);
 
   const infoByKey = useMemo(() => {
     const map = new Map<string, FieldInfo>();
@@ -434,15 +444,37 @@ const FieldLayout: React.FC = () => {
       </button>
       <div className="flex items-end justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Ticket Layout</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Layouts</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Drag fields to arrange the ticket form. Locked fields are standard and can't be removed.
+            Drag fields to arrange {current.what}. Locked fields are standard and can't be removed.
           </p>
         </div>
         <span role="status" className="text-sm text-green-700 h-5">
           {status}
         </span>
       </div>
+
+      <nav
+        aria-label="Modules"
+        className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-5"
+      >
+        {MODULES.map((m) => (
+          <NavLink
+            key={m.key}
+            to={m.path}
+            end
+            className={() =>
+              `px-3 py-2 text-sm -mb-px border-b-2 ${
+                m.key === MODULE
+                  ? 'border-blue-600 text-blue-700 dark:text-blue-400 font-medium'
+                  : 'border-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900'
+              }`
+            }
+          >
+            {m.label}
+          </NavLink>
+        ))}
+      </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-[14rem_1fr] gap-6">
         {/* Palette */}
@@ -689,15 +721,17 @@ const FieldLayout: React.FC = () => {
                   className={input}
                 />
               </div>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                  checked={draft.isRequired}
-                  onChange={(e) => setDraft({ ...draft, isRequired: e.target.checked })}
-                />
-                Required when an agent creates a ticket
-              </label>
+              {MODULE === 'tickets' && (
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                    checked={draft.isRequired}
+                    onChange={(e) => setDraft({ ...draft, isRequired: e.target.checked })}
+                  />
+                  Required when an agent creates a ticket
+                </label>
+              )}
             </div>
             <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 rounded-b-xl">
               <button

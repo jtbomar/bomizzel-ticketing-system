@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import RecordFields from '../components/RecordFields';
 import {
   BuildingOfficeIcon,
   ArrowLeftIcon,
   UserIcon,
   TicketIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { ticketRef } from '../utils/ticketRef';
@@ -29,15 +27,6 @@ const AgentAccountDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [customers, setCustomers] = useState<any[]>([]);
   const [tickets, setTickets] = useState<any[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: '',
-    domain: '',
-    primaryContact: '',
-    primaryEmail: '',
-    primaryPhone: '',
-  });
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (accountId) {
@@ -55,13 +44,6 @@ const AgentAccountDetail: React.FC = () => {
       setAccount(accountData);
 
       // Initialize edit form
-      setEditForm({
-        name: accountData.name || '',
-        domain: accountData.domain || '',
-        primaryContact: accountData.primaryContact || '',
-        primaryEmail: accountData.primaryEmail || '',
-        primaryPhone: accountData.primaryPhone || '',
-      });
 
       // Load customers for this account
       const customersResponse = await apiService.getUsers({
@@ -84,43 +66,6 @@ const AgentAccountDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      await apiService.updateCompany(accountId!, editForm);
-
-      // Reload account details
-      await loadAccountDetails();
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to update account:', error);
-      alert('Failed to update account. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (account) {
-      setEditForm({
-        name: account.name || '',
-        domain: account.domain || '',
-        primaryContact: account.primaryContact || '',
-        primaryEmail: account.primaryEmail || '',
-        primaryPhone: account.primaryPhone || '',
-      });
-    }
-    setIsEditing(false);
-  };
-
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
   };
 
   if (loading) {
@@ -176,12 +121,6 @@ const AgentAccountDetail: React.FC = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700"
-            >
-              {isEditing ? 'Cancel' : 'Edit Account'}
-            </button>
           </div>
         </div>
       </div>
@@ -226,148 +165,13 @@ const AgentAccountDetail: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Account Info */}
+          {/* Fields from the accounts layout (Settings > Layouts), edited in place */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                Account Information
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Company Name</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  ) : (
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                      {account.name}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Domain</label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.domain}
-                      onChange={(e) => setEditForm({ ...editForm, domain: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="example.com"
-                    />
-                  ) : account.domain ? (
-                    <div className="flex items-center mt-1">
-                      <GlobeAltIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900 dark:text-white">
-                        {account.domain}
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Not set</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">
-                    Primary Contact
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.primaryContact}
-                      onChange={(e) => setEditForm({ ...editForm, primaryContact: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="John Doe"
-                    />
-                  ) : account.primaryContact ? (
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                      {account.primaryContact}
-                    </p>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Not set</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Email</label>
-                  {isEditing ? (
-                    <input
-                      type="email"
-                      value={editForm.primaryEmail}
-                      onChange={(e) => setEditForm({ ...editForm, primaryEmail: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="contact@example.com"
-                    />
-                  ) : account.primaryEmail ? (
-                    <div className="flex items-center mt-1">
-                      <EnvelopeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      <a
-                        href={`mailto:${account.primaryEmail}`}
-                        className="text-sm text-primary-600 hover:text-primary-700"
-                      >
-                        {account.primaryEmail}
-                      </a>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Not set</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Phone</label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      value={editForm.primaryPhone}
-                      onChange={(e) => setEditForm({ ...editForm, primaryPhone: e.target.value })}
-                      className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  ) : account.primaryPhone ? (
-                    <div className="flex items-center mt-1">
-                      <PhoneIcon className="h-4 w-4 text-gray-400 mr-2" />
-                      <a
-                        href={`tel:${account.primaryPhone}`}
-                        className="text-sm text-primary-600 hover:text-primary-700"
-                      >
-                        {account.primaryPhone}
-                      </a>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Not set</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600 dark:text-gray-400">Created</label>
-                  <p className="text-sm text-gray-900 dark:text-white mt-1">
-                    {formatDate(account.createdAt)}
-                  </p>
-                </div>
-
-                {isEditing && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex space-x-3">
-                    <button
-                      onClick={handleCancel}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={saving}
-                      className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <RecordFields
+              module="accounts"
+              recordId={accountId!}
+              onSaved={() => loadAccountDetails()}
+            />
           </div>
 
           {/* Customers & Tickets */}

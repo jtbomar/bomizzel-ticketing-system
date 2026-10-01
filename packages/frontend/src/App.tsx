@@ -186,6 +186,14 @@ function App() {
                       }
                     />
                     <Route
+                      path="/admin/layouts/:module"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <FieldLayout />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
                       path="/create-ticket"
                       element={
                         <ProtectedRoute>

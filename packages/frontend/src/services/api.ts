@@ -1386,6 +1386,21 @@ class ApiService {
     return response.data;
   }
 
+  // Accounts and contacts through their layouts
+  async getRecord(module: 'accounts' | 'contacts', id: string): Promise<any> {
+    const response = await this.client.get(`/records/${module}/${id}`);
+    return response.data.record;
+  }
+
+  async updateRecord(
+    module: 'accounts' | 'contacts',
+    id: string,
+    changes: { values?: Record<string, unknown>; customFieldValues?: Record<string, unknown> }
+  ): Promise<any> {
+    const response = await this.client.put(`/records/${module}/${id}`, changes);
+    return response.data.record;
+  }
+
   // Fields and layouts (Settings > Ticket Layout), per module ('tickets')
   async getFields(module: string): Promise<any> {
     const response = await this.client.get(`/fields/${module}`);

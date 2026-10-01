@@ -310,7 +310,8 @@ export class AdvancedSearchService {
     // it comes straight from the request, so `custom_field_x' OR 1=1 --`
     // used to run as SQL. Each condition is wrapped in parentheses so an OR
     // inside it can't escape the other filters (tenant scope included).
-    const jsonPath = `custom_field_values->>?`;
+    // Qualified: accounts and contacts have custom_field_values too
+    const jsonPath = `t.custom_field_values->>?`;
 
     switch (operator) {
       case 'equals':

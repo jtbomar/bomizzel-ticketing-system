@@ -15,7 +15,7 @@ import { ValidationError, NotFoundError } from '@/utils/errors';
  * under the field's key, and checked here against the field's type.
  */
 
-export const MODULES = ['tickets'] as const;
+export const MODULES = ['tickets', 'accounts', 'contacts'] as const;
 export type ModuleName = (typeof MODULES)[number];
 
 export const FIELD_TYPES = [
@@ -39,7 +39,31 @@ export interface SystemField {
   type: string;
   isRequired: boolean;
   system: true;
+  // The record's column it's stored in (accounts and contacts). None: it's
+  // shown but not edited through the layout (e.g. a contact's account).
+  column?: string;
 }
+
+const std = (
+  key: string,
+  label: string,
+  type: string,
+  column?: string,
+  isRequired = false
+): SystemField => ({ key, label, type, isRequired, system: true, column });
+
+const ADDRESS = (prefix: 'address' | 'billing', columns: string[]): SystemField[] =>
+  ['Street', 'Street 2', 'City', 'State', 'County', 'ZIP / Postal code', 'Country'].map(
+    (label, i) =>
+      std(
+        `${prefix}_${['street', 'street2', 'city', 'state', 'county', 'postal_code', 'country'][i]}`,
+        prefix === 'billing'
+          ? `Billing ${label === 'ZIP / Postal code' ? 'ZIP / postal code' : label.toLowerCase()}`
+          : label,
+        'text',
+        columns[i]
+      )
+  );
 
 export const SYSTEM_FIELDS: Record<ModuleName, SystemField[]> = {
   tickets: [
@@ -54,7 +78,47 @@ export const SYSTEM_FIELDS: Record<ModuleName, SystemField[]> = {
     { key: 'priority', label: 'Priority', type: 'picklist', isRequired: true, system: true },
     { key: 'assignee', label: 'Assigned to', type: 'lookup', isRequired: false, system: true },
   ],
+  accounts: [
+    std('name', 'Account name', 'text', 'name', true),
+    std('phone', 'Phone', 'phone', 'primary_contact_phone'),
+    std('website', 'Website', 'url', 'website_url'),
+    std('domain', 'Email domain', 'text', 'domain'),
+    std('description', 'Description', 'textarea', 'description'),
+    ...ADDRESS('address', [
+      'address_line_1',
+      'address_line_2',
+      'city',
+      'state_province',
+      'county',
+      'postal_code',
+      'country',
+    ]),
+    ...ADDRESS('billing', [
+      'billing_street',
+      'billing_street2',
+      'billing_city',
+      'billing_state',
+      'billing_county',
+      'billing_postal_code',
+      'billing_country',
+    ]),
+  ],
+  contacts: [
+    std('first_name', 'First name', 'text', 'first_name', true),
+    std('last_name', 'Last name', 'text', 'last_name', true),
+    std('email', 'Email', 'email', 'email', true),
+    std('phone', 'Phone', 'phone', 'phone'),
+    std('mobile', 'Mobile', 'phone', 'mobile_phone'),
+    std('title', 'Title', 'text', 'job_title'),
+    std('account', 'Account', 'lookup'),
+  ],
 };
+
+function SYSTEM_FIELDS_KEYS(prefix: string): string[] {
+  return ['street', 'street2', 'city', 'state', 'county', 'postal_code', 'country'].map(
+    (k) => `${prefix}_${k}`
+  );
+}
 
 const DEFAULT_SECTIONS: Record<ModuleName, Section[]> = {
   tickets: [
@@ -67,6 +131,30 @@ const DEFAULT_SECTIONS: Record<ModuleName, Section[]> = {
       id: 'additional-information',
       title: 'Additional Information',
       fields: ['department', 'status', 'priority', 'assignee'],
+    },
+  ],
+  accounts: [
+    {
+      id: 'account-information',
+      title: 'Account Information',
+      fields: ['name', 'phone', 'website', 'domain', 'description'],
+    },
+    {
+      id: 'address',
+      title: 'Address',
+      fields: SYSTEM_FIELDS_KEYS('address'),
+    },
+    {
+      id: 'billing-address',
+      title: 'Billing Address',
+      fields: SYSTEM_FIELDS_KEYS('billing'),
+    },
+  ],
+  contacts: [
+    {
+      id: 'contact-information',
+      title: 'Contact Information',
+      fields: ['first_name', 'last_name', 'email', 'phone', 'mobile', 'title', 'account'],
     },
   ],
 };
@@ -140,7 +228,7 @@ const isEmpty = (v: unknown): boolean =>
   v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
 
 /** One value, checked and converted for its field's type. */
-const coerce = (field: CustomField, value: unknown): unknown => {
+export const coerce = (field: CustomField, value: unknown): unknown => {
   const bad = (why: string) => new ValidationError(`${field.label}: ${why}`);
   switch (field.type) {
     case 'text':
