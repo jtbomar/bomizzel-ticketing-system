@@ -3,6 +3,7 @@ import { ValidationError, NotFoundError, ForbiddenError } from '@/utils/errors';
 import { STAFF_ROLES, tenantUserIds } from '@/utils/tenant';
 import { sanitizeNoteHtml, noteHtmlToText } from '@/utils/richText';
 import { TicketService } from './TicketService';
+import { FieldService } from './FieldService';
 
 /**
  * Macros: a saved reply plus ticket changes, applied to a ticket in one go.
@@ -26,6 +27,9 @@ export interface MacroActions {
   priority?: number;
   assignTo?: string; // 'me' | 'unassigned' | user id
   departmentId?: number;
+  productId?: number | null; // null clears it
+  // Custom fields to set (null clears one), by key
+  fields?: Record<string, unknown>;
 }
 
 export interface MacroInput {
@@ -166,6 +170,38 @@ export class MacroService {
       actions.departmentId = department.id;
     }
 
+    if (a.productId !== undefined) {
+      if (a.productId === null) {
+        actions.productId = null;
+      } else {
+        const product = await db('products')
+          .where('id', Number(a.productId))
+          .where((q) => q.where('company_id', caller.tenantId).orWhere('org_id', caller.tenantId))
+          .where('is_active', true)
+          .first('id');
+        if (!product) throw new ValidationError('Unknown product');
+        actions.productId = product.id;
+      }
+    }
+    if (a.fields && typeof a.fields === 'object' && !Array.isArray(a.fields)) {
+      const entries = Object.entries(a.fields);
+      if (entries.length > 50) throw new ValidationError('Up to 50 fields');
+      // Values are checked like on a ticket; null (or empty) means "clear it"
+      const toSet = Object.fromEntries(
+        entries.filter(([, v]) => !(v === null || v === '' || (Array.isArray(v) && v.length === 0)))
+      );
+      const checked = await FieldService.validateValues(caller.tenantId, 'tickets', toSet);
+      const known = new Set(
+        (await FieldService.customFields(caller.tenantId, 'tickets')).map((f) => f.key)
+      );
+      const fields: Record<string, unknown> = {};
+      for (const [key] of entries) {
+        if (!known.has(key)) throw new ValidationError('Unknown field');
+        fields[key] = key in checked ? checked[key] : null;
+      }
+      if (entries.length) actions.fields = fields;
+    }
+
     if (!hasReply && Object.keys(actions).length === 0) {
       throw new ValidationError('A macro needs a reply or at least one change');
     }
@@ -246,6 +282,23 @@ export class MacroService {
     }
     if (actions.departmentId && actions.departmentId !== ticket.department_id) {
       update.departmentId = actions.departmentId;
+    }
+    if (actions.productId !== undefined && actions.productId !== ticket.product_id) {
+      update.productId = actions.productId;
+    }
+    if (actions.fields) {
+      // Fields deleted since the macro was saved are skipped
+      const known = new Set(
+        (await FieldService.customFields(caller.tenantId, 'tickets')).map((f) => f.key)
+      );
+      const current = ticket.custom_field_values || {};
+      const changes = Object.fromEntries(
+        Object.entries(actions.fields)
+          .filter(([key]) => known.has(key))
+          .filter(([key, v]) => JSON.stringify(current[key] ?? null) !== JSON.stringify(v ?? null))
+          .map(([key, v]) => [key, v === null ? '' : v])
+      );
+      if (Object.keys(changes).length) update.customFieldValues = changes;
     }
     if (actions.assignTo) {
       const to =

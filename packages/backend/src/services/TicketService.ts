@@ -772,6 +772,7 @@ export class TicketService {
     if (
       updateData.assignedToId === undefined &&
       (departmentMove ||
+        updateData.customFieldValues !== undefined ||
         (updateData.priority !== undefined && updateData.priority !== ticketData.priority))
     ) {
       await AssignmentRuleService.apply(ticketId);

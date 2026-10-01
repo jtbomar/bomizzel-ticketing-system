@@ -2,6 +2,7 @@ import { db } from '@/config/database';
 import { logger } from '@/utils/logger';
 import { ValidationError, NotFoundError } from '@/utils/errors';
 import { STAFF_ROLES, tenantUserIds } from '@/utils/tenant';
+import { FieldService } from './FieldService';
 
 /**
  * Assignment rules (Settings > Assignment Rules): who gets a new ticket.
@@ -23,6 +24,10 @@ export interface RuleConditions {
   priorities?: number[];
   channels?: string[];
   keywords?: string[];
+  // Custom fields (Settings > Ticket Layout). 'is': the value is one of
+  // these (pick lists, multi-selects - any overlap -, checkboxes, numbers,
+  // dates); 'contains': the text contains one of them.
+  fields?: { key: string; match: 'is' | 'contains'; values: string[] }[];
 }
 
 export interface RuleInput {
@@ -74,6 +79,18 @@ export const ruleMatches = (conditions: RuleConditions, ticket: any): boolean =>
   if (c.keywords?.length) {
     const text = `${plainText(ticket.title)} ${plainText(ticket.description)}`;
     if (!c.keywords.some((k) => text.includes(k.toLowerCase()))) return false;
+  }
+  const stored = ticket.custom_field_values || {};
+  for (const cond of c.fields || []) {
+    const value = stored[cond.key];
+    if (value === undefined || value === null || value === '') return false;
+    const have = (Array.isArray(value) ? value : [value]).map((v) => String(v).toLowerCase());
+    const want = cond.values.map((v) => v.toLowerCase());
+    const ok =
+      cond.match === 'contains'
+        ? have.some((h) => want.some((w) => h.includes(w)))
+        : have.some((h) => want.includes(h));
+    if (!ok) return false;
   }
   return true;
 };
@@ -180,6 +197,38 @@ export class AssignmentRuleService {
         throw new ValidationError('Too many or too long keywords');
       }
       conditions.keywords = keywords;
+    }
+
+    // Custom field conditions, checked against the field's definition
+    if (Array.isArray(c.fields) && c.fields.length) {
+      if (c.fields.length > 20) throw new ValidationError('Up to 20 field conditions');
+      const defs = new Map(
+        (await FieldService.customFields(tenantId, 'tickets')).map((f) => [f.key, f])
+      );
+      const seen = new Set<string>();
+      conditions.fields = c.fields.map((cond: any) => {
+        const def = defs.get(String(cond?.key));
+        if (!def) throw new ValidationError('Unknown field in a condition');
+        if (seen.has(def.key)) throw new ValidationError(`${def.label} is in the conditions twice`);
+        seen.add(def.key);
+        const values = [
+          ...new Set(
+            (Array.isArray(cond.values) ? cond.values : []).map((v: unknown) => String(v).trim())
+          ),
+        ].filter(Boolean) as string[];
+        if (values.length === 0 || values.length > 50 || values.some((v) => v.length > 100)) {
+          throw new ValidationError(`${def.label}: choose what it should match`);
+        }
+        if (def.type === 'picklist' || def.type === 'multiselect') {
+          const bad = values.find((v) => !def.options.includes(v));
+          if (bad) throw new ValidationError(`${def.label}: "${bad}" isn't one of the choices`);
+        }
+        if (def.type === 'checkbox' && !values.every((v) => v === 'true' || v === 'false')) {
+          throw new ValidationError(`${def.label}: ticked or not ticked`);
+        }
+        const contains = ['text', 'textarea', 'email', 'phone', 'url'].includes(def.type);
+        return { key: def.key, match: contains ? 'contains' : 'is', values };
+      });
     }
 
     return {

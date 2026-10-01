@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { priorityLabel } from '../utils/priority';
+import type { CustomFieldDef } from '../utils/fields';
 
 /**
  * Settings > Assignment Rules: who gets a new ticket.
@@ -17,6 +18,7 @@ interface Conditions {
   priorities?: number[];
   channels?: string[];
   keywords?: string[];
+  fields?: { key: string; match?: 'is' | 'contains'; values: string[] }[];
 }
 
 interface Rule {
@@ -45,6 +47,8 @@ interface Draft {
   priorities: number[];
   channels: string[];
   keywords: string;
+  // Custom field conditions; for text fields `values` is typed, comma-separated
+  fields: { key: string; values: string[]; text: string }[];
 }
 
 const PRIORITIES = [0, 1, 2, 3];
@@ -63,6 +67,7 @@ const emptyDraft = (): Draft => ({
   priorities: [],
   channels: [],
   keywords: '',
+  fields: [],
 });
 
 const toDraft = (rule: Rule): Draft => ({
@@ -76,6 +81,11 @@ const toDraft = (rule: Rule): Draft => ({
   priorities: rule.conditions.priorities || [],
   channels: rule.conditions.channels || [],
   keywords: (rule.conditions.keywords || []).join(', '),
+  fields: (rule.conditions.fields || []).map((f) => ({
+    key: f.key,
+    values: f.values,
+    text: f.values.join(', '),
+  })),
 });
 
 const toggle = <T,>(list: T[], value: T): T[] =>
@@ -95,6 +105,18 @@ const AssignmentRules: React.FC = () => {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [accountSearch, setAccountSearch] = useState('');
+
+  // The ticket's custom fields (Settings > Ticket Layout)
+  const [ticketFields, setTicketFields] = useState<CustomFieldDef[]>([]);
+  useEffect(() => {
+    apiService
+      .getFields('tickets')
+      .then((layout) => setTicketFields(layout.customFields || []))
+      .catch(() => setTicketFields([]));
+  }, []);
+  const isText = (def?: CustomFieldDef) =>
+    !!def &&
+    ['text', 'textarea', 'email', 'phone', 'url', 'number', 'decimal', 'date'].includes(def.type);
 
   const load = async () => {
     try {
@@ -138,6 +160,15 @@ const AssignmentRules: React.FC = () => {
           .join(' or ')}`
       );
     if (c.keywords?.length) parts.push(`Mentions: ${c.keywords.map((k) => `"${k}"`).join(' or ')}`);
+    for (const cond of c.fields || []) {
+      const def = ticketFields.find((f) => f.key === cond.key);
+      const name = def?.label || 'Deleted field';
+      const values =
+        def?.type === 'checkbox'
+          ? cond.values.map((v) => (v === 'true' ? 'ticked' : 'not ticked'))
+          : cond.values.map((v) => (cond.match === 'contains' ? `"${v}"` : v));
+      parts.push(`${name} ${cond.match === 'contains' ? 'contains' : 'is'} ${values.join(' or ')}`);
+    }
     return parts.length ? parts : ['Every ticket'];
   };
 
@@ -164,6 +195,18 @@ const AssignmentRules: React.FC = () => {
           .split(',')
           .map((k) => k.trim())
           .filter(Boolean),
+        fields: draft.fields
+          .filter((f) => f.key)
+          .map((f) => {
+            const def = ticketFields.find((d) => d.key === f.key);
+            const values = isText(def)
+              ? f.text
+                  .split(',')
+                  .map((v) => v.trim())
+                  .filter(Boolean)
+              : f.values;
+            return { key: f.key, values };
+          }),
       },
     };
     try {
@@ -408,6 +451,124 @@ const AssignmentRules: React.FC = () => {
                     )}
                   </div>
                 </fieldset>
+
+                {ticketFields.length > 0 && (
+                  <fieldset>
+                    <legend className={sectionLabel}>Custom fields</legend>
+                    <ul className="space-y-3">
+                      {draft.fields.map((row, i) => {
+                        const def = ticketFields.find((f) => f.key === row.key);
+                        const setRow = (next: Partial<Draft['fields'][number]>) =>
+                          setDraft((d) =>
+                            d
+                              ? {
+                                  ...d,
+                                  fields: d.fields.map((r, j) => (j === i ? { ...r, ...next } : r)),
+                                }
+                              : d
+                          );
+                        return (
+                          <li key={i} className="flex flex-wrap items-start gap-3">
+                            <select
+                              aria-label="Field"
+                              value={row.key}
+                              onChange={(e) =>
+                                setRow({ key: e.target.value, values: [], text: '' })
+                              }
+                              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">Choose a field...</option>
+                              {ticketFields
+                                .filter(
+                                  (f) =>
+                                    f.key === row.key || !draft.fields.some((r) => r.key === f.key)
+                                )
+                                .map((f) => (
+                                  <option key={f.key} value={f.key}>
+                                    {f.label}
+                                  </option>
+                                ))}
+                            </select>
+                            <div className="flex-1 min-w-[12rem] pt-2">
+                              {!def ? null : def.type === 'picklist' ||
+                                def.type === 'multiselect' ? (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                                  <span className="text-sm text-gray-600">is any of:</span>
+                                  {def.options.map((o) => (
+                                    <label key={o} className="flex items-center gap-1.5 text-sm">
+                                      <input
+                                        type="checkbox"
+                                        className={checkbox}
+                                        checked={row.values.includes(o)}
+                                        onChange={() => setRow({ values: toggle(row.values, o) })}
+                                      />
+                                      {o}
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : def.type === 'checkbox' ? (
+                                <div className="flex gap-4 text-sm">
+                                  {[
+                                    ['true', 'Ticked'],
+                                    ['false', 'Not ticked'],
+                                  ].map(([value, text]) => (
+                                    <label key={value} className="flex items-center gap-1.5">
+                                      <input
+                                        type="radio"
+                                        name={`field-${i}`}
+                                        checked={row.values[0] === value}
+                                        onChange={() => setRow({ values: [value!] })}
+                                      />
+                                      {text}
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  aria-label={`${def.label} values`}
+                                  value={row.text}
+                                  onChange={(e) => setRow({ text: e.target.value })}
+                                  placeholder={
+                                    ['number', 'decimal', 'date'].includes(def.type)
+                                      ? 'is any of, separated by commas'
+                                      : 'contains any of, separated by commas'
+                                  }
+                                  className="w-full -mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraft((d) =>
+                                  d ? { ...d, fields: d.fields.filter((_, j) => j !== i) } : d
+                                )
+                              }
+                              className="text-sm text-red-600 hover:text-red-800 pt-2"
+                            >
+                              Remove
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {draft.fields.length < ticketFields.length && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            fields: [...draft.fields, { key: '', values: [], text: '' }],
+                          })
+                        }
+                        className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        + Add a field condition
+                      </button>
+                    )}
+                  </fieldset>
+                )}
               </div>
 
               <div className="space-y-3">

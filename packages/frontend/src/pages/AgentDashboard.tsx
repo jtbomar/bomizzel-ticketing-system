@@ -1088,6 +1088,8 @@ const AgentDashboard: React.FC = () => {
           closedAt: t.closedAt || ticket.closedAt || null,
           priority: priorityFromNumber(t.priority),
           departmentId: t.departmentId ?? ticket.departmentId ?? null,
+          productId: t.productId ?? null,
+          customFieldValues: t.customFieldValues || ticket.customFieldValues || {},
           assigned,
         });
         setTickets((prev) => prev.map((x) => (x.id === ticketId ? update(x) : x)));
@@ -1103,6 +1105,8 @@ const AgentDashboard: React.FC = () => {
         priority: 'priority',
         assignedToId: 'assignee',
         departmentId: 'department',
+        productId: 'product',
+        customFieldValues: 'fields',
       };
       const done = (changed || []).map((c: string) => what[c]).filter(Boolean);
       setMacroNotice(

@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { priorityLabel } from '../utils/priority';
 import RichTextEditor from '../components/RichTextEditor';
 import RichTextContent from '../components/RichTextContent';
+import CustomFieldInput from '../components/CustomFieldInput';
+import { displayValue, type CustomFieldDef } from '../utils/fields';
 
 /**
  * Macros: a saved reply plus ticket changes, applied from a ticket in one
@@ -19,6 +21,8 @@ interface Actions {
   priority?: number;
   assignTo?: string;
   departmentId?: number;
+  productId?: number | null;
+  fields?: Record<string, unknown>;
 }
 
 interface Macro {
@@ -47,6 +51,10 @@ interface Draft {
   priority: string;
   assignTo: string;
   departmentId: string;
+  // '' no change, 'clear', or a product id
+  productId: string;
+  // Custom fields to set, in order; an empty value clears the field
+  fields: { key: string; value: unknown }[];
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -72,6 +80,8 @@ const emptyDraft = (shared: boolean): Draft => ({
   priority: '',
   assignTo: '',
   departmentId: '',
+  productId: '',
+  fields: [],
 });
 
 const toDraft = (m: Macro): Draft => ({
@@ -85,6 +95,13 @@ const toDraft = (m: Macro): Draft => ({
   priority: m.actions.priority === undefined ? '' : String(m.actions.priority),
   assignTo: m.actions.assignTo || '',
   departmentId: m.actions.departmentId ? String(m.actions.departmentId) : '',
+  productId:
+    m.actions.productId === undefined
+      ? ''
+      : m.actions.productId === null
+        ? 'clear'
+        : String(m.actions.productId),
+  fields: Object.entries(m.actions.fields || {}).map(([key, value]) => ({ key, value })),
 });
 
 const errorText = (error: any): string =>
@@ -106,6 +123,22 @@ const Macros: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // The ticket's custom fields and products, for "Set fields"
+  const [ticketFields, setTicketFields] = useState<CustomFieldDef[]>([]);
+  const [products, setProducts] = useState<{ id: number; name: string; product_code: string }[]>(
+    []
+  );
+  useEffect(() => {
+    apiService
+      .getFields('tickets')
+      .then((layout) => setTicketFields(layout.customFields || []))
+      .catch(() => setTicketFields([]));
+    apiService
+      .getProducts()
+      .then((list) => setProducts(Array.isArray(list) ? list : []))
+      .catch(() => setProducts([]));
+  }, []);
 
   const load = async () => {
     try {
@@ -152,6 +185,20 @@ const Macros: React.FC = () => {
       );
     if (a.departmentId)
       parts.push(`Department → ${departmentName.get(a.departmentId) || 'removed department'}`);
+    if (a.productId !== undefined)
+      parts.push(
+        `Product → ${
+          a.productId === null
+            ? '(cleared)'
+            : products.find((p) => p.id === a.productId)?.name || 'removed product'
+        }`
+      );
+    for (const [key, value] of Object.entries(a.fields || {})) {
+      const def = ticketFields.find((f) => f.key === key);
+      if (!def) continue; // deleted since: skipped when applied
+      const shown = displayValue(def, value);
+      parts.push(`${def.label} → ${shown === '' ? '(cleared)' : shown}`);
+    }
     return parts;
   };
 
@@ -174,6 +221,20 @@ const Macros: React.FC = () => {
     if (draft.priority !== '') actions.priority = Number(draft.priority);
     if (draft.assignTo) actions.assignTo = draft.assignTo;
     if (draft.departmentId) actions.departmentId = Number(draft.departmentId);
+    if (draft.productId)
+      actions.productId = draft.productId === 'clear' ? null : Number(draft.productId);
+    if (draft.fields.length) {
+      actions.fields = Object.fromEntries(
+        draft.fields
+          .filter((f) => f.key)
+          .map((f) => [
+            f.key,
+            f.value === '' || f.value === undefined || (Array.isArray(f.value) && !f.value.length)
+              ? null
+              : f.value,
+          ])
+      );
+    }
     const body = {
       name: draft.name.trim(),
       shared: draft.shared,
@@ -429,7 +490,102 @@ const Macros: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                  <div>
+                    <label className={label} htmlFor="macro-product">
+                      Product
+                    </label>
+                    <select
+                      id="macro-product"
+                      value={draft.productId}
+                      onChange={(e) => setDraft({ ...draft, productId: e.target.value })}
+                      className={field}
+                    >
+                      <option value="">No change</option>
+                      <option value="clear">Clear it</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.product_code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+
+                {ticketFields.length > 0 && (
+                  <div className="mt-5">
+                    <p className="text-sm font-semibold text-gray-900 mb-1">Set fields</p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Custom fields from the ticket layout. Leave a value empty to clear the field.
+                    </p>
+                    <ul className="space-y-3">
+                      {draft.fields.map((row, i) => {
+                        const def = ticketFields.find((f) => f.key === row.key);
+                        const setRow = (next: { key: string; value: unknown }) =>
+                          setDraft((d) =>
+                            d ? { ...d, fields: d.fields.map((r, j) => (j === i ? next : r)) } : d
+                          );
+                        return (
+                          <li key={i} className="flex flex-wrap items-start gap-2">
+                            <select
+                              aria-label="Field"
+                              value={row.key}
+                              onChange={(e) => setRow({ key: e.target.value, value: '' })}
+                              className={`${field} md:w-56`}
+                            >
+                              <option value="">Choose a field...</option>
+                              {ticketFields
+                                .filter(
+                                  (f) =>
+                                    f.key === row.key || !draft.fields.some((r) => r.key === f.key)
+                                )
+                                .map((f) => (
+                                  <option key={f.key} value={f.key}>
+                                    {f.label}
+                                  </option>
+                                ))}
+                            </select>
+                            <div className="flex-1 min-w-[12rem]">
+                              {def ? (
+                                <CustomFieldInput
+                                  field={def}
+                                  value={row.value}
+                                  onChange={(value) => setRow({ key: row.key, value })}
+                                  className={field}
+                                />
+                              ) : (
+                                <p className="text-sm text-gray-500 py-2">
+                                  {row.key ? 'This field was deleted.' : ''}
+                                </p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setDraft((d) =>
+                                  d ? { ...d, fields: d.fields.filter((_, j) => j !== i) } : d
+                                )
+                              }
+                              className="text-sm text-red-600 hover:text-red-800 py-2"
+                            >
+                              Remove
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {draft.fields.length < ticketFields.length && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDraft({ ...draft, fields: [...draft.fields, { key: '', value: '' }] })
+                        }
+                        className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        + Add a field
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
