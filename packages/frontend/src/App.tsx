@@ -23,7 +23,6 @@ const ModuleRecords = lazy(() => import('./pages/ModuleRecords'));
 const ModuleRecordPage = lazy(() => import('./pages/ModuleRecordPage'));
 const CreateTicketPage = lazy(() => import('./pages/CreateTicketPage'));
 const TestAPI = lazy(() => import('./TestAPI'));
-const CompanyRegistrationPage = lazy(() => import('./pages/CompanyRegistrationPage'));
 const TestTicketForm = lazy(() => import('./pages/TestTicketForm'));
 const ColorPickerDemo = lazy(() => import('./pages/ColorPickerDemo'));
 const AdminCustomerProvisioning = lazy(() => import('./pages/AdminCustomerProvisioning'));
@@ -97,7 +96,8 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/company-register" element={<CompanyRegistrationPage />} />
+                    {/* One sign-up page; old links to the long form go there */}
+                    <Route path="/company-register" element={<Navigate to="/register" replace />} />
                     <Route
                       path="/customer"
                       element={

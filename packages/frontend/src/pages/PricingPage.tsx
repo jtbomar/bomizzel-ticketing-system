@@ -30,9 +30,12 @@ const PricingPage: React.FC = () => {
     const fetchPlans = async () => {
       try {
         const response = await apiService.getAvailablePlans();
-        // Handle both direct array and nested data structure
-        const plansData = response.data?.data || response.data || response;
-        setPlans(plansData);
+        // The API answers { success, data: { plans: [...] } }. Reading `data`
+        // as the list crashed the page ("plans.map is not a function").
+        const list = Array.isArray(response)
+          ? response
+          : response?.data?.plans || response?.plans || response?.data || [];
+        setPlans(Array.isArray(list) ? list : []);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching plans:', err);
@@ -119,14 +122,27 @@ const PricingPage: React.FC = () => {
             Scale your support operations with flexible pricing that grows with your business. From
             startups to enterprise, we have the right solution for your team.
           </p>
-          <div className="inline-flex items-center bg-white rounded-full px-6 py-2 shadow-sm">
-            <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
-            <span className="text-sm text-gray-600">14-day free trial on all paid plans</span>
-          </div>
+          {plans.length > 0 && (
+            <div className="inline-flex items-center bg-white rounded-full px-6 py-2 shadow-sm">
+              <CheckIcon className="h-5 w-5 text-green-500 mr-2" />
+              <span className="text-sm text-gray-600">14-day free trial on all paid plans</span>
+            </div>
+          )}
         </div>
 
         {/* Pricing Cards */}
         <div className="grid lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2 gap-8 max-w-7xl mx-auto">
+          {plans.length === 0 && (
+            <div className="col-span-full max-w-md mx-auto w-full bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+              <h3 className="text-xl font-semibold text-gray-900">Free 30-day trial</h3>
+              <p className="mt-2 text-gray-600">
+                Every feature, for your whole team. No credit card needed.
+              </p>
+              <Link to="/register" className="btn-primary inline-block mt-6 px-6 py-2">
+                Start free trial
+              </Link>
+            </div>
+          )}
           {plans.map((plan, index) => (
             <div
               key={plan.id}

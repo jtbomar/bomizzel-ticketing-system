@@ -673,6 +673,20 @@ class ApiService {
   }
 
   // Subscription endpoints
+  /** A business signs up: its company and owner. The owner confirms their email to sign in. */
+  async registerCompany(data: {
+    companyName: string;
+    adminFirstName: string;
+    adminLastName: string;
+    adminEmail: string;
+    adminPassword: string;
+    subscriptionPlanId?: string;
+    startTrial?: boolean;
+  }): Promise<any> {
+    const response = await this.client.post('/company-registration/register', data);
+    return response.data;
+  }
+
   async getAvailablePlans(): Promise<any> {
     const response = await this.client.get('/subscriptions/plans');
     return response.data;
