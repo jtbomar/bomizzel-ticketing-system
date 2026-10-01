@@ -52,6 +52,7 @@ const Macros = lazy(() => import('./pages/Macros'));
 const Gamification = lazy(() => import('./pages/Gamification'));
 const TicketStatusManagement = lazy(() => import('./pages/TicketStatusManagement'));
 const AgentCreateTicketForm = lazy(() => import('./components/AgentCreateTicketForm'));
+const TicketDetailPage = lazy(() => import('./pages/TicketDetailPage'));
 const AgentAccountsList = lazy(() => import('./pages/AgentAccountsList'));
 const AgentCustomersList = lazy(() => import('./pages/AgentCustomersList'));
 const AgentAccountDetail = lazy(() => import('./pages/AgentAccountDetail'));
@@ -115,6 +116,14 @@ function App() {
                       element={
                         <ProtectedRoute requiredRole="employee">
                           <AgentCreateTicketForm />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/agent/tickets/:ticketId"
+                      element={
+                        <ProtectedRoute requiredRole="employee">
+                          <TicketDetailPage />
                         </ProtectedRoute>
                       }
                     />

@@ -388,7 +388,6 @@ const AgentDashboard: React.FC = () => {
 
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketIdMap, setTicketIdMap] = useState<Map<number, string>>(new Map()); // Maps numeric ID to UUID
-  const [ticketsLoaded, setTicketsLoaded] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   // The ticket view's contact / ticket info panel can be hidden for more
   // writing room; remembered in this browser.
@@ -438,7 +437,6 @@ const AgentDashboard: React.FC = () => {
   // Fetch real tickets from API only on initial load or filter change
   useEffect(() => {
     const fetchTickets = async () => {
-      setTicketsLoaded(false);
       // Only fetch if user is authenticated
       if (!user) {
         return;
@@ -522,8 +520,6 @@ const AgentDashboard: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch tickets:', error);
         // Keep using localStorage tickets on error
-      } finally {
-        setTicketsLoaded(true);
       }
     };
 
@@ -844,45 +840,18 @@ const AgentDashboard: React.FC = () => {
     }
   }, [tickets, user]);
 
-  // Open a ticket asked for by another page: search results and the
-  // account/customer pages link to /agent?ticket=<id>. Those used to go to
-  // /agent/tickets/<id>, a page that doesn't exist (so you landed on the
-  // home page), or pass a copy of the ticket that couldn't be saved.
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Tickets open on their own page (/agent/tickets/<id>). Old links to
+  // /agent?ticket=<id> are sent there.
+  const [searchParams] = useSearchParams();
   const ticketToOpen = searchParams.get('ticket');
   useEffect(() => {
-    if (!ticketToOpen || !ticketsLoaded) return;
-    const clear = () => {
-      const next = new URLSearchParams(searchParams);
-      next.delete('ticket');
-      setSearchParams(next, { replace: true });
-    };
-    const existing = Array.from(ticketIdMap.entries()).find(([, uuid]) => uuid === ticketToOpen);
-    const onBoard = existing && tickets.find((t) => t.id === existing[0]);
-    if (onBoard) {
-      setSelectedTicket(onBoard);
-      clear();
-      return;
-    }
-    // Not on the board (finished a while ago, or another department): load it.
-    let cancelled = false;
-    apiService
-      .getTicket(ticketToOpen)
-      .then((response: any) => {
-        if (cancelled) return;
-        const t = response.data || response.ticket || response;
-        const numericId = Math.max(999, ...Array.from(ticketIdMap.keys())) + 1;
-        const ticket = toDashboardTicket(t, numericId);
-        setTicketIdMap((prev) => new Map(prev).set(numericId, t.id));
-        setTickets((prev) => [...prev, ticket]);
-        setSelectedTicket(ticket);
-      })
-      .catch(() => alert("Couldn't open that ticket."))
-      .finally(() => !cancelled && clear());
-    return () => {
-      cancelled = true;
-    };
-  }, [ticketToOpen, ticketsLoaded]);
+    if (ticketToOpen)
+      navigate(`/agent/tickets/${encodeURIComponent(ticketToOpen)}`, { replace: true });
+  }, [ticketToOpen, navigate]);
+  const openTicket = (ticket: Ticket) => {
+    const uuid = ticketIdMap.get(ticket.id);
+    if (uuid) navigate(`/agent/tickets/${uuid}`);
+  };
 
   // Load agents from API
   useEffect(() => {
@@ -1971,7 +1940,7 @@ const AgentDashboard: React.FC = () => {
                             className={`bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border-l-4 cursor-grab active:cursor-grabbing hover:shadow-md transition-all duration-200 ${getStatusColor(
                               ticket.status
                             )} ${activeDragId === ticket.id ? 'opacity-50 scale-95' : ''}`}
-                            onClick={() => setSelectedTicket(ticket)}
+                            onClick={() => openTicket(ticket)}
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex items-start space-x-2 flex-1">
@@ -2059,7 +2028,7 @@ const AgentDashboard: React.FC = () => {
                                 className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setSelectedTicket(ticket);
+                                  openTicket(ticket);
                                 }}
                                 onPointerDown={(e) => e.stopPropagation()}
                               >
@@ -2111,7 +2080,7 @@ const AgentDashboard: React.FC = () => {
           <li key={ticket.id}>
             <div
               className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-              onClick={() => setSelectedTicket(ticket)}
+              onClick={() => openTicket(ticket)}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">

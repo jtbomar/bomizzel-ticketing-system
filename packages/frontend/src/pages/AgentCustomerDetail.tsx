@@ -408,7 +408,7 @@ const AgentCustomerDetail: React.FC = () => {
                       key={ticket.id}
                       className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md cursor-pointer border border-gray-200 dark:border-gray-700"
                       onClick={() => {
-                        navigate(`/agent?ticket=${encodeURIComponent(ticket.id)}`);
+                        navigate(`/agent/tickets/${encodeURIComponent(ticket.id)}`);
                       }}
                     >
                       <div className="flex-1">
