@@ -1,4 +1,5 @@
 import React from 'react';
+import { isStaleBuildError, reloadForNewVersion } from '../utils/staleBuild';
 
 interface ErrorBoundaryState {
   error: Error | null;
@@ -15,12 +16,36 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, Error
     return { error };
   }
 
+  private reloading = false;
+
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    // The site was updated while this tab was open: just load the new version
+    if (isStaleBuildError(error) && reloadForNewVersion()) {
+      this.reloading = true;
+      this.forceUpdate();
+      return;
+    }
     console.error('[ErrorBoundary] Page crashed:', error, info.componentStack);
   }
 
   render(): React.ReactNode {
     if (!this.state.error) return this.props.children;
+    if (this.reloading || isStaleBuildError(this.state.error)) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-8 text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Bomizzel was just updated</h3>
+            <p className="text-sm text-gray-600 mb-6">Loading the latest version…</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Reload now
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
