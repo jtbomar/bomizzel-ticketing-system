@@ -3,7 +3,7 @@ import { app } from '../../src/index';
 import { User } from '../../src/models/User';
 import { Company } from '../../src/models/Company';
 import { Team } from '../../src/models/Team';
-import { CustomField } from '../../src/models/CustomField';
+import { FieldService } from '../../src/services/FieldService';
 import { JWTUtils } from '../../src/utils/jwt';
 import { createTestToken } from '../helpers/testUtils';
 import { Queue } from '../../src/models/Queue';
@@ -87,25 +87,17 @@ describe('Ticket Workflow Integration', () => {
     employeeToken = createTestToken(employeeId);
     teamLeadToken = createTestToken(teamLeadId);
 
-    // Create custom fields
-    await CustomField.createCustomField({
-      teamId: teamId,
-      name: 'issue_type',
+    // Custom fields (Settings > Ticket Layout)
+    await FieldService.createField(companyId, 'tickets', {
       label: 'Issue Type',
       type: 'picklist',
       isRequired: true,
       options: ['Bug', 'Feature Request', 'Support'],
-      order: 1,
     });
-
-    await CustomField.createCustomField({
-      teamId: teamId,
-      name: 'severity',
+    await FieldService.createField(companyId, 'tickets', {
       label: 'Severity',
       type: 'picklist',
-      isRequired: false,
       options: ['Low', 'Medium', 'High', 'Critical'],
-      order: 2,
     });
 
     // One company is the subscriber for this whole fixture.
@@ -122,8 +114,8 @@ describe('Ticket Workflow Integration', () => {
         companyId: companyId,
         teamId: teamId,
         customFieldValues: {
-          issue_type: 'Bug',
-          severity: 'High',
+          cf_issue_type: 'Bug',
+          cf_severity: 'High',
         },
       };
 
@@ -136,8 +128,8 @@ describe('Ticket Workflow Integration', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.title).toBe(ticketData.title);
       expect(response.body.data.status).toBe('open');
-      expect(response.body.data.customFieldValues.issue_type).toBe('Bug');
-      expect(response.body.data.customFieldValues.severity).toBe('High');
+      expect(response.body.data.customFieldValues.cf_issue_type).toBe('Bug');
+      expect(response.body.data.customFieldValues.cf_severity).toBe('High');
 
       ticketId = response.body.data.id;
     });
@@ -301,68 +293,38 @@ describe('Ticket Workflow Integration', () => {
   });
 
   describe('Custom Field Configuration Workflow', () => {
-    it('should allow team lead to create custom field', async () => {
-      const fieldData = {
-        name: 'priority_score',
+    it('should accept a newly added field in ticket creation', async () => {
+      await FieldService.createField(companyId, 'tickets', {
         label: 'Priority Score',
-        type: 'integer',
-        isRequired: false,
-        validation: {
-          min: 1,
-          max: 10,
-        },
-        order: 3,
-      };
-
-      const response = await request(app)
-        .post(`/api/custom-fields/teams/${teamId}`)
-        .set('Authorization', `Bearer ${teamLeadToken}`)
-        .send(fieldData)
-        .expect(201);
-
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.name).toBe(fieldData.name);
-      expect(response.body.data.type).toBe(fieldData.type);
-    });
-
-    it('should validate custom field usage in ticket creation', async () => {
-      const ticketData = {
-        title: 'Ticket with New Custom Field',
-        description: 'Testing new custom field',
-        companyId: companyId,
-        teamId: teamId,
-        customFieldValues: {
-          issue_type: 'Support',
-          priority_score: 8,
-        },
-      };
-
+        type: 'number',
+      });
       const response = await request(app)
         .post('/api/tickets')
         .set('Authorization', `Bearer ${customerToken}`)
-        .send(ticketData)
+        .send({
+          title: 'Ticket with New Custom Field',
+          description: 'Testing new custom field',
+          companyId: companyId,
+          teamId: teamId,
+          customFieldValues: { cf_issue_type: 'Support', cf_priority_score: 8 },
+        })
         .expect(201);
 
       expect(response.body.success).toBe(true);
-      expect(response.body.data.customFieldValues.priority_score).toBe(8);
+      expect(response.body.data.customFieldValues.cf_priority_score).toBe(8);
     });
 
     it('should reject invalid custom field values', async () => {
-      const ticketData = {
-        title: 'Ticket with Invalid Custom Field',
-        description: 'Testing validation',
-        companyId: companyId,
-        teamId: teamId,
-        customFieldValues: {
-          issue_type: 'Support',
-          priority_score: 15, // Exceeds max value of 10
-        },
-      };
-
       await request(app)
         .post('/api/tickets')
         .set('Authorization', `Bearer ${customerToken}`)
-        .send(ticketData)
+        .send({
+          title: 'Ticket with Invalid Custom Field',
+          description: 'Testing validation',
+          companyId: companyId,
+          teamId: teamId,
+          customFieldValues: { cf_issue_type: 'Support', cf_priority_score: 'lots' },
+        })
         .expect(400);
     });
   });
@@ -421,7 +383,7 @@ describe('Ticket Workflow Integration', () => {
             description: 'First bulk test ticket',
             companyId: companyId,
             teamId: teamId,
-            customFieldValues: { issue_type: 'Bug' },
+            customFieldValues: { cf_issue_type: 'Bug' },
           }),
         request(app)
           .post('/api/tickets')
@@ -431,7 +393,7 @@ describe('Ticket Workflow Integration', () => {
             description: 'Second bulk test ticket',
             companyId: companyId,
             teamId: teamId,
-            customFieldValues: { issue_type: 'Feature Request' },
+            customFieldValues: { cf_issue_type: 'Feature Request' },
           }),
       ]);
 

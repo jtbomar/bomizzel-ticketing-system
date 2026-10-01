@@ -34,6 +34,9 @@ export class Ticket extends BaseModel {
     teamId: string;
     departmentId?: number | null;
     customFieldValues?: Record<string, any>;
+    productId?: number | null;
+    phone?: string | null;
+    priority?: number;
   }): Promise<TicketTable> {
     // org_id is the subscriber (tenant) the ticket belongs to; company_id is the
     // account. For an account that is companies.subscriber_id; for a ticket
@@ -41,6 +44,14 @@ export class Ticket extends BaseModel {
     const company = await this.db('companies')
       .where('id', ticketData.companyId)
       .first('id', 'subscriber_id');
+    // Phone: the one given, else the contact's
+    let phone = ticketData.phone;
+    if (phone === undefined) {
+      const contact = await this.db('users')
+        .where('id', ticketData.submitterId)
+        .first('phone', 'mobile_phone');
+      phone = contact?.phone || contact?.mobile_phone || null;
+    }
     return this.create({
       title: ticketData.title,
       description: ticketData.description,
@@ -51,8 +62,10 @@ export class Ticket extends BaseModel {
       team_id: ticketData.teamId,
       department_id: ticketData.departmentId ?? null,
       custom_field_values: ticketData.customFieldValues || {},
+      product_id: ticketData.productId ?? null,
+      phone: phone ? String(phone).slice(0, 40) : null,
       status: 'open',
-      priority: 0,
+      priority: ticketData.priority ?? 0,
     });
   }
 
@@ -492,6 +505,8 @@ export class Ticket extends BaseModel {
       ticketNumber: ticket.ticket_number ?? null,
       resolution: ticket.resolution ?? null,
       boardPosition: ticket.board_position ?? null,
+      productId: ticket.product_id ?? null,
+      phone: ticket.phone ?? null,
       title: ticket.title,
       description: ticket.description,
       status: ticket.status,

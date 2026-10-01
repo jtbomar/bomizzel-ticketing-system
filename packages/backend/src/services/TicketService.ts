@@ -1,6 +1,5 @@
 import { Ticket, RESOLUTIONS } from '@/models/Ticket';
 import { Queue } from '@/models/Queue';
-import { CustomField } from '@/models/CustomField';
 import { Team } from '@/models/Team';
 import { User } from '@/models/User';
 import { Company } from '@/models/Company';
@@ -13,6 +12,7 @@ import {
 import { TicketTable } from '@/types/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { AssignmentRuleService } from './AssignmentRuleService';
+import { FieldService } from './FieldService';
 import { notificationService } from './NotificationService';
 import { MetricsService } from './MetricsService';
 import { EmailService } from './EmailService';
@@ -28,7 +28,8 @@ export class TicketService {
    */
   static async createTicket(
     ticketData: CreateTicketRequest,
-    submitterId: string
+    submitterId: string,
+    options: { enforceRequiredFields?: boolean } = {}
   ): Promise<TicketModel> {
     // Get submitter info
     const submitterUser = await User.findById(submitterId);
@@ -72,9 +73,16 @@ export class TicketService {
       throw new ValidationError('No available queue found for team');
     }
 
-    // Validate custom fields if provided
-    if (ticketData.customFieldValues) {
-      await this.validateCustomFields(ticketData.teamId, ticketData.customFieldValues);
+    // Custom fields (Settings > Ticket Layout), checked against their types
+    const customFieldValues = await FieldService.validateValues(
+      submitterTenant.tenantId,
+      'tickets',
+      ticketData.customFieldValues,
+      { enforceRequired: !!options.enforceRequiredFields }
+    );
+    const productId = await this.resolveProduct(submitterTenant.tenantId, ticketData.productId);
+    if (ticketData.priority !== undefined && ![0, 1, 2, 3].includes(Number(ticketData.priority))) {
+      throw new ValidationError('Priority must be 0 (Low) to 3 (Critical)');
     }
 
     // Create the ticket
@@ -94,7 +102,10 @@ export class TicketService {
       queueId: defaultQueue.id,
       teamId: ticketData.teamId,
       departmentId,
-      customFieldValues: ticketData.customFieldValues || {},
+      customFieldValues,
+      productId,
+      ...(ticketData.phone !== undefined ? { phone: ticketData.phone } : {}),
+      ...(ticketData.priority !== undefined ? { priority: Number(ticketData.priority) } : {}),
     });
 
     // Add creation history
@@ -676,11 +687,6 @@ export class TicketService {
       }
     }
 
-    // Validate custom fields if being updated
-    if (updateData.customFieldValues) {
-      await this.validateCustomFields(ticketData.team_id, updateData.customFieldValues);
-    }
-
     // Handle different update types
     const updates: any = {};
 
@@ -692,8 +698,25 @@ export class TicketService {
       updates.description = updateData.description;
     }
 
+    // Custom fields: the ones sent are changed, the rest kept
     if (updateData.customFieldValues !== undefined) {
-      updates.custom_field_values = updateData.customFieldValues;
+      updates.custom_field_values = await FieldService.validateValues(
+        ticketData.org_id as string,
+        'tickets',
+        updateData.customFieldValues,
+        { current: (ticketData.custom_field_values as Record<string, unknown>) || {} }
+      );
+    }
+
+    if (updateData.productId !== undefined) {
+      updates.product_id = await this.resolveProduct(
+        ticketData.org_id as string,
+        updateData.productId
+      );
+    }
+
+    if (updateData.phone !== undefined) {
+      updates.phone = updateData.phone ? String(updateData.phone).trim().slice(0, 40) : null;
     }
 
     // Moving to another department: it must be one of the ticket's own
@@ -823,79 +846,19 @@ export class TicketService {
 
   // Private helper methods
 
-  private static async validateCustomFields(
-    teamId: string,
-    customFieldValues: Record<string, any>
-  ): Promise<void> {
-    const customFields = await CustomField.findByTeam(teamId);
-
-    for (const field of customFields) {
-      const value = customFieldValues[field.name];
-
-      // Check required fields
-      if (field.is_required && (value === undefined || value === null || value === '')) {
-        throw new ValidationError(`Field '${field.label}' is required`);
-      }
-
-      // Skip validation if field is not provided and not required
-      if (value === undefined || value === null) {
-        continue;
-      }
-
-      // Type-specific validation
-      switch (field.type) {
-        case 'integer':
-          if (!Number.isInteger(Number(value))) {
-            throw new ValidationError(`Field '${field.label}' must be an integer`);
-          }
-          break;
-
-        case 'number':
-        case 'decimal':
-          if (isNaN(Number(value))) {
-            throw new ValidationError(`Field '${field.label}' must be a number`);
-          }
-          break;
-
-        case 'picklist':
-          if (field.options && !field.options.includes(value)) {
-            throw new ValidationError(
-              `Field '${field.label}' must be one of: ${field.options.join(', ')}`
-            );
-          }
-          break;
-
-        case 'string':
-          if (typeof value !== 'string') {
-            throw new ValidationError(`Field '${field.label}' must be a string`);
-          }
-          break;
-      }
-
-      // Additional validation rules
-      if (field.validation) {
-        if (field.validation['min'] !== undefined && Number(value) < field.validation['min']) {
-          throw new ValidationError(
-            `Field '${field.label}' must be at least ${field.validation['min']}`
-          );
-        }
-
-        if (field.validation['max'] !== undefined && Number(value) > field.validation['max']) {
-          throw new ValidationError(
-            `Field '${field.label}' must be at most ${field.validation['max']}`
-          );
-        }
-
-        if (field.validation['pattern'] && typeof value === 'string') {
-          const regex = new RegExp(field.validation['pattern']);
-          if (!regex.test(value)) {
-            throw new ValidationError(
-              field.validation['message'] || `Field '${field.label}' format is invalid`
-            );
-          }
-        }
-      }
-    }
+  /** A product of the subscriber's (or null). */
+  private static async resolveProduct(
+    tenantId: string,
+    productId: number | null | undefined
+  ): Promise<number | null> {
+    if (productId === undefined || productId === null) return null;
+    const row = await Ticket.db('products')
+      .where('id', Number(productId))
+      .where((q) => q.where('company_id', tenantId).orWhere('org_id', tenantId))
+      .where('is_active', true)
+      .first('id');
+    if (!row) throw new ValidationError('Product not found');
+    return row.id;
   }
 
   /**

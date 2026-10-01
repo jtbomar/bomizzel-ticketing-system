@@ -218,8 +218,8 @@ const AdminSettings: React.FC = () => {
           icon: '📑',
         },
         {
-          name: 'Layouts and Fields',
-          description: 'Custom ticket layouts',
+          name: 'Ticket Layout',
+          description: 'Ticket fields, custom fields and sections',
           path: '/admin/layouts',
           icon: '🎯',
         },

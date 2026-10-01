@@ -44,6 +44,9 @@ router.post(
       customFieldValues: { type: 'object', required: false },
       submitterId: { type: 'string', required: false, format: 'uuid' },
       departmentId: { type: 'number', required: false, min: 1 },
+      productId: { type: 'number', required: false, min: 1, nullable: true },
+      phone: { type: 'string', required: false, maxLength: 40, nullable: true },
+      priority: { type: 'number', required: false, min: 0, max: 3 },
     },
   }),
   ...enforceAndTrackTicketCreation,
@@ -62,7 +65,11 @@ router.post(
         submitterId = req.body.submitterId;
       }
 
-      const ticket = await TicketService.createTicket(ticketData, submitterId);
+      // Staff filling in the form must fill in required custom fields;
+      // customers never see them.
+      const ticket = await TicketService.createTicket(ticketData, submitterId, {
+        enforceRequiredFields: ['admin', 'team_lead', 'employee'].includes(currentUserRole),
+      });
 
       res.status(201).json({
         success: true,
@@ -216,6 +223,8 @@ router.put(
         enum: ['fixed', 'wont_do', 'duplicate', 'no_response'],
       },
       customFieldValues: { type: 'object', required: false },
+      productId: { type: 'number', required: false, min: 1, nullable: true },
+      phone: { type: 'string', required: false, maxLength: 40, nullable: true },
     },
   }),
   ...enforceAndTrackTicketStatusChange,

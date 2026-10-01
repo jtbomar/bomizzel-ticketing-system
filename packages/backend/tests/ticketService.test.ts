@@ -3,7 +3,7 @@ import { User } from '../src/models/User';
 import { Company } from '../src/models/Company';
 import { Team } from '../src/models/Team';
 import { Queue } from '../src/models/Queue';
-import { CustomField } from '../src/models/CustomField';
+import { FieldService } from '../src/services/FieldService';
 import { Ticket } from '../src/models/Ticket';
 import { MetricsService } from '../src/services/MetricsService';
 import { AdvancedSearchService } from '../src/services/AdvancedSearchService';
@@ -68,15 +68,12 @@ describe('TicketService', () => {
     await Company.addUserToCompany(customerId, companyId);
     await Team.addUserToTeam(employeeId, teamId);
 
-    // Create custom field
-    const customField = await CustomField.createCustomField({
-      teamId: teamId,
-      name: 'priority_level',
+    // A required pick list (Settings > Ticket Layout)
+    const customField = await FieldService.createField(companyId, 'tickets', {
       label: 'Priority Level',
       type: 'picklist',
       isRequired: true,
       options: ['Low', 'Medium', 'High'],
-      order: 1,
     });
     customFieldId = customField.id;
 
@@ -93,7 +90,7 @@ describe('TicketService', () => {
         companyId: companyId,
         teamId: teamId,
         customFieldValues: {
-          priority_level: 'High',
+          cf_priority_level: 'High',
         },
       };
 
@@ -103,7 +100,7 @@ describe('TicketService', () => {
       expect(ticket.title).toBe(ticketData.title);
       expect(ticket.status).toBe('open');
       expect(ticket.submitterId).toBe(customerId);
-      expect(ticket.customFieldValues.priority_level).toBe('High');
+      expect(ticket.customFieldValues.cf_priority_level).toBe('High');
     });
 
     it('should validate custom field values', async () => {
@@ -114,13 +111,12 @@ describe('TicketService', () => {
         companyId: companyId,
         teamId: teamId,
         customFieldValues: {
-          priority_level: 'Invalid',
+          cf_priority_level: 'Invalid',
         },
       };
 
-      // The service reports: Field '<label>' must be one of: <options>
       await expect(TicketService.createTicket(ticketData, customerId)).rejects.toThrow(
-        'must be one of'
+        "isn't one of the choices"
       );
     });
 
@@ -134,9 +130,10 @@ describe('TicketService', () => {
         customFieldValues: {},
       };
 
-      await expect(TicketService.createTicket(ticketData, customerId)).rejects.toThrow(
-        'is required'
-      );
+      // Staff filling in the form must fill it in (customers never see it)
+      await expect(
+        TicketService.createTicket(ticketData, customerId, { enforceRequiredFields: true })
+      ).rejects.toThrow('Required: Priority Level');
     });
   });
 
@@ -151,7 +148,7 @@ describe('TicketService', () => {
           companyId: companyId,
           teamId: teamId,
           customFieldValues: {
-            priority_level: 'Medium',
+            cf_priority_level: 'Medium',
           },
         },
         customerId
@@ -215,7 +212,7 @@ describe('TicketService', () => {
           companyId: companyId,
           teamId: teamId,
           customFieldValues: {
-            priority_level: 'Low',
+            cf_priority_level: 'Low',
           },
         },
         customerId
@@ -255,7 +252,7 @@ describe('TicketService', () => {
           description: 'Application crashes on startup',
           companyId: companyId,
           teamId: teamId,
-          customFieldValues: { priority_level: 'High' },
+          customFieldValues: { cf_priority_level: 'High' },
         },
         customerId
       );
@@ -266,7 +263,7 @@ describe('TicketService', () => {
           description: 'Add dark mode support',
           companyId: companyId,
           teamId: teamId,
-          customFieldValues: { priority_level: 'Low' },
+          customFieldValues: { cf_priority_level: 'Low' },
         },
         customerId
       );
@@ -290,7 +287,7 @@ describe('TicketService', () => {
           // Custom fields are addressed with a `custom_field_` name prefix.
           filters: [
             {
-              field: 'custom_field_priority_level',
+              field: 'custom_field_cf_priority_level',
               operator: 'equals' as const,
               value: 'High',
             },
@@ -305,7 +302,7 @@ describe('TicketService', () => {
       // filter held rather than a fixed count.
       expect(results.data.length).toBeGreaterThan(0);
       results.data.forEach((t: any) => {
-        expect(t.customFieldValues?.priority_level).toBe('High');
+        expect(t.customFieldValues?.cf_priority_level).toBe('High');
       });
       expect(results.data.map((t: any) => t.title)).toContain('Bug Report');
     });

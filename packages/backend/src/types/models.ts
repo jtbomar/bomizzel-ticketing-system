@@ -127,6 +127,8 @@ export interface Ticket {
   ticketNumber?: number | null;
   resolution?: string | null;
   boardPosition?: number | null;
+  productId?: number | null;
+  phone?: string | null;
   title: string;
   description: string;
   status: string;
@@ -271,6 +273,11 @@ export interface CreateTicketRequest {
   // default department when left out.
   departmentId?: number;
   customFieldValues?: Record<string, any>;
+  // Standard fields: products.id of the subscriber; phone (defaults to the
+  // contact's); priority 0-3 (defaults to Low)
+  productId?: number | null;
+  phone?: string | null;
+  priority?: number;
 }
 
 export interface UpdateTicketRequest {
@@ -284,6 +291,8 @@ export interface UpdateTicketRequest {
   // Move the ticket to another department of its subscriber (staff only).
   departmentId?: number;
   customFieldValues?: Record<string, any>;
+  productId?: number | null;
+  phone?: string | null;
 }
 
 export interface CreateNoteRequest {

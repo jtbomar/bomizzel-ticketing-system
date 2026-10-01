@@ -17,7 +17,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
-const TicketLayoutManagement = lazy(() => import('./pages/TicketLayoutManagement'));
+const FieldLayout = lazy(() => import('./pages/FieldLayout'));
 const CreateTicketPage = lazy(() => import('./pages/CreateTicketPage'));
 const TestAPI = lazy(() => import('./TestAPI'));
 const CompanyRegistrationPage = lazy(() => import('./pages/CompanyRegistrationPage'));
@@ -172,7 +172,7 @@ function App() {
                       path="/admin/layouts"
                       element={
                         <ProtectedRoute requiredRole="admin">
-                          <TicketLayoutManagement />
+                          <FieldLayout />
                         </ProtectedRoute>
                       }
                     />

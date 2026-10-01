@@ -1386,6 +1386,32 @@ class ApiService {
     return response.data;
   }
 
+  // Fields and layouts (Settings > Ticket Layout), per module ('tickets')
+  async getFields(module: string): Promise<any> {
+    const response = await this.client.get(`/fields/${module}`);
+    return response.data;
+  }
+
+  async createField(module: string, field: any): Promise<any> {
+    const response = await this.client.post(`/fields/${module}`, field);
+    return response.data;
+  }
+
+  async updateField(module: string, id: string, field: any): Promise<any> {
+    const response = await this.client.put(`/fields/${module}/${id}`, field);
+    return response.data;
+  }
+
+  async deleteField(module: string, id: string): Promise<any> {
+    const response = await this.client.delete(`/fields/${module}/${id}`);
+    return response.data;
+  }
+
+  async saveFieldLayout(module: string, sections: any[]): Promise<any> {
+    const response = await this.client.put(`/fields/${module}/layout`, { sections });
+    return response.data;
+  }
+
   // Macros: saved replies + ticket changes
   async getMacros(): Promise<any> {
     const response = await this.client.get('/macros');

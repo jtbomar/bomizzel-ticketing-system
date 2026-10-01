@@ -8,7 +8,10 @@ import {
   EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
-import { Team, CustomField, Ticket, User } from '../types';
+import { Team, Ticket, User } from '../types';
+import CustomFieldInput from './CustomFieldInput';
+import type { ModuleLayout } from '../utils/fields';
+import { priorityLabel } from '../utils/priority';
 import DepartmentSelector from './DepartmentSelector';
 import { ticketRef } from '../utils/ticketRef';
 
@@ -35,7 +38,14 @@ const AgentCreateTicketForm: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ticket' | 'account' | 'customer'>(urlTab || 'ticket');
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState('');
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  // The ticket layout (Settings > Ticket Layout) and products to pick from
+  const [layout, setLayout] = useState<ModuleLayout | null>(null);
+  const [products, setProducts] = useState<
+    { id: number; name: string; product_code: string; department_id: number }[]
+  >([]);
+  const [productId, setProductId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [priority, setPriority] = useState(0);
 
   // Customer search
   const [customerSearch, setCustomerSearch] = useState('');
@@ -122,13 +132,15 @@ const AgentCreateTicketForm: React.FC = () => {
   };
 
   useEffect(() => {
-    if (selectedTeamId) {
-      loadCustomFields(selectedTeamId);
-    } else {
-      setCustomFields([]);
-      setCustomFieldValues({});
-    }
-  }, [selectedTeamId]);
+    apiService
+      .getFields('tickets')
+      .then(setLayout)
+      .catch((error) => console.error('Failed to load the ticket layout:', error));
+    apiService
+      .getProducts()
+      .then((list) => setProducts(Array.isArray(list) ? list : []))
+      .catch(() => setProducts([]));
+  }, []);
 
   // Customer search with debounce
   useEffect(() => {
@@ -190,27 +202,6 @@ const AgentCreateTicketForm: React.FC = () => {
       setErrors({ teams: 'Failed to load available teams' });
     } finally {
       setTeamsLoading(false);
-    }
-  };
-
-  const loadCustomFields = async (teamId: string) => {
-    try {
-      const response = await apiService.getTeamCustomFields(teamId);
-      const fields = response.data || response;
-      setCustomFields(fields);
-
-      const initialValues: Record<string, any> = {};
-      fields.forEach((field: CustomField) => {
-        if (field.type === 'picklist' && field.options && field.options.length > 0) {
-          initialValues[field.name] = field.isRequired ? field.options[0] : '';
-        } else {
-          initialValues[field.name] = '';
-        }
-      });
-      setCustomFieldValues(initialValues);
-    } catch (err) {
-      console.error('Failed to load custom fields:', err);
-      setErrors({ customFields: 'Failed to load custom fields for this team' });
     }
   };
 
@@ -356,39 +347,17 @@ const AgentCreateTicketForm: React.FC = () => {
       newErrors.teamId = 'Please select a team';
     }
 
-    // Validate custom fields
-    customFields.forEach((field) => {
-      const value = customFieldValues[field.name];
-
-      if (field.isRequired && (!value || value.toString().trim() === '')) {
-        newErrors[`customField_${field.name}`] = `${field.label} is required`;
-      }
-
-      if (value && field.validation) {
-        const { min, max, pattern } = field.validation;
-
-        if (field.type === 'number' || field.type === 'integer' || field.type === 'decimal') {
-          const numValue = parseFloat(value);
-          if (isNaN(numValue)) {
-            newErrors[`customField_${field.name}`] = `${field.label} must be a valid number`;
-          } else {
-            if (min !== undefined && numValue < min) {
-              newErrors[`customField_${field.name}`] = `${field.label} must be at least ${min}`;
-            }
-            if (max !== undefined && numValue > max) {
-              newErrors[`customField_${field.name}`] = `${field.label} must be at most ${max}`;
-            }
-          }
-        }
-
-        if (field.type === 'string' && pattern) {
-          const regex = new RegExp(pattern);
-          if (!regex.test(value.toString())) {
-            newErrors[`customField_${field.name}`] =
-              field.validation.message || `${field.label} format is invalid`;
-          }
-        }
-      }
+    // Required custom fields (the server checks types)
+    layout?.customFields.forEach((field) => {
+      const value = customFieldValues[field.key];
+      const empty =
+        value === undefined ||
+        value === null ||
+        value === '' ||
+        (Array.isArray(value) && value.length === 0) ||
+        (field.type === 'checkbox' && !value);
+      if (field.isRequired && empty)
+        newErrors[`customField_${field.key}`] = `${field.label} is required`;
     });
 
     setErrors(newErrors);
@@ -498,9 +467,18 @@ const AgentCreateTicketForm: React.FC = () => {
         description: formData.description.trim(),
         companyId: selectedCustomer!.company.id,
         teamId: formData.teamId,
-        customFieldValues,
+        // Empty custom fields are left out
+        customFieldValues: Object.fromEntries(
+          Object.entries(customFieldValues).filter(
+            ([, v]) => v !== '' && v !== null && !(Array.isArray(v) && v.length === 0)
+          )
+        ),
         submitterId: selectedCustomer!.id, // Set the customer as the submitter
         ...(departmentId ? { departmentId } : {}),
+        ...(productId ? { productId: Number(productId) } : {}),
+        // Left blank, the server uses the contact's phone
+        ...(phone.trim() ? { phone: phone.trim() } : {}),
+        priority,
       };
 
       const response = await apiService.createTicket(ticketData);
@@ -518,96 +496,6 @@ const AgentCreateTicketForm: React.FC = () => {
     }
   };
 
-  const renderCustomField = (field: CustomField) => {
-    const value = customFieldValues[field.name] || '';
-    const error = errors[`customField_${field.name}`];
-
-    switch (field.type) {
-      case 'string':
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {field.label}
-              {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <input
-              type="text"
-              value={value}
-              onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
-              className={`input ${error ? 'border-red-300' : ''}`}
-              placeholder={`Enter ${field.label.toLowerCase()}`}
-            />
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-          </div>
-        );
-
-      case 'number':
-      case 'decimal':
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {field.label}
-              {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <input
-              type="number"
-              step={field.type === 'decimal' ? '0.01' : '1'}
-              value={value}
-              onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
-              className={`input ${error ? 'border-red-300' : ''}`}
-              placeholder={`Enter ${field.label.toLowerCase()}`}
-            />
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-          </div>
-        );
-
-      case 'integer':
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {field.label}
-              {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <input
-              type="number"
-              step="1"
-              value={value}
-              onChange={(e) => handleCustomFieldChange(field.name, parseInt(e.target.value) || '')}
-              className={`input ${error ? 'border-red-300' : ''}`}
-              placeholder={`Enter ${field.label.toLowerCase()}`}
-            />
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-          </div>
-        );
-
-      case 'picklist':
-        return (
-          <div key={field.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {field.label}
-              {field.isRequired && <span className="text-red-500 ml-1">*</span>}
-            </label>
-            <select
-              value={value}
-              onChange={(e) => handleCustomFieldChange(field.name, e.target.value)}
-              className={`input ${error ? 'border-red-300' : ''}`}
-            >
-              {!field.isRequired && <option value="">Select {field.label.toLowerCase()}</option>}
-              {field.options?.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
-
   if (teamsLoading) {
     return (
       <div className="text-center py-8">
@@ -616,6 +504,275 @@ const AgentCreateTicketForm: React.FC = () => {
       </div>
     );
   }
+
+  // The blocks of the ticket form, placed in the order of the ticket layout
+  const contactBlock = () => (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Customer <span className="text-red-500">*</span>
+        </label>
+
+        {selectedCustomer ? (
+          <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center space-x-2 mb-2">
+                  <UserIcon className="h-5 w-5 text-gray-400" />
+                  <span className="font-medium text-gray-900">
+                    {selectedCustomer.firstName} {selectedCustomer.lastName}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
+                  <EnvelopeIcon className="h-4 w-4" />
+                  <span>{selectedCustomer.email}</span>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <BuildingOfficeIcon className="h-4 w-4" />
+                  <span className="font-medium">{selectedCustomer.company.name}</span>
+                  {selectedCustomer.company.domain && (
+                    <span className="text-gray-400">({selectedCustomer.company.domain})</span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearCustomer}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                className={`input pl-10 ${errors.customer ? 'border-red-300' : ''}`}
+                placeholder="Search by name or email..."
+              />
+            </div>
+
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {searchResults.map((customer) => (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    onClick={() => selectCustomer(customer)}
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="font-medium text-gray-900">
+                      {customer.firstName} {customer.lastName}
+                    </div>
+                    <div className="text-sm text-gray-600">{customer.email}</div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      <BuildingOfficeIcon className="inline h-3 w-3 mr-1" />
+                      {customer.company.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {showSearchResults && searchResults.length === 0 && customerSearch.length >= 2 && (
+              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
+                No customers found
+              </div>
+            )}
+          </div>
+        )}
+        {errors.customer && <p className="mt-1 text-sm text-red-600">{errors.customer}</p>}
+      </div>
+    </>
+  );
+  const departmentBlock = () => (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+        <DepartmentSelector
+          selectedDepartmentId={departmentId}
+          onDepartmentChange={setDepartmentId}
+          showAllOption={false}
+          placeholder="Default department"
+        />
+        <p className="mt-1 text-xs text-gray-500">Leave blank to use your default department.</p>
+      </div>
+    </>
+  );
+  const subjectBlock = () => (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Title <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          name="title"
+          value={formData.title}
+          onChange={handleInputChange}
+          className={`input ${errors.title ? 'border-red-300' : ''}`}
+          placeholder="Brief description of the issue"
+        />
+        {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+      </div>
+    </>
+  );
+  const descriptionBlock = () => (
+    <>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Description <span className="text-red-500">*</span>
+        </label>
+        <textarea
+          name="description"
+          rows={6}
+          value={formData.description}
+          onChange={handleInputChange}
+          className={`input ${errors.description ? 'border-red-300' : ''}`}
+          placeholder="Detailed information about the issue"
+        />
+        {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+      </div>
+    </>
+  );
+
+  const deptProducts = products.filter((p) => !departmentId || p.department_id === departmentId);
+  const productChoices = deptProducts.length ? deptProducts : products;
+
+  const renderLayoutField = (key: string) => {
+    const custom = layout?.customFields.find((f) => f.key === key);
+    if (custom) {
+      const error = errors[`customField_${custom.key}`];
+      return (
+        <div key={key}>
+          <label htmlFor={`cf-${key}`} className="block text-sm font-medium text-gray-700 mb-1">
+            {custom.label}
+            {custom.isRequired && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <CustomFieldInput
+            id={`cf-${key}`}
+            field={custom}
+            value={customFieldValues[key]}
+            onChange={(value) => handleCustomFieldChange(key, value)}
+            className={`input ${error ? 'border-red-300' : ''}`}
+          />
+          {custom.helpText && <p className="mt-1 text-xs text-gray-500">{custom.helpText}</p>}
+          {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        </div>
+      );
+    }
+    switch (key) {
+      case 'contact':
+        return <div key={key}>{contactBlock()}</div>;
+      case 'account':
+        return (
+          <div key={key}>
+            <p className="block text-sm font-medium text-gray-700 mb-1">Account</p>
+            <p className="text-sm text-gray-900">
+              {selectedCustomer ? (
+                selectedCustomer.company.name
+              ) : (
+                <span className="text-gray-500">The contact's account</span>
+              )}
+            </p>
+          </div>
+        );
+      case 'phone':
+        return (
+          <div key={key}>
+            <label htmlFor="ticket-phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Phone
+            </label>
+            <input
+              id="ticket-phone"
+              type="tel"
+              maxLength={40}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="input"
+              placeholder="Leave blank to use the contact's phone"
+            />
+          </div>
+        );
+      case 'product':
+        return (
+          <div key={key}>
+            <label
+              htmlFor="ticket-product"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Product
+            </label>
+            <select
+              id="ticket-product"
+              value={productId}
+              onChange={(e) => setProductId(e.target.value)}
+              className="input"
+            >
+              <option value="">-None-</option>
+              {productChoices.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.product_code})
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      case 'subject':
+        return <div key={key}>{subjectBlock()}</div>;
+      case 'description':
+        return <div key={key}>{descriptionBlock()}</div>;
+      case 'department':
+        return <div key={key}>{departmentBlock()}</div>;
+      case 'priority':
+        return (
+          <div key={key}>
+            <label
+              htmlFor="ticket-priority"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Priority
+            </label>
+            <select
+              id="ticket-priority"
+              value={priority}
+              onChange={(e) => setPriority(Number(e.target.value))}
+              className="input"
+            >
+              {[0, 1, 2, 3].map((p) => (
+                <option key={p} value={p}>
+                  {priorityLabel(p)}
+                </option>
+              ))}
+            </select>
+          </div>
+        );
+      // New tickets are Open, and assignment rules pick the agent
+      default:
+        return null;
+    }
+  };
+  const sections = layout?.sections || [
+    {
+      id: 'loading',
+      title: 'Ticket Information',
+      fields: [
+        'contact',
+        'account',
+        'phone',
+        'product',
+        'subject',
+        'description',
+        'department',
+        'priority',
+      ],
+    },
+  ];
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -670,90 +827,6 @@ const AgentCreateTicketForm: React.FC = () => {
               </div>
             )}
 
-            {/* Customer Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Customer <span className="text-red-500">*</span>
-              </label>
-
-              {selectedCustomer ? (
-                <div className="border border-gray-300 rounded-md p-4 bg-gray-50">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <UserIcon className="h-5 w-5 text-gray-400" />
-                        <span className="font-medium text-gray-900">
-                          {selectedCustomer.firstName} {selectedCustomer.lastName}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600 mb-1">
-                        <EnvelopeIcon className="h-4 w-4" />
-                        <span>{selectedCustomer.email}</span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <BuildingOfficeIcon className="h-4 w-4" />
-                        <span className="font-medium">{selectedCustomer.company.name}</span>
-                        {selectedCustomer.company.domain && (
-                          <span className="text-gray-400">({selectedCustomer.company.domain})</span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={clearCustomer}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <XMarkIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative">
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={customerSearch}
-                      onChange={(e) => setCustomerSearch(e.target.value)}
-                      className={`input pl-10 ${errors.customer ? 'border-red-300' : ''}`}
-                      placeholder="Search by name or email..."
-                    />
-                  </div>
-
-                  {showSearchResults && searchResults.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
-                      {searchResults.map((customer) => (
-                        <button
-                          key={customer.id}
-                          type="button"
-                          onClick={() => selectCustomer(customer)}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                        >
-                          <div className="font-medium text-gray-900">
-                            {customer.firstName} {customer.lastName}
-                          </div>
-                          <div className="text-sm text-gray-600">{customer.email}</div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            <BuildingOfficeIcon className="inline h-3 w-3 mr-1" />
-                            {customer.company.name}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {showSearchResults &&
-                    searchResults.length === 0 &&
-                    customerSearch.length >= 2 && (
-                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg p-4 text-center text-gray-500">
-                        No customers found
-                      </div>
-                    )}
-                </div>
-              )}
-              {errors.customer && <p className="mt-1 text-sm text-red-600">{errors.customer}</p>}
-            </div>
-
             {/* Team Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -775,61 +848,12 @@ const AgentCreateTicketForm: React.FC = () => {
               {errors.teamId && <p className="mt-1 text-sm text-red-600">{errors.teamId}</p>}
             </div>
 
-            {/* Department */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-              <DepartmentSelector
-                selectedDepartmentId={departmentId}
-                onDepartmentChange={setDepartmentId}
-                showAllOption={false}
-                placeholder="Default department"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Leave blank to use your default department.
-              </p>
-            </div>
-
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                className={`input ${errors.title ? 'border-red-300' : ''}`}
-                placeholder="Brief description of the issue"
-              />
-              {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                name="description"
-                rows={6}
-                value={formData.description}
-                onChange={handleInputChange}
-                className={`input ${errors.description ? 'border-red-300' : ''}`}
-                placeholder="Detailed information about the issue"
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-              )}
-            </div>
-
-            {/* Custom Fields */}
-            {customFields.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Additional Information</h3>
-                {customFields.sort((a, b) => a.order - b.order).map(renderCustomField)}
-              </div>
-            )}
+            {sections.map((section) => (
+              <fieldset key={section.id} className="space-y-4">
+                <legend className="text-lg font-medium text-gray-900 mb-2">{section.title}</legend>
+                {section.fields.map(renderLayoutField)}
+              </fieldset>
+            ))}
 
             {/* Submit Button */}
             <div className="flex justify-end space-x-3 pt-4 border-t">

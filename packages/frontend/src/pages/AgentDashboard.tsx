@@ -25,6 +25,8 @@ import AuthImage from '../components/AuthImage';
 import { droppedFiles, openAttachment, pastedFiles } from '../utils/attachments';
 import RichTextEditor from '../components/RichTextEditor';
 import RichTextContent from '../components/RichTextContent';
+import CustomFieldInput from '../components/CustomFieldInput';
+import type { ModuleLayout } from '../utils/fields';
 
 // The board's Resolved and Closed lanes hold only recently finished tickets;
 // with thousands of tickets they'd otherwise hold every one ever finished.
@@ -59,6 +61,10 @@ interface Ticket {
   resolution?: string | null;
   // Saved place in its lane (lower = higher up); null if never placed
   boardPosition?: number | null;
+  // Standard fields from the ticket layout, and its custom field values
+  productId?: number | null;
+  phone?: string | null;
+  customFieldValues?: Record<string, unknown>;
   description?: string;
   departmentId?: number | null;
   order: number;
@@ -304,6 +310,9 @@ const AgentDashboard: React.FC = () => {
       closedAt: t.closedAt || null,
       resolution: t.resolution || null,
       boardPosition: t.boardPosition ?? null,
+      productId: t.productId ?? null,
+      phone: t.phone ?? null,
+      customFieldValues: t.customFieldValues || {},
       description: t.description || '',
       departmentId: t.departmentId ?? null,
       order: 0, // set when the lanes are ordered
@@ -656,6 +665,23 @@ const AgentDashboard: React.FC = () => {
   const [newNoteContent, setNewNoteContent] = useState('');
   const [newNoteHtml, setNewNoteHtml] = useState('');
   const [newNoteIsInternal, setNewNoteIsInternal] = useState(false);
+  // The ticket layout (Settings > Ticket Layout) and products, for the
+  // ticket view's fields
+  const [fieldLayout, setFieldLayout] = useState<ModuleLayout | null>(null);
+  const [products, setProducts] = useState<
+    { id: number; name: string; product_code: string; department_id: number }[]
+  >([]);
+  useEffect(() => {
+    apiService
+      .getFields('tickets')
+      .then(setFieldLayout)
+      .catch(() => setFieldLayout(null));
+    apiService
+      .getProducts()
+      .then((list) => setProducts(Array.isArray(list) ? list : []))
+      .catch(() => setProducts([]));
+  }, []);
+
   // Macros the agent can apply (shared + their own), and what the last one did
   const [macros, setMacros] = useState<{ id: string; name: string; shared: boolean }[]>([]);
   const [applyingMacro, setApplyingMacro] = useState(false);
@@ -998,6 +1024,42 @@ const AgentDashboard: React.FC = () => {
     setNewNoteContent('');
     setNewNoteHtml('');
     setMacroNotice('');
+  };
+
+  // Save one of the ticket's fields (product, phone or a custom field). The
+  // screen shows the change at once; a refused value is put back.
+  const saveTicketField = async (
+    ticketId: number,
+    patch: {
+      productId?: number | null;
+      phone?: string | null;
+      customFieldValues?: Record<string, unknown>;
+    },
+    local: Partial<Ticket>
+  ) => {
+    const uuidTicketId = ticketIdMap.get(ticketId);
+    if (!uuidTicketId) return;
+    const before = tickets.find((t) => t.id === ticketId);
+    const apply = (changes: Partial<Ticket>) => {
+      setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, ...changes } : t)));
+      setSelectedTicket((prev) => (prev && prev.id === ticketId ? { ...prev, ...changes } : prev));
+    };
+    apply(local);
+    try {
+      const response = await apiService.updateTicket(uuidTicketId, patch);
+      const t = response.data || response;
+      if (t?.customFieldValues) apply({ customFieldValues: t.customFieldValues });
+    } catch (error: any) {
+      if (before)
+        apply({
+          productId: before.productId,
+          phone: before.phone,
+          customFieldValues: before.customFieldValues,
+        });
+      alert(
+        `Couldn't save: ${error.response?.data?.error?.message || error.response?.data?.error || error.message}`
+      );
+    }
   };
 
   // Apply a macro: the server makes its changes; its reply goes in the note
@@ -2711,6 +2773,143 @@ const AgentDashboard: React.FC = () => {
                       </select>
                     </div>
                   </div>
+
+                  {/* The rest of the ticket layout: product, phone and custom
+                      fields, in their sections. (Subject, description, status,
+                      priority, department and assignee are above.) */}
+                  {(fieldLayout?.sections || []).map((section) => {
+                    const shown = section.fields.filter(
+                      (key) =>
+                        key === 'product' ||
+                        key === 'phone' ||
+                        fieldLayout!.customFields.some((f) => f.key === key)
+                    );
+                    if (shown.length === 0) return null;
+                    const label = 'block text-sm font-medium text-gray-900 dark:text-white mb-2';
+                    const input =
+                      'w-full px-4 py-3 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+                    return (
+                      <div key={section.id}>
+                        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+                          {section.title}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {shown.map((key) => {
+                            if (key === 'product') {
+                              const forDept = products.filter(
+                                (p) => p.department_id === selectedTicket.departmentId
+                              );
+                              const choices = forDept.length ? forDept : products;
+                              return (
+                                <div key={key}>
+                                  <label htmlFor="ticket-view-product" className={label}>
+                                    Product
+                                  </label>
+                                  <select
+                                    id="ticket-view-product"
+                                    value={selectedTicket.productId ?? ''}
+                                    onChange={(e) => {
+                                      const productId = e.target.value
+                                        ? Number(e.target.value)
+                                        : null;
+                                      saveTicketField(
+                                        selectedTicket.id,
+                                        { productId },
+                                        { productId }
+                                      );
+                                    }}
+                                    className={input}
+                                  >
+                                    <option value="">-None-</option>
+                                    {choices.map((p) => (
+                                      <option key={p.id} value={p.id}>
+                                        {p.name} ({p.product_code})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              );
+                            }
+                            if (key === 'phone') {
+                              return (
+                                <div key={key}>
+                                  <label htmlFor="ticket-view-phone" className={label}>
+                                    Phone
+                                  </label>
+                                  <input
+                                    id="ticket-view-phone"
+                                    type="tel"
+                                    maxLength={40}
+                                    defaultValue={selectedTicket.phone || ''}
+                                    key={`${selectedTicket.id}-phone-${selectedTicket.phone || ''}`}
+                                    onBlur={(e) => {
+                                      const phone = e.target.value.trim() || null;
+                                      if (phone !== (selectedTicket.phone || null))
+                                        saveTicketField(selectedTicket.id, { phone }, { phone });
+                                    }}
+                                    className={input}
+                                  />
+                                </div>
+                              );
+                            }
+                            const field = fieldLayout!.customFields.find((f) => f.key === key)!;
+                            const values = selectedTicket.customFieldValues || {};
+                            const setLocal = (value: unknown) =>
+                              setSelectedTicket((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      customFieldValues: {
+                                        ...(prev.customFieldValues || {}),
+                                        [key]: value,
+                                      },
+                                    }
+                                  : prev
+                              );
+                            return (
+                              <div
+                                key={key}
+                                className={
+                                  field.type === 'textarea' || field.type === 'multiselect'
+                                    ? 'md:col-span-2'
+                                    : ''
+                                }
+                              >
+                                <label htmlFor={`ticket-view-${key}`} className={label}>
+                                  {field.label}
+                                  {field.isRequired && <span className="text-red-500 ml-1">*</span>}
+                                </label>
+                                <CustomFieldInput
+                                  id={`ticket-view-${key}`}
+                                  field={field}
+                                  value={values[key]}
+                                  onChange={setLocal}
+                                  onCommit={(value) => {
+                                    // Only if it changed from what's saved
+                                    const saved = tickets.find((t) => t.id === selectedTicket.id)
+                                      ?.customFieldValues?.[key];
+                                    if (JSON.stringify(saved ?? '') === JSON.stringify(value ?? ''))
+                                      return;
+                                    saveTicketField(
+                                      selectedTicket.id,
+                                      { customFieldValues: { [key]: value } },
+                                      { customFieldValues: { ...values, [key]: value } }
+                                    );
+                                  }}
+                                  className={input}
+                                />
+                                {field.helpText && (
+                                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {field.helpText}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
