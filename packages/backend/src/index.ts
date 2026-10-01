@@ -347,12 +347,37 @@ connectRedis().catch((err) => {
 // E2E job sets NODE_ENV=test, starts this server and then waits for a health
 // check that never came, because the server had quietly decided not to listen.
 if (!process.env.JEST_WORKER_ID) {
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Bomizzel backend server running on port ${PORT}`);
     console.log(`📊 Health check available at http://localhost:${PORT}/health`);
     console.log(`🔗 API health check at http://localhost:${PORT}/api/health`);
     console.log(`🌐 Network access available at http://0.0.0.0:${PORT}`);
   });
+
+  // Railway stops the old copy with SIGTERM whenever a new one is deployed
+  // (each push, each variable change). With no handler the process died on
+  // the signal, npx reported "command failed", and Railway emailed
+  // "Deployment crashed" for every deploy. Now: stop taking requests, let the
+  // ones in flight finish, close the database, and exit cleanly.
+  let stopping = false;
+  const shutdown = (signal: string) => {
+    if (stopping) return;
+    stopping = true;
+    console.log(`${signal} received - shutting down`);
+    const force = setTimeout(() => process.exit(0), 10_000);
+    force.unref();
+    server.close(async () => {
+      try {
+        const { db } = await import('./config/database');
+        await db.destroy();
+      } catch {
+        // already closed
+      }
+      process.exit(0);
+    });
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 export { app };
