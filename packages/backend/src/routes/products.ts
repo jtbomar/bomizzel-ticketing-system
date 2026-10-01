@@ -175,7 +175,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
 router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { product_code, name, description, is_active } = req.body;
+    const { product_code, name, description, is_active, department_id } = req.body;
 
     const userCompany = tenantCompanyOf(req.user);
 
@@ -194,11 +194,27 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // If changing product code, check for duplicates
-    if (product_code && product_code !== product.product_code) {
+    // Moving to another department: it must be one of this company's.
+    const newDepartmentId =
+      department_id !== undefined && department_id !== null && department_id !== ''
+        ? parseInt(String(department_id))
+        : product.department_id;
+    if (newDepartmentId !== product.department_id) {
+      const department = await db('departments')
+        .where('id', newDepartmentId)
+        .where('company_id', companyId)
+        .first('id');
+      if (!department) {
+        return res.status(400).json({ error: 'Department not found' });
+      }
+    }
+
+    // Product codes are unique within a department.
+    const newCode = product_code || product.product_code;
+    if (newCode !== product.product_code || newDepartmentId !== product.department_id) {
       const existing = await db('products')
-        .where('department_id', product.department_id)
-        .where('product_code', product_code)
+        .where('department_id', newDepartmentId)
+        .where('product_code', newCode)
         .whereNot('id', parseInt(id))
         .first();
 
@@ -215,13 +231,15 @@ router.put('/:id', authenticate, authorize('admin'), async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (is_active !== undefined) updateData.is_active = is_active;
+    if (newDepartmentId !== product.department_id) updateData.department_id = newDepartmentId;
 
     const [updated] = await db('products')
       .where('id', parseInt(id))
       .update(updateData)
       .returning('*');
 
-    return res.json(updated);
+    const department = await db('departments').where('id', updated.department_id).first('name');
+    return res.json({ ...updated, department_name: department?.name });
   } catch (error: any) {
     console.error('Error updating product:', error);
     if (error.code === '23505') {

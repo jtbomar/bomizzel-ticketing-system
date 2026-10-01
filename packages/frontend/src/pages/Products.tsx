@@ -43,14 +43,6 @@ const Products: React.FC = () => {
     fetchProducts();
   }, []);
 
-  useEffect(() => {
-    if (selectedDepartmentId !== 'all') {
-      fetchProducts(selectedDepartmentId);
-    } else {
-      fetchProducts();
-    }
-  }, [selectedDepartmentId]);
-
   const fetchDepartments = async () => {
     try {
       const data = await apiService.getDepartments();
@@ -60,11 +52,13 @@ const Products: React.FC = () => {
     }
   };
 
-  const fetchProducts = async (departmentId?: string) => {
+  // Loads every product; the department dropdown filters them here, so its
+  // counts are right. It used to reload only the chosen department, which
+  // made every other option, "All Departments" included, show (0).
+  const fetchProducts = async () => {
     try {
       setLoading(true);
-      const params = departmentId ? { department_id: departmentId } : {};
-      const data = await apiService.getProducts(params);
+      const data = await apiService.getProducts();
       setProducts(data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -118,14 +112,23 @@ const Products: React.FC = () => {
     try {
       setSaving(true);
 
+      let saved: Product | null = null;
       if (isCreating) {
-        await apiService.createProduct(formData);
+        saved = await apiService.createProduct(formData);
       } else if (selectedProduct) {
-        await apiService.updateProduct(selectedProduct.id, formData);
+        saved = await apiService.updateProduct(selectedProduct.id, formData);
       }
 
-      await fetchProducts(selectedDepartmentId !== 'all' ? selectedDepartmentId : undefined);
+      await fetchProducts();
       cancelEditing();
+      // Keep it in view: switch the filter if it's now in another department.
+      if (
+        saved &&
+        selectedDepartmentId !== 'all' &&
+        String(saved.department_id) !== selectedDepartmentId
+      ) {
+        setSelectedDepartmentId(String(saved.department_id));
+      }
     } catch (error: any) {
       console.error('Error saving product:', error);
       alert(`Failed to save product: ${error.response?.data?.error || error.message}`);
@@ -141,14 +144,17 @@ const Products: React.FC = () => {
 
     try {
       await apiService.deleteProduct(id);
-      await fetchProducts(selectedDepartmentId !== 'all' ? selectedDepartmentId : undefined);
+      await fetchProducts();
     } catch (error: any) {
       console.error('Error deleting product:', error);
       alert(`Failed to delete product: ${error.response?.data?.error || error.message}`);
     }
   };
 
-  const filteredProducts = products;
+  const filteredProducts =
+    selectedDepartmentId === 'all'
+      ? products
+      : products.filter((p) => String(p.department_id) === selectedDepartmentId);
 
   if (loading) {
     return (
@@ -187,12 +193,13 @@ const Products: React.FC = () => {
         <div className="p-6">
           {/* Department Filter */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Filter by Department
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Show products in</label>
             <select
               value={selectedDepartmentId}
-              onChange={(e) => setSelectedDepartmentId(e.target.value)}
+              onChange={(e) => {
+                setSelectedDepartmentId(e.target.value);
+                if (!isEditing) setSelectedProduct(null);
+              }}
               className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Departments ({products.length} products)</option>
@@ -309,7 +316,6 @@ const Products: React.FC = () => {
                             setFormData({ ...formData, department_id: e.target.value })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          disabled={!isCreating}
                         >
                           <option value="">Select department...</option>
                           {departments.map((dept) => (
@@ -318,11 +324,6 @@ const Products: React.FC = () => {
                             </option>
                           ))}
                         </select>
-                        {!isCreating && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            Department cannot be changed after creation
-                          </p>
-                        )}
                       </div>
 
                       <div>

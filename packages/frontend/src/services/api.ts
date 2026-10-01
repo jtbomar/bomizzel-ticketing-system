@@ -1321,7 +1321,7 @@ class ApiService {
 
   async updateProduct(
     id: number,
-    data: { product_code?: string; name?: string; description?: string }
+    data: { product_code?: string; name?: string; description?: string; department_id?: string }
   ): Promise<any> {
     const response = await this.client.put(`/products/${id}`, data);
     return response.data;
