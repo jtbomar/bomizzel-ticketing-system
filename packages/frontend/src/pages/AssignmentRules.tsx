@@ -1,26 +1,41 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  TrashIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { priorityLabel } from '../utils/priority';
 import type { CustomFieldDef } from '../utils/fields';
+import { Chips, Drawer, Switch, errorText, fieldClass } from '../components/ui';
 
 /**
  * Settings > Assignment Rules: who gets a new ticket.
  *
- * Rules are tried top to bottom and the first that matches assigns the
- * ticket - to one agent, or round-robin through several. A ticket that
- * already has an agent is never changed.
+ * Rules are tried top to bottom; the first that matches assigns the ticket,
+ * to one agent or round-robin through several. A rule's conditions are rows
+ * ("Department is any of Support, Sales"); all of them must match, and a
+ * rule with none matches every ticket. A ticket that already has an agent is
+ * never changed.
  */
 
+interface FieldCondition {
+  key: string;
+  match?: 'is' | 'contains';
+  values: string[];
+}
 interface Conditions {
   departmentIds?: number[];
   companyIds?: string[];
   priorities?: number[];
   channels?: string[];
   keywords?: string[];
-  fields?: { key: string; match?: 'is' | 'contains'; values: string[] }[];
+  fields?: FieldCondition[];
 }
-
 interface Rule {
   id: string;
   name: string;
@@ -29,94 +44,386 @@ interface Rule {
   method: 'specific' | 'round_robin';
   agentIds: string[];
 }
-
 interface Options {
   agents: { id: string; name: string; email: string; isActive: boolean }[];
   accounts: { id: string; name: string }[];
   departments: { id: number; name: string }[];
 }
 
+/** One condition row: what it looks at, and the chosen values (or typed words). */
+interface Row {
+  kind: string; // keywords | departments | priorities | channels | accounts | field:<key>
+  values: string[];
+  text: string;
+}
 interface Draft {
   id?: string;
   name: string;
   isActive: boolean;
   method: 'specific' | 'round_robin';
   agentIds: string[];
-  departmentIds: number[];
-  companyIds: string[];
-  priorities: number[];
-  channels: string[];
-  keywords: string;
-  // Custom field conditions; for text fields `values` is typed, comma-separated
-  fields: { key: string; values: string[]; text: string }[];
+  rows: Row[];
 }
 
-const PRIORITIES = [0, 1, 2, 3];
 const CHANNELS = [
   { value: 'email', label: 'Email' },
   { value: 'web', label: 'Web / portal' },
 ];
+const PRIORITY_CHOICES = [0, 1, 2, 3].map((p) => ({ value: String(p), label: priorityLabel(p) }));
+const BUILT_IN_KINDS = [
+  { kind: 'keywords', label: 'Subject or description' },
+  { kind: 'departments', label: 'Department' },
+  { kind: 'priorities', label: 'Priority' },
+  { kind: 'channels', label: 'Came in by' },
+  { kind: 'accounts', label: 'Account' },
+];
+const TEXT_TYPES = ['text', 'textarea', 'email', 'phone', 'url', 'number', 'decimal', 'date'];
+const splitWords = (text: string) =>
+  text
+    .split(',')
+    .map((w) => w.trim())
+    .filter(Boolean);
 
-const emptyDraft = (): Draft => ({
-  name: '',
-  isActive: true,
-  method: 'specific',
-  agentIds: [],
-  departmentIds: [],
-  companyIds: [],
-  priorities: [],
-  channels: [],
-  keywords: '',
-  fields: [],
-});
+const toRows = (c: Conditions): Row[] => {
+  const rows: Row[] = [];
+  const add = (kind: string, values: string[]) =>
+    rows.push({ kind, values, text: values.join(', ') });
+  if (c.keywords?.length) add('keywords', c.keywords);
+  if (c.departmentIds?.length) add('departments', c.departmentIds.map(String));
+  if (c.priorities?.length) add('priorities', c.priorities.map(String));
+  if (c.channels?.length) add('channels', c.channels);
+  if (c.companyIds?.length) add('accounts', c.companyIds);
+  for (const f of c.fields || []) add(`field:${f.key}`, f.values);
+  return rows;
+};
 
-const toDraft = (rule: Rule): Draft => ({
-  id: rule.id,
-  name: rule.name,
-  isActive: rule.isActive,
-  method: rule.method,
-  agentIds: rule.agentIds,
-  departmentIds: rule.conditions.departmentIds || [],
-  companyIds: rule.conditions.companyIds || [],
-  priorities: rule.conditions.priorities || [],
-  channels: rule.conditions.channels || [],
-  keywords: (rule.conditions.keywords || []).join(', '),
-  fields: (rule.conditions.fields || []).map((f) => ({
-    key: f.key,
-    values: f.values,
-    text: f.values.join(', '),
-  })),
-});
+const RuleEditor: React.FC<{
+  initial: Draft;
+  options: Options;
+  ticketFields: CustomFieldDef[];
+  onClose: () => void;
+  onSaved: () => void;
+}> = ({ initial, options, ticketFields, onClose, onSaved }) => {
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [saving, setSaving] = useState(false);
+  const [accountSearch, setAccountSearch] = useState('');
 
-const toggle = <T,>(list: T[], value: T): T[] =>
-  list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+  const fieldByKey = new Map(ticketFields.map((f) => [f.key, f]));
+  const kindLabel = (kind: string) =>
+    kind.startsWith('field:')
+      ? fieldByKey.get(kind.slice(6))?.label || 'Deleted field'
+      : BUILT_IN_KINDS.find((k) => k.kind === kind)?.label || kind;
+  const isTextRow = (kind: string) =>
+    kind === 'keywords' ||
+    (kind.startsWith('field:') && TEXT_TYPES.includes(fieldByKey.get(kind.slice(6))?.type || ''));
+  const available = [
+    ...BUILT_IN_KINDS,
+    ...ticketFields.map((f) => ({ kind: `field:${f.key}`, label: f.label })),
+  ].filter((k) => !draft.rows.some((r) => r.kind === k.kind));
 
-const errorText = (error: any): string =>
-  error.response?.data?.error?.message ||
-  error.response?.data?.error ||
-  error.response?.data?.message ||
-  error.message;
+  const setRow = (i: number, next: Partial<Row>) =>
+    setDraft((d) => ({ ...d, rows: d.rows.map((r, j) => (j === i ? { ...r, ...next } : r)) }));
+
+  const valueControl = (row: Row, i: number) => {
+    const chips = (opts: { value: string; label: string }[], single = false) => (
+      <Chips
+        label={kindLabel(row.kind)}
+        options={opts}
+        selected={row.values}
+        single={single}
+        onChange={(values) => setRow(i, { values })}
+      />
+    );
+    if (isTextRow(row.kind)) {
+      const field = fieldByKey.get(row.kind.slice(6));
+      const exact = field && ['number', 'decimal', 'date'].includes(field.type);
+      return (
+        <input
+          type="text"
+          aria-label={`${kindLabel(row.kind)} values`}
+          value={row.text}
+          onChange={(e) => setRow(i, { text: e.target.value })}
+          placeholder={exact ? 'e.g. 5, 10' : 'e.g. invoice, refund'}
+          className={fieldClass}
+        />
+      );
+    }
+    switch (row.kind) {
+      case 'departments':
+        return chips(options.departments.map((d) => ({ value: String(d.id), label: d.name })));
+      case 'priorities':
+        return chips(PRIORITY_CHOICES);
+      case 'channels':
+        return chips(CHANNELS);
+      case 'accounts': {
+        const shown = options.accounts.filter(
+          (a) =>
+            row.values.includes(a.id) ||
+            !accountSearch.trim() ||
+            a.name.toLowerCase().includes(accountSearch.trim().toLowerCase())
+        );
+        return (
+          <div className="space-y-2">
+            {options.accounts.length > 12 && (
+              <input
+                type="search"
+                value={accountSearch}
+                onChange={(e) => setAccountSearch(e.target.value)}
+                placeholder="Find an account"
+                aria-label="Find an account"
+                className={fieldClass}
+              />
+            )}
+            {options.accounts.length === 0 ? (
+              <p className="text-sm text-gray-500">No accounts yet.</p>
+            ) : (
+              chips(shown.slice(0, 60).map((a) => ({ value: a.id, label: a.name })))
+            )}
+          </div>
+        );
+      }
+      default: {
+        const field = fieldByKey.get(row.kind.slice(6));
+        if (!field) return <p className="text-sm text-gray-500">This field was deleted.</p>;
+        if (field.type === 'checkbox')
+          return chips(
+            [
+              { value: 'true', label: 'Ticked' },
+              { value: 'false', label: 'Not ticked' },
+            ],
+            true
+          );
+        return chips(field.options.map((o) => ({ value: o, label: o })));
+      }
+    }
+  };
+
+  const save = async () => {
+    if (!draft.name.trim()) return alert('Give the rule a name.');
+    if (draft.agentIds.length === 0) return alert('Choose who gets the tickets.');
+    const conditions: Conditions = { fields: [] };
+    for (const row of draft.rows) {
+      const values = isTextRow(row.kind) ? splitWords(row.text) : row.values;
+      if (values.length === 0)
+        return alert(`${kindLabel(row.kind)}: choose what it should match, or remove the row.`);
+      if (row.kind === 'keywords') conditions.keywords = values;
+      else if (row.kind === 'departments') conditions.departmentIds = values.map(Number);
+      else if (row.kind === 'priorities') conditions.priorities = values.map(Number);
+      else if (row.kind === 'channels') conditions.channels = values;
+      else if (row.kind === 'accounts') conditions.companyIds = values;
+      else conditions.fields!.push({ key: row.kind.slice(6), values });
+    }
+    const body = {
+      name: draft.name.trim(),
+      isActive: draft.isActive,
+      method: draft.method,
+      agentIds: draft.method === 'specific' ? draft.agentIds.slice(0, 1) : draft.agentIds,
+      conditions,
+    };
+    try {
+      setSaving(true);
+      if (draft.id) await apiService.updateAssignmentRule(draft.id, body);
+      else await apiService.createAssignmentRule(body);
+      onSaved();
+    } catch (error: any) {
+      alert(`Couldn't save the rule: ${errorText(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const heading = 'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400';
+
+  return (
+    <Drawer
+      title={draft.id ? 'Edit rule' : 'New rule'}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:underline"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save rule'}
+          </button>
+        </>
+      }
+    >
+      <div className="flex items-end gap-4">
+        <div className="flex-1">
+          <label
+            htmlFor="rule-name"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Name
+          </label>
+          <input
+            id="rule-name"
+            autoFocus
+            type="text"
+            maxLength={120}
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            placeholder="e.g. Billing questions"
+            className={fieldClass}
+          />
+        </div>
+        <div className="pb-2">
+          <Switch
+            checked={draft.isActive}
+            onChange={(isActive) => setDraft({ ...draft, isActive })}
+            label="On"
+            showLabel
+          />
+        </div>
+      </div>
+
+      <section className="space-y-3">
+        <h3 className={heading}>When a ticket matches all of these</h3>
+        {draft.rows.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            No conditions: this rule matches every ticket. That's useful as the last rule.
+          </p>
+        )}
+        {draft.rows.map((row, i) => (
+          <div
+            key={row.kind}
+            className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 space-y-2"
+          >
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-medium text-gray-900 dark:text-white">
+                {kindLabel(row.kind)}
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {isTextRow(row.kind) ? 'contains any of' : 'is any of'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDraft((d) => ({ ...d, rows: d.rows.filter((_, j) => j !== i) }))}
+                aria-label={`Remove the ${kindLabel(row.kind)} condition`}
+                className="ml-auto p-1 rounded text-gray-400 hover:text-red-600"
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+            </div>
+            {valueControl(row, i)}
+          </div>
+        ))}
+        {available.length > 0 && (
+          <select
+            value=""
+            aria-label="Add a condition"
+            onChange={(e) =>
+              e.target.value &&
+              setDraft((d) => ({
+                ...d,
+                rows: [...d.rows, { kind: e.target.value, values: [], text: '' }],
+              }))
+            }
+            className="text-sm text-blue-600 dark:text-blue-400 bg-transparent border border-dashed border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:border-blue-400 cursor-pointer"
+          >
+            <option value="">+ Add condition</option>
+            {available.map((k) => (
+              <option key={k.kind} value={k.kind}>
+                {k.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h3 className={heading}>Then assign it to</h3>
+        <div
+          role="radiogroup"
+          aria-label="How to choose the agent"
+          className="inline-flex rounded-md bg-gray-100 dark:bg-gray-700 p-0.5 text-sm"
+        >
+          {(
+            [
+              ['specific', 'One agent'],
+              ['round_robin', 'Round-robin'],
+            ] as const
+          ).map(([value, text]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={draft.method === value}
+              onClick={() =>
+                setDraft({
+                  ...draft,
+                  method: value,
+                  agentIds: value === 'specific' ? draft.agentIds.slice(0, 1) : draft.agentIds,
+                })
+              }
+              className={`px-3 py-1 rounded ${
+                draft.method === value
+                  ? 'bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-white'
+                  : 'text-gray-600 dark:text-gray-300'
+              }`}
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+        {draft.method === 'specific' ? (
+          <select
+            value={draft.agentIds[0] || ''}
+            onChange={(e) =>
+              setDraft({ ...draft, agentIds: e.target.value ? [e.target.value] : [] })
+            }
+            aria-label="Agent"
+            className={fieldClass}
+          >
+            <option value="">Choose an agent…</option>
+            {options.agents.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+                {a.isActive ? '' : ' (inactive)'}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="space-y-1.5">
+            <Chips
+              label="Agents taking turns"
+              options={options.agents.map((a) => ({
+                value: a.id,
+                label: a.isActive ? a.name : `${a.name} (inactive)`,
+              }))}
+              selected={draft.agentIds}
+              onChange={(agentIds) => setDraft({ ...draft, agentIds })}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              They take turns in the order picked. Inactive agents are skipped.
+            </p>
+          </div>
+        )}
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          If no one here is available, the next rule is tried.
+        </p>
+      </section>
+    </Drawer>
+  );
+};
 
 const AssignmentRules: React.FC = () => {
   const navigate = useNavigate();
   const [rules, setRules] = useState<Rule[]>([]);
   const [options, setOptions] = useState<Options>({ agents: [], accounts: [], departments: [] });
-  const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [accountSearch, setAccountSearch] = useState('');
-
-  // The ticket's custom fields (Settings > Ticket Layout)
   const [ticketFields, setTicketFields] = useState<CustomFieldDef[]>([]);
-  useEffect(() => {
-    apiService
-      .getFields('tickets')
-      .then((layout) => setTicketFields(layout.customFields || []))
-      .catch(() => setTicketFields([]));
-  }, []);
-  const isText = (def?: CustomFieldDef) =>
-    !!def &&
-    ['text', 'textarea', 'email', 'phone', 'url', 'number', 'decimal', 'date'].includes(def.type);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Draft | null>(null);
 
   const load = async () => {
     try {
@@ -132,6 +439,10 @@ const AssignmentRules: React.FC = () => {
 
   useEffect(() => {
     load();
+    apiService
+      .getFields('tickets')
+      .then((layout) => setTicketFields(layout.customFields || []))
+      .catch(() => setTicketFields([]));
   }, []);
 
   const names = useMemo(
@@ -139,95 +450,49 @@ const AssignmentRules: React.FC = () => {
       agent: new Map(options.agents.map((a) => [a.id, a.name])),
       account: new Map(options.accounts.map((a) => [a.id, a.name])),
       department: new Map(options.departments.map((d) => [d.id, d.name])),
+      field: new Map(ticketFields.map((f) => [f.key, f])),
     }),
-    [options]
+    [options, ticketFields]
   );
 
-  const describeConditions = (c: Conditions): string[] => {
+  const summary = (c: Conditions): string => {
     const parts: string[] = [];
+    if (c.keywords?.length) parts.push(`mentions ${c.keywords.map((k) => `"${k}"`).join(' or ')}`);
     if (c.departmentIds?.length)
-      parts.push(
-        `Department: ${c.departmentIds.map((id) => names.department.get(id) || '?').join(' or ')}`
-      );
-    if (c.companyIds?.length)
-      parts.push(`Account: ${c.companyIds.map((id) => names.account.get(id) || '?').join(' or ')}`);
+      parts.push(c.departmentIds.map((id) => names.department.get(id) || '?').join(' or '));
     if (c.priorities?.length)
-      parts.push(`Priority: ${c.priorities.map(priorityLabel).join(' or ')}`);
+      parts.push(`${c.priorities.map(priorityLabel).join(' or ')} priority`);
     if (c.channels?.length)
       parts.push(
-        `Came in by: ${c.channels
-          .map((ch) => CHANNELS.find((x) => x.value === ch)?.label || ch)
-          .join(' or ')}`
+        `by ${c.channels.map((ch) => CHANNELS.find((x) => x.value === ch)?.label || ch).join(' or ')}`
       );
-    if (c.keywords?.length) parts.push(`Mentions: ${c.keywords.map((k) => `"${k}"`).join(' or ')}`);
-    for (const cond of c.fields || []) {
-      const def = ticketFields.find((f) => f.key === cond.key);
-      const name = def?.label || 'Deleted field';
+    if (c.companyIds?.length)
+      parts.push(c.companyIds.map((id) => names.account.get(id) || '?').join(' or '));
+    for (const f of c.fields || []) {
+      const def = names.field.get(f.key);
       const values =
         def?.type === 'checkbox'
-          ? cond.values.map((v) => (v === 'true' ? 'ticked' : 'not ticked'))
-          : cond.values.map((v) => (cond.match === 'contains' ? `"${v}"` : v));
-      parts.push(`${name} ${cond.match === 'contains' ? 'contains' : 'is'} ${values.join(' or ')}`);
+          ? f.values.map((v) => (v === 'true' ? 'ticked' : 'not ticked'))
+          : f.values;
+      parts.push(
+        `${def?.label || 'Deleted field'} ${f.match === 'contains' ? 'contains' : 'is'} ${values.join(' or ')}`
+      );
     }
-    return parts.length ? parts : ['Every ticket'];
+    return parts.length ? parts.join(' · ') : 'Every ticket';
   };
 
-  const describeAgents = (rule: Rule): string => {
+  const assignee = (rule: Rule) => {
     const list = rule.agentIds.map((id) => names.agent.get(id) || 'Removed agent');
     return rule.method === 'round_robin' ? `Round-robin: ${list.join(', ')}` : list[0] || '';
   };
 
-  const save = async () => {
-    if (!draft) return;
-    if (!draft.name.trim()) return alert('Give the rule a name.');
-    if (draft.agentIds.length === 0) return alert('Choose who gets the tickets.');
-    const body = {
-      name: draft.name.trim(),
-      isActive: draft.isActive,
-      method: draft.method,
-      agentIds: draft.method === 'specific' ? draft.agentIds.slice(0, 1) : draft.agentIds,
-      conditions: {
-        departmentIds: draft.departmentIds,
-        companyIds: draft.companyIds,
-        priorities: draft.priorities,
-        channels: draft.channels,
-        keywords: draft.keywords
-          .split(',')
-          .map((k) => k.trim())
-          .filter(Boolean),
-        fields: draft.fields
-          .filter((f) => f.key)
-          .map((f) => {
-            const def = ticketFields.find((d) => d.key === f.key);
-            const values = isText(def)
-              ? f.text
-                  .split(',')
-                  .map((v) => v.trim())
-                  .filter(Boolean)
-              : f.values;
-            return { key: f.key, values };
-          }),
-      },
-    };
-    try {
-      setSaving(true);
-      if (draft.id) await apiService.updateAssignmentRule(draft.id, body);
-      else await apiService.createAssignmentRule(body);
-      setDraft(null);
-      await load();
-    } catch (error: any) {
-      alert(`Couldn't save the rule: ${errorText(error)}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const setActive = async (rule: Rule, isActive: boolean) => {
+    setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, isActive } : r)));
     try {
       await apiService.updateAssignmentRule(rule.id, { ...rule, isActive });
-      setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, isActive } : r)));
     } catch (error: any) {
       alert(`Couldn't update the rule: ${errorText(error)}`);
+      load();
     }
   };
 
@@ -237,8 +502,7 @@ const AssignmentRules: React.FC = () => {
     next.splice(index + by, 0, rule!);
     setRules(next);
     try {
-      const data = await apiService.reorderAssignmentRules(next.map((r) => r.id));
-      setRules(data.rules);
+      setRules((await apiService.reorderAssignmentRules(next.map((r) => r.id))).rules);
     } catch (error: any) {
       alert(`Couldn't save the order: ${errorText(error)}`);
       load();
@@ -256,502 +520,138 @@ const AssignmentRules: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading assignment rules...</div>
-      </div>
-    );
-  }
+  const openNew = () =>
+    setEditing({ name: '', isActive: true, method: 'specific', agentIds: [], rows: [] });
+  const openRule = (rule: Rule) =>
+    setEditing({
+      id: rule.id,
+      name: rule.name,
+      isActive: rule.isActive,
+      method: rule.method,
+      agentIds: rule.agentIds,
+      rows: toRows(rule.conditions),
+    });
 
-  const shownAccounts = options.accounts.filter(
-    (a) =>
-      !accountSearch.trim() ||
-      a.name.toLowerCase().includes(accountSearch.trim().toLowerCase()) ||
-      draft?.companyIds.includes(a.id)
-  );
-  const checkbox = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500';
-  const sectionLabel = 'block text-sm font-medium text-gray-700 mb-2';
+  if (loading) return <div className="p-8 text-gray-500">Loading assignment rules…</div>;
+
+  const iconButton =
+    'p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent';
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <button
-                onClick={() => navigate('/admin/settings')}
-                className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-              >
-                ← Back to Settings
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">Assignment Rules</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                New tickets go to the first rule that matches, top to bottom. Rules run again if an
-                unassigned ticket's priority or department changes. A ticket that already has an
-                agent is never changed.
-              </p>
-            </div>
-            {!draft && (
-              <button
-                onClick={() => setDraft(emptyDraft())}
-                className="shrink-0 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Add Rule
-              </button>
-            )}
-          </div>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      <button
+        onClick={() => navigate('/admin/settings')}
+        className="text-sm text-blue-600 hover:text-blue-800 mb-3"
+      >
+        ← Settings
+      </button>
+      <div className="flex items-end justify-between gap-4 mb-5">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Assignment Rules</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            New tickets go to the first rule that matches, top to bottom.
+          </p>
         </div>
-
-        <div className="p-6 space-y-6">
-          {draft && (
-            <div className="border border-blue-200 bg-blue-50/40 rounded-lg p-5 space-y-5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {draft.id ? 'Edit rule' : 'New rule'}
-                </h3>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    className={checkbox}
-                    checked={draft.isActive}
-                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                  />
-                  On
-                </label>
-              </div>
-
-              <div>
-                <label className={sectionLabel} htmlFor="rule-name">
-                  Name
-                </label>
-                <input
-                  id="rule-name"
-                  type="text"
-                  value={draft.name}
-                  maxLength={120}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  placeholder="e.g. Billing questions"
-                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold text-gray-900">When a ticket matches</p>
-                  <p className="text-xs text-gray-500">
-                    Leave a section empty to ignore it. With every section empty, the rule matches
-                    every ticket - useful as the last rule.
-                  </p>
-                </div>
-
-                <div>
-                  <label className={sectionLabel} htmlFor="rule-keywords">
-                    Subject or description mentions any of
-                  </label>
-                  <input
-                    id="rule-keywords"
-                    type="text"
-                    value={draft.keywords}
-                    onChange={(e) => setDraft({ ...draft, keywords: e.target.value })}
-                    placeholder="invoice, refund, billing"
-                    className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Separate with commas.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <fieldset>
-                    <legend className={sectionLabel}>Department</legend>
-                    <div className="space-y-1">
-                      {options.departments.map((d) => (
-                        <label key={d.id} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className={checkbox}
-                            checked={draft.departmentIds.includes(d.id)}
-                            onChange={() =>
-                              setDraft({
-                                ...draft,
-                                departmentIds: toggle(draft.departmentIds, d.id),
-                              })
-                            }
-                          />
-                          {d.name}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <fieldset>
-                    <legend className={sectionLabel}>Priority</legend>
-                    <div className="space-y-1">
-                      {PRIORITIES.map((p) => (
-                        <label key={p} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className={checkbox}
-                            checked={draft.priorities.includes(p)}
-                            onChange={() =>
-                              setDraft({ ...draft, priorities: toggle(draft.priorities, p) })
-                            }
-                          />
-                          {priorityLabel(p)}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                  <fieldset>
-                    <legend className={sectionLabel}>Came in by</legend>
-                    <div className="space-y-1">
-                      {CHANNELS.map((ch) => (
-                        <label key={ch.value} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className={checkbox}
-                            checked={draft.channels.includes(ch.value)}
-                            onChange={() =>
-                              setDraft({ ...draft, channels: toggle(draft.channels, ch.value) })
-                            }
-                          />
-                          {ch.label}
-                        </label>
-                      ))}
-                    </div>
-                  </fieldset>
-                </div>
-
-                <fieldset>
-                  <legend className={sectionLabel}>Account</legend>
-                  {options.accounts.length > 8 && (
-                    <input
-                      type="search"
-                      value={accountSearch}
-                      onChange={(e) => setAccountSearch(e.target.value)}
-                      placeholder="Find an account"
-                      aria-label="Find an account"
-                      className="w-full max-w-xs mb-2 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  )}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1 max-h-48 overflow-y-auto">
-                    {shownAccounts.map((a) => (
-                      <label key={a.id} className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          className={checkbox}
-                          checked={draft.companyIds.includes(a.id)}
-                          onChange={() =>
-                            setDraft({ ...draft, companyIds: toggle(draft.companyIds, a.id) })
-                          }
-                        />
-                        {a.name}
-                      </label>
-                    ))}
-                    {options.accounts.length === 0 && (
-                      <p className="text-sm text-gray-500">No accounts yet.</p>
-                    )}
-                  </div>
-                </fieldset>
-
-                {ticketFields.length > 0 && (
-                  <fieldset>
-                    <legend className={sectionLabel}>Custom fields</legend>
-                    <ul className="space-y-3">
-                      {draft.fields.map((row, i) => {
-                        const def = ticketFields.find((f) => f.key === row.key);
-                        const setRow = (next: Partial<Draft['fields'][number]>) =>
-                          setDraft((d) =>
-                            d
-                              ? {
-                                  ...d,
-                                  fields: d.fields.map((r, j) => (j === i ? { ...r, ...next } : r)),
-                                }
-                              : d
-                          );
-                        return (
-                          <li key={i} className="flex flex-wrap items-start gap-3">
-                            <select
-                              aria-label="Field"
-                              value={row.key}
-                              onChange={(e) =>
-                                setRow({ key: e.target.value, values: [], text: '' })
-                              }
-                              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="">Choose a field...</option>
-                              {ticketFields
-                                .filter(
-                                  (f) =>
-                                    f.key === row.key || !draft.fields.some((r) => r.key === f.key)
-                                )
-                                .map((f) => (
-                                  <option key={f.key} value={f.key}>
-                                    {f.label}
-                                  </option>
-                                ))}
-                            </select>
-                            <div className="flex-1 min-w-[12rem] pt-2">
-                              {!def ? null : def.type === 'picklist' ||
-                                def.type === 'multiselect' ? (
-                                <div className="flex flex-wrap gap-x-4 gap-y-1">
-                                  <span className="text-sm text-gray-600">is any of:</span>
-                                  {def.options.map((o) => (
-                                    <label key={o} className="flex items-center gap-1.5 text-sm">
-                                      <input
-                                        type="checkbox"
-                                        className={checkbox}
-                                        checked={row.values.includes(o)}
-                                        onChange={() => setRow({ values: toggle(row.values, o) })}
-                                      />
-                                      {o}
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : def.type === 'checkbox' ? (
-                                <div className="flex gap-4 text-sm">
-                                  {[
-                                    ['true', 'Ticked'],
-                                    ['false', 'Not ticked'],
-                                  ].map(([value, text]) => (
-                                    <label key={value} className="flex items-center gap-1.5">
-                                      <input
-                                        type="radio"
-                                        name={`field-${i}`}
-                                        checked={row.values[0] === value}
-                                        onChange={() => setRow({ values: [value!] })}
-                                      />
-                                      {text}
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : (
-                                <input
-                                  type="text"
-                                  aria-label={`${def.label} values`}
-                                  value={row.text}
-                                  onChange={(e) => setRow({ text: e.target.value })}
-                                  placeholder={
-                                    ['number', 'decimal', 'date'].includes(def.type)
-                                      ? 'is any of, separated by commas'
-                                      : 'contains any of, separated by commas'
-                                  }
-                                  className="w-full -mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setDraft((d) =>
-                                  d ? { ...d, fields: d.fields.filter((_, j) => j !== i) } : d
-                                )
-                              }
-                              className="text-sm text-red-600 hover:text-red-800 pt-2"
-                            >
-                              Remove
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    {draft.fields.length < ticketFields.length && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDraft({
-                            ...draft,
-                            fields: [...draft.fields, { key: '', values: [], text: '' }],
-                          })
-                        }
-                        className="mt-2 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        + Add a field condition
-                      </button>
-                    )}
-                  </fieldset>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-gray-900">Assign it to</p>
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="method"
-                      checked={draft.method === 'specific'}
-                      onChange={() =>
-                        setDraft({
-                          ...draft,
-                          method: 'specific',
-                          agentIds: draft.agentIds.slice(0, 1),
-                        })
-                      }
-                    />
-                    One agent
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="method"
-                      checked={draft.method === 'round_robin'}
-                      onChange={() => setDraft({ ...draft, method: 'round_robin' })}
-                    />
-                    Round-robin (take turns)
-                  </label>
-                </div>
-
-                {draft.method === 'specific' ? (
-                  <select
-                    value={draft.agentIds[0] || ''}
-                    onChange={(e) =>
-                      setDraft({ ...draft, agentIds: e.target.value ? [e.target.value] : [] })
-                    }
-                    aria-label="Agent"
-                    className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Choose an agent...</option>
-                    {options.agents.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                        {a.isActive ? '' : ' (inactive)'}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
-                      {options.agents.map((a) => (
-                        <label key={a.id} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            className={checkbox}
-                            checked={draft.agentIds.includes(a.id)}
-                            onChange={() =>
-                              setDraft({ ...draft, agentIds: toggle(draft.agentIds, a.id) })
-                            }
-                          />
-                          {a.name}
-                          {!a.isActive && <span className="text-gray-400">(inactive)</span>}
-                        </label>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Tickets go to each in turn, in the order ticked. Inactive agents are skipped.
-                    </p>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500">
-                  If no one here is available, the next rule is tried.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save rule'}
-                </button>
-                <button
-                  onClick={() => setDraft(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {rules.length === 0 && !draft ? (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-2" aria-hidden="true">
-                🎯
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">No rules yet</h3>
-              <p className="text-gray-600 mt-1 mb-4">
-                Without rules, new tickets wait unassigned until someone picks them up.
-              </p>
-              <button
-                onClick={() => setDraft(emptyDraft())}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                Add your first rule
-              </button>
-            </div>
-          ) : (
-            <ol className="space-y-3">
-              {rules.map((rule, index) => (
-                <li
-                  key={rule.id}
-                  className={`border rounded-lg p-4 flex gap-4 items-start ${
-                    rule.isActive ? 'border-gray-200' : 'border-gray-200 bg-gray-50 opacity-70'
-                  }`}
-                >
-                  <div className="flex flex-col items-center gap-1 pt-0.5">
-                    <button
-                      onClick={() => move(index, -1)}
-                      disabled={index === 0}
-                      aria-label={`Move ${rule.name} up`}
-                      className="text-gray-500 hover:text-gray-900 disabled:opacity-30"
-                    >
-                      ▲
-                    </button>
-                    <span className="text-sm font-semibold text-gray-700">{index + 1}</span>
-                    <button
-                      onClick={() => move(index, 1)}
-                      disabled={index === rules.length - 1}
-                      aria-label={`Move ${rule.name} down`}
-                      className="text-gray-500 hover:text-gray-900 disabled:opacity-30"
-                    >
-                      ▼
-                    </button>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-gray-900">{rule.name}</h3>
-                      {!rule.isActive && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-700">
-                          Off
-                        </span>
-                      )}
-                    </div>
-                    <ul className="text-sm text-gray-600 mt-1">
-                      {describeConditions(rule.conditions).map((part) => (
-                        <li key={part}>{part}</li>
-                      ))}
-                    </ul>
-                    <p className="text-sm text-gray-900 mt-1">→ {describeAgents(rule)}</p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <label className="flex items-center gap-1 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
-                        className={checkbox}
-                        checked={rule.isActive}
-                        onChange={(e) => setActive(rule, e.target.checked)}
-                      />
-                      On
-                    </label>
-                    <button
-                      onClick={() => setDraft(toDraft(rule))}
-                      className="text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => remove(rule)}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={openNew}
+          className="inline-flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3.5 py-2 rounded-md hover:bg-blue-700"
+        >
+          <PlusIcon className="h-4 w-4" aria-hidden="true" />
+          New rule
+        </button>
       </div>
+
+      {rules.length === 0 ? (
+        <div className="text-center py-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+          <h2 className="font-medium text-gray-900 dark:text-white">No rules yet</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">
+            Without rules, new tickets wait unassigned until someone picks them up.
+          </p>
+          <button type="button" onClick={openNew} className="text-sm text-blue-600 hover:underline">
+            Add your first rule
+          </button>
+        </div>
+      ) : (
+        <ol className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+          {rules.map((rule, index) => (
+            <li
+              key={rule.id}
+              className={`flex items-center gap-3 px-3 py-2.5 ${rule.isActive ? '' : 'opacity-60'}`}
+            >
+              <div className="flex flex-col">
+                <button
+                  type="button"
+                  className={iconButton}
+                  disabled={index === 0}
+                  onClick={() => move(index, -1)}
+                  aria-label={`Move ${rule.name} up`}
+                >
+                  <ChevronUpIcon className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  className={iconButton}
+                  disabled={index === rules.length - 1}
+                  onClick={() => move(index, 1)}
+                  aria-label={`Move ${rule.name} down`}
+                >
+                  <ChevronDownIcon className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <span className="w-5 text-xs font-medium text-gray-400 text-right">{index + 1}</span>
+              <button
+                type="button"
+                onClick={() => openRule(rule)}
+                className="flex-1 min-w-0 text-left"
+              >
+                <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {rule.name}
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                  {summary(rule.conditions)} <span className="text-gray-400">→</span>{' '}
+                  <span className="text-gray-700 dark:text-gray-300">{assignee(rule)}</span>
+                </div>
+              </button>
+              <Switch
+                checked={rule.isActive}
+                onChange={(on) => setActive(rule, on)}
+                label={`${rule.name} on`}
+              />
+              <button
+                type="button"
+                onClick={() => openRule(rule)}
+                className={iconButton}
+                aria-label={`Edit ${rule.name}`}
+              >
+                <PencilSquareIcon className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(rule)}
+                className={`${iconButton} hover:text-red-600`}
+                aria-label={`Delete ${rule.name}`}
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {editing && (
+        <RuleEditor
+          key={editing.id || 'new'}
+          initial={editing}
+          options={options}
+          ticketFields={ticketFields}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 };

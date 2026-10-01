@@ -1,18 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { Editor } from '@tiptap/react';
 import { useNavigate } from 'react-router-dom';
+import type { Editor } from '@tiptap/react';
+import { PencilSquareIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { priorityLabel } from '../utils/priority';
 import RichTextEditor from '../components/RichTextEditor';
-import RichTextContent from '../components/RichTextContent';
 import CustomFieldInput from '../components/CustomFieldInput';
 import { displayValue, type CustomFieldDef } from '../utils/fields';
+import { Chips, Drawer, Switch, errorText, fieldClass } from '../components/ui';
 
 /**
  * Macros: a saved reply plus ticket changes, applied from a ticket in one
- * click. Admins make shared ones for the whole team; anyone can make
- * personal ones only they see.
+ * click. The changes are made straight away; the reply goes in the reply box
+ * to check before sending. Admins make shared macros for the team; anyone
+ * can make personal ones only they see.
  */
 
 interface Actions {
@@ -24,7 +26,6 @@ interface Actions {
   productId?: number | null;
   fields?: Record<string, unknown>;
 }
-
 interface Macro {
   id: string;
   name: string;
@@ -33,28 +34,30 @@ interface Macro {
   replyInternal: boolean;
   actions: Actions;
 }
-
 interface Options {
   agents: { id: string; name: string }[];
   departments: { id: number; name: string }[];
   placeholders: { key: string; label: string }[];
 }
+interface Product {
+  id: number;
+  name: string;
+  product_code: string;
+}
 
+/** One change the macro makes. kind: status | priority | assignTo | department | product | field:<key> */
+interface Change {
+  kind: string;
+  value: unknown;
+  resolution?: string;
+}
 interface Draft {
   id?: string;
   name: string;
   shared: boolean;
   replyHtml: string;
   replyInternal: boolean;
-  status: string;
-  resolution: string;
-  priority: string;
-  assignTo: string;
-  departmentId: string;
-  // '' no change, 'clear', or a product id
-  productId: string;
-  // Custom fields to set, in order; an empty value clears the field
-  fields: { key: string; value: unknown }[];
+  changes: Change[];
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -69,46 +72,380 @@ const RESOLUTION_LABELS: Record<string, string> = {
   wont_do: "Won't do",
   duplicate: 'Duplicate',
 };
+const BUILT_IN = [
+  { kind: 'status', label: 'Status' },
+  { kind: 'priority', label: 'Priority' },
+  { kind: 'assignTo', label: 'Assign to' },
+  { kind: 'department', label: 'Department' },
+  { kind: 'product', label: 'Product' },
+];
+const plain = (html: string | null) =>
+  (html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+const isEmptyValue = (v: unknown) =>
+  v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0);
 
-const emptyDraft = (shared: boolean): Draft => ({
-  name: '',
-  shared,
-  replyHtml: '',
-  replyInternal: false,
-  status: '',
-  resolution: 'fixed',
-  priority: '',
-  assignTo: '',
-  departmentId: '',
-  productId: '',
-  fields: [],
-});
+const toChanges = (a: Actions): Change[] => {
+  const changes: Change[] = [];
+  if (a.status)
+    changes.push({ kind: 'status', value: a.status, resolution: a.resolution || 'fixed' });
+  if (a.priority !== undefined) changes.push({ kind: 'priority', value: String(a.priority) });
+  if (a.assignTo) changes.push({ kind: 'assignTo', value: a.assignTo });
+  if (a.departmentId) changes.push({ kind: 'department', value: String(a.departmentId) });
+  if (a.productId !== undefined)
+    changes.push({ kind: 'product', value: a.productId === null ? 'clear' : String(a.productId) });
+  for (const [key, value] of Object.entries(a.fields || {}))
+    changes.push({ kind: `field:${key}`, value: value ?? '' });
+  return changes;
+};
 
-const toDraft = (m: Macro): Draft => ({
-  id: m.id,
-  name: m.name,
-  shared: m.shared,
-  replyHtml: m.replyHtml || '',
-  replyInternal: m.replyInternal,
-  status: m.actions.status || '',
-  resolution: m.actions.resolution || 'fixed',
-  priority: m.actions.priority === undefined ? '' : String(m.actions.priority),
-  assignTo: m.actions.assignTo || '',
-  departmentId: m.actions.departmentId ? String(m.actions.departmentId) : '',
-  productId:
-    m.actions.productId === undefined
-      ? ''
-      : m.actions.productId === null
-        ? 'clear'
-        : String(m.actions.productId),
-  fields: Object.entries(m.actions.fields || {}).map(([key, value]) => ({ key, value })),
-});
+const MacroEditor: React.FC<{
+  initial: Draft;
+  options: Options;
+  canShare: boolean;
+  ticketFields: CustomFieldDef[];
+  products: Product[];
+  onClose: () => void;
+  onSaved: () => void;
+}> = ({ initial, options, canShare, ticketFields, products, onClose, onSaved }) => {
+  const [draft, setDraft] = useState<Draft>(initial);
+  const [saving, setSaving] = useState(false);
+  const replyEditor = useRef<Editor | null>(null);
 
-const errorText = (error: any): string =>
-  error.response?.data?.error?.message ||
-  error.response?.data?.error ||
-  error.response?.data?.message ||
-  error.message;
+  const fieldByKey = new Map(ticketFields.map((f) => [f.key, f]));
+  const kindLabel = (kind: string) =>
+    kind.startsWith('field:')
+      ? fieldByKey.get(kind.slice(6))?.label || 'Deleted field'
+      : BUILT_IN.find((b) => b.kind === kind)?.label || kind;
+  const available = [
+    ...BUILT_IN,
+    ...ticketFields.map((f) => ({ kind: `field:${f.key}`, label: f.label })),
+  ].filter((k) => !draft.changes.some((c) => c.kind === k.kind));
+
+  const setChange = (i: number, next: Partial<Change>) =>
+    setDraft((d) => ({
+      ...d,
+      changes: d.changes.map((c, j) => (j === i ? { ...c, ...next } : c)),
+    }));
+
+  const insertPlaceholder = (key: string) => {
+    const editor = replyEditor.current;
+    if (!editor) return;
+    (editor.isFocused ? editor.chain().focus() : editor.chain().focus('end'))
+      .insertContent(`{{${key}}}`)
+      .run();
+  };
+
+  const control = (c: Change, i: number) => {
+    const select = (choices: { value: string; label: string }[], placeholder: string) => (
+      <select
+        aria-label={kindLabel(c.kind)}
+        value={String(c.value ?? '')}
+        onChange={(e) => setChange(i, { value: e.target.value })}
+        className={fieldClass}
+      >
+        <option value="">{placeholder}</option>
+        {choices.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    );
+    switch (c.kind) {
+      case 'status':
+        return (
+          <div className="grid grid-cols-2 gap-2">
+            {select(
+              Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label })),
+              'Choose…'
+            )}
+            {['resolved', 'closed'].includes(String(c.value)) && (
+              <select
+                aria-label="How it was resolved"
+                value={c.resolution || 'fixed'}
+                onChange={(e) => setChange(i, { resolution: e.target.value })}
+                className={fieldClass}
+              >
+                {Object.entries(RESOLUTION_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    as {label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        );
+      case 'priority':
+        return (
+          <Chips
+            label="Priority"
+            single
+            options={[0, 1, 2, 3].map((p) => ({ value: String(p), label: priorityLabel(p) }))}
+            selected={c.value === '' || c.value === undefined ? [] : [String(c.value)]}
+            onChange={([v]) => setChange(i, { value: v })}
+          />
+        );
+      case 'assignTo':
+        return select(
+          [
+            { value: 'me', label: 'Whoever applies it' },
+            { value: 'unassigned', label: 'Nobody (unassign)' },
+            ...options.agents.map((a) => ({ value: a.id, label: a.name })),
+          ],
+          'Choose…'
+        );
+      case 'department':
+        return select(
+          options.departments.map((d) => ({ value: String(d.id), label: d.name })),
+          'Choose…'
+        );
+      case 'product':
+        return select(
+          [
+            { value: 'clear', label: 'Clear it' },
+            ...products.map((p) => ({
+              value: String(p.id),
+              label: `${p.name} (${p.product_code})`,
+            })),
+          ],
+          'Choose…'
+        );
+      default: {
+        const field = fieldByKey.get(c.kind.slice(6));
+        if (!field) return <p className="text-sm text-gray-500">This field was deleted.</p>;
+        return (
+          <div className="space-y-1">
+            <CustomFieldInput
+              field={field}
+              value={c.value}
+              onChange={(value) => setChange(i, { value })}
+              className={fieldClass}
+            />
+            {isEmptyValue(c.value) && field.type !== 'checkbox' && (
+              <p className="text-xs text-gray-500">Left empty, the macro clears this field.</p>
+            )}
+          </div>
+        );
+      }
+    }
+  };
+
+  const save = async () => {
+    if (!draft.name.trim()) return alert('Give the macro a name.');
+    const actions: Actions = {};
+    for (const c of draft.changes) {
+      if (c.kind === 'status') {
+        if (!c.value) return alert('Status: choose one, or remove the row.');
+        actions.status = String(c.value);
+        if (['resolved', 'closed'].includes(actions.status))
+          actions.resolution = c.resolution || 'fixed';
+      } else if (c.kind === 'priority') {
+        if (c.value === '' || c.value === undefined)
+          return alert('Priority: choose one, or remove the row.');
+        actions.priority = Number(c.value);
+      } else if (c.kind === 'assignTo') {
+        if (!c.value) return alert('Assign to: choose someone, or remove the row.');
+        actions.assignTo = String(c.value);
+      } else if (c.kind === 'department') {
+        if (!c.value) return alert('Department: choose one, or remove the row.');
+        actions.departmentId = Number(c.value);
+      } else if (c.kind === 'product') {
+        if (!c.value) return alert('Product: choose one, or remove the row.');
+        actions.productId = c.value === 'clear' ? null : Number(c.value);
+      } else {
+        actions.fields = {
+          ...(actions.fields || {}),
+          [c.kind.slice(6)]: isEmptyValue(c.value) ? null : c.value,
+        };
+      }
+    }
+    const body = {
+      name: draft.name.trim(),
+      shared: draft.shared,
+      replyHtml: draft.replyHtml,
+      replyInternal: draft.replyInternal,
+      actions,
+    };
+    try {
+      setSaving(true);
+      if (draft.id) await apiService.updateMacro(draft.id, body);
+      else await apiService.createMacro(body);
+      onSaved();
+    } catch (error: any) {
+      alert(`Couldn't save the macro: ${errorText(error)}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const heading = 'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400';
+
+  return (
+    <Drawer
+      title={draft.id ? 'Edit macro' : 'New macro'}
+      onClose={onClose}
+      width="max-w-2xl"
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:underline"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="px-4 py-1.5 text-sm font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save macro'}
+          </button>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-end">
+        <div>
+          <label
+            htmlFor="macro-name"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Name
+          </label>
+          <input
+            id="macro-name"
+            autoFocus
+            type="text"
+            maxLength={120}
+            value={draft.name}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            placeholder="e.g. Resolved – password reset"
+            className={fieldClass}
+          />
+        </div>
+        {canShare && !draft.id && (
+          <div
+            role="radiogroup"
+            aria-label="Who can use it"
+            className="inline-flex rounded-md bg-gray-100 dark:bg-gray-700 p-0.5 text-sm"
+          >
+            {(
+              [
+                [true, 'Whole team'],
+                [false, 'Only me'],
+              ] as const
+            ).map(([value, text]) => (
+              <button
+                key={text}
+                type="button"
+                role="radio"
+                aria-checked={draft.shared === value}
+                onClick={() => setDraft({ ...draft, shared: value })}
+                className={`px-3 py-1.5 rounded ${
+                  draft.shared === value
+                    ? 'bg-white dark:bg-gray-900 shadow-sm text-gray-900 dark:text-white'
+                    : 'text-gray-600 dark:text-gray-300'
+                }`}
+              >
+                {text}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className={heading}>Reply</h3>
+          <Switch
+            checked={draft.replyInternal}
+            onChange={(replyInternal) => setDraft({ ...draft, replyInternal })}
+            label="Internal note"
+            showLabel
+          />
+        </div>
+        <RichTextEditor
+          value={draft.replyHtml}
+          onChange={({ html, isEmpty }) =>
+            setDraft((d) => ({ ...d, replyHtml: isEmpty ? '' : html }))
+          }
+          placeholder="Hi {{customer.firstName}}, … (optional)"
+          minHeight={100}
+          editorRef={replyEditor}
+        />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-gray-500 dark:text-gray-400 mr-1">Insert:</span>
+          {options.placeholders.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertPlaceholder(p.key)}
+              className="text-xs px-2 py-0.5 rounded-full border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-blue-400 hover:text-blue-700"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className={heading}>Changes to the ticket</h3>
+        {draft.changes.length === 0 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            None yet. Add the changes it should make, like status, priority or a custom field.
+          </p>
+        )}
+        {draft.changes.map((c, i) => (
+          <div
+            key={c.kind}
+            className="grid grid-cols-[8rem_1fr_auto] items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
+          >
+            <span className="text-sm font-medium text-gray-900 dark:text-white pt-2 truncate">
+              {kindLabel(c.kind)}
+            </span>
+            <div className="min-w-0">{control(c, i)}</div>
+            <button
+              type="button"
+              onClick={() =>
+                setDraft((d) => ({ ...d, changes: d.changes.filter((_, j) => j !== i) }))
+              }
+              aria-label={`Remove the ${kindLabel(c.kind)} change`}
+              className="p-1 mt-1 rounded text-gray-400 hover:text-red-600"
+            >
+              <XMarkIcon className="h-4 w-4" />
+            </button>
+          </div>
+        ))}
+        {available.length > 0 && (
+          <select
+            value=""
+            aria-label="Add a change"
+            onChange={(e) =>
+              e.target.value &&
+              setDraft((d) => ({
+                ...d,
+                changes: [...d.changes, { kind: e.target.value, value: '', resolution: 'fixed' }],
+              }))
+            }
+            className="text-sm text-blue-600 dark:text-blue-400 bg-transparent border border-dashed border-gray-300 dark:border-gray-600 rounded-md px-3 py-1.5 hover:border-blue-400 cursor-pointer"
+          >
+            <option value="">+ Add change</option>
+            {available.map((k) => (
+              <option key={k.kind} value={k.kind}>
+                {k.label}
+              </option>
+            ))}
+          </select>
+        )}
+      </section>
+    </Drawer>
+  );
+};
 
 const Macros: React.FC = () => {
   const navigate = useNavigate();
@@ -120,25 +457,10 @@ const Macros: React.FC = () => {
     placeholders: [],
   });
   const [canShare, setCanShare] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  // The ticket's custom fields and products, for "Set fields"
   const [ticketFields, setTicketFields] = useState<CustomFieldDef[]>([]);
-  const [products, setProducts] = useState<{ id: number; name: string; product_code: string }[]>(
-    []
-  );
-  useEffect(() => {
-    apiService
-      .getFields('tickets')
-      .then((layout) => setTicketFields(layout.customFields || []))
-      .catch(() => setTicketFields([]));
-    apiService
-      .getProducts()
-      .then((list) => setProducts(Array.isArray(list) ? list : []))
-      .catch(() => setProducts([]));
-  }, []);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Draft | null>(null);
 
   const load = async () => {
     try {
@@ -155,104 +477,53 @@ const Macros: React.FC = () => {
 
   useEffect(() => {
     load();
+    apiService
+      .getFields('tickets')
+      .then((layout) => setTicketFields(layout.customFields || []))
+      .catch(() => setTicketFields([]));
+    apiService
+      .getProducts()
+      .then((list) => setProducts(Array.isArray(list) ? list : []))
+      .catch(() => setProducts([]));
   }, []);
 
-  const agentName = useMemo(() => new Map(options.agents.map((a) => [a.id, a.name])), [options]);
-  const departmentName = useMemo(
-    () => new Map(options.departments.map((d) => [d.id, d.name])),
-    [options]
+  const names = useMemo(
+    () => ({
+      agent: new Map(options.agents.map((a) => [a.id, a.name])),
+      department: new Map(options.departments.map((d) => [d.id, d.name])),
+      field: new Map(ticketFields.map((f) => [f.key, f])),
+      product: new Map(products.map((p) => [p.id, p.name])),
+    }),
+    [options, ticketFields, products]
   );
 
-  const describe = (m: Macro): string[] => {
-    const a = m.actions;
+  const changesSummary = (a: Actions): string[] => {
     const parts: string[] = [];
     if (a.status)
       parts.push(
-        `Status → ${STATUS_LABELS[a.status] || a.status}${
-          a.resolution ? ` (${RESOLUTION_LABELS[a.resolution] || a.resolution})` : ''
-        }`
+        `${STATUS_LABELS[a.status] || a.status}${a.resolution ? ` (${RESOLUTION_LABELS[a.resolution] || a.resolution})` : ''}`
       );
-    if (a.priority !== undefined) parts.push(`Priority → ${priorityLabel(a.priority)}`);
+    if (a.priority !== undefined) parts.push(`${priorityLabel(a.priority)} priority`);
     if (a.assignTo)
       parts.push(
-        `Assign → ${
-          a.assignTo === 'me'
-            ? 'whoever applies it'
-            : a.assignTo === 'unassigned'
-              ? 'nobody (unassign)'
-              : agentName.get(a.assignTo) || 'removed agent'
-        }`
+        a.assignTo === 'me'
+          ? 'assign to whoever applies it'
+          : a.assignTo === 'unassigned'
+            ? 'unassign'
+            : `assign to ${names.agent.get(a.assignTo) || 'removed agent'}`
       );
-    if (a.departmentId)
-      parts.push(`Department → ${departmentName.get(a.departmentId) || 'removed department'}`);
+    if (a.departmentId) parts.push(`move to ${names.department.get(a.departmentId) || '?'}`);
     if (a.productId !== undefined)
       parts.push(
-        `Product → ${
-          a.productId === null
-            ? '(cleared)'
-            : products.find((p) => p.id === a.productId)?.name || 'removed product'
-        }`
+        a.productId === null ? 'clear product' : `product ${names.product.get(a.productId) || '?'}`
       );
     for (const [key, value] of Object.entries(a.fields || {})) {
-      const def = ticketFields.find((f) => f.key === key);
-      if (!def) continue; // deleted since: skipped when applied
+      const def = names.field.get(key);
+      if (!def) continue;
       const shown = displayValue(def, value);
-      parts.push(`${def.label} → ${shown === '' ? '(cleared)' : shown}`);
+      parts.push(shown ? `${def.label}: ${shown}` : `clear ${def.label}`);
     }
     return parts;
-  };
-
-  // Placeholders go in where the cursor is (the buttons keep the editor's
-  // cursor: see onMouseDown below); with no cursor yet, at the end.
-  const replyEditor = useRef<Editor | null>(null);
-  const insertPlaceholder = (key: string) => {
-    const editor = replyEditor.current;
-    if (!editor) return;
-    const chain = editor.isFocused ? editor.chain().focus() : editor.chain().focus('end');
-    chain.insertContent(`{{${key}}}`).run();
-  };
-
-  const save = async () => {
-    if (!draft) return;
-    if (!draft.name.trim()) return alert('Give the macro a name.');
-    const actions: Actions = {};
-    if (draft.status) actions.status = draft.status;
-    if (['resolved', 'closed'].includes(draft.status)) actions.resolution = draft.resolution;
-    if (draft.priority !== '') actions.priority = Number(draft.priority);
-    if (draft.assignTo) actions.assignTo = draft.assignTo;
-    if (draft.departmentId) actions.departmentId = Number(draft.departmentId);
-    if (draft.productId)
-      actions.productId = draft.productId === 'clear' ? null : Number(draft.productId);
-    if (draft.fields.length) {
-      actions.fields = Object.fromEntries(
-        draft.fields
-          .filter((f) => f.key)
-          .map((f) => [
-            f.key,
-            f.value === '' || f.value === undefined || (Array.isArray(f.value) && !f.value.length)
-              ? null
-              : f.value,
-          ])
-      );
-    }
-    const body = {
-      name: draft.name.trim(),
-      shared: draft.shared,
-      replyHtml: draft.replyHtml,
-      replyInternal: draft.replyInternal,
-      actions,
-    };
-    try {
-      setSaving(true);
-      if (draft.id) await apiService.updateMacro(draft.id, body);
-      else await apiService.createMacro(body);
-      setDraft(null);
-      await load();
-    } catch (error: any) {
-      alert(`Couldn't save the macro: ${errorText(error)}`);
-    } finally {
-      setSaving(false);
-    }
   };
 
   const remove = async (m: Macro) => {
@@ -266,419 +537,142 @@ const Macros: React.FC = () => {
   };
 
   const canEdit = (m: Macro) => !m.shared || canShare;
+  const openNew = () =>
+    setEditing({ name: '', shared: canShare, replyHtml: '', replyInternal: false, changes: [] });
+  const openMacro = (m: Macro) =>
+    canEdit(m) &&
+    setEditing({
+      id: m.id,
+      name: m.name,
+      shared: m.shared,
+      replyHtml: m.replyHtml || '',
+      replyInternal: m.replyInternal,
+      changes: toChanges(m.actions),
+    });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading macros...</div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-gray-500">Loading macros…</div>;
 
-  const field =
-    'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500';
-  const label = 'block text-sm font-medium text-gray-700 mb-1';
+  const iconButton =
+    'p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700';
   const groups = [
     { title: 'Shared with the team', items: macros.filter((m) => m.shared) },
     { title: 'Only you', items: macros.filter((m) => !m.shared) },
-  ];
+  ].filter((g) => g.items.length > 0);
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <button
-                onClick={() => navigate(user?.role === 'admin' ? '/admin/settings' : '/agent')}
-                className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-              >
-                ← Back
-              </button>
-              <h2 className="text-2xl font-bold text-gray-900">Macros</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                A saved reply and ticket changes, applied from a ticket's Notes tab in one click.
-                The changes are made straight away; the reply goes in the note box for you to check
-                and send.
-              </p>
-            </div>
-            {!draft && (
-              <button
-                onClick={() => setDraft(emptyDraft(canShare))}
-                className="shrink-0 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Add Macro
-              </button>
-            )}
-          </div>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      <button
+        onClick={() => navigate(user?.role === 'admin' ? '/admin/settings' : '/agent')}
+        className="text-sm text-blue-600 hover:text-blue-800 mb-3"
+      >
+        ← {user?.role === 'admin' ? 'Settings' : 'Tickets'}
+      </button>
+      <div className="flex items-end justify-between gap-4 mb-5">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Macros</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            A saved reply and ticket changes, applied from a ticket in one click.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={openNew}
+          className="inline-flex items-center gap-1.5 bg-blue-600 text-white text-sm font-medium px-3.5 py-2 rounded-md hover:bg-blue-700"
+        >
+          <PlusIcon className="h-4 w-4" aria-hidden="true" />
+          New macro
+        </button>
+      </div>
 
-        <div className="p-6 space-y-6">
-          {draft && (
-            <div className="border border-blue-200 bg-blue-50/40 rounded-lg p-5 space-y-5">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {draft.id ? 'Edit macro' : 'New macro'}
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={label} htmlFor="macro-name">
-                    Name
-                  </label>
-                  <input
-                    id="macro-name"
-                    type="text"
-                    maxLength={120}
-                    value={draft.name}
-                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    placeholder="e.g. Resolved - password reset"
-                    className={field}
-                  />
-                </div>
-                {canShare && !draft.id && (
-                  <fieldset>
-                    <legend className={label}>Who can use it</legend>
-                    <div className="flex gap-4 text-sm pt-2">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          checked={draft.shared}
-                          onChange={() => setDraft({ ...draft, shared: true })}
-                        />
-                        Whole team
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          checked={!draft.shared}
-                          onChange={() => setDraft({ ...draft, shared: false })}
-                        />
-                        Only me
-                      </label>
-                    </div>
-                  </fieldset>
-                )}
-              </div>
-
-              <div>
-                <p className={label}>Reply</p>
-                <RichTextEditor
-                  value={draft.replyHtml}
-                  onChange={({ html, isEmpty }) =>
-                    setDraft((d) => (d ? { ...d, replyHtml: isEmpty ? '' : html } : d))
-                  }
-                  placeholder="Hi {{customer.firstName}}, ..."
-                  editorRef={replyEditor}
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-gray-500">Insert at the cursor:</span>
-                  {options.placeholders.map((p) => (
-                    <button
-                      key={p.key}
-                      type="button"
-                      // Keep the editor's cursor where it is
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => insertPlaceholder(p.key)}
-                      className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700"
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-                <label className="mt-3 flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                    checked={draft.replyInternal}
-                    onChange={(e) => setDraft({ ...draft, replyInternal: e.target.checked })}
-                  />
-                  Internal note (not emailed to the customer)
-                </label>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-gray-900 mb-2">
-                  Change the ticket{' '}
-                  <span className="font-normal text-gray-500">(leave as "No change" to skip)</span>
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={label} htmlFor="macro-status">
-                      Status
-                    </label>
-                    <select
-                      id="macro-status"
-                      value={draft.status}
-                      onChange={(e) => setDraft({ ...draft, status: e.target.value })}
-                      className={field}
-                    >
-                      <option value="">No change</option>
-                      {Object.entries(STATUS_LABELS).map(([value, text]) => (
-                        <option key={value} value={value}>
-                          {text}
-                        </option>
-                      ))}
-                    </select>
-                    {['resolved', 'closed'].includes(draft.status) && (
-                      <select
-                        aria-label="How it was resolved"
-                        value={draft.resolution}
-                        onChange={(e) => setDraft({ ...draft, resolution: e.target.value })}
-                        className={`${field} mt-2`}
-                      >
-                        {Object.entries(RESOLUTION_LABELS).map(([value, text]) => (
-                          <option key={value} value={value}>
-                            Resolved as: {text}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                  <div>
-                    <label className={label} htmlFor="macro-priority">
-                      Priority
-                    </label>
-                    <select
-                      id="macro-priority"
-                      value={draft.priority}
-                      onChange={(e) => setDraft({ ...draft, priority: e.target.value })}
-                      className={field}
-                    >
-                      <option value="">No change</option>
-                      {[0, 1, 2, 3].map((p) => (
-                        <option key={p} value={p}>
-                          {priorityLabel(p)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={label} htmlFor="macro-assign">
-                      Assign to
-                    </label>
-                    <select
-                      id="macro-assign"
-                      value={draft.assignTo}
-                      onChange={(e) => setDraft({ ...draft, assignTo: e.target.value })}
-                      className={field}
-                    >
-                      <option value="">No change</option>
-                      <option value="me">Whoever applies it</option>
-                      <option value="unassigned">Nobody (unassign)</option>
-                      {options.agents.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={label} htmlFor="macro-department">
-                      Department
-                    </label>
-                    <select
-                      id="macro-department"
-                      value={draft.departmentId}
-                      onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}
-                      className={field}
-                    >
-                      <option value="">No change</option>
-                      {options.departments.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className={label} htmlFor="macro-product">
-                      Product
-                    </label>
-                    <select
-                      id="macro-product"
-                      value={draft.productId}
-                      onChange={(e) => setDraft({ ...draft, productId: e.target.value })}
-                      className={field}
-                    >
-                      <option value="">No change</option>
-                      <option value="clear">Clear it</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.product_code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {ticketFields.length > 0 && (
-                  <div className="mt-5">
-                    <p className="text-sm font-semibold text-gray-900 mb-1">Set fields</p>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Custom fields from the ticket layout. Leave a value empty to clear the field.
-                    </p>
-                    <ul className="space-y-3">
-                      {draft.fields.map((row, i) => {
-                        const def = ticketFields.find((f) => f.key === row.key);
-                        const setRow = (next: { key: string; value: unknown }) =>
-                          setDraft((d) =>
-                            d ? { ...d, fields: d.fields.map((r, j) => (j === i ? next : r)) } : d
-                          );
-                        return (
-                          <li key={i} className="flex flex-wrap items-start gap-2">
-                            <select
-                              aria-label="Field"
-                              value={row.key}
-                              onChange={(e) => setRow({ key: e.target.value, value: '' })}
-                              className={`${field} md:w-56`}
-                            >
-                              <option value="">Choose a field...</option>
-                              {ticketFields
-                                .filter(
-                                  (f) =>
-                                    f.key === row.key || !draft.fields.some((r) => r.key === f.key)
-                                )
-                                .map((f) => (
-                                  <option key={f.key} value={f.key}>
-                                    {f.label}
-                                  </option>
-                                ))}
-                            </select>
-                            <div className="flex-1 min-w-[12rem]">
-                              {def ? (
-                                <CustomFieldInput
-                                  field={def}
-                                  value={row.value}
-                                  onChange={(value) => setRow({ key: row.key, value })}
-                                  className={field}
-                                />
-                              ) : (
-                                <p className="text-sm text-gray-500 py-2">
-                                  {row.key ? 'This field was deleted.' : ''}
-                                </p>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setDraft((d) =>
-                                  d ? { ...d, fields: d.fields.filter((_, j) => j !== i) } : d
-                                )
-                              }
-                              className="text-sm text-red-600 hover:text-red-800 py-2"
-                            >
-                              Remove
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    {draft.fields.length < ticketFields.length && (
+      {macros.length === 0 ? (
+        <div className="text-center py-16 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+          <h2 className="font-medium text-gray-900 dark:text-white">No macros yet</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-4">
+            Save the replies you type over and over, like “We've reset your password”.
+          </p>
+          <button type="button" onClick={openNew} className="text-sm text-blue-600 hover:underline">
+            Add your first macro
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <section key={group.title}>
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                {group.title}
+              </h2>
+              <ul className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+                {group.items.map((m) => {
+                  const changes = changesSummary(m.actions);
+                  const reply = plain(m.replyHtml);
+                  return (
+                    <li key={m.id} className="flex items-center gap-3 px-4 py-2.5">
                       <button
                         type="button"
-                        onClick={() =>
-                          setDraft({ ...draft, fields: [...draft.fields, { key: '', value: '' }] })
-                        }
-                        className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+                        onClick={() => openMacro(m)}
+                        disabled={!canEdit(m)}
+                        className="flex-1 min-w-0 text-left disabled:cursor-default"
                       >
-                        + Add a field
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save macro'}
-                </button>
-                <button
-                  onClick={() => setDraft(null)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-
-          {macros.length === 0 && !draft ? (
-            <div className="text-center py-12">
-              <div className="text-4xl mb-2" aria-hidden="true">
-                ⚡
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">No macros yet</h3>
-              <p className="text-gray-600 mt-1 mb-4">
-                Save the replies you type over and over, like "We've reset your password".
-              </p>
-              <button
-                onClick={() => setDraft(emptyDraft(canShare))}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-              >
-                Add your first macro
-              </button>
-            </div>
-          ) : (
-            groups
-              .filter((g) => g.items.length > 0)
-              .map((group) => (
-                <section key={group.title}>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    {group.title}
-                  </h3>
-                  <ul className="space-y-3">
-                    {group.items.map((m) => (
-                      <li key={m.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-semibold text-gray-900">{m.name}</h4>
-                            {m.replyHtml && (
-                              <div className="mt-1 text-sm text-gray-600 line-clamp-3">
-                                {m.replyInternal && (
-                                  <span className="text-xs mr-1 px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-800">
-                                    Internal
-                                  </span>
-                                )}
-                                <RichTextContent html={m.replyHtml} text="" />
-                              </div>
-                            )}
-                            {describe(m).length > 0 && (
-                              <ul className="mt-2 text-sm text-gray-700">
-                                {describe(m).map((part) => (
-                                  <li key={part}>{part}</li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                          {canEdit(m) && (
-                            <div className="flex gap-3 shrink-0">
-                              <button
-                                onClick={() => setDraft(toDraft(m))}
-                                className="text-blue-600 hover:text-blue-800 text-sm"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => remove(m)}
-                                className="text-red-600 hover:text-red-800 text-sm"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            {m.name}
+                          </span>
+                          {m.replyInternal && reply && (
+                            <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                              Internal
+                            </span>
                           )}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              ))
-          )}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {reply && <span className="italic">“{reply}”</span>}
+                          {reply && changes.length > 0 && ' · '}
+                          {changes.join(' · ')}
+                        </div>
+                      </button>
+                      {canEdit(m) && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => openMacro(m)}
+                            className={iconButton}
+                            aria-label={`Edit ${m.name}`}
+                          >
+                            <PencilSquareIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(m)}
+                            className={`${iconButton} hover:text-red-600`}
+                            aria-label={`Delete ${m.name}`}
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
         </div>
-      </div>
+      )}
+
+      {editing && (
+        <MacroEditor
+          key={editing.id || 'new'}
+          initial={editing}
+          options={options}
+          canShare={canShare}
+          ticketFields={ticketFields}
+          products={products}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 };
