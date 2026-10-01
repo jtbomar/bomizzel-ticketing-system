@@ -1386,14 +1386,68 @@ class ApiService {
     return response.data;
   }
 
+  // Custom modules (Settings > Modules) and their records
+  async getModules(): Promise<{ id: string; key: string; name: string; singular: string }[]> {
+    const response = await this.client.get('/modules');
+    return response.data.modules;
+  }
+
+  async createModule(data: { name: string; singular: string }): Promise<any> {
+    const response = await this.client.post('/modules', data);
+    return response.data.module;
+  }
+
+  async updateModule(key: string, data: { name: string; singular: string }): Promise<any> {
+    const response = await this.client.put(`/modules/${key}`, data);
+    return response.data.module;
+  }
+
+  async deleteModule(key: string): Promise<void> {
+    await this.client.delete(`/modules/${key}`);
+  }
+
+  async listRecords(module: string, q = '', page = 1): Promise<any> {
+    const response = await this.client.get(`/records/${module}`, { params: { q, page } });
+    return response.data;
+  }
+
+  async createRecord(
+    module: string,
+    data: { values: Record<string, unknown>; customFieldValues?: Record<string, unknown> }
+  ): Promise<any> {
+    const response = await this.client.post(`/records/${module}`, data);
+    return response.data.record;
+  }
+
+  async deleteRecord(module: string, id: string): Promise<void> {
+    await this.client.delete(`/records/${module}/${id}`);
+  }
+
+  /** What links to a record, grouped by the lookup field. */
+  async getRelated(module: string, id: string): Promise<any[]> {
+    const response = await this.client.get(`/records/${module}/${id}/related`);
+    return response.data.related;
+  }
+
+  /** Records to link to (q), or the names of linked ones (ids). */
+  async lookup(
+    module: string,
+    params: { q?: string; ids?: string[] }
+  ): Promise<{ id: string; name: string }[]> {
+    const response = await this.client.get(`/lookup/${module}`, {
+      params: params.ids ? { ids: params.ids.join(',') } : { q: params.q || '' },
+    });
+    return response.data.records;
+  }
+
   // Accounts and contacts through their layouts
-  async getRecord(module: 'accounts' | 'contacts', id: string): Promise<any> {
+  async getRecord(module: string, id: string): Promise<any> {
     const response = await this.client.get(`/records/${module}/${id}`);
     return response.data.record;
   }
 
   async updateRecord(
-    module: 'accounts' | 'contacts',
+    module: string,
     id: string,
     changes: { values?: Record<string, unknown>; customFieldValues?: Record<string, unknown> }
   ): Promise<any> {

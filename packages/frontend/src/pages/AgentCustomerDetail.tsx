@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import RecordFields from '../components/RecordFields';
+import RelatedLists from '../components/RelatedLists';
 import {
   UserIcon,
   ArrowLeftIcon,
@@ -210,7 +211,8 @@ const AgentCustomerDetail: React.FC = () => {
           </div>
 
           {/* Tickets */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-6">
+            <RelatedLists module="contacts" recordId={customerId!} />
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">

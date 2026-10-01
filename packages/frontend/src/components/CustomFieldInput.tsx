@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CustomFieldDef } from '../utils/fields';
+import LookupInput from './LookupInput';
 
 /**
  * The input for one custom field, by its type. Used on the ticket form, in
@@ -33,6 +34,20 @@ const CustomFieldInput: React.FC<Props> = ({
   const commit = (v: unknown) => onCommit?.(v);
 
   switch (field.type) {
+    case 'lookup':
+      return (
+        <LookupInput
+          id={id}
+          module={field.lookupModule || ''}
+          value={text}
+          disabled={disabled}
+          onChange={(v) => {
+            onChange(v);
+            commit(v);
+          }}
+          className={className}
+        />
+      );
     case 'textarea':
       return (
         <textarea

@@ -18,6 +18,9 @@ const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
 const FieldLayout = lazy(() => import('./pages/FieldLayout'));
+const ModuleSettings = lazy(() => import('./pages/ModuleSettings'));
+const ModuleRecords = lazy(() => import('./pages/ModuleRecords'));
+const ModuleRecordPage = lazy(() => import('./pages/ModuleRecordPage'));
 const CreateTicketPage = lazy(() => import('./pages/CreateTicketPage'));
 const TestAPI = lazy(() => import('./TestAPI'));
 const CompanyRegistrationPage = lazy(() => import('./pages/CompanyRegistrationPage'));
@@ -124,6 +127,30 @@ function App() {
                       element={
                         <ProtectedRoute requiredRole="employee">
                           <TicketDetailPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/agent/modules/:moduleKey"
+                      element={
+                        <ProtectedRoute requiredRole="employee">
+                          <ModuleRecords />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/agent/modules/:moduleKey/:recordId"
+                      element={
+                        <ProtectedRoute requiredRole="employee">
+                          <ModuleRecordPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/admin/settings/modules"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <ModuleSettings />
                         </ProtectedRoute>
                       }
                     />

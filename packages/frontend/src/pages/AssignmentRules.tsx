@@ -441,7 +441,12 @@ const AssignmentRules: React.FC = () => {
     load();
     apiService
       .getFields('tickets')
-      .then((layout) => setTicketFields(layout.customFields || []))
+      // Lookups link to particular records, which rules don't match on
+      .then((layout) =>
+        setTicketFields(
+          (layout.customFields || []).filter((f: CustomFieldDef) => f.type !== 'lookup')
+        )
+      )
       .catch(() => setTicketFields([]));
   }, []);
 

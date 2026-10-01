@@ -28,6 +28,7 @@ const BUILT_SETTINGS = new Set([
   '/admin/settings/game-scope',
   '/admin/settings/holidays',
   '/admin/settings/macros',
+  '/admin/settings/modules',
   '/admin/settings/products',
   '/admin/settings/profiles',
   '/admin/settings/rebranding',
@@ -216,6 +217,12 @@ const AdminSettings: React.FC = () => {
           description: 'Customize interface modules',
           path: '/admin/settings/modules-tabs',
           icon: '📑',
+        },
+        {
+          name: 'Modules',
+          description: 'Your own record types, linked with lookups',
+          path: '/admin/settings/modules',
+          icon: '🧩',
         },
         {
           name: 'Layouts and Fields',

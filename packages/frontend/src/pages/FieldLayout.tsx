@@ -31,6 +31,7 @@ import {
   HashtagIcon,
   LinkIcon,
   ListBulletIcon,
+  ArrowsRightLeftIcon,
   LockClosedIcon,
   PencilSquareIcon,
   PhoneIcon,
@@ -56,11 +57,11 @@ import {
  * (locked) can be moved but not removed. Every change is saved as it's made.
  */
 
-const MODULES = [
+const BUILT_IN_MODULES = [
   { key: 'tickets', label: 'Tickets', path: '/admin/layouts', what: 'the ticket form' },
   { key: 'accounts', label: 'Accounts', path: '/admin/layouts/accounts', what: 'an account' },
   { key: 'contacts', label: 'Contacts', path: '/admin/layouts/contacts', what: 'a contact' },
-] as const;
+];
 
 const TYPE_ICONS: Record<FieldType, React.ComponentType<{ className?: string }>> = {
   text: Bars3BottomLeftIcon,
@@ -74,6 +75,7 @@ const TYPE_ICONS: Record<FieldType, React.ComponentType<{ className?: string }>>
   url: LinkIcon,
   picklist: ListBulletIcon,
   multiselect: Squares2X2Icon,
+  lookup: ArrowsRightLeftIcon,
 };
 
 interface FieldDraft {
@@ -84,6 +86,7 @@ interface FieldDraft {
   isRequired: boolean;
   helpText: string;
   sectionId: string;
+  lookupModule: string;
 }
 
 interface FieldInfo {
@@ -204,8 +207,42 @@ const SectionGrid: React.FC<{ id: string; empty: boolean; children: React.ReactN
 const FieldLayout: React.FC = () => {
   const navigate = useNavigate();
   const { module: moduleParam } = useParams();
-  const current = MODULES.find((m) => m.key === moduleParam) || MODULES[0];
+  // Custom modules (Settings > Modules) get a tab each too
+  const [customModules, setCustomModules] = useState<
+    { key: string; name: string; singular: string }[]
+  >([]);
+  useEffect(() => {
+    apiService
+      .getModules()
+      .then(setCustomModules)
+      .catch(() => setCustomModules([]));
+  }, []);
+  const MODULES = [
+    ...BUILT_IN_MODULES,
+    ...customModules.map((m) => ({
+      key: m.key,
+      label: m.name,
+      path: `/admin/layouts/${m.key}`,
+      what: `a record of ${m.name}`,
+    })),
+  ];
+  const current =
+    MODULES.find((m) => m.key === moduleParam) ||
+    (moduleParam?.startsWith('cm_')
+      ? {
+          key: moduleParam,
+          label: moduleParam,
+          path: `/admin/layouts/${moduleParam}`,
+          what: 'a record',
+        }
+      : BUILT_IN_MODULES[0]!);
   const MODULE = current.key;
+  // What a lookup can link to
+  const lookupTargets = [
+    { key: 'accounts', label: 'Accounts' },
+    { key: 'contacts', label: 'Contacts' },
+    ...customModules.map((m) => ({ key: m.key, label: m.name })),
+  ];
   const [layout, setLayout] = useState<ModuleLayout | null>(null);
   // The sections while dragging (fields move between them live)
   const [dragSections, setDragSections] = useState<LayoutSection[] | null>(null);
@@ -237,6 +274,8 @@ const FieldLayout: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [MODULE]);
 
+  const lookupName = (key?: string | null) =>
+    lookupTargets.find((t) => t.key === key)?.label || 'a deleted module';
   const infoByKey = useMemo(() => {
     const map = new Map<string, FieldInfo>();
     layout?.systemFields.forEach((f) =>
@@ -248,13 +287,16 @@ const FieldLayout: React.FC = () => {
         label: f.label,
         caption: hasChoices(f.type)
           ? `${FIELD_TYPE_LABELS[f.type]} · ${f.options.length} choices`
-          : FIELD_TYPE_LABELS[f.type],
+          : f.type === 'lookup'
+            ? `Links to ${lookupName(f.lookupModule)}`
+            : FIELD_TYPE_LABELS[f.type],
         system: false,
         field: f,
       })
     );
     return map;
-  }, [layout]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, customModules]);
 
   const flash = (text: string) => {
     setStatus(text);
@@ -358,6 +400,7 @@ const FieldLayout: React.FC = () => {
       isRequired: false,
       helpText: '',
       sectionId: sections[sections.length - 1]?.id || '',
+      lookupModule: type === 'lookup' ? 'accounts' : '',
     });
 
   const saveField = async () => {
@@ -376,6 +419,7 @@ const FieldLayout: React.FC = () => {
       options,
       isRequired: draft.isRequired,
       helpText: draft.helpText.trim() || null,
+      ...(draft.type === 'lookup' ? { lookupModule: draft.lookupModule } : {}),
     };
     try {
       setSaving(true);
@@ -493,7 +537,7 @@ const FieldLayout: React.FC = () => {
                   className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-800 hover:shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-gray-700 text-left"
                 >
                   <Icon className="h-4 w-4 text-blue-500" aria-hidden="true" />
-                  {FIELD_TYPE_LABELS[type]}
+                  {type === 'lookup' ? 'Lookup' : FIELD_TYPE_LABELS[type]}
                 </button>
               );
             })}
@@ -590,6 +634,7 @@ const FieldLayout: React.FC = () => {
                               isRequired: info.field.isRequired,
                               helpText: info.field.helpText || '',
                               sectionId: section.id,
+                              lookupModule: info.field.lookupModule || '',
                             })
                           }
                           onDelete={() => info.field && deleteField(info.field)}
@@ -629,7 +674,7 @@ const FieldLayout: React.FC = () => {
                 })}
                 {draft.id
                   ? 'Edit field'
-                  : `New ${FIELD_TYPE_LABELS[draft.type].toLowerCase()} field`}
+                  : `New ${draft.type === 'lookup' ? 'lookup' : FIELD_TYPE_LABELS[draft.type].toLowerCase()} field`}
               </h2>
               <button
                 type="button"
@@ -686,6 +731,34 @@ const FieldLayout: React.FC = () => {
                   </select>
                 </div>
               )}
+              {draft.type === 'lookup' &&
+                (draft.id ? (
+                  <p className="text-xs text-gray-500">Links to {lookupName(draft.lookupModule)}</p>
+                ) : (
+                  <div>
+                    <label
+                      htmlFor="field-lookup"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Links to
+                    </label>
+                    <select
+                      id="field-lookup"
+                      value={draft.lookupModule}
+                      onChange={(e) => setDraft({ ...draft, lookupModule: e.target.value })}
+                      className={input}
+                    >
+                      {lookupTargets.map((t) => (
+                        <option key={t.key} value={t.key}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Records linked this way show up in a related list on the other record.
+                    </p>
+                  </div>
+                ))}
               {hasChoices(draft.type) && (
                 <div>
                   <label

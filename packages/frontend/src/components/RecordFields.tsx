@@ -24,7 +24,7 @@ const errorText = (error: any): string =>
   error?.message;
 
 const RecordFields: React.FC<{
-  module: 'accounts' | 'contacts';
+  module: string; // accounts, contacts or a custom module (cm_...)
   recordId: string;
   /** After a save, with the record as stored (e.g. to refresh a page title). */
   onSaved?: (record: RecordData) => void;

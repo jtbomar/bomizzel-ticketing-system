@@ -11,7 +11,8 @@ export type FieldType =
   | 'phone'
   | 'url'
   | 'picklist'
-  | 'multiselect';
+  | 'multiselect'
+  | 'lookup';
 
 export interface CustomFieldDef {
   id: string;
@@ -22,6 +23,8 @@ export interface CustomFieldDef {
   isRequired: boolean;
   helpText: string | null;
   system: false;
+  // A lookup's target module: accounts, contacts or a custom module (cm_...)
+  lookupModule?: string | null;
 }
 
 export interface SystemFieldDef {
@@ -42,7 +45,19 @@ export interface ModuleLayout {
   sections: LayoutSection[];
   systemFields: SystemFieldDef[];
   customFields: CustomFieldDef[];
+  // For a custom module
+  module?: { key: string; id: string; name: string; singular: string };
 }
+
+/** Where a record of a module lives in the app. */
+export const recordPath = (module: string, id: string): string =>
+  module === 'accounts'
+    ? `/agent/accounts/${id}`
+    : module === 'contacts'
+      ? `/agent/customers/${id}`
+      : module === 'tickets'
+        ? `/agent/tickets/${id}`
+        : `/agent/modules/${module}/${id}`;
 
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   text: 'Single line',
@@ -56,12 +71,14 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   url: 'Web address',
   picklist: 'Pick list',
   multiselect: 'Multi-select',
+  lookup: 'Lookup (link to a record)',
 };
 
 /** A stored value as text, for read-only display. */
 export const displayValue = (field: CustomFieldDef, value: unknown): string => {
   if (value === undefined || value === null || value === '') return '';
   if (field.type === 'checkbox') return value ? 'Yes' : 'No';
+  if (field.type === 'lookup') return 'a linked record';
   if (Array.isArray(value)) return value.join(', ');
   if (field.type === 'date') {
     const d = new Date(`${value}T00:00:00`);

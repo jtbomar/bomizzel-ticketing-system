@@ -30,6 +30,7 @@ export const FIELD_TYPES = [
   'url',
   'picklist',
   'multiselect',
+  'lookup',
 ] as const;
 export type FieldType = (typeof FIELD_TYPES)[number];
 
@@ -174,6 +175,8 @@ export interface CustomField {
   isRequired: boolean;
   helpText: string | null;
   system: false;
+  // For a lookup: the module it links to (accounts, contacts or cm_...)
+  lookupModule?: string | null;
 }
 
 export interface FieldInput {
@@ -182,6 +185,7 @@ export interface FieldInput {
   options?: string[];
   isRequired?: boolean;
   helpText?: string | null;
+  lookupModule?: string | null;
 }
 
 const MAX_FIELDS = 200;
@@ -198,11 +202,70 @@ const toField = (row: any): CustomField => ({
   isRequired: row.is_required,
   helpText: row.help_text,
   system: false,
+  lookupModule: row.lookup_module ?? null,
 });
 
-const assertModule = (module: string): ModuleName => {
-  if (!(MODULES as readonly string[]).includes(module)) throw new NotFoundError('Unknown module');
-  return module as ModuleName;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface ResolvedModule {
+  key: string;
+  system: SystemField[];
+  defaults: Section[];
+  // A custom module's row (Settings > Modules)
+  custom?: { id: string; name: string; singular: string };
+}
+
+/**
+ * A module by key, for this subscriber: tickets, accounts, contacts, or one
+ * of its custom modules (cm_...). A custom module's one standard field is
+ * its name.
+ */
+export const resolveModule = async (orgId: string, module: string): Promise<ResolvedModule> => {
+  if ((MODULES as readonly string[]).includes(module)) {
+    const m = module as ModuleName;
+    return { key: m, system: SYSTEM_FIELDS[m], defaults: DEFAULT_SECTIONS[m] };
+  }
+  const row =
+    /^cm_[a-z0-9_]{1,60}$/.test(module) &&
+    (await db('custom_modules').where({ org_id: orgId, key: module }).first());
+  if (!row) throw new NotFoundError('Unknown module');
+  return {
+    key: row.key,
+    system: [std('name', `${row.singular} name`, 'text', 'name', true)],
+    defaults: [
+      { id: 'information', title: `${row.singular} Information`, fields: ['name'] },
+    ],
+    custom: { id: row.id, name: row.name, singular: row.singular },
+  };
+};
+
+/** Does this record exist in the subscriber, for a lookup to it? */
+export const lookupTargetsExist = async (
+  orgId: string,
+  target: string,
+  ids: string[]
+): Promise<Set<string>> => {
+  const wanted = [...new Set(ids)].filter((id) => UUID.test(id));
+  if (wanted.length === 0) return new Set();
+  let rows: { id: string }[] = [];
+  if (target === 'accounts') {
+    rows = await db('companies').whereIn('id', wanted).where('subscriber_id', orgId).select('id');
+  } else if (target === 'contacts') {
+    rows = await db('users as u')
+      .join('user_company_associations as a', 'a.user_id', 'u.id')
+      .join('companies as c', 'c.id', 'a.company_id')
+      .whereIn('u.id', wanted)
+      .where('u.role', 'customer')
+      .where('c.subscriber_id', orgId)
+      .distinct('u.id as id');
+  } else {
+    const resolved = await resolveModule(orgId, target);
+    rows = await db('custom_records')
+      .whereIn('id', wanted)
+      .where({ org_id: orgId, module_id: resolved.custom!.id })
+      .select('id');
+  }
+  return new Set(rows.map((r) => r.id));
 };
 
 const cleanOptions = (type: string, options: unknown): string[] => {
@@ -287,6 +350,12 @@ export const coerce = (field: CustomField, value: unknown): unknown => {
       if (unknown !== undefined) throw bad(`"${unknown}" isn't one of the choices`);
       return [...new Set(list)];
     }
+    case 'lookup': {
+      // Which record it is; that it exists is checked in validateValues
+      const s = String(value);
+      if (!UUID.test(s)) throw bad('not a record');
+      return s;
+    }
     default:
       throw bad('unknown field type');
   }
@@ -294,8 +363,9 @@ export const coerce = (field: CustomField, value: unknown): unknown => {
 
 export class FieldService {
   static async customFields(orgId: string, module: string): Promise<CustomField[]> {
+    const m = await resolveModule(orgId, module);
     const rows = await db('module_fields')
-      .where({ org_id: orgId, module: assertModule(module) })
+      .where({ org_id: orgId, module: m.key })
       .orderBy('created_at');
     return rows.map(toField);
   }
@@ -305,14 +375,15 @@ export class FieldService {
    * custom field appears exactly once (missing ones are added to the end).
    */
   static async layout(orgId: string, module: string) {
-    const m = assertModule(module);
+    const resolved = await resolveModule(orgId, module);
+    const m = resolved.key;
     const [custom, row] = await Promise.all([
       this.customFields(orgId, m),
       db('module_layouts').where({ org_id: orgId, module: m }).first(),
     ]);
-    const known = new Set([...SYSTEM_FIELDS[m].map((f) => f.key), ...custom.map((f) => f.key)]);
+    const known = new Set([...resolved.system.map((f) => f.key), ...custom.map((f) => f.key)]);
     const sections: Section[] = (
-      row ? parse<Section[]>(row.sections, []) : DEFAULT_SECTIONS[m]
+      row ? parse<Section[]>(row.sections, []) : resolved.defaults
     ).map((s) => ({ ...s, fields: [...s.fields] }));
     const seen = new Set<string>();
     for (const s of sections) {
@@ -321,13 +392,19 @@ export class FieldService {
     if (sections.length === 0) sections.push({ id: 'section-1', title: 'Details', fields: [] });
     const missing = [...known].filter((k) => !seen.has(k));
     sections[sections.length - 1]!.fields.push(...missing);
-    return { sections, systemFields: SYSTEM_FIELDS[m], customFields: custom };
+    return {
+      sections,
+      systemFields: resolved.system,
+      customFields: custom,
+      ...(resolved.custom ? { module: { key: m, ...resolved.custom } } : {}),
+    };
   }
 
   static async saveLayout(orgId: string, module: string, input: unknown) {
-    const m = assertModule(module);
+    const resolved = await resolveModule(orgId, module);
+    const m = resolved.key;
     const custom = await this.customFields(orgId, m);
-    const known = new Set([...SYSTEM_FIELDS[m].map((f) => f.key), ...custom.map((f) => f.key)]);
+    const known = new Set([...resolved.system.map((f) => f.key), ...custom.map((f) => f.key)]);
     if (!Array.isArray(input) || input.length === 0 || input.length > 50) {
       throw new ValidationError('A layout needs at least one section');
     }
@@ -344,7 +421,7 @@ export class FieldService {
       const id = typeof s.id === 'string' && /^[\w-]{1,64}$/.test(s.id) ? s.id : `section-${i + 1}`;
       return { id, title, fields };
     });
-    const removed = SYSTEM_FIELDS[m].filter((f) => !seen.has(f.key));
+    const removed = resolved.system.filter((f) => !seen.has(f.key));
     if (removed.length) {
       throw new ValidationError(
         `Standard fields can't be removed: ${removed.map((f) => f.label).join(', ')}`
@@ -365,7 +442,8 @@ export class FieldService {
   }
 
   static async createField(orgId: string, module: string, input: FieldInput) {
-    const m = assertModule(module);
+    const resolved = await resolveModule(orgId, module);
+    const m = resolved.key;
     const label = typeof input.label === 'string' ? input.label.trim() : '';
     if (!label || label.length > 120) throw new ValidationError('Give the field a name');
     if (!(FIELD_TYPES as readonly string[]).includes(String(input.type))) {
@@ -377,8 +455,20 @@ export class FieldService {
       .count('* as n')
       .first();
     if (Number(count?.n) >= MAX_FIELDS) throw new ValidationError(`Up to ${MAX_FIELDS} fields`);
-    if (SYSTEM_FIELDS[m].some((f) => f.label.toLowerCase() === label.toLowerCase())) {
+    if (resolved.system.some((f) => f.label.toLowerCase() === label.toLowerCase())) {
       throw new ValidationError(`"${label}" is already a standard field`);
+    }
+    // A lookup links to accounts, contacts or one of the subscriber's modules
+    let lookupModule: string | null = null;
+    if (type === 'lookup') {
+      const target = String(input.lookupModule || '');
+      if (target !== 'accounts' && target !== 'contacts') {
+        if (!target.startsWith('cm_')) throw new ValidationError('Choose what it links to');
+        await resolveModule(orgId, target).catch(() => {
+          throw new ValidationError('Choose what it links to');
+        });
+      }
+      lookupModule = target;
     }
 
     // A key that never changes, even if the label does: values are stored under it
@@ -396,6 +486,7 @@ export class FieldService {
         options: JSON.stringify(cleanOptions(type, input.options)),
         is_required: !!input.isRequired,
         help_text: input.helpText ? String(input.helpText).trim().slice(0, 255) || null : null,
+        lookup_module: lookupModule,
       })
       .returning('*');
     return toField(row);
@@ -403,7 +494,7 @@ export class FieldService {
 
   /** Label, choices, required and help can change; the type can't (values depend on it). */
   static async updateField(orgId: string, module: string, fieldId: string, input: FieldInput) {
-    const m = assertModule(module);
+    const m = (await resolveModule(orgId, module)).key;
     const row = await db('module_fields').where({ id: fieldId, org_id: orgId, module: m }).first();
     if (!row) throw new NotFoundError('Field not found');
     const label = typeof input.label === 'string' ? input.label.trim() : '';
@@ -426,7 +517,7 @@ export class FieldService {
 
   /** Values already saved under it stay on the records, just no longer shown. */
   static async deleteField(orgId: string, module: string, fieldId: string) {
-    const m = assertModule(module);
+    const m = (await resolveModule(orgId, module)).key;
     const deleted = await db('module_fields')
       .where({ id: fieldId, org_id: orgId, module: m })
       .del();
@@ -463,6 +554,13 @@ export class FieldService {
         continue;
       }
       result[key] = coerce(field, value);
+    }
+    // Linked records must exist, in this subscriber
+    for (const field of fields.filter((f) => f.type === 'lookup' && f.lookupModule)) {
+      const id = result[field.key];
+      if (typeof id !== 'string' || !(values as Record<string, unknown>)?.[field.key]) continue;
+      const found = await lookupTargetsExist(orgId, field.lookupModule!, [id]);
+      if (!found.has(id)) throw new ValidationError(`${field.label}: that record wasn't found`);
     }
     if (options.enforceRequired) {
       const missing = fields.filter(

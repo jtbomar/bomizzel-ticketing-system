@@ -5,6 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import AgentProfile from '../components/AgentProfile';
 import DepartmentSelector from '../components/DepartmentSelector';
 import AgentGlobalSearch from '../components/AgentGlobalSearch';
+import ModulesNav from '../components/ModulesNav';
 import KanbanTemplates, { Template } from '../components/KanbanTemplates';
 import { apiService } from '../services/api';
 import {
@@ -1780,6 +1781,7 @@ const AgentDashboard: React.FC = () => {
                   </svg>
                   <span>Accounts</span>
                 </button>
+                <ModulesNav />
               </div>
             </div>
 
