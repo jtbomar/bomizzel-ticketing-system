@@ -27,6 +27,7 @@ const BUILT_SETTINGS = new Set([
   '/admin/settings/email',
   '/admin/settings/game-scope',
   '/admin/settings/holidays',
+  '/admin/settings/macros',
   '/admin/settings/products',
   '/admin/settings/profiles',
   '/admin/settings/rebranding',

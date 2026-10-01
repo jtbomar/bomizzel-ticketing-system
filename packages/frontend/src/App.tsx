@@ -48,6 +48,7 @@ const OrganizationalRoles = lazy(() => import('./pages/OrganizationalRoles'));
 const Profiles = lazy(() => import('./pages/Profiles'));
 const Products = lazy(() => import('./pages/Products'));
 const AssignmentRules = lazy(() => import('./pages/AssignmentRules'));
+const Macros = lazy(() => import('./pages/Macros'));
 const Gamification = lazy(() => import('./pages/Gamification'));
 const TicketStatusManagement = lazy(() => import('./pages/TicketStatusManagement'));
 const AgentCreateTicketForm = lazy(() => import('./components/AgentCreateTicketForm'));
@@ -308,6 +309,23 @@ function App() {
                       element={
                         <ProtectedRoute requiredRole="admin">
                           <Products />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Admins manage shared macros here; agents reach it from a ticket */}
+                    <Route
+                      path="/admin/settings/macros"
+                      element={
+                        <ProtectedRoute requiredRole="admin">
+                          <Macros />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/macros"
+                      element={
+                        <ProtectedRoute requiredRole="employee">
+                          <Macros />
                         </ProtectedRoute>
                       }
                     />

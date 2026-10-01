@@ -1338,6 +1338,33 @@ class ApiService {
     return response.data;
   }
 
+  // Macros: saved replies + ticket changes
+  async getMacros(): Promise<any> {
+    const response = await this.client.get('/macros');
+    return response.data;
+  }
+
+  async createMacro(macro: any): Promise<any> {
+    const response = await this.client.post('/macros', macro);
+    return response.data;
+  }
+
+  async updateMacro(id: string, macro: any): Promise<any> {
+    const response = await this.client.put(`/macros/${id}`, macro);
+    return response.data;
+  }
+
+  async deleteMacro(id: string): Promise<any> {
+    const response = await this.client.delete(`/macros/${id}`);
+    return response.data;
+  }
+
+  /** Makes the macro's changes; returns { ticket, reply, changed } (reply not sent). */
+  async applyMacro(macroId: string, ticketId: string): Promise<any> {
+    const response = await this.client.post(`/macros/${macroId}/apply`, { ticketId });
+    return response.data;
+  }
+
   // Assignment rules (Settings > Assignment Rules)
   async getAssignmentRules(): Promise<any> {
     const response = await this.client.get('/assignment-rules');

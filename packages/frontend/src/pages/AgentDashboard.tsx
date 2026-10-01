@@ -648,6 +648,18 @@ const AgentDashboard: React.FC = () => {
   const [newNoteContent, setNewNoteContent] = useState('');
   const [newNoteHtml, setNewNoteHtml] = useState('');
   const [newNoteIsInternal, setNewNoteIsInternal] = useState(false);
+  // Macros the agent can apply (shared + their own), and what the last one did
+  const [macros, setMacros] = useState<{ id: string; name: string; shared: boolean }[]>([]);
+  const [applyingMacro, setApplyingMacro] = useState(false);
+  const [macroNotice, setMacroNotice] = useState('');
+  useEffect(() => {
+    apiService
+      .getMacros()
+      .then((data) => setMacros(data.macros || []))
+      .catch(() => setMacros([]));
+  }, []);
+  const openTicketId = selectedTicket?.id;
+  useEffect(() => setMacroNotice(''), [openTicketId]);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -972,6 +984,66 @@ const AgentDashboard: React.FC = () => {
 
     setNewNoteContent('');
     setNewNoteHtml('');
+    setMacroNotice('');
+  };
+
+  // Apply a macro: the server makes its changes; its reply goes in the note
+  // box for the agent to check and send.
+  const applyMacroToTicket = async (ticketId: number, macroId: string) => {
+    const uuidTicketId = ticketIdMap.get(ticketId);
+    const macro = macros.find((m) => m.id === macroId);
+    if (!uuidTicketId || !macro) return;
+    if (newNoteContent.trim() && !confirm("Replace what you have typed with the macro's reply?"))
+      return;
+    setApplyingMacro(true);
+    setMacroNotice('');
+    try {
+      const { ticket: t, reply, changed } = await apiService.applyMacro(macroId, uuidTicketId);
+      if (t) {
+        const assigned = t.assignedTo
+          ? t.assignedTo.id === user?.id
+            ? 'You'
+            : `${t.assignedTo.firstName} ${t.assignedTo.lastName}`
+          : 'Unassigned';
+        const update = (ticket: Ticket): Ticket => ({
+          ...ticket,
+          status: t.status,
+          resolution: t.resolution ?? null,
+          resolvedAt: t.resolvedAt || ticket.resolvedAt || null,
+          closedAt: t.closedAt || ticket.closedAt || null,
+          priority: priorityFromNumber(t.priority),
+          departmentId: t.departmentId ?? ticket.departmentId ?? null,
+          assigned,
+        });
+        setTickets((prev) => prev.map((x) => (x.id === ticketId ? update(x) : x)));
+        setSelectedTicket((prev) => (prev && prev.id === ticketId ? update(prev) : prev));
+      }
+      if (reply) {
+        setNewNoteHtml(reply.html);
+        setNewNoteContent(reply.text);
+        setNewNoteIsInternal(!!reply.isInternal);
+      }
+      const what: Record<string, string> = {
+        status: 'status',
+        priority: 'priority',
+        assignedToId: 'assignee',
+        departmentId: 'department',
+      };
+      const done = (changed || []).map((c: string) => what[c]).filter(Boolean);
+      setMacroNotice(
+        `"${macro.name}" applied.` +
+          (done.length ? ` Changed the ${done.join(', ')}.` : '') +
+          (reply ? ' Check the reply below, then add it.' : '')
+      );
+    } catch (error: any) {
+      alert(
+        `Couldn't apply the macro: ${
+          error.response?.data?.error?.message || error.response?.data?.error || error.message
+        }`
+      );
+    } finally {
+      setApplyingMacro(false);
+    }
   };
 
   // Edit note
@@ -2629,6 +2701,49 @@ const AgentDashboard: React.FC = () => {
                   {/* Add New Note */}
                   <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-900/30">
                     <div className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select
+                          value=""
+                          disabled={applyingMacro || macros.length === 0}
+                          onChange={(e) =>
+                            e.target.value && applyMacroToTicket(selectedTicket.id, e.target.value)
+                          }
+                          aria-label="Apply a macro"
+                          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">
+                            {applyingMacro
+                              ? 'Applying...'
+                              : macros.length
+                                ? '⚡ Apply a macro...'
+                                : 'No macros yet'}
+                          </option>
+                          {macros.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name}
+                              {m.shared ? '' : ' (yours)'}
+                            </option>
+                          ))}
+                        </select>
+                        <a
+                          href="/macros"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate('/macros');
+                          }}
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Manage macros
+                        </a>
+                        {macroNotice && (
+                          <span
+                            role="status"
+                            className="text-sm text-green-700 dark:text-green-400"
+                          >
+                            {macroNotice}
+                          </span>
+                        )}
+                      </div>
                       <RichTextEditor
                         value={newNoteHtml}
                         onChange={({ html, text, isEmpty }) => {
