@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
+import { useSeatConfirm } from '../components/SeatConfirm';
 
 interface User {
   id: string;
@@ -15,6 +16,7 @@ const Agents: React.FC = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const { confirmSeat, seatDialog } = useSeatConfirm();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -93,6 +95,8 @@ const Agents: React.FC = () => {
       alert('Please fill in all required fields');
       return;
     }
+    // On a paid plan: what the extra agent costs, before adding them
+    if (newUser.role !== 'customer' && !(await confirmSeat())) return;
 
     try {
       // Only send non-empty fields
@@ -177,6 +181,8 @@ const Agents: React.FC = () => {
   };
 
   const toggleStatus = async (userId: string, currentStatus: boolean) => {
+    // Switching an agent back on adds them to the bill
+    if (!currentStatus && !(await confirmSeat())) return;
     try {
       await apiService.updateUser(userId, { isActive: !currentStatus });
       fetchUsers();
@@ -265,6 +271,7 @@ const Agents: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6">
+      {seatDialog}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">

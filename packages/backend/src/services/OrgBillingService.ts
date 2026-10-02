@@ -2,7 +2,14 @@ import Stripe from 'stripe';
 import { db } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { PLANS, agentCount, planByKey, type Interval, type PlanKey } from './PlanService';
+import {
+  PLANS,
+  agentCount,
+  effectivePlan,
+  planByKey,
+  type Interval,
+  type PlanKey,
+} from './PlanService';
 
 /**
  * A company's subscription through Stripe: Checkout to start paying, the
@@ -27,6 +34,20 @@ export const billingEnabled = () => !!process.env['STRIPE_SECRET_KEY'];
 export const setStripeClient = (c: any) => {
   client = c;
 };
+
+/**
+ * When a seat or plan change is charged: on a monthly plan the prorated
+ * amount goes on the next invoice (at most a month away); on a yearly plan
+ * it's charged straight away - the next invoice could be a year off.
+ */
+const prorationFor = (interval: string | null | undefined) =>
+  interval === 'year' ? ('always_invoice' as const) : ('create_prorations' as const);
+
+/** Is this invoice line a proration (Stripe has said so in two ways over API versions)? */
+const isProration = (line: any): boolean =>
+  line?.proration === true ||
+  line?.parent?.subscription_item_details?.proration === true ||
+  line?.parent?.invoice_item_details?.proration === true;
 
 const frontend = () =>
   (process.env['FRONTEND_URL'] || 'https://www.bomizzel.com').replace(/\/$/, '');
@@ -146,7 +167,7 @@ export class OrgBillingService {
       const item = sub.items.data[0];
       const updated = await stripe().subscriptions.update(sub.id, {
         items: [{ id: item!.id, price, quantity: seats }],
-        proration_behavior: 'create_prorations',
+        proration_behavior: prorationFor(interval),
         metadata: { org_id: orgId },
       });
       await this.sync(updated);
@@ -272,7 +293,7 @@ export class OrgBillingService {
       await this.sync(
         await stripe().subscriptions.update(sub.id, {
           items: [{ id: item.id, quantity: seats }],
-          proration_behavior: 'create_prorations',
+          proration_behavior: prorationFor(company.billing_interval),
         })
       );
     } catch (error) {
@@ -281,6 +302,73 @@ export class OrgBillingService {
         error: error instanceof Error ? error.message : String(error),
       });
     }
+  }
+
+  /**
+   * What adding (or removing) agents would cost, for the confirmation on the
+   * Agents page: only for a company paying through Stripe - a trial, Free or
+   * a plan given free costs nothing more. The amount is Stripe's own preview
+   * of the prorated charge, or an estimate if Stripe can't be reached.
+   */
+  static async seatPreview(orgId: string, change = 1) {
+    const company = await db('companies').where('id', orgId).first();
+    const { plan, source } = effectivePlan(company);
+    if (
+      !billingEnabled() ||
+      (source !== 'paid' && source !== 'grace') ||
+      !company?.stripe_subscription_id
+    ) {
+      return { applies: false as const, source };
+    }
+    const seats = Math.max(1, await agentCount(orgId));
+    const seatsAfter = Math.max(1, seats + change);
+    const interval: Interval = company.billing_interval === 'year' ? 'year' : 'month';
+    // Dollars per agent per billing period
+    const perAgent = interval === 'year' ? plan.yearly * 12 : plan.monthly;
+    const periodEnd = company.current_period_end ? new Date(company.current_period_end) : null;
+
+    let prorationCents: number | null = null;
+    try {
+      const sub = await stripe().subscriptions.retrieve(company.stripe_subscription_id);
+      const item = sub.items.data[0];
+      if (item) {
+        const preview: any = await (stripe().invoices as any).createPreview({
+          customer: company.stripe_customer_id,
+          subscription: sub.id,
+          subscription_details: {
+            items: [{ id: item.id, quantity: seatsAfter }],
+            proration_behavior: prorationFor(interval),
+          },
+        });
+        prorationCents = (preview?.lines?.data || [])
+          .filter(isProration)
+          .reduce((sum: number, l: any) => sum + (Number(l.amount) || 0), 0);
+      }
+    } catch (error) {
+      logger.warn('Seat preview from Stripe failed; estimating', {
+        orgId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    if (prorationCents === null) {
+      // The share of the billing period that's left, times the change
+      const periodMs = (interval === 'year' ? 365 : 30) * 86400000;
+      const left = periodEnd
+        ? Math.min(1, Math.max(0, (periodEnd.getTime() - Date.now()) / periodMs))
+        : 1;
+      prorationCents = Math.round(perAgent * 100 * (seatsAfter - seats) * left);
+    }
+    return {
+      applies: true as const,
+      plan: plan.name,
+      interval,
+      perAgent,
+      seats,
+      seatsAfter,
+      prorationAmount: Math.round(prorationCents) / 100,
+      chargedNow: interval === 'year',
+      nextInvoiceDate: periodEnd,
+    };
   }
 
   static plansForDisplay() {

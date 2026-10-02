@@ -70,6 +70,16 @@ router.post('/checkout', authorize('admin'), async (req, res, next) => {
   }
 });
 
+// What adding (change=1) or removing (change=-1) an agent would cost
+router.get('/seat-preview', authorize('admin'), async (req, res, next) => {
+  try {
+    const change = Number(req.query['change']) === -1 ? -1 : 1;
+    res.json(await OrgBillingService.seatPreview(requireTenantId(req.user), change));
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/portal', authorize('admin'), async (req, res, next) => {
   try {
     res.json(await OrgBillingService.portal(requireTenantId(req.user)));

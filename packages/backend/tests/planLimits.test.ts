@@ -25,6 +25,7 @@ describe('plans and billing', () => {
 
   // A fake Stripe: records what was asked, returns plausible objects
   const calls: Record<string, any[]> = {};
+  const updateArgs: any[] = [];
   const record = (name: string, value: any) => ((calls[name] ||= []).push(value), value);
   const fakeSub = (overrides: any = {}) => ({
     id: 'sub_1',
@@ -71,12 +72,26 @@ describe('plans and billing', () => {
     subscriptions: {
       retrieve: async () => fakeSub(),
       update: async (id: string, args: any) =>
+        updateArgs.push(args) &&
         record(
           'subscriptions.update',
           fakeSub({
             items: { data: [{ ...fakeSub().items.data[0], quantity: args.items[0].quantity }] },
           })
         ),
+    },
+    invoices: {
+      createPreview: async (args: any) =>
+        record('invoices.preview', {
+          lines: {
+            data: [
+              // The prorated part, and next period's regular charge
+              { amount: 1250, parent: { subscription_item_details: { proration: true } } },
+              { amount: 5000, parent: { subscription_item_details: { proration: false } } },
+            ],
+          },
+          args,
+        }),
     },
     webhooks: {
       constructEvent: (raw: Buffer, signature: string) => {
@@ -374,7 +389,94 @@ describe('plans and billing', () => {
     calls['subscriptions.update'] = [];
     expect((await addAgent()).status).toBe(201); // now 3 agents
     expect(calls['subscriptions.update']!.at(-1)).toBeDefined();
+    expect(updateArgs.at(-1).proration_behavior).toBe('create_prorations'); // monthly
     expect((await db('companies').where('id', SUB).first()).seats).toBe(3);
+  });
+
+  it('charges a yearly plan’s extra agent straight away, a monthly one on the next invoice', async () => {
+    await setCompany({
+      plan: 'professional',
+      subscription_status: 'active',
+      stripe_subscription_id: 'sub_1',
+      billing_interval: 'year',
+      seats: 1,
+    });
+    calls['subscriptions.update'] = [];
+    // Seat sync sees the company's agents and updates the subscription
+    await db('companies').where('id', SUB).update({ seats: 99 });
+    const { OrgBillingService } = await import('../src/services/OrgBillingService');
+    await OrgBillingService.syncSeats(SUB);
+    expect(updateArgs.at(-1).proration_behavior).toBe('always_invoice');
+  });
+
+  it('switching an agent off or on through the user editor counts too', async () => {
+    await setCompany({
+      plan: 'standard',
+      subscription_status: 'active',
+      stripe_subscription_id: 'sub_1',
+    });
+    const agent = await db('users')
+      .whereIn('role', ['employee'])
+      .where('email', 'like', '%@sub-pl.example.com')
+      .where('is_active', true)
+      .first();
+    updateArgs.length = 0;
+    const put = (body: object) =>
+      request(app).put(`/api/users/${agent.id}`).set('Authorization', `Bearer ${token}`).send(body);
+    expect((await put({ isActive: false })).status).toBe(200);
+    expect(updateArgs.length).toBe(1); // seat count lowered
+
+    // On Free (2 agents) with the admin and another agent active, turning
+    // one more on is refused
+    await setCompany({});
+    const active = Number(
+      (
+        await db('users')
+          .where('email', 'like', '%@sub-pl.example.com')
+          .where('is_active', true)
+          .count('* as n')
+          .first()
+      )?.n
+    );
+    expect(active).toBe(2);
+    expect((await put({ isActive: true })).status).toBe(402);
+  });
+
+  it('previews what an extra agent costs, only when paying', async () => {
+    await setCompany({ trial_ends_at: new Date(Date.now() + 5 * 86400000) });
+    expect((await api().get('/org-billing/seat-preview?change=1')).body).toMatchObject({
+      applies: false,
+      source: 'trial',
+    });
+
+    await setCompany({
+      plan: 'professional',
+      subscription_status: 'active',
+      stripe_subscription_id: 'sub_1',
+      stripe_customer_id: 'cus_1',
+      billing_interval: 'month',
+      current_period_end: new Date('2026-11-01T00:00:00Z'),
+    });
+    const monthly = (await api().get('/org-billing/seat-preview?change=1')).body;
+    expect(monthly).toMatchObject({
+      applies: true,
+      plan: 'Professional',
+      interval: 'month',
+      perAgent: 25,
+      prorationAmount: 12.5, // only the prorated line
+      chargedNow: false,
+    });
+    expect(monthly.seatsAfter).toBe(monthly.seats + 1);
+    expect(calls['invoices.preview']!.at(-1).args.subscription_details.proration_behavior).toBe(
+      'create_prorations'
+    );
+
+    await db('companies').where('id', SUB).update({ billing_interval: 'year' });
+    const yearly = (await api().get('/org-billing/seat-preview?change=1')).body;
+    expect(yearly).toMatchObject({ interval: 'year', perAgent: 240, chargedNow: true });
+    expect(calls['invoices.preview']!.at(-1).args.subscription_details.proration_behavior).toBe(
+      'always_invoice'
+    );
   });
 
   it('opens Stripe’s billing page for an admin with a Stripe customer', async () => {

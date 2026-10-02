@@ -244,10 +244,22 @@ export class UserService {
         updateFields.preferences = { ...user.preferences, ...updateData.preferences };
       }
 
+      // Becoming an active agent (activated, or made staff) counts against the
+      // plan's agents (Settings > Billing); the paid seat count follows.
+      const wasAgent = user.role !== 'customer' && user.is_active;
+      const role = updateFields.role ?? user.role;
+      const active = updateFields.is_active ?? user.is_active;
+      const isAgent = role !== 'customer' && active;
+      if (isAgent && !wasAgent) {
+        const tenant = (await tenantContextFor(userId)).tenantId;
+        if (tenant) await PlanService.assertCan(tenant, 'agent');
+      }
+
       const updatedUser = await User.update(userId, updateFields);
       if (!updatedUser) {
         throw new AppError('Failed to update user', 500, 'UPDATE_FAILED');
       }
+      if (isAgent !== wasAgent) await this.syncSeatsFor({ id: userId, role: 'staff' });
 
       logger.info(`User ${userId} updated by ${updatedById}`);
 

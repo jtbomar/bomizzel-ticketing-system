@@ -687,6 +687,12 @@ class ApiService {
     return response.data;
   }
 
+  /** What one more (or one fewer) agent would cost - for the confirmation. */
+  async seatPreview(change: 1 | -1 = 1): Promise<any> {
+    const response = await this.client.get('/org-billing/seat-preview', { params: { change } });
+    return response.data;
+  }
+
   async openBillingPortal(): Promise<{ url: string }> {
     const response = await this.client.post('/org-billing/portal', {});
     return response.data;
