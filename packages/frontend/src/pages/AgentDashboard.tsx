@@ -7,6 +7,9 @@ import DepartmentSelector from '../components/DepartmentSelector';
 import AgentGlobalSearch from '../components/AgentGlobalSearch';
 import ModulesNav from '../components/ModulesNav';
 import TrialBanner from '../components/TrialBanner';
+import ViewEditor from '../components/ViewEditor';
+import { ticketMatchesView, type SavedView } from '../utils/views';
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import KanbanTemplates, { Template } from '../components/KanbanTemplates';
 import { apiService } from '../services/api';
 import {
@@ -57,6 +60,11 @@ interface Ticket {
   resolution?: string | null;
   // Saved place in its lane (lower = higher up); null if never placed
   boardPosition?: number | null;
+  // For saved views: when it came in (ISO), how, its priority 0-3, and its agent
+  createdAt?: string;
+  source?: string;
+  priorityLevel?: number;
+  assignedToId?: string | null;
   // Standard fields from the ticket layout, and its custom field values
   productId?: number | null;
   phone?: string | null;
@@ -264,6 +272,11 @@ const AgentDashboard: React.FC = () => {
       customer: t.submitter ? `${t.submitter.firstName} ${t.submitter.lastName}` : 'Unknown',
       assigned: isAssignedToCurrentUser ? 'You' : assignedName,
       created: new Date(t.createdAt).toLocaleDateString(),
+      // For saved views (utils/views.ts)
+      createdAt: t.createdAt,
+      source: t.source || 'web',
+      priorityLevel: Number(t.priority) || 0,
+      assignedToId: t.assignedTo?.id ?? t.assignedToId ?? null,
       ticketNumber: t.ticketNumber ?? null,
       resolvedAt: t.resolvedAt || null,
       closedAt: t.closedAt || null,
@@ -564,31 +577,47 @@ const AgentDashboard: React.FC = () => {
 
   // Views state
   const [activeViewFilter, setActiveViewFilter] = useState('all-tickets');
-  const [showCreateView, setShowCreateView] = useState(false);
-  const [customViews, setCustomViews] = useState<any[]>([]);
-
-  // Load custom views from localStorage
+  // Saved views (sidebar): shared with the team, and the agent's own
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [canShareViews, setCanShareViews] = useState(false);
+  const [editingView, setEditingView] = useState<SavedView | 'new' | null>(null);
+  const [textFieldKeys, setTextFieldKeys] = useState<Set<string>>(new Set());
+  const loadViews = useCallback(() => {
+    apiService
+      .getViews()
+      .then((r) => {
+        setSavedViews(r.views || []);
+        setCanShareViews(!!r.canShare);
+      })
+      .catch(() => setSavedViews([]));
+  }, []);
   useEffect(() => {
-    if (user) {
-      const userKey = `agent-custom-views-${user.id}`;
-      const saved = localStorage.getItem(userKey);
-      if (saved) {
-        try {
-          setCustomViews(JSON.parse(saved));
-        } catch (error) {
-          console.error('Failed to load custom views:', error);
-        }
-      }
+    loadViews();
+    // Text custom fields match by words in views
+    apiService
+      .getFields('tickets')
+      .then((l) =>
+        setTextFieldKeys(
+          new Set(
+            (l.customFields || [])
+              .filter((f: any) => ['text', 'textarea', 'email', 'phone', 'url'].includes(f.type))
+              .map((f: any) => f.key)
+          )
+        )
+      )
+      .catch(() => undefined);
+  }, [loadViews]);
+  const viewContext = { userId: user?.id, textFields: textFieldKeys };
+  const deleteSavedView = async (view: SavedView) => {
+    if (!confirm(`Delete the view "${view.name}"?`)) return;
+    try {
+      await apiService.deleteView(view.id);
+      if (activeViewFilter === `view:${view.id}`) setActiveViewFilter('all-tickets');
+      loadViews();
+    } catch (error: any) {
+      alert(`Couldn't delete the view: ${error.response?.data?.error?.message || error.message}`);
     }
-  }, [user]);
-
-  // Save custom views to localStorage
-  useEffect(() => {
-    if (user) {
-      const userKey = `agent-custom-views-${user.id}`;
-      localStorage.setItem(userKey, JSON.stringify(customViews));
-    }
-  }, [customViews, user]);
+  };
 
   // Default views for filtering - use same logic as main filtering
   const defaultViews = [
@@ -651,6 +680,11 @@ const AgentDashboard: React.FC = () => {
       ticket.assigned === currentUserName ||
       (!!user && ticket.assigned === user.email);
 
+    // A saved view
+    if (activeViewFilter.startsWith('view:')) {
+      const view = savedViews.find((v) => `view:${v.id}` === activeViewFilter);
+      if (view) return tickets.filter((t) => ticketMatchesView(t, view.conditions, viewContext));
+    }
     // One agent's tickets (the "Agent queues" list)
     if (activeViewFilter.startsWith('agent-')) {
       const name = activeViewFilter.slice('agent-'.length);
@@ -666,7 +700,7 @@ const AgentDashboard: React.FC = () => {
     return showOnlyMyTickets ? tickets.filter(isMine) : tickets;
     // defaultViews is rebuilt each render but only depends on user
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickets, activeViewFilter, showOnlyMyTickets, user]);
+  }, [tickets, activeViewFilter, showOnlyMyTickets, user, savedViews, textFieldKeys]);
 
   // Board settings state
   const [boardSettings, setBoardSettings] = useState({
@@ -2125,7 +2159,7 @@ const AgentDashboard: React.FC = () => {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Views</h2>
               <div className="flex items-center space-x-1">
                 <button
-                  onClick={() => setShowCreateView(true)}
+                  onClick={() => setEditingView('new')}
                   className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
                   title="Create new view"
                 >
@@ -2287,85 +2321,72 @@ const AgentDashboard: React.FC = () => {
                 )}
               </div>
 
-              {/* Custom Views */}
-              {customViews.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                    Custom Views
-                  </h3>
-                  <div className="space-y-1">
-                    {customViews.map((view) => {
-                      // Calculate count for this specific view
-                      const viewTickets = tickets.filter((ticket) => {
-                        let matches = true;
-                        if (view.filters.status && view.filters.status !== 'all') {
-                          matches = matches && ticket.status === view.filters.status;
-                        }
-                        if (view.filters.priority && view.filters.priority !== 'all') {
-                          matches = matches && ticket.priority === view.filters.priority;
-                        }
-                        if (view.filters.assigned && view.filters.assigned !== 'all') {
-                          matches = matches && ticket.assigned === view.filters.assigned;
-                        }
-                        return matches;
-                      });
-                      const count = viewTickets.length;
-                      return (
-                        <div key={view.id} className="group relative">
-                          <button
-                            onClick={() => setActiveViewFilter(view.id)}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
-                              activeViewFilter === view.id
-                                ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center">
-                              <span className="mr-2">{view.icon}</span>
-                              <span>{view.name}</span>
+              {/* Saved views (shared with the team, then your own) */}
+              {savedViews.length > 0 &&
+                [
+                  { title: 'Team views', items: savedViews.filter((v) => v.shared) },
+                  { title: 'My views', items: savedViews.filter((v) => !v.shared) },
+                ]
+                  .filter((g) => g.items.length > 0)
+                  .map((group) => (
+                    <div key={group.title}>
+                      <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                        {group.title}
+                      </h3>
+                      <div className="space-y-1">
+                        {group.items.map((view) => {
+                          const id = `view:${view.id}`;
+                          const count = tickets.filter((t) =>
+                            ticketMatchesView(t, view.conditions, viewContext)
+                          ).length;
+                          const editable = !view.shared || canShareViews;
+                          return (
+                            <div key={view.id} className="group relative">
+                              <button
+                                onClick={() => setActiveViewFilter(id)}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${
+                                  activeViewFilter === id
+                                    ? 'bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100'
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                              >
+                                <span className="truncate">{view.name}</span>
+                                <span
+                                  className={`px-2 py-0.5 text-xs rounded-full ${editable ? 'group-hover:opacity-0' : ''} ${
+                                    activeViewFilter === id
+                                      ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
+                                      : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                                  }`}
+                                >
+                                  {count}
+                                </span>
+                              </button>
+                              {editable && (
+                                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingView(view)}
+                                    aria-label={`Edit view ${view.name}`}
+                                    className="p-1 rounded text-gray-500 hover:text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
+                                    <PencilSquareIcon className="h-4 w-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteSavedView(view)}
+                                    aria-label={`Delete view ${view.name}`}
+                                    className="p-1 rounded text-gray-500 hover:text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            <span
-                              className={`px-2 py-0.5 text-xs rounded-full ${
-                                activeViewFilter === view.id
-                                  ? 'bg-purple-200 dark:bg-purple-800 text-purple-800 dark:text-purple-200'
-                                  : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
-                              }`}
-                            >
-                              {count}
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete view "${view.name}"?`)) {
-                                setCustomViews(customViews.filter((v) => v.id !== view.id));
-                                if (activeViewFilter === view.id) {
-                                  setActiveViewFilter('all-tickets');
-                                }
-                              }
-                            }}
-                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Delete view"
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
             </div>
           </div>
         </div>
@@ -2441,168 +2462,22 @@ const AgentDashboard: React.FC = () => {
         />
       )}
 
-      {/* Create View Modal */}
-      {showCreateView && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-          <div className="relative w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Create Custom View
-              </h3>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const newView = {
-                  id: `custom-${Date.now()}`,
-                  name: formData.get('name') as string,
-                  icon: '⭐',
-                  filters: {
-                    status: formData.get('status') as string,
-                    priority: formData.get('priority') as string,
-                    assigned: formData.get('assigned') as string,
-                  },
-                };
-                setCustomViews([...customViews, newView]);
-                setActiveViewFilter(newView.id);
-                setShowCreateView(false);
-              }}
-              className="p-6 space-y-6"
-            >
-              {/* View Name */}
-              <div>
-                <label className="block text-sm font-medium text-red-600 dark:text-red-400 mb-2">
-                  View Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  required
-                  placeholder="Enter view name"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white"
-                />
-              </div>
-
-              {/* Filter Criteria */}
-              <div>
-                <label className="block text-sm font-medium text-red-600 dark:text-red-400 mb-2">
-                  Filter Criteria *
-                </label>
-                <div className="flex items-start gap-3 mb-2">
-                  <div className="flex items-center justify-center pt-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 w-6">1</span>
-                  </div>
-                  <div className="flex-1">
-                    <select
-                      name="field"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
-                    >
-                      <option value="">-- Click to select --</option>
-                      <optgroup label="TICKETS">
-                        <option value="subject">Subject</option>
-                        <option value="description">Description</option>
-                        <option value="contact_name">Contact Name</option>
-                        <option value="email">Email</option>
-                        <option value="phone">Phone</option>
-                      </optgroup>
-                      <optgroup label="PROPERTIES">
-                        <option value="status">Status</option>
-                        <option value="priority">Priority</option>
-                        <option value="product">Product</option>
-                        <option value="ticket_owner">Ticket Owner</option>
-                        <option value="assigned_to">Assigned To</option>
-                        <option value="created_by">Created By</option>
-                        <option value="modified_by">Modified By</option>
-                        <option value="created_time">Created Time</option>
-                        <option value="modified_time">Modified Time</option>
-                        <option value="due_date">Due Date</option>
-                        <option value="category">Category</option>
-                        <option value="tags">Tags</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                  <div className="w-32">
-                    <select
-                      name="operator"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
-                    >
-                      <option value="is">is</option>
-                      <option value="isnt">isn't</option>
-                      <option value="starts_with">starts with</option>
-                      <option value="ends_with">ends with</option>
-                      <option value="contains">contains</option>
-                      <option value="doesnt_contain">doesn't contain</option>
-                      <option value="is_empty">is empty</option>
-                      <option value="is_not_empty">is not empty</option>
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      name="value"
-                      placeholder="Enter comma separated values"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white text-sm"
-                    />
-                  </div>
-                  <div className="flex items-center pt-2">
-                    <button
-                      type="button"
-                      className="p-1 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded border border-blue-300 dark:border-blue-600"
-                      title="Add filter"
-                    >
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Visible To */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Visible To
-                </label>
-                <select
-                  name="visibility"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-                >
-                  <option value="only_me">Only Me</option>
-                  <option value="team">My Team</option>
-                  <option value="everyone">Everyone</option>
-                </select>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateView(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Create View
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      {/* Saved view: new / edit */}
+      {editingView && (
+        <ViewEditor
+          view={editingView === 'new' ? null : editingView}
+          canShare={canShareViews}
+          agents={agents.map((a: any) => ({
+            id: a.id,
+            name: `${a.firstName} ${a.lastName}`.trim(),
+          }))}
+          onClose={() => setEditingView(null)}
+          onSaved={(v) => {
+            setEditingView(null);
+            loadViews();
+            setActiveViewFilter(`view:${v.id}`);
+          }}
+        />
       )}
 
       {/* Create Company Modal */}

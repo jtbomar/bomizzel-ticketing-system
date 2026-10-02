@@ -673,6 +673,26 @@ class ApiService {
   }
 
   // Subscription endpoints
+  // Saved views of the ticket board
+  async getViews(): Promise<{ views: any[]; canShare: boolean }> {
+    const response = await this.client.get('/views');
+    return response.data;
+  }
+
+  async createView(view: { name: string; shared: boolean; conditions: any[] }): Promise<any> {
+    const response = await this.client.post('/views', view);
+    return response.data.view;
+  }
+
+  async updateView(id: string, view: { name: string; conditions: any[] }): Promise<any> {
+    const response = await this.client.put(`/views/${id}`, view);
+    return response.data.view;
+  }
+
+  async deleteView(id: string): Promise<void> {
+    await this.client.delete(`/views/${id}`);
+  }
+
   // Billing (Settings > Billing)
   async getBilling(): Promise<any> {
     const response = await this.client.get('/org-billing');
@@ -1434,7 +1454,7 @@ class ApiService {
   // Custom modules (Settings > Modules) and their records
   async getModules(): Promise<{ id: string; key: string; name: string; singular: string }[]> {
     const response = await this.client.get('/modules');
-    return response.data.modules;
+    return Array.isArray(response.data?.modules) ? response.data.modules : [];
   }
 
   async createModule(data: { name: string; singular: string }): Promise<any> {
