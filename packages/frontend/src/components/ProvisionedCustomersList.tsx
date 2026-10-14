@@ -5,8 +5,14 @@ import { getApiBaseUrl } from '../services/api';
 // A subscriber: a company that signed up at bomizzel.com or was provisioned
 // here. Sign-ups have no subscription row yet, so subscriptionId is null and
 // the Update / Disable / Delete actions (which work on a subscription) are hidden.
+// "Give free plan" works on any subscriber.
+type CompPlan = 'standard' | 'professional';
+
 interface Customer {
   subscriptionId: string | null;
+  plan: { key: string; name: string; source: 'comped' | 'paid' | 'grace' | 'trial' | 'free' };
+  compedPlan: CompPlan | null;
+  billingStatus: string | null;
   source: 'signup' | 'provisioned';
   status: string;
   limits: {
@@ -32,6 +38,14 @@ interface Customer {
   createdAt: string;
 }
 
+const PLAN_SOURCE_LABEL: Record<Customer['plan']['source'], string> = {
+  comped: 'Free (given)',
+  paid: 'Paying',
+  grace: 'Payment failed',
+  trial: 'Trial',
+  free: 'Free tier',
+};
+
 const ProvisionedCustomersList: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +58,9 @@ const ProvisionedCustomersList: React.FC = () => {
     maxActiveTickets: 0,
     reason: '',
   });
+  const [compFor, setCompFor] = useState<Customer | null>(null);
+  const [compPlan, setCompPlan] = useState<CompPlan>('professional');
+  const [compSaving, setCompSaving] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -173,6 +190,39 @@ const ProvisionedCustomersList: React.FC = () => {
     }
   };
 
+  const openCompModal = (customer: Customer) => {
+    setCompFor(customer);
+    setCompPlan(customer.compedPlan || 'professional');
+  };
+
+  const saveCompedPlan = async (plan: CompPlan | null) => {
+    if (!compFor) return;
+    if (
+      plan === null &&
+      !confirm(
+        `Take away ${compFor.company.name}'s free plan? They'll go back to their trial, a paid plan, or the Free tier.`
+      )
+    ) {
+      return;
+    }
+    setCompSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = getApiBaseUrl();
+      await axios.put(
+        `${apiUrl}/admin/provisioning/companies/${compFor.company.id}/comped-plan`,
+        { plan },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setCompFor(null);
+      fetchCustomers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to change the free plan');
+    } finally {
+      setCompSaving(false);
+    }
+  };
+
   const openUpdateModal = (customer: Customer) => {
     setSelectedCustomer(customer.subscriptionId);
     setUpdateLimits({
@@ -254,6 +304,7 @@ const ProvisionedCustomersList: React.FC = () => {
                 <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                   Status
                 </th>
+                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Plan</th>
                 <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                   Limits
                 </th>
@@ -296,6 +347,18 @@ const ProvisionedCustomersList: React.FC = () => {
                       {customer.status}
                     </span>
                   </td>
+                  <td className="whitespace-nowrap px-3 py-4 text-sm">
+                    <div className="font-medium text-gray-900">{customer.plan.name}</div>
+                    <div
+                      className={
+                        customer.plan.source === 'comped'
+                          ? 'text-green-700 text-xs font-semibold'
+                          : 'text-gray-400 text-xs'
+                      }
+                    >
+                      {PLAN_SOURCE_LABEL[customer.plan.source]}
+                    </div>
+                  </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     <div>Users: {customer.limits.maxUsers ?? '—'}</div>
                     <div>Tickets: {customer.limits.maxActiveTickets ?? '—'}</div>
@@ -315,6 +378,12 @@ const ProvisionedCustomersList: React.FC = () => {
                     </div>
                   </td>
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium space-x-2">
+                    <button
+                      onClick={() => openCompModal(customer)}
+                      className="text-green-700 hover:text-green-900"
+                    >
+                      {customer.compedPlan ? 'Free plan…' : 'Give free plan'}
+                    </button>
                     {customer.subscriptionId ? (
                       <>
                         <button
@@ -353,6 +422,88 @@ const ProvisionedCustomersList: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Give free plan */}
+      {compFor && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75"
+              onClick={() => !compSaving && setCompFor(null)}
+            ></div>
+            <div className="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl sm:max-w-md w-full sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Free plan for {compFor.company.name}
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                They get this plan at no charge with no end date. It takes the place of their trial
+                and they won't be asked to pay.
+              </p>
+
+              <div className="mt-4 space-y-2">
+                {(['professional', 'standard'] as CompPlan[]).map((key) => (
+                  <label
+                    key={key}
+                    className={`flex items-center gap-3 rounded-md border px-3 py-2 cursor-pointer ${
+                      compPlan === key ? 'border-green-600 bg-green-50' : 'border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="comp-plan"
+                      checked={compPlan === key}
+                      onChange={() => setCompPlan(key)}
+                    />
+                    <span className="text-sm font-medium text-gray-900">
+                      {key === 'professional' ? 'Professional' : 'Standard'}
+                    </span>
+                  </label>
+                ))}
+              </div>
+
+              {['active', 'trialing', 'past_due'].includes(compFor.billingStatus || '') && (
+                <p className="mt-4 rounded-md bg-yellow-50 border border-yellow-200 p-3 text-sm text-yellow-800">
+                  This company also has a paid Stripe subscription. A free plan doesn't cancel it -
+                  cancel it in Stripe so they stop being charged.
+                </p>
+              )}
+
+              <div className="mt-5 flex items-center justify-between gap-3">
+                {compFor.compedPlan ? (
+                  <button
+                    type="button"
+                    disabled={compSaving}
+                    onClick={() => saveCompedPlan(null)}
+                    className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                  >
+                    Remove free plan
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={compSaving}
+                    onClick={() => setCompFor(null)}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={compSaving || compPlan === compFor.compedPlan}
+                    onClick={() => saveCompedPlan(compPlan)}
+                    className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {compSaving ? 'Saving…' : compFor.compedPlan ? 'Change plan' : 'Give free plan'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

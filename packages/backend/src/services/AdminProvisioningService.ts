@@ -6,6 +6,7 @@ import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { ensureSupportSlug } from '@/utils/supportEmail';
+import { effectivePlan, planByKey, PlanKey } from '@/services/PlanService';
 
 export interface CustomSubscriptionLimits {
   maxUsers?: number;
@@ -341,6 +342,10 @@ export class AdminProvisioningService {
           'c.max_users',
           'c.max_tickets_per_month',
           'c.created_at',
+          'c.comped_plan',
+          'c.plan',
+          'c.subscription_status as billing_status',
+          'c.past_due_since',
           'cs.id as subscription_id',
           'cs.status as subscription_status',
           'cs.limits',
@@ -392,8 +397,19 @@ export class AdminProvisioningService {
           } else status = 'active';
         }
 
+        const current = effectivePlan({
+          comped_plan: row.comped_plan,
+          plan: row.plan,
+          subscription_status: row.billing_status,
+          past_due_since: row.past_due_since,
+          trial_ends_at: row.trial_ends_at,
+        });
+
         return {
           subscriptionId: row.subscription_id || null,
+          plan: { key: current.plan.key, name: current.plan.name, source: current.source },
+          compedPlan: row.comped_plan || null,
+          billingStatus: row.billing_status || null,
           source: row.subscription_id ? 'provisioned' : 'signup',
           status,
           limits: row.limits || {
@@ -432,6 +448,39 @@ export class AdminProvisioningService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Give a subscriber a plan for free (no charge, no end date), change it, or
+   * take it away (plan null). A free plan wins over trial and Stripe - see
+   * effectivePlan. It doesn't cancel a paid Stripe subscription.
+   */
+  static async setCompedPlan(companyId: string, plan: PlanKey | null, changedBy: string) {
+    const db = CustomerSubscription.db;
+    const company = await db('companies').where('id', companyId).first();
+    if (!company || company.subscriber_id) throw new AppError('Subscriber not found', 404);
+    if (plan && (plan === 'free' || planByKey(plan).key !== plan)) {
+      throw new AppError('Plan must be standard or professional', 400);
+    }
+
+    await db('companies')
+      .where('id', companyId)
+      .update({ comped_plan: plan, updated_at: new Date() });
+
+    logger.warn('Free plan changed', {
+      companyId,
+      company: company.name,
+      from: company.comped_plan || null,
+      to: plan,
+      changedBy,
+    });
+
+    const current = effectivePlan({ ...company, comped_plan: plan });
+    return {
+      companyId,
+      compedPlan: plan,
+      plan: { key: current.plan.key, name: current.plan.name, source: current.source },
+    };
   }
 
   /**

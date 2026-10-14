@@ -68,6 +68,7 @@ const PLATFORM_ONLY = [
   // BSI customer management, the raw SQL query builder, and monitoring
   ['get', '/api/admin/provisioning/customers'],
   ['post', '/api/admin/provisioning/customers'],
+  ['put', '/api/admin/provisioning/companies/00000000-0000-0000-0000-000000000000/comped-plan'],
   ['post', '/api/query-builder/execute'],
   ['get', '/api/query-builder/schema'],
   ['get', '/api/monitoring/performance'],

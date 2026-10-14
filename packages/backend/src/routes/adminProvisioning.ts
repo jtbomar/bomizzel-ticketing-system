@@ -255,6 +255,34 @@ router.get('/subscriptions/:subscriptionId', async (req: Request, res: Response)
   }
 });
 
+/**
+ * PUT /api/admin/provisioning/companies/:companyId/comped-plan
+ * Give a subscriber a plan for free ({ plan: 'standard' | 'professional' }),
+ * or take it away ({ plan: null })
+ */
+router.put(
+  '/companies/:companyId/comped-plan',
+  validate(
+    Joi.object({ plan: Joi.string().valid('standard', 'professional').allow(null).required() })
+  ),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const data = await AdminProvisioningService.setCompedPlan(
+        req.params.companyId!,
+        req.body.plan,
+        req.user!.id
+      );
+      res.json({ success: true, data });
+    } catch (error: any) {
+      logger.error('Failed to change free plan', { error });
+      res.status(error?.statusCode || 500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to change free plan',
+      });
+    }
+  }
+);
+
 export default router;
 
 /**
