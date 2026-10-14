@@ -79,6 +79,8 @@ describe('give a subscriber a free plan', () => {
     const row = await listed();
     expect(row.plan).toEqual({ key: 'professional', name: 'Professional', source: 'trial' });
     expect(row.compedPlan).toBeNull();
+    expect(row.status).toBe('trial');
+    expect(row.currentPeriod.end).not.toBeNull();
   });
 
   it('gives Professional free, and the list shows it', async () => {
@@ -90,6 +92,9 @@ describe('give a subscriber a free plan', () => {
     const row = await listed();
     expect(row.plan).toEqual({ key: 'professional', name: 'Professional', source: 'comped' });
     expect(row.compedPlan).toBe('professional');
+    // Not "trial" any more, and no trial end date
+    expect(row.status).toBe('active');
+    expect(row.currentPeriod.end).toBeNull();
   });
 
   it('changes it to Standard', async () => {
@@ -104,6 +109,7 @@ describe('give a subscriber a free plan', () => {
     const row = await listed();
     expect(row.compedPlan).toBeNull();
     expect(row.plan.source).toBe('trial');
+    expect(row.status).toBe('trial');
   });
 
   it('refuses the Free tier and made-up plans', async () => {

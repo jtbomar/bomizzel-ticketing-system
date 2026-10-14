@@ -388,15 +388,6 @@ export class AdminProvisioningService {
       today.setHours(0, 0, 0, 0);
 
       const customers = rows.map((row: any) => {
-        let status: string = row.subscription_status;
-        if (!status) {
-          if (!row.is_active) status = 'suspended';
-          else if (row.is_trial) {
-            status =
-              row.trial_ends_at && new Date(row.trial_ends_at) < today ? 'trial_expired' : 'trial';
-          } else status = 'active';
-        }
-
         const current = effectivePlan({
           comped_plan: row.comped_plan,
           plan: row.plan,
@@ -404,6 +395,19 @@ export class AdminProvisioningService {
           past_due_since: row.past_due_since,
           trial_ends_at: row.trial_ends_at,
         });
+
+        // Status follows the plan they're really on: a free or paid plan is
+        // active even if the company row still has its sign-up trial flag.
+        let status: string = row.subscription_status;
+        if (!status) {
+          if (!row.is_active) status = 'suspended';
+          else if (current.source === 'comped' || current.source === 'paid') status = 'active';
+          else if (current.source === 'grace') status = 'past_due';
+          else if (current.source === 'trial') status = 'trial';
+          else if (row.is_trial && row.trial_ends_at && new Date(row.trial_ends_at) < today) {
+            status = 'trial_expired';
+          } else status = 'active';
+        }
 
         return {
           subscriptionId: row.subscription_id || null,
@@ -419,7 +423,7 @@ export class AdminProvisioningService {
           },
           currentPeriod: {
             start: row.current_period_start || row.created_at,
-            end: row.current_period_end || row.trial_ends_at || null,
+            end: row.current_period_end || (current.source === 'trial' ? row.trial_ends_at : null),
           },
           company: {
             id: row.company_id,
