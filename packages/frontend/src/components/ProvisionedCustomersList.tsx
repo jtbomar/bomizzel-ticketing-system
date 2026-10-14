@@ -12,6 +12,8 @@ interface Customer {
   subscriptionId: string | null;
   plan: { key: string; name: string; source: 'comped' | 'paid' | 'grace' | 'trial' | 'free' };
   compedPlan: CompPlan | null;
+  // Your own company (Bomizzel Services Inc.): labelled, no actions
+  isOwnAccount: boolean;
   billingStatus: string | null;
   source: 'signup' | 'provisioned';
   status: string;
@@ -320,7 +322,14 @@ const ProvisionedCustomersList: React.FC = () => {
               {customers.map((customer) => (
                 <tr key={customer.company.id}>
                   <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                    <div className="font-medium text-gray-900">{customer.company.name}</div>
+                    <div className="font-medium text-gray-900">
+                      {customer.company.name}
+                      {customer.isOwnAccount && (
+                        <span className="ml-2 inline-flex rounded-full bg-indigo-100 px-2 text-xs font-semibold leading-5 text-indigo-800">
+                          Your account
+                        </span>
+                      )}
+                    </div>
                     <div className="text-gray-500">{customer.company.domain}</div>
                     <div className="text-gray-400 text-xs">
                       {customer.source === 'signup' ? 'Signed up' : 'Provisioned'}{' '}
@@ -378,44 +387,50 @@ const ProvisionedCustomersList: React.FC = () => {
                     </div>
                   </td>
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => openCompModal(customer)}
-                      className="text-green-700 hover:text-green-900"
-                    >
-                      {customer.compedPlan ? 'Free plan…' : 'Give free plan'}
-                    </button>
-                    {customer.subscriptionId ? (
+                    {customer.isOwnAccount ? (
+                      <span className="text-gray-400 font-normal">—</span>
+                    ) : (
                       <>
                         <button
-                          onClick={() => openUpdateModal(customer)}
-                          className="text-blue-600 hover:text-blue-900"
+                          onClick={() => openCompModal(customer)}
+                          className="text-green-700 hover:text-green-900"
                         >
-                          Update
+                          {customer.compedPlan ? 'Free plan…' : 'Give free plan'}
                         </button>
-                        {customer.status === 'suspended' ? (
-                          <button
-                            onClick={() => handleEnableCustomer(customer.subscriptionId!)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Enable
-                          </button>
+                        {customer.subscriptionId ? (
+                          <>
+                            <button
+                              onClick={() => openUpdateModal(customer)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              Update
+                            </button>
+                            {customer.status === 'suspended' ? (
+                              <button
+                                onClick={() => handleEnableCustomer(customer.subscriptionId!)}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                Enable
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDisableCustomer(customer.subscriptionId!)}
+                                className="text-yellow-600 hover:text-yellow-900"
+                              >
+                                Disable
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteCustomer(customer.subscriptionId!)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              Delete
+                            </button>
+                          </>
                         ) : (
-                          <button
-                            onClick={() => handleDisableCustomer(customer.subscriptionId!)}
-                            className="text-yellow-600 hover:text-yellow-900"
-                          >
-                            Disable
-                          </button>
+                          <span className="text-gray-400 font-normal">No subscription yet</span>
                         )}
-                        <button
-                          onClick={() => handleDeleteCustomer(customer.subscriptionId!)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
-                        </button>
                       </>
-                    ) : (
-                      <span className="text-gray-400 font-normal">No subscription yet</span>
                     )}
                   </td>
                 </tr>

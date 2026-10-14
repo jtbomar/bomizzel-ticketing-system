@@ -312,7 +312,7 @@ router.post(
       });
     } catch (error) {
       logger.error('Failed to disable customer', { error });
-      res.status(500).json({
+      res.status((error as any)?.statusCode || 500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to disable customer',
         error: process.env.NODE_ENV === 'development' ? error : undefined,
@@ -384,7 +384,7 @@ router.delete(
       });
     } catch (error) {
       logger.error('Failed to delete customer', { error });
-      res.status(500).json({
+      res.status((error as any)?.statusCode || 500).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to delete customer',
         error: process.env.NODE_ENV === 'development' ? error : undefined,

@@ -7,6 +7,7 @@ import { logger } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { ensureSupportSlug } from '@/utils/supportEmail';
 import { effectivePlan, planByKey, PlanKey } from '@/services/PlanService';
+import { getPlatformAdminEmails } from '@/middleware/platformAdmin';
 
 export interface CustomSubscriptionLimits {
   maxUsers?: number;
@@ -386,6 +387,7 @@ export class AdminProvisioningService {
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const platformEmails = getPlatformAdminEmails();
 
       const customers = rows.map((row: any) => {
         const current = effectivePlan({
@@ -413,6 +415,7 @@ export class AdminProvisioningService {
           subscriptionId: row.subscription_id || null,
           plan: { key: current.plan.key, name: current.plan.name, source: current.source },
           compedPlan: row.comped_plan || null,
+          isOwnAccount: !!row.admin_email && platformEmails.includes(row.admin_email.toLowerCase()),
           billingStatus: row.billing_status || null,
           source: row.subscription_id ? 'provisioned' : 'signup',
           status,
@@ -455,6 +458,30 @@ export class AdminProvisioningService {
   }
 
   /**
+   * The platform admins' own company (Bomizzel Services Inc.): one a platform
+   * admin owns or administers. BSI won't take its free plan away, disable it
+   * or delete it.
+   */
+  static async isOwnAccount(companyId: string | null | undefined): Promise<boolean> {
+    if (!companyId) return false;
+    const emails = getPlatformAdminEmails();
+    if (emails.length === 0) return false;
+    const row = await CustomerSubscription.db('user_company_associations as a')
+      .join('users as u', 'u.id', 'a.user_id')
+      .where('a.company_id', companyId)
+      .whereIn('a.role', ['owner', 'admin'])
+      .whereRaw('lower(u.email) = ANY(?)', [emails])
+      .first('a.user_id');
+    return !!row;
+  }
+
+  private static async refuseOwnAccount(companyId: string | null | undefined) {
+    if (await this.isOwnAccount(companyId)) {
+      throw new AppError("That's your own account - BSI won't change it", 400);
+    }
+  }
+
+  /**
    * Give a subscriber a plan for free (no charge, no end date), change it, or
    * take it away (plan null). A free plan wins over trial and Stripe - see
    * effectivePlan. It doesn't cancel a paid Stripe subscription.
@@ -463,6 +490,7 @@ export class AdminProvisioningService {
     const db = CustomerSubscription.db;
     const company = await db('companies').where('id', companyId).first();
     if (!company || company.subscriber_id) throw new AppError('Subscriber not found', 404);
+    await this.refuseOwnAccount(companyId);
     if (plan && (plan === 'free' || planByKey(plan).key !== plan)) {
       throw new AppError('Plan must be standard or professional', 400);
     }
@@ -569,6 +597,7 @@ export class AdminProvisioningService {
       if (!subscription) {
         throw new AppError('Subscription not found', 404);
       }
+      await this.refuseOwnAccount(subscription.company_id);
 
       // Update subscription to suspended status
       await CustomerSubscription.update(subscriptionId, {
@@ -672,6 +701,7 @@ export class AdminProvisioningService {
       }
 
       const companyId = subscription.company_id;
+      await this.refuseOwnAccount(companyId);
 
       // Delete subscription
       await CustomerSubscription.delete(subscriptionId);

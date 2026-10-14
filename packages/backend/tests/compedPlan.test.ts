@@ -3,6 +3,7 @@ import { app } from '../src/index';
 import { db } from '../src/config/database';
 import { JWTUtils } from '../src/utils/jwt';
 import { resetDatabase } from './helpers/db';
+import { CustomerSubscription } from '../src/models/CustomerSubscription';
 
 /**
  * BSI "Give free plan": a platform admin gives a subscriber a plan at no
@@ -14,6 +15,7 @@ describe('give a subscriber a free plan', () => {
   const ACME = '00000000-0000-4000-8000-0000000cc002';
   const OWNER = '00000000-0000-4000-8000-0000000cc003';
   const PLATFORM = '00000000-0000-4000-8000-0000000cc004';
+  const OWN = '00000000-0000-4000-8000-0000000cc005';
   let platformToken: string;
   let ownerToken: string;
 
@@ -43,6 +45,12 @@ describe('give a subscriber a free plan', () => {
         trial_ends_at: trialEnds,
       },
       { id: ACME, name: 'Acme CP', domain: 'acme-cp.example.com', subscriber_id: SUB },
+      {
+        id: OWN,
+        name: 'Bomizzel CP',
+        domain: 'bomizzel-cp.example.com',
+        comped_plan: 'professional',
+      },
     ]);
     const user = (id: string, email: string) => ({
       id,
@@ -58,11 +66,10 @@ describe('give a subscriber a free plan', () => {
       { ...user(OWNER, 'owner@gleason-cp.example.com'), current_org_id: SUB },
       user(PLATFORM, 'jeff@bomizzel.com'),
     ]);
-    await db('user_company_associations').insert({
-      user_id: OWNER,
-      company_id: SUB,
-      role: 'owner',
-    });
+    await db('user_company_associations').insert([
+      { user_id: OWNER, company_id: SUB, role: 'owner' },
+      { user_id: PLATFORM, company_id: OWN, role: 'owner' },
+    ]);
     platformToken = JWTUtils.generateAccessToken({
       userId: PLATFORM,
       email: 'jeff@bomizzel.com',
@@ -124,6 +131,39 @@ describe('give a subscriber a free plan', () => {
       (await put('00000000-0000-4000-8000-0000000cc999', { plan: 'professional' })).status
     ).toBe(404);
     expect((await db('companies').where('id', ACME).first()).comped_plan).toBeNull();
+  });
+
+  it('marks your own company and leaves it alone', async () => {
+    const res = await request(app)
+      .get('/api/admin/provisioning/customers')
+      .set('Authorization', `Bearer ${platformToken}`);
+    const own = res.body.data.customers.find((c: any) => c.company.id === OWN);
+    expect(own.isOwnAccount).toBe(true);
+    expect((await listed()).isOwnAccount).toBe(false);
+
+    expect((await put(OWN, { plan: null })).status).toBe(400);
+    expect((await put(OWN, { plan: 'standard' })).status).toBe(400);
+    expect((await db('companies').where('id', OWN).first()).comped_plan).toBe('professional');
+
+    // Disable and delete look the company up from its subscription row
+    const find = jest
+      .spyOn(CustomerSubscription, 'findById')
+      .mockResolvedValue({ id: 'sub-own', company_id: OWN } as any);
+    try {
+      const disable = await request(app)
+        .post('/api/admin/provisioning/subscriptions/sub-own/disable')
+        .set('Authorization', `Bearer ${platformToken}`)
+        .send({ reason: 'test' });
+      expect(disable.status).toBe(400);
+      const del = await request(app)
+        .delete('/api/admin/provisioning/subscriptions/sub-own')
+        .set('Authorization', `Bearer ${platformToken}`)
+        .send({ reason: 'test' });
+      expect(del.status).toBe(400);
+    } finally {
+      find.mockRestore();
+    }
+    expect(await db('companies').where('id', OWN).first()).toMatchObject({ is_active: true });
   });
 
   it("won't let a customer's own admin give themselves a free plan", async () => {
