@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FindPortal from '../components/FindPortal';
 import { Link, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -129,9 +130,9 @@ const LoginPage: React.FC = () => {
               Sign in to your account
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-              Or{' '}
+              New to Bomizzel?{' '}
               <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                create a new customer account
+                Start a free trial for your company
               </Link>
             </p>
           </div>
@@ -219,6 +220,9 @@ const LoginPage: React.FC = () => {
                   </button>
                 </div>
               </form>
+
+              {/* Customers of a company on Bomizzel sign in on its portal, not here */}
+              <FindPortal className="mt-8 pt-6 border-t border-gray-200" />
             </div>
           </div>
         </div>

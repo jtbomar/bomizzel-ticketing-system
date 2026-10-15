@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { isPortalHost } from './portal/portalApi';
+import FindPortal from './components/FindPortal';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -86,8 +87,8 @@ function App() {
               path="*"
               element={
                 isPortalHost() ? (
-                  <div className="min-h-screen flex items-center justify-center p-6 text-center text-gray-600">
-                    Use the support portal link your provider gave you.
+                  <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+                    <FindPortal className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm" />
                   </div>
                 ) : (
                   <Navigate to="/" replace />
