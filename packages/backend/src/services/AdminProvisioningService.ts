@@ -425,6 +425,11 @@ export class AdminProvisioningService {
           subscriptionId: row.subscription_id || null,
           plan: { key: current.plan.key, name: current.plan.name, source: current.source },
           compedPlan: row.comped_plan || null,
+          // Sign-up trial still running (taking a free plan away goes back to it)
+          trialEndsAt:
+            row.trial_ends_at && new Date(row.trial_ends_at) > new Date()
+              ? row.trial_ends_at
+              : null,
           isOwnAccount: !!row.admin_email && platformEmails.includes(row.admin_email.toLowerCase()),
           billingStatus: row.billing_status || null,
           source: row.subscription_id ? 'provisioned' : 'signup',
@@ -493,9 +498,16 @@ export class AdminProvisioningService {
   /**
    * Give a subscriber a plan for free (no charge, no end date), change it, or
    * take it away (plan null). A free plan wins over trial and Stripe - see
-   * effectivePlan. It doesn't cancel a paid Stripe subscription.
+   * effectivePlan. It doesn't cancel a paid Stripe subscription. Taking it
+   * away with endTrial also ends their sign-up trial, so they go straight to
+   * Free (or their paid plan) instead of back to the trial.
    */
-  static async setCompedPlan(companyId: string, plan: PlanKey | null, changedBy: string) {
+  static async setCompedPlan(
+    companyId: string,
+    plan: PlanKey | null,
+    changedBy: string,
+    options: { endTrial?: boolean } = {}
+  ) {
     const db = CustomerSubscription.db;
     const company = await db('companies').where('id', companyId).first();
     if (!company || company.subscriber_id) throw new AppError('Subscriber not found', 404);
@@ -504,19 +516,25 @@ export class AdminProvisioningService {
       throw new AppError('Plan must be standard or professional', 400);
     }
 
-    await db('companies')
-      .where('id', companyId)
-      .update({ comped_plan: plan, updated_at: new Date() });
+    const endTrial =
+      plan === null &&
+      !!options.endTrial &&
+      !!company.trial_ends_at &&
+      new Date(company.trial_ends_at) > new Date();
+    const changes: Record<string, unknown> = { comped_plan: plan, updated_at: new Date() };
+    if (endTrial) Object.assign(changes, { trial_ends_at: new Date(), is_trial: false });
+    await db('companies').where('id', companyId).update(changes);
 
     logger.warn('Free plan changed', {
       companyId,
       company: company.name,
       from: company.comped_plan || null,
       to: plan,
+      endedTrial: endTrial,
       changedBy,
     });
 
-    const current = effectivePlan({ ...company, comped_plan: plan });
+    const current = effectivePlan({ ...company, ...changes });
     return {
       companyId,
       compedPlan: plan,

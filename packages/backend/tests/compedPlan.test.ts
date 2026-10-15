@@ -119,6 +119,27 @@ describe('give a subscriber a free plan', () => {
     expect(row.status).toBe('trial');
   });
 
+  it('takes it away and ends the trial: straight to Free', async () => {
+    const before = await db('companies').where('id', SUB).first('trial_ends_at');
+    expect((await put(SUB, { plan: 'professional' })).status).toBe(200);
+    expect((await listed()).trialEndsAt).not.toBeNull();
+
+    const res = await put(SUB, { plan: null, endTrial: true });
+    expect(res.status).toBe(200);
+    expect(res.body.data.plan).toEqual({ key: 'free', name: 'Free', source: 'free' });
+    const row = await listed();
+    expect(row.plan.source).toBe('free');
+    expect(row.trialEndsAt).toBeNull();
+    expect((await db('companies').where('id', SUB).first()).is_trial).toBe(false);
+
+    // endTrial does nothing when giving a plan
+    await db('companies').where('id', SUB).update(before);
+    expect((await put(SUB, { plan: 'standard', endTrial: true })).status).toBe(200);
+    expect((await listed()).trialEndsAt).not.toBeNull();
+    await put(SUB, { plan: null });
+    expect((await listed()).plan.source).toBe('trial');
+  });
+
   it('refuses the Free tier and made-up plans', async () => {
     expect((await put(SUB, { plan: 'free' })).status).toBe(400);
     expect((await put(SUB, { plan: 'enterprise' })).status).toBe(400);

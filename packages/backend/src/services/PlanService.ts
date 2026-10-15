@@ -92,6 +92,26 @@ export const TRIAL_DAYS = 14;
 export const GRACE_DAYS = 7;
 const PAID_STATUSES = ['active', 'trialing'];
 
+/** One line per thing a plan includes (the welcome email; the plan cards say the same). */
+export const planFeatureLines = (p: Plan): string[] => {
+  const l = p.limits;
+  const n = (v: number | null, one: string, many: string) =>
+    v === null ? `Unlimited ${many}` : `${v} ${v === 1 ? one : many}`;
+  return [
+    l.agents === null ? 'Add as many agents as you need' : `Up to ${l.agents} agents, free`,
+    l.ticketsPerMonth === null ? 'Unlimited tickets' : `${l.ticketsPerMonth} tickets a month`,
+    'Email to ticket, board, attachments',
+    n(l.departments, 'department', 'departments'),
+    n(l.macros, 'macro', 'macros'),
+    l.ticketFields === null ? 'Custom ticket fields' : `${l.ticketFields} custom ticket fields`,
+    ...(l.assignmentRules
+      ? [l.roundRobin ? 'Assignment rules, with round-robin' : 'Assignment rules']
+      : []),
+    ...(l.recordFields ? ['Account and contact custom fields'] : []),
+    ...(l.customModules ? ['Custom modules and lookups'] : []),
+  ];
+};
+
 export const planByKey = (key: string | null | undefined): Plan =>
   PLANS.find((p) => p.key === key) || PLANS[0]!;
 

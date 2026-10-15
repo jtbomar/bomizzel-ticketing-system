@@ -7,6 +7,10 @@ import { User } from '@/models/User';
 import { Company } from '@/models/Company';
 import { NotFoundError } from '@/utils/errors';
 
+// Links in emails go to the web app
+const frontendUrl = () =>
+  (process.env['FRONTEND_URL'] || 'https://www.bomizzel.com').replace(/\/+$/, '');
+
 export interface EmailConfig {
   host: string;
   port: number;
@@ -476,10 +480,10 @@ Please log in to your account to view the full ticket details.
           <h3 style="color: #1e40af; margin-top: 0;">Getting Started</h3>
           <p>Here are some quick steps to get you up and running:</p>
           <ol style="margin: 0; padding-left: 20px;">
-            <li>Log in to your dashboard</li>
-            <li>Set up your company profile</li>
+            <li>Confirm your email address with the link we sent separately</li>
+            <li>Sign in and set up your company profile</li>
             <li>Create your first ticket</li>
-            <li>Invite team members (if applicable)</li>
+            <li>Invite your agents</li>
             <li>Explore the features included in your plan</li>
           </ol>
         </div>
@@ -489,22 +493,22 @@ Please log in to your account to view the full ticket details.
             ? `
         <div style="background-color: #fef3c7; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
           <h3 style="color: #92400e; margin-top: 0;">Your Trial Period</h3>
-          <p>You have ${trialDays} days to explore all the features of the ${planName} plan. We'll send you reminders as your trial progresses, and you can upgrade to a paid plan at any time.</p>
+          <p>You have ${trialDays} days to try everything in ${planName}. Choose a plan any time in Settings &gt; Billing. If you don't, you move to the Free plan when the trial ends; nothing you've set up is deleted.</p>
         </div>
         `
             : ''
         }
 
         <div style="text-align: center; margin-top: 40px;">
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/customer" 
+          <a href="${frontendUrl()}/login"
              style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600;">
-            Access Your Dashboard
+            Sign in to Bomizzel
           </a>
         </div>
 
         <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
-          <p>Need help? Contact our support team at support@bomizzel.com</p>
-          <p>© 2024 Bomizzel. All rights reserved.</p>
+          <p>Questions? Just reply to this email.</p>
+          <p>© ${new Date().getFullYear()} Bomizzel. All rights reserved.</p>
         </div>
       </body>
       </html>
@@ -539,26 +543,26 @@ What's included in your ${planName} plan:
 ${featuresText}
 
 Getting Started:
-1. Log in to your dashboard
-2. Set up your company profile
+1. Confirm your email address with the link we sent separately
+2. Sign in and set up your company profile
 3. Create your first ticket
-4. Invite team members (if applicable)
+4. Invite your agents
 5. Explore the features included in your plan
 
 ${
   isTrialPlan
     ? `
 Your Trial Period:
-You have ${trialDays} days to explore all the features of the ${planName} plan. We'll send you reminders as your trial progresses, and you can upgrade to a paid plan at any time.
+You have ${trialDays} days to try everything in ${planName}. Choose a plan any time in Settings > Billing. If you don't, you move to the Free plan when the trial ends; nothing you've set up is deleted.
 `
     : ''
 }
 
-Access your dashboard: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/customer
+Sign in: ${frontendUrl()}/login
 
-Need help? Contact our support team at support@bomizzel.com
+Questions? Just reply to this email.
 
-© 2024 Bomizzel. All rights reserved.
+© ${new Date().getFullYear()} Bomizzel. All rights reserved.
     `.trim();
   }
 

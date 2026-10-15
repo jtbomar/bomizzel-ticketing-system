@@ -36,6 +36,8 @@ interface Customer {
   subscriptionId: string | null;
   plan: { key: string; name: string; source: 'comped' | 'paid' | 'grace' | 'trial' | 'free' };
   compedPlan: CompPlan | null;
+  // Their sign-up trial, while it's still running
+  trialEndsAt: string | null;
   // Your own company (Bomizzel Services Inc.): labelled, no actions
   isOwnAccount: boolean;
   billingStatus: string | null;
@@ -86,6 +88,8 @@ const ProvisionedCustomersList: React.FC = () => {
   const [compFor, setCompFor] = useState<Customer | null>(null);
   const [compPlan, setCompPlan] = useState<CompPlan>('professional');
   const [compSaving, setCompSaving] = useState(false);
+  // Removing a free plan: also end the trial, straight to Free
+  const [endTrial, setEndTrial] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
@@ -197,14 +201,18 @@ const ProvisionedCustomersList: React.FC = () => {
   const openCompModal = (customer: Customer) => {
     setCompFor(customer);
     setCompPlan(customer.compedPlan || 'professional');
+    setEndTrial(false);
   };
 
   const saveCompedPlan = async (plan: CompPlan | null) => {
     if (!compFor) return;
+    const trialLeft = compFor.trialEndsAt && !endTrial;
     if (
       plan === null &&
       !confirm(
-        `Take away ${compFor.company.name}'s free plan? They'll go back to their trial, a paid plan, or the Free tier.`
+        trialLeft
+          ? `Take away ${compFor.company.name}'s free plan? They go back to their trial until ${new Date(compFor.trialEndsAt!).toLocaleDateString()}, then to Free unless they pay.`
+          : `Take away ${compFor.company.name}'s free plan? They move to Free now (or their paid plan, if they have one).`
       )
     ) {
       return;
@@ -215,7 +223,7 @@ const ProvisionedCustomersList: React.FC = () => {
       const apiUrl = getApiBaseUrl();
       await axios.put(
         `${apiUrl}/admin/provisioning/companies/${compFor.company.id}/comped-plan`,
-        { plan },
+        plan === null ? { plan, endTrial } : { plan },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setCompFor(null);
@@ -532,6 +540,22 @@ const ProvisionedCustomersList: React.FC = () => {
                   This company also has a paid Stripe subscription. A free plan doesn't cancel it -
                   cancel it in Stripe so they stop being charged.
                 </p>
+              )}
+
+              {compFor.compedPlan && compFor.trialEndsAt && (
+                <label className="mt-4 flex items-start gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={endTrial}
+                    onChange={(e) => setEndTrial(e.target.checked)}
+                  />
+                  <span>
+                    If I remove it, end their trial too and put them straight on Free. Otherwise
+                    they get their trial back until{' '}
+                    {new Date(compFor.trialEndsAt).toLocaleDateString()}.
+                  </span>
+                </label>
               )}
 
               <div className="mt-5 flex items-center justify-between gap-3">

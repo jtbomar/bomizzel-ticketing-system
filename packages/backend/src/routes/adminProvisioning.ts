@@ -263,14 +263,19 @@ router.get('/subscriptions/:subscriptionId', async (req: Request, res: Response)
 router.put(
   '/companies/:companyId/comped-plan',
   validate(
-    Joi.object({ plan: Joi.string().valid('standard', 'professional').allow(null).required() })
+    Joi.object({
+      plan: Joi.string().valid('standard', 'professional').allow(null).required(),
+      // With plan null: end their trial too, so they go straight to Free
+      endTrial: Joi.boolean(),
+    })
   ),
   async (req: Request, res: Response): Promise<void> => {
     try {
       const data = await AdminProvisioningService.setCompedPlan(
         req.params.companyId!,
         req.body.plan,
-        req.user!.id
+        req.user!.id,
+        { endTrial: req.body.endTrial }
       );
       res.json({ success: true, data });
     } catch (error: any) {

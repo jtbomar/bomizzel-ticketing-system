@@ -8,7 +8,7 @@ import { TicketStatus } from '@/models/TicketStatus';
 import { AccountEmailService } from './AccountEmailService';
 import { CryptoUtils } from '@/utils/crypto';
 import { ensureSupportSlug } from '@/utils/supportEmail';
-import { TRIAL_DAYS } from './PlanService';
+import { planByKey, planFeatureLines, TRIAL_DAYS } from './PlanService';
 
 export interface CompanyRegistrationData {
   // Company basic info
@@ -308,16 +308,17 @@ export class CompanyRegistrationService {
         verification.token
       );
 
-      // Send welcome email
+      // Send welcome email: the trial is Professional for TRIAL_DAYS
       if (EmailService.isInitialized()) {
         try {
+          const trialPlan = planByKey('professional');
           await EmailService.sendWelcomeEmail(
             data.adminEmail,
             `${data.adminFirstName} ${data.adminLastName}`,
-            'Trial Plan',
-            ['5 Users', '100 Tickets/Month', '30-Day Trial'],
+            trialPlan.name,
+            planFeatureLines(trialPlan),
             true,
-            30
+            TRIAL_DAYS
           );
         } catch (emailError) {
           console.warn('Failed to send welcome email:', emailError);

@@ -19,6 +19,7 @@ jest.mock('../src/services/AccountEmailService', () => ({
 import { app } from '../src/index';
 import { db } from '../src/config/database';
 import { resetDatabase } from './helpers/db';
+import { EmailService } from '../src/services/EmailService';
 
 /**
  * A business that finds the site and signs up, end to end: it gets its own
@@ -48,6 +49,12 @@ describe('a new business signs up', () => {
   });
 
   it('signs up a company and its owner, and emails a confirmation link', async () => {
+    // Mail is sent through a fake transport, to read the welcome email
+    const mails: any[] = [];
+    const svc = EmailService as any;
+    const saved = { transporter: svc.transporter, config: svc.config };
+    svc.transporter = { sendMail: async (m: any) => mails.push(m) };
+    svc.config = { from: 'Bomizzel <noreply@bomizzel.com>' };
     const res = await request(app).post('/api/company-registration/register').send({
       companyName: 'New Biz',
       adminFirstName: 'Nora',
@@ -55,8 +62,19 @@ describe('a new business signs up', () => {
       adminEmail: owner.email,
       adminPassword: owner.password,
     });
+    Object.assign(svc, saved);
     expect(res.status).toBe(201);
     subscriberId = res.body.data.company.id;
+
+    // The welcome email describes the real trial: 14 days of Professional
+    const welcome = mails.find((m) => /^Welcome to Bomizzel/.test(m.subject));
+    expect(welcome.subject).toContain('Professional Trial');
+    expect(welcome.text).toContain('14-day free trial');
+    expect(welcome.text).toContain('Custom modules and lookups');
+    expect(welcome.text).toContain('move to the Free plan when the trial ends');
+    expect(welcome.text).toMatch(/Sign in: https?:\/\/\S+\/login/);
+    expect(welcome.html).not.toContain('5 Users');
+    expect(welcome.html).not.toContain('support@bomizzel.com');
 
     const company = await db('companies').where('id', subscriberId).first();
     expect(company.subscriber_id).toBeNull(); // a subscriber, not an account
