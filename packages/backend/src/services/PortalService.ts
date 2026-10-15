@@ -11,7 +11,7 @@ import { TicketService } from './TicketService';
 import { PERSONAL_DOMAINS } from './InboundEmailService';
 
 /**
- * The customer portal (portal.bomizzel.com/<name>): a subscriber's customers
+ * The customer portal (help.bomizzel.com/<name>): a subscriber's customers
  * sign up, sign in, and work their tickets there. Staff work in the app.
  */
 

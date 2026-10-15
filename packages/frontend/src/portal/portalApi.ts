@@ -100,7 +100,18 @@ export const portalError = (e: any, fallback = 'Something went wrong. Please try
   e?.response?.data?.message ||
   fallback;
 
-/** Portal links: portal.bomizzel.com/<name>/... or, on the main site, /portal/<name>/... */
-export const isPortalHost = (): boolean => /^portal\./i.test(window.location.hostname);
+/** Customer portal links: help.bomizzel.com/<name>/... or, on the main site, /portal/<name>/... */
+export const isPortalHost = (): boolean => /^help\./i.test(window.location.hostname);
+/** A company's own staff sign-in: portal.bomizzel.com/<name>/login (the app runs there too) */
+export const isStaffPortalHost = (): boolean => /^portal\./i.test(window.location.hostname);
+
+/** Where customer portals live: VITE_PORTAL_URL, else help.bomizzel.com (here, on a dev machine) */
+export const customerPortalBase = (): string => {
+  const env = import.meta.env.VITE_PORTAL_URL as string | undefined;
+  if (env) return env.replace(/\/+$/, '');
+  if (isPortalHost()) return '';
+  if (/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) return '/portal';
+  return 'https://help.bomizzel.com';
+};
 export const portalPath = (slug: string, path = ''): string =>
   `${isPortalHost() ? '' : '/portal'}/${slug}${path ? `/${path.replace(/^\//, '')}` : ''}`;

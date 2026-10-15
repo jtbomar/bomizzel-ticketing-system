@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { isPortalHost } from './portal/portalApi';
+import { isPortalHost, isStaffPortalHost } from './portal/portalApi';
 import FindPortal from './components/FindPortal';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -18,6 +18,7 @@ import RegisterPage from './pages/RegisterPage';
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const PortalApp = lazy(() => import('./portal/PortalApp'));
 const PortalAccessDecision = lazy(() => import('./pages/PortalAccessDecision'));
+const StaffPortalRedirect = lazy(() => import('./components/StaffPortalRedirect'));
 const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
@@ -75,7 +76,7 @@ const LoadingSpinner = () => (
 
 function App() {
   const location = useLocation();
-  // A customer portal: portal.bomizzel.com/<name>, or /portal/<name> here.
+  // A customer portal: help.bomizzel.com/<name>, or /portal/<name> here.
   // It has its own sign-in and look, so none of the app's providers.
   if (isPortalHost() || location.pathname.startsWith('/portal/')) {
     return (
@@ -118,7 +119,19 @@ function App() {
                 <Suspense fallback={<LoadingSpinner />}>
                   <Routes>
                     {/* Public Routes */}
-                    <Route path="/" element={<HomePage />} />
+                    <Route
+                      path="/"
+                      element={
+                        isStaffPortalHost() ? <Navigate to="/login" replace /> : <HomePage />
+                      }
+                    />
+                    {/* portal.bomizzel.com/<name>/login: a company's own staff sign-in */}
+                    {isStaffPortalHost() && (
+                      <>
+                        <Route path="/:slug/login" element={<LoginPage />} />
+                        <Route path="/:slug/*" element={<StaffPortalRedirect />} />
+                      </>
+                    )}
                     <Route path="/pricing" element={<PricingPage />} />
 
                     {/* Customer Routes - For customers using the ticketing system */}

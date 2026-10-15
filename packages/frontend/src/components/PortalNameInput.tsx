@@ -9,8 +9,8 @@ export interface PortalNameCheck {
 }
 
 /**
- * A portal name field (portal.bomizzel.com/<name>, also the support email
- * name): lowercase as you type, and says whether the name is free.
+ * A portal name field (customers at help.bomizzel.com/<name>, staff sign in at
+ * portal.bomizzel.com/<name>, also the support email name): lowercase as you type, and says whether the name is free.
  * `check` asks the server; `onStatus` reports whether the value can be used.
  */
 const PortalNameInput: React.FC<{
@@ -60,7 +60,7 @@ const PortalNameInput: React.FC<{
     <div>
       <div className="mt-1 flex rounded-md shadow-sm">
         <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 whitespace-nowrap">
-          portal.bomizzel.com/
+          help.bomizzel.com/
         </span>
         <input
           id={id}

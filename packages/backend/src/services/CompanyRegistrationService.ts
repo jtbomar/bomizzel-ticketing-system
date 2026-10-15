@@ -14,7 +14,7 @@ import { planByKey, planFeatureLines, TRIAL_DAYS } from './PlanService';
 export interface CompanyRegistrationData {
   // Company basic info
   companyName: string;
-  // Portal and support email name (portal.bomizzel.com/<name>); one is
+  // Portal and support email name (help.bomizzel.com/<name>); one is
   // made from the company name when it's left out
   portalName?: string;
   domain?: string;

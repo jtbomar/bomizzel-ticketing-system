@@ -1,7 +1,8 @@
 import { db } from '@/config/database';
 
 /**
- * A subscriber's name: its customer portal (portal.bomizzel.com/<name>) and
+ * A subscriber's name: its customer portal (help.bomizzel.com/<name>), its
+ * staff sign-in (portal.bomizzel.com/<name>/login) and
  * its support email. Stored in companies.support_email_slug; names it used
  * before are in subscriber_slug_aliases.
  */
@@ -58,7 +59,7 @@ const RESERVED = new Set([
 ]);
 
 /**
- * Where a subscriber's customers sign in: PORTAL_URL (https://portal.bomizzel.com
+ * Where a subscriber's customers sign in: PORTAL_URL (https://help.bomizzel.com
  * once that name points at the frontend), else the main site's /portal.
  */
 export const portalBaseUrl = (): string =>
@@ -68,6 +69,10 @@ export const portalBaseUrl = (): string =>
   ).replace(/\/+$/, '');
 
 export const portalUrl = (name: string): string => `${portalBaseUrl()}/${name}`;
+
+/** Where a subscriber's staff sign in: STAFF_PORTAL_URL (https://portal.bomizzel.com)/<name>/login */
+export const staffLoginUrl = (name: string): string =>
+  `${(process.env['STAFF_PORTAL_URL'] || 'https://portal.bomizzel.com').replace(/\/+$/, '')}/${name}/login`;
 
 /** Why a name can't be used (format or reserved), or null. Doesn't check who has it. */
 export const portalNameProblem = (name: string): string | null => {

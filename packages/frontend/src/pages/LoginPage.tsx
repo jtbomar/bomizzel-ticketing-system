@@ -1,13 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import FindPortal from '../components/FindPortal';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
-import { apiService } from '../services/api';
+import { apiService, getApiBaseUrl } from '../services/api';
+import { customerPortalBase } from '../portal/portalApi';
 
+interface CompanyBrand {
+  portalName: string;
+  renamed: boolean;
+  name: string;
+  logoUrl: string | null;
+  iconUrl?: string | null;
+}
+
+/**
+ * The staff sign-in. On portal.bomizzel.com/<name>/login it's that company's
+ * own: their name and logo, and a pointer for their customers to
+ * help.bomizzel.com/<name>. Elsewhere (/login) it's Bomizzel's.
+ */
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const location = useLocation();
+  const { slug } = useParams<{ slug?: string }>();
+  const { login, logout, isLoading } = useAuth();
+  const [company, setCompany] = useState<CompanyBrand | null>(null);
+  const [companyMissing, setCompanyMissing] = useState(false);
+
+  useEffect(() => {
+    if (!slug) return;
+    let live = true;
+    axios
+      .get(`${getApiBaseUrl()}/portal/${encodeURIComponent(slug)}`)
+      .then((r) => {
+        if (!live) return;
+        const brand: CompanyBrand = r.data;
+        // An old name: move to the current one
+        if (brand.renamed && brand.portalName !== slug) {
+          navigate(`/${brand.portalName}/login${location.search}`, { replace: true });
+          return;
+        }
+        setCompany(brand);
+        document.title = `${brand.name} - Sign in`;
+      })
+      .catch(() => live && setCompanyMissing(true));
+    return () => {
+      live = false;
+    };
+  }, [slug, navigate, location.search]);
+
+  const customerPortal = slug ? `${customerPortalBase()}/${company?.portalName || slug}` : '';
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -57,6 +100,13 @@ const LoginPage: React.FC = () => {
         const user = JSON.parse(userStr);
         console.log('User role:', user.role);
 
+        // A customer on a company's staff sign-in: their place is its customer portal
+        if (slug && user.role === 'customer') {
+          logout();
+          window.location.assign(`${customerPortal}/login`);
+          return;
+        }
+
         // Small delay to ensure localStorage is updated
         setTimeout(() => {
           // Redirect based on role
@@ -95,13 +145,26 @@ const LoginPage: React.FC = () => {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <Link
-              to="/"
-              className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
-            >
-              <Logo size={32} />
-            </Link>
-            <div className="flex items-center space-x-4">
+            {slug ? (
+              <div className="flex items-center space-x-3 min-h-[32px]">
+                {company?.logoUrl && (
+                  <img
+                    src={company.logoUrl}
+                    alt=""
+                    className="h-8 w-auto max-w-[160px] object-contain"
+                  />
+                )}
+                <span className="text-lg font-semibold text-gray-900">{company?.name}</span>
+              </div>
+            ) : (
+              <Link
+                to="/"
+                className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+              >
+                <Logo size={32} />
+              </Link>
+            )}
+            <div className={slug ? 'hidden' : 'flex items-center space-x-4'}>
               <Link to="/" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Home
               </Link>
@@ -116,26 +179,61 @@ const LoginPage: React.FC = () => {
       {/* Login Form */}
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
-          <div>
-            {/* Room for the full lockup here, where the "Software Solutions"
+          {slug ? (
+            <div>
+              {company?.logoUrl && (
+                <img
+                  src={company.logoUrl}
+                  alt=""
+                  className="mx-auto h-24 w-auto max-w-full object-contain"
+                />
+              )}
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                {companyMissing ? 'Company not found' : `Sign in to ${company?.name || '…'}`}
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600">
+                {companyMissing ? (
+                  <>
+                    There's no company at this address.{' '}
+                    <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                      Go to the Bomizzel sign-in
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    Staff sign-in. Customer of {company?.name || 'this company'}?{' '}
+                    <a
+                      href={customerPortal}
+                      className="font-medium text-blue-600 hover:text-blue-500"
+                    >
+                      Go to the customer portal
+                    </a>
+                  </>
+                )}
+              </p>
+            </div>
+          ) : (
+            <div>
+              {/* Room for the full lockup here, where the "Software Solutions"
                 line and tagline are actually readable. */}
-            <img
-              src="/logo-full.png"
-              alt="Bomizzel Software Solutions"
-              width={720}
-              height={435}
-              className="mx-auto h-28 w-auto"
-            />
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Sign in to your account
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              New to Bomizzel?{' '}
-              <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                Start a free trial for your company
-              </Link>
-            </p>
-          </div>
+              <img
+                src="/logo-full.png"
+                alt="Bomizzel Software Solutions"
+                width={720}
+                height={435}
+                className="mx-auto h-28 w-auto"
+              />
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Sign in to your account
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600">
+                New to Bomizzel?{' '}
+                <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                  Start a free trial for your company
+                </Link>
+              </p>
+            </div>
+          )}
           <div className="card">
             <div className="card-body">
               <form className="space-y-6" onSubmit={handleSubmit}>
@@ -222,7 +320,7 @@ const LoginPage: React.FC = () => {
               </form>
 
               {/* Customers of a company on Bomizzel sign in on its portal, not here */}
-              <FindPortal className="mt-8 pt-6 border-t border-gray-200" />
+              {!slug && <FindPortal className="mt-8 pt-6 border-t border-gray-200" />}
             </div>
           </div>
         </div>

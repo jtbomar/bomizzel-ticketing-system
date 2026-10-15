@@ -11,7 +11,7 @@ import {
 import { PortalNewTicket, PortalTicketList, PortalTicketView } from './PortalTicketPages';
 
 /**
- * A subscriber's customer portal: portal.bomizzel.com/<name> (or the main
+ * A subscriber's customer portal: help.bomizzel.com/<name> (or the main
  * site's /portal/<name>). In the subscriber's brand; its customers sign up,
  * sign in, and open, follow, reply to and close their tickets.
  */

@@ -1,22 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { getApiBaseUrl } from '../services/api';
-import { isPortalHost } from '../portal/portalApi';
+import { customerPortalBase } from '../portal/portalApi';
 
 /**
  * "Looking for your customer portal?": a company's customers type its portal
- * name and go to portal.bomizzel.com/<name>. On the staff login page (shared
- * by every company) and the bare portal.bomizzel.com page.
+ * name and go to help.bomizzel.com/<name>. On the staff login page (shared
+ * by every company) and the bare help.bomizzel.com page.
  */
-
-// Where portals live: VITE_PORTAL_URL, else portal.bomizzel.com (here, on a dev machine)
-const portalBase = (): string => {
-  const env = import.meta.env.VITE_PORTAL_URL as string | undefined;
-  if (env) return env.replace(/\/+$/, '');
-  if (isPortalHost()) return '';
-  if (/^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)) return '/portal';
-  return 'https://portal.bomizzel.com';
-};
 
 const FindPortal: React.FC<{ className?: string }> = ({ className = '' }) => {
   const [name, setName] = useState('');
@@ -31,7 +22,7 @@ const FindPortal: React.FC<{ className?: string }> = ({ className = '' }) => {
     setError('');
     try {
       const r = await axios.get(`${getApiBaseUrl()}/portal/${encodeURIComponent(wanted)}`);
-      window.location.href = `${portalBase()}/${r.data.portalName || wanted}`;
+      window.location.href = `${customerPortalBase()}/${r.data.portalName || wanted}`;
     } catch {
       setError("There's no support portal with that name. Check the link your provider gave you.");
       setBusy(false);
@@ -48,7 +39,7 @@ const FindPortal: React.FC<{ className?: string }> = ({ className = '' }) => {
       </p>
       <div className="mt-2 flex rounded-md shadow-sm">
         <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 whitespace-nowrap">
-          portal.bomizzel.com/
+          help.bomizzel.com/
         </span>
         <input
           id="findPortal"

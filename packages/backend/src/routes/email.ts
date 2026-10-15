@@ -6,7 +6,7 @@ import { authenticate } from '@/middleware/auth';
 import { requirePlatformAdmin } from '@/middleware/platformAdmin';
 import { getTicketInTenant, isStaff } from '@/utils/tenant';
 import { ensureSupportSlug, supportAddress } from '@/utils/supportEmail';
-import { checkPortalName, portalUrl, renamePortal } from '@/utils/portalName';
+import { checkPortalName, portalUrl, renamePortal, staffLoginUrl } from '@/utils/portalName';
 import { AppError } from '@/middleware/errorHandler';
 import { validateRequest } from '@/utils/validation';
 
@@ -218,6 +218,7 @@ emailRouter.get('/support-address', async (req: Request, res: Response, next: Ne
         emailEnabled: EmailService.isInitialized(),
         portalName: slug,
         portalUrl: portalUrl(slug),
+        staffLoginUrl: staffLoginUrl(slug),
       },
     });
   } catch (error) {
@@ -254,7 +255,12 @@ emailRouter.put('/portal-name', async (req: Request, res: Response, next: NextFu
     const slug = await renamePortal(tenantId, req.body?.name);
     res.json({
       success: true,
-      data: { portalName: slug, portalUrl: portalUrl(slug), address: supportAddress(slug) },
+      data: {
+        portalName: slug,
+        portalUrl: portalUrl(slug),
+        staffLoginUrl: staffLoginUrl(slug),
+        address: supportAddress(slug),
+      },
     });
   } catch (error) {
     next(error);

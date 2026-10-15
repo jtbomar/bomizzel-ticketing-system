@@ -15,7 +15,7 @@ import { resetDatabase } from './helpers/db';
 import { portalNameFrom, portalUrl, subscriberForPortalName } from '../src/utils/portalName';
 
 /**
- * A subscriber's name - its portal (portal.bomizzel.com/<name>) and support
+ * A subscriber's name - its portal (help.bomizzel.com/<name>) and support
  * email: picked at sign-up, checked for format, reserved words and other
  * subscribers, and changeable with the old name still working.
  */

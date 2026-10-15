@@ -18,6 +18,7 @@ const EmailSettings: React.FC = () => {
   // Portal and email name (one name for both)
   const [portalName, setPortalName] = useState('');
   const [portalUrl, setPortalUrl] = useState('');
+  const [staffLoginUrl, setStaffLoginUrl] = useState('');
   const [newName, setNewName] = useState('');
   const [nameOk, setNameOk] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -31,6 +32,7 @@ const EmailSettings: React.FC = () => {
         setEmailEnabled(res.data.data.emailEnabled);
         setPortalName(res.data.data.portalName || '');
         setPortalUrl(res.data.data.portalUrl || '');
+        setStaffLoginUrl(res.data.data.staffLoginUrl || '');
         setNewName(res.data.data.portalName || '');
       })
       .catch((err: any) =>
@@ -42,7 +44,7 @@ const EmailSettings: React.FC = () => {
   const rename = async () => {
     if (
       !confirm(
-        `Change your name to "${newName}"? Your portal moves to portal.bomizzel.com/${newName} and your support email to ${newName}@support.bomizzel.com. The old link and address keep working.`
+        `Change your name to "${newName}"? Your customer portal moves to help.bomizzel.com/${newName}, your team's sign-in to portal.bomizzel.com/${newName}/login, and your support email to ${newName}@support.bomizzel.com. The old link and address keep working.`
       )
     ) {
       return;
@@ -53,6 +55,7 @@ const EmailSettings: React.FC = () => {
       const res = await apiService.client.put('/email/portal-name', { name: newName });
       setPortalName(res.data.data.portalName);
       setPortalUrl(res.data.data.portalUrl);
+      setStaffLoginUrl(res.data.data.staffLoginUrl || '');
       setAddress(res.data.data.address);
     } catch (err: any) {
       setRenameError(err.response?.data?.error?.message || 'Could not change the name.');
@@ -144,7 +147,22 @@ const EmailSettings: React.FC = () => {
                   >
                     {portalUrl}
                   </a>
-                  . The same name is used for your support address. If you change it, the old link
+                  .{' '}
+                  {staffLoginUrl && (
+                    <>
+                      Your team signs in at{' '}
+                      <a
+                        href={staffLoginUrl}
+                        className="text-blue-700 underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {staffLoginUrl}
+                      </a>
+                      .{' '}
+                    </>
+                  )}
+                  The same name is used for your support address. If you change it, the old links
                   and address keep working.
                 </p>
                 <div className="max-w-lg">
