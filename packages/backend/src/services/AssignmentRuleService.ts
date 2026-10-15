@@ -1,7 +1,7 @@
 import { db } from '@/config/database';
 import { logger } from '@/utils/logger';
 import { ValidationError, NotFoundError } from '@/utils/errors';
-import { STAFF_ROLES, tenantUserIds } from '@/utils/tenant';
+import { STAFF_ROLES, tenantStaffIds } from '@/utils/tenant';
 import { FieldService } from './FieldService';
 import { PlanService } from './PlanService';
 
@@ -62,7 +62,7 @@ const availableAgents = async (tenantId: string, ids: string[]): Promise<string[
     .whereIn('id', ids)
     .where('is_active', true)
     .whereIn('role', STAFF_ROLES)
-    .whereIn('id', tenantUserIds(tenantId))
+    .whereIn('id', tenantStaffIds(tenantId))
     .select('id');
   const found = new Set(rows.map((r: any) => r.id));
   return ids.filter((id) => found.has(id));
@@ -108,7 +108,7 @@ export class AssignmentRuleService {
   static async options(tenantId: string) {
     const [agents, accounts, departments] = await Promise.all([
       db('users')
-        .whereIn('id', tenantUserIds(tenantId))
+        .whereIn('id', tenantStaffIds(tenantId))
         .whereIn('role', STAFF_ROLES)
         .orderBy(['first_name', 'last_name'])
         .select('id', 'first_name', 'last_name', 'email', 'is_active'),
@@ -147,7 +147,7 @@ export class AssignmentRuleService {
     const known = await db('users')
       .whereIn('id', agentIds)
       .whereIn('role', STAFF_ROLES)
-      .whereIn('id', tenantUserIds(tenantId))
+      .whereIn('id', tenantStaffIds(tenantId))
       .select('id');
     if (known.length !== agentIds.length) throw new ValidationError('Unknown agent');
 

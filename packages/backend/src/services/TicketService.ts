@@ -20,7 +20,8 @@ import { QueryPerformanceMonitor } from '@/middleware/performanceMonitoring';
 import { CacheService, CacheKeys, CacheConfigs } from '@/utils/cache';
 import { UsageTrackingService } from './UsageTrackingService';
 import { logger } from '@/utils/logger';
-import { isCompanyInTenant, isUserInTenant, tenantContextFor } from '@/utils/tenant';
+import { isCompanyInTenant, isStaffOfTenant, tenantContextFor } from '@/utils/tenant';
+import { sessionStore } from '@/utils/session';
 
 export class TicketService {
   /**
@@ -40,7 +41,13 @@ export class TicketService {
     // The company (account) and team must belong to the submitter's
     // subscriber. Staff could raise tickets against any company or team on
     // the platform before.
-    const submitterTenant = await tenantContextFor(submitterId);
+    // The signed-in staff member's subscriber when they raise it for a contact
+    // (the route checked the contact is in it); else the submitter's own.
+    const caller = sessionStore.getStore();
+    const submitterTenant =
+      caller?.tenantId && caller.userId !== submitterId
+        ? { tenantId: caller.tenantId }
+        : await tenantContextFor(submitterId);
     if (
       !submitterTenant.tenantId ||
       !(await isCompanyInTenant(ticketData.companyId, submitterTenant.tenantId))
@@ -48,8 +55,9 @@ export class TicketService {
       throw new ForbiddenError('User does not have access to this company');
     }
 
-    // Validate company association (only for customers)
-    if (submitterUser.role === 'customer') {
+    // Validate company association (only for customers - anyone who isn't
+    // staff of this subscriber, whatever they are at another company)
+    if (!(await isStaffOfTenant(submitterId, submitterTenant.tenantId))) {
       const userCompanies = await User.getUserCompanies(submitterId);
       const hasCompanyAccess = userCompanies.some((uc) => uc.companyId === ticketData.companyId);
 
@@ -385,11 +393,7 @@ export class TicketService {
     // ...and in the ticket's subscriber; someone from another subscriber is
     // just as invalid as someone who doesn't exist.
     const assignee = await User.findById(assignedToId);
-    if (
-      !assignee ||
-      assignee.role === 'customer' ||
-      !(await isUserInTenant(assignedToId, ticketData.org_id as string))
-    ) {
+    if (!assignee || !(await isStaffOfTenant(assignedToId, ticketData.org_id as string))) {
       throw new ValidationError('Invalid assignee');
     }
 

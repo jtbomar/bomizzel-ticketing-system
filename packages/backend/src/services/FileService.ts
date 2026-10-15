@@ -1,4 +1,5 @@
 import { FileAttachment } from '@/models/FileAttachment';
+import { roleOf } from '@/utils/session';
 import { Ticket } from '@/models/Ticket';
 import { User } from '@/models/User';
 import { FileAttachment as FileAttachmentModel } from '@/types/models';
@@ -203,7 +204,7 @@ export class FileService {
 
     const canDelete =
       attachment.uploaded_by_id === userId ||
-      ['admin', 'employee', 'team_lead'].includes(user.role);
+      ['admin', 'employee', 'team_lead'].includes(roleOf(user) || '');
 
     if (!canDelete) {
       throw new ForbiddenError('You do not have permission to delete this file');
@@ -322,10 +323,11 @@ export class FileService {
     // account(s). Staff could read and attach files to every ticket on the
     // platform before.
     const tenant = await tenantContextFor(userId);
-    if (!canAccessTicket({ id: userId, role: user.role, ...tenant }, ticket as any)) {
+    const role = roleOf(user) || user.role;
+    if (!canAccessTicket({ ...tenant, id: userId, role }, ticket as any)) {
       throw new NotFoundError('Ticket not found');
     }
-    return isStaff(user);
+    return isStaff({ role });
   }
 
   /**

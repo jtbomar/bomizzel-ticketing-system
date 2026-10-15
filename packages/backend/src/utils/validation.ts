@@ -38,6 +38,10 @@ export const loginSchema = Joi.object({
   password: Joi.string().required().messages({
     'any.required': 'Password is required',
   }),
+  // Signing in to one company: its portal name, and as its staff
+  // (portal.bomizzel.com/<name>/login) or on its customer portal
+  company: Joi.string().trim().lowercase().max(64).optional(),
+  audience: Joi.string().valid('staff', 'portal').optional(),
 });
 
 export const refreshTokenSchema = Joi.object({

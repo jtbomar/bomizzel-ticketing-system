@@ -22,6 +22,10 @@ jest.mock('../src/config/database', () => {
       return builder;
     }),
     first: jest.fn(async () => builder.__matched),
+    // The signed-in user's company memberships (utils/session): none here
+    join: jest.fn(() => builder),
+    orderBy: jest.fn(() => builder),
+    select: jest.fn(async () => []),
   };
   const db: any = jest.fn(() => builder);
   db.__builder = builder;

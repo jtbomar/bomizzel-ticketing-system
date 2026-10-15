@@ -2,6 +2,8 @@ import { db } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
 import { User } from '@/models/User';
 import { CryptoUtils } from '@/utils/crypto';
+import { currentSessionFor } from '@/utils/session';
+import bcrypt from 'bcryptjs';
 import { subscriberForPortalName } from '@/utils/portalName';
 import { BrandingService, portalBackgroundUrl, portalIconUrl } from './BrandingService';
 import { AccountEmailService } from './AccountEmailService';
@@ -76,12 +78,37 @@ export class PortalService {
   ) {
     const s = await subscriberOrThrow(slug);
     const email = input.email.trim().toLowerCase();
-    if (await db('users').whereRaw('lower(email) = ?', [email]).first('id')) {
-      throw new AppError(
-        'There is already an account for this email. Sign in, or use "Forgot password" to set a password.',
-        409,
-        'ACCOUNT_EXISTS'
-      );
+    const existing = await db('users')
+      .whereRaw('lower(email) = ?', [email])
+      .first('id', 'password_hash', 'email_verified', 'is_active');
+    if (existing) {
+      // Someone with a login elsewhere on Bomizzel (staff of another company,
+      // or a customer of one) joins this portal too, once they prove it's
+      // theirs with their password. Otherwise: sign in, or reset it.
+      const theirs =
+        existing.is_active &&
+        existing.email_verified &&
+        (await bcrypt.compare(input.password, existing.password_hash || ''));
+      const already = await db('user_company_associations as a')
+        .join('companies as c', 'c.id', 'a.company_id')
+        .where({ 'a.user_id': existing.id, 'c.subscriber_id': s.id })
+        .first('a.company_id');
+      if (!theirs || already) {
+        throw new AppError(
+          'There is already an account for this email. Sign in, or use "Forgot password" to set a password.',
+          409,
+          'ACCOUNT_EXISTS'
+        );
+      }
+      const companyId = await this.accountFor(s.id, email, input);
+      await db('user_company_associations').insert({
+        user_id: existing.id,
+        company_id: companyId,
+        role: 'member',
+      });
+      await PortalAccessService.request(s.id, existing.id, companyId, input.companyName || null);
+      await PortalAccessService.notifyAdmins(existing.id);
+      return { userId: existing.id, joined: true };
     }
 
     const user = await User.createUser({
@@ -95,27 +122,7 @@ export class PortalService {
     await db('users').where('id', user.id).update({ current_org_id: s.id, portal_scope: 'own' });
 
     const companyName = (input.companyName || '').trim().slice(0, 150);
-    const domain = email.split('@')[1] || '';
-    let companyId: string | undefined;
-    if (domain && !PERSONAL_DOMAINS.has(domain)) {
-      const existing = await db('companies')
-        .where('subscriber_id', s.id)
-        .whereRaw('lower(domain) = ?', [domain])
-        .first('id');
-      companyId = existing?.id;
-    }
-    if (!companyId) {
-      const personal = PERSONAL_DOMAINS.has(domain);
-      const [created] = await db('companies')
-        .insert({
-          name: (companyName || `${input.firstName} ${input.lastName} (${email})`).slice(0, 255),
-          domain: personal ? null : domain || null,
-          subscriber_id: s.id,
-          description: 'Created from portal sign-up',
-        })
-        .returning('id');
-      companyId = (created.id ?? created) as string;
-    }
+    const companyId = await this.accountFor(s.id, email, input);
     await db('user_company_associations').insert({
       user_id: user.id,
       company_id: companyId,
@@ -133,13 +140,41 @@ export class PortalService {
     return { userId: user.id };
   }
 
+  /** The subscriber's account for this email's domain, or a new one with the name they gave. */
+  private static async accountFor(
+    subscriberId: string,
+    email: string,
+    input: { firstName: string; lastName: string; companyName?: string }
+  ): Promise<string> {
+    const companyName = (input.companyName || '').trim().slice(0, 150);
+    const domain = email.split('@')[1] || '';
+    if (domain && !PERSONAL_DOMAINS.has(domain)) {
+      const existing = await db('companies')
+        .where('subscriber_id', subscriberId)
+        .whereRaw('lower(domain) = ?', [domain])
+        .first('id');
+      if (existing) return existing.id;
+    }
+    const personal = PERSONAL_DOMAINS.has(domain);
+    const [created] = await db('companies')
+      .insert({
+        name: (companyName || `${input.firstName} ${input.lastName} (${email})`).slice(0, 255),
+        domain: personal ? null : domain || null,
+        subscriber_id: subscriberId,
+        description: 'Created from portal sign-up',
+      })
+      .returning('id');
+    return (created.id ?? created) as string;
+  }
+
   /**
    * Signed in on this portal: the person must be a contact of this
-   * subscriber. Makes it their current subscriber (a contact can belong to
-   * several) and says what they can see.
+   * subscriber, and signed in to it as one (utils/session.ts). Says what they
+   * can see.
    */
   static async session(slug: string, userId: string) {
     const s = await subscriberOrThrow(slug);
+    this.assertPortalSession(s.id, userId);
     const user = await db('users')
       .where('id', userId)
       .first('id', 'role', 'portal_scope', 'first_name', 'last_name', 'email');
@@ -148,14 +183,13 @@ export class PortalService {
       .where('a.user_id', userId)
       .where('c.subscriber_id', s.id)
       .select('c.id', 'c.name');
-    if (!user || user.role !== 'customer' || !accounts.length) {
+    if (!user || !accounts.length) {
       throw new AppError(
         "This account isn't a customer account for this portal.",
         403,
         'NOT_A_PORTAL_CONTACT'
       );
     }
-    await db('users').where('id', userId).update({ current_org_id: s.id });
     const request = await db('portal_access_requests')
       .where({ org_id: s.id, user_id: userId })
       .orderBy('created_at', 'desc')
@@ -240,10 +274,10 @@ export class PortalService {
 
   private static async contactIn(slug: string, userId: string) {
     const s = await subscriberOrThrow(slug);
+    this.assertPortalSession(s.id, userId);
     const account = await db('user_company_associations as a')
       .join('companies as c', 'c.id', 'a.company_id')
-      .join('users as u', 'u.id', 'a.user_id')
-      .where({ 'a.user_id': userId, 'c.subscriber_id': s.id, 'u.role': 'customer' })
+      .where({ 'a.user_id': userId, 'c.subscriber_id': s.id })
       .orderBy('a.created_at', 'asc')
       .first('c.id');
     if (!account) {
@@ -253,11 +287,22 @@ export class PortalService {
         'NOT_A_PORTAL_CONTACT'
       );
     }
-    // Their tickets on this portal are this subscriber's
-    await db('users')
-      .where('id', userId)
-      .where((q) => q.whereNull('current_org_id').orWhereNot('current_org_id', s.id))
-      .update({ current_org_id: s.id });
     return { s, account: account.id as string };
+  }
+
+  /**
+   * The request is signed in to this subscriber as a customer. Its tickets
+   * and files are worked out from the session, so a sign-in to another
+   * company (or as staff) can't act here.
+   */
+  private static assertPortalSession(subscriberId: string, userId: string): void {
+    const session = currentSessionFor(userId);
+    if (session && (session.tenantId !== subscriberId || session.role !== 'customer')) {
+      throw new AppError(
+        "You're signed in somewhere else. Sign in on this portal.",
+        403,
+        'NOT_A_PORTAL_CONTACT'
+      );
+    }
   }
 }

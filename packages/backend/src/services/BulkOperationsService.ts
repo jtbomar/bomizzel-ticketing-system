@@ -5,7 +5,7 @@ import { notificationService } from './NotificationService';
 import { MetricsService } from './MetricsService';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { logger } from '../utils/logger';
-import { assertQueueInTenant, tenantContextFor } from '@/utils/tenant';
+import { assertQueueInTenant, isStaffOfTenant, tenantContextFor } from '@/utils/tenant';
 
 export interface BulkOperationResult {
   success: string[];
@@ -65,7 +65,8 @@ export class BulkOperationsService {
 
     // Validate assignee
     const assignee = await User.findById(assignedToId);
-    if (!assignee || assignee.role === 'customer') {
+    const { tenantId } = await tenantContextFor(performedById);
+    if (!assignee || !tenantId || !(await isStaffOfTenant(assignee.id, tenantId))) {
       throw new ValidationError('Invalid assignee');
     }
 

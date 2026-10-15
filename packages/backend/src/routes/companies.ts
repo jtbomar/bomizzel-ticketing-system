@@ -254,15 +254,33 @@ router.post(
       const { companyId } = req.params;
       const { userId, role } = req.body;
 
-      // Only a user already in this subscriber, or a brand-new user who
-      // belongs to no company yet (a contact just registered for an account).
-      // Pulling in another subscriber's user would hand them this subscriber.
-      const inTenant = await isUserInTenant(userId, req.user!.tenantId as string);
+      const tenantId = requireTenantId(req.user);
+      if (!(await isCompanyInTenant(companyId as string, tenantId))) {
+        throw new AppError('Company not found', 404, 'COMPANY_NOT_FOUND');
+      }
+
+      // A user already in this subscriber, a brand-new user who belongs to no
+      // company yet, or someone with a login at another company joining one
+      // of this subscriber's accounts as a contact (one login can be staff of
+      // one company and a customer of others). Never another subscriber's
+      // user onto this subscriber's own company: that would make them staff.
+      const inTenant = await isUserInTenant(userId, tenantId);
       const hasAnyCompany = await db('user_company_associations')
         .where('user_id', userId)
         .first('user_id');
+      if (companyId === tenantId) {
+        // Onto the subscriber's own company (staff): not someone who also
+        // belongs to another company - a customer here can be staff there
+        const elsewhere = await db('user_company_associations as a')
+          .join('companies as c', 'c.id', 'a.company_id')
+          .where('a.user_id', userId)
+          .whereRaw('coalesce(c.subscriber_id, c.id) <> ?', [tenantId])
+          .first('a.company_id');
+        if (elsewhere) throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+      }
       if (!inTenant && hasAnyCompany) {
-        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+        const exists = await db('users').where('id', userId).first('id');
+        if (!exists) throw new AppError('User not found', 404, 'USER_NOT_FOUND');
       }
 
       await CompanyService.addUserToCompany(companyId, userId, role, req.user!.id);

@@ -335,8 +335,10 @@ export class InboundEmailService {
     const memberships = await db('user_company_associations')
       .where('user_id', user.id)
       .pluck('company_id');
-    if (STAFF_ROLES.includes(user.role)) return memberships.includes(tenantId) ? user : null;
-    return memberships.includes(ticket.company_id) ? user : null;
+    // Staff here; else a contact of the ticket's account (which staff of
+    // another company can be), who writes back as a customer
+    if (STAFF_ROLES.includes(user.role) && memberships.includes(tenantId)) return user;
+    return memberships.includes(ticket.company_id) ? { ...user, role: 'customer' } : null;
   }
 
   /**

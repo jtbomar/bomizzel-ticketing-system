@@ -254,7 +254,6 @@ export const lookupTargetsExist = async (
       .join('user_company_associations as a', 'a.user_id', 'u.id')
       .join('companies as c', 'c.id', 'a.company_id')
       .whereIn('u.id', wanted)
-      .where('u.role', 'customer')
       .where('c.subscriber_id', orgId)
       .distinct('u.id as id');
   } else {

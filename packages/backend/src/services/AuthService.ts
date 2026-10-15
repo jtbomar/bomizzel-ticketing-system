@@ -11,6 +11,8 @@ import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
 import { db } from '@/config/database';
 import { tenantContextFor } from '@/utils/tenant';
+import { resolveSession } from '@/utils/session';
+import { subscriberForPortalName } from '@/utils/portalName';
 import bcrypt from 'bcryptjs';
 import { BrandingService } from './BrandingService';
 import { PortalAccessService } from './PortalAccessService';
@@ -202,11 +204,36 @@ export class AuthService {
         );
       }
 
+      // The company they're signing in to, and their role there: one login can
+      // be staff of one company and a customer of others (utils/session.ts)
+      let tenant: { id: string; name: string } | null = null;
+      if (loginData.company) {
+        tenant = await subscriberForPortalName(loginData.company);
+        if (!tenant) throw new AppError('Company not found', 404, 'PORTAL_NOT_FOUND');
+      }
+      const session = await resolveSession(user, tenant?.id, loginData.audience);
+      if (!session) {
+        if (loginData.audience === 'portal') {
+          throw new AppError(
+            `This email isn't a customer login${tenant ? ` for ${tenant.name}` : ''}.`,
+            403,
+            'NOT_A_PORTAL_CONTACT'
+          );
+        }
+        throw new AppError(
+          `This email isn't a staff login${tenant ? ` for ${tenant.name}` : ''}.`,
+          403,
+          tenant ? 'NOT_STAFF_HERE' : 'NO_TENANT'
+        );
+      }
+
       // Generate JWT tokens
       const tokens = JWTUtils.generateTokenPair({
         userId: user.id,
         email: user.email,
-        role: user.role,
+        role: session.role,
+        ...(session.tenantId ? { tid: session.tenantId } : {}),
+        ...(loginData.audience ? { aud: loginData.audience } : {}),
       });
 
       // Convert to API model format manually (bypassing User.toModel)
@@ -215,7 +242,7 @@ export class AuthService {
         email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        role: user.role,
+        role: session.role as UserModel['role'],
         isActive: user.is_active,
         emailVerified: user.email_verified,
         preferences: user.preferences || {},
@@ -264,11 +291,19 @@ export class AuthService {
         throw new AppError('User not found or deactivated', 401, 'USER_NOT_FOUND');
       }
 
+      // Same company and audience as the sign-in, if they still belong there
+      const session = await resolveSession(user as any, payload.tid, payload.aud);
+      if (!session) {
+        throw new AppError('You no longer have access here', 401, 'SESSION_INVALID');
+      }
+
       // Generate new token pair
       const tokens = JWTUtils.generateTokenPair({
         userId: user.id,
         email: user.email,
-        role: user.role,
+        role: session.role,
+        ...(session.tenantId ? { tid: session.tenantId } : {}),
+        ...(payload.aud ? { aud: payload.aud } : {}),
       });
 
       // Retire the token we just spent, now that its replacement exists.

@@ -1,4 +1,5 @@
 import { TicketStatus } from '@/models/TicketStatus';
+import { roleOf } from '@/utils/session';
 import { Team } from '@/models/Team';
 import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
@@ -32,7 +33,7 @@ export class TicketStatusService {
       const isTeamLead = await Team.isTeamLead(createdById, teamId);
       const user = await User.findById(createdById);
 
-      if (!isTeamLead && user?.role !== 'admin') {
+      if (!isTeamLead && roleOf(user) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can manage ticket statuses',
           403,
@@ -128,7 +129,7 @@ export class TicketStatusService {
       const isTeamLead = await Team.isTeamLead(updatedById, status.team_id);
       const user = await User.findById(updatedById);
 
-      if (!isTeamLead && user?.role !== 'admin') {
+      if (!isTeamLead && roleOf(user) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can manage ticket statuses',
           403,
@@ -214,7 +215,7 @@ export class TicketStatusService {
       const isTeamLead = await Team.isTeamLead(deletedById, status.team_id);
       const user = await User.findById(deletedById);
 
-      if (!isTeamLead && user?.role !== 'admin') {
+      if (!isTeamLead && roleOf(user) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can manage ticket statuses',
           403,
@@ -269,7 +270,7 @@ export class TicketStatusService {
       const isTeamLead = await Team.isTeamLead(updatedById, teamId);
       const user = await User.findById(updatedById);
 
-      if (!isTeamLead && user?.role !== 'admin') {
+      if (!isTeamLead && roleOf(user) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can manage ticket statuses',
           403,

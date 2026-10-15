@@ -1,4 +1,5 @@
 import { Company } from '@/models/Company';
+import { roleOf } from '@/utils/session';
 import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
@@ -545,7 +546,7 @@ export class CompanyService {
       }
 
       // Admin users can access any company
-      if (user.role === 'admin') {
+      if (roleOf(user) === 'admin') {
         return true;
       }
 

@@ -1,4 +1,5 @@
 import { Team } from '@/models/Team';
+import { roleOf } from '@/utils/session';
 import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
@@ -172,7 +173,7 @@ export class TeamService {
       const isTeamLead = await Team.isTeamLead(updatedById, teamId);
       const user = await User.findById(updatedById);
 
-      if (!isTeamLead && user?.role !== 'admin') {
+      if (!isTeamLead && roleOf(user) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can update team information',
           403,
@@ -319,7 +320,7 @@ export class TeamService {
       const isTeamLead = await Team.isTeamLead(addedById, teamId);
       const addedByUser = await User.findById(addedById);
 
-      if (!isTeamLead && addedByUser?.role !== 'admin') {
+      if (!isTeamLead && roleOf(addedByUser) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can add team members',
           403,
@@ -368,7 +369,7 @@ export class TeamService {
       const isTeamLead = await Team.isTeamLead(removedById, teamId);
       const removedByUser = await User.findById(removedById);
 
-      if (!isTeamLead && removedByUser?.role !== 'admin' && removedById !== userId) {
+      if (!isTeamLead && roleOf(removedByUser) !== 'admin' && removedById !== userId) {
         throw new AppError(
           'Only team leads, admins, or the user themselves can remove team members',
           403,
@@ -418,7 +419,7 @@ export class TeamService {
       const isTeamLead = await Team.isTeamLead(updatedById, teamId);
       const updatedByUser = await User.findById(updatedById);
 
-      if (!isTeamLead && updatedByUser?.role !== 'admin') {
+      if (!isTeamLead && roleOf(updatedByUser) !== 'admin') {
         throw new AppError(
           'Only team leads or admins can update team member roles',
           403,

@@ -47,8 +47,15 @@ router.post(
   ),
   async (req, res, next) => {
     try {
-      await PortalService.signUp(req.params.slug!, req.body);
-      res.status(201).json({ message: 'Check your email for a link to confirm your address' });
+      const result = await PortalService.signUp(req.params.slug!, req.body);
+      res.status(201).json(
+        result.joined
+          ? {
+              joined: true,
+              message: "You're signed up. Sign in with the password you already use.",
+            }
+          : { message: 'Check your email for a link to confirm your address' }
+      );
     } catch (error) {
       next(error);
     }

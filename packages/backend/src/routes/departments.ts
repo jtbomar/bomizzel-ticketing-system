@@ -113,22 +113,9 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
       return res.status(400).json({ error: 'User not associated with any company' });
     }
 
-    // Get user's current org - if not set, use the company_id as org_id
-    const user = await db('users').where('id', req.user!.id).first();
-    let orgId = user.current_org_id;
-
-    console.log('User current_org_id:', orgId);
-
-    // If no org is set, derive it from the company association.
-    //
-    // This used to query `user_organization_associations` first, but no
-    // migration creates that table - the query threw rather than returning
-    // null, so this branch 500'd instead of falling through.
-    if (!orgId) {
-      orgId = userCompany.company_id;
-      await db('users').where('id', req.user!.id).update({ current_org_id: orgId });
-      console.log('Derived org_id from company association:', orgId);
-    }
+    // The subscriber this sign-in is for (not users.current_org_id, which a
+    // customer-portal visit elsewhere could change)
+    const orgId = req.user!.tenantId || userCompany.company_id;
 
     const companyId = userCompany.company_id;
 

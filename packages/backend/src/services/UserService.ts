@@ -3,7 +3,15 @@ import { Company } from '@/models/Company';
 import { Team } from '@/models/Team';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
-import { isCompanyInTenant, isStaff, tenantContextFor, tenantUserIds } from '@/utils/tenant';
+import {
+  isCompanyInTenant,
+  isStaff,
+  STAFF_ROLES,
+  tenantContactIds,
+  tenantContextFor,
+  tenantStaffIds,
+  tenantUserIds,
+} from '@/utils/tenant';
 import {
   User as UserModel,
   UserCompanyAssociation,
@@ -13,6 +21,44 @@ import {
 import { PlanService } from './PlanService';
 import { OwnershipService } from './OwnershipService';
 import { OrgBillingService } from './OrgBillingService';
+
+/**
+ * Narrow a user query to people with this role at the subscriber: 'customer'
+ * means its contacts who aren't its staff; a staff role means its staff.
+ */
+const byRoleIn = (query: any, tenantId: string, role: string) =>
+  role === 'customer'
+    ? query.whereIn('id', tenantContactIds(tenantId)).whereNotIn('id', tenantStaffIds(tenantId))
+    : query.where('role', role).whereIn('id', tenantStaffIds(tenantId));
+
+/**
+ * People as one subscriber sees them: its staff by their role, everyone else
+ * as its customer (one login can be staff of another company too).
+ */
+const asSeenBy = async <T extends { id: string; role: string }>(
+  tenantId: string | undefined,
+  users: T[]
+): Promise<T[]> => {
+  if (!tenantId || users.length === 0) return users;
+  const staff = new Set(
+    await User.db('user_company_associations as a')
+      .join('users as u', 'u.id', 'a.user_id')
+      .where('a.company_id', tenantId)
+      .whereIn('u.role', STAFF_ROLES)
+      .whereIn(
+        'a.user_id',
+        users.map((u) => u.id)
+      )
+      .pluck('a.user_id')
+  );
+  return users.map((u) => (staff.has(u.id) ? u : { ...u, role: 'customer' }));
+};
+
+/** A person's companies at this subscriber (all of them without one). */
+const companiesIn = async (tenantId: string | undefined, userId: string) => {
+  const all = await User.getUserCompanies(userId);
+  return tenantId ? all.filter((c: any) => (c.subscriberId || c.companyId) === tenantId) : all;
+};
 
 export class UserService {
   /**
@@ -39,8 +85,10 @@ export class UserService {
       const offset = (page - 1) * limit;
 
       let whereClause: any = {};
+      // Staff asking about their subscriber: a role means its role there
+      const scoped = !!requestingUser?.tenantId && isStaff(requestingUser);
 
-      if (role) {
+      if (role && !scoped) {
         whereClause.role = role;
       }
 
@@ -95,6 +143,7 @@ export class UserService {
       if (Object.keys(whereClause).length > 0) {
         searchQuery = searchQuery.where(whereClause);
       }
+      if (role && scoped) searchQuery = byRoleIn(searchQuery, requestingUser!.tenantId!, role);
 
       // Get total count
       const totalQuery = searchQuery.clone();
@@ -102,7 +151,10 @@ export class UserService {
       const totalCount = parseInt(total?.count || '0', 10);
 
       // Get paginated results
-      const users = await searchQuery.limit(limit).offset(offset).orderBy('created_at', 'desc');
+      const users = await asSeenBy(
+        scoped ? requestingUser!.tenantId : undefined,
+        await searchQuery.limit(limit).offset(offset).orderBy('created_at', 'desc')
+      );
 
       // Enrich user models with company associations for customers
       const userModels = await Promise.all(
@@ -111,7 +163,10 @@ export class UserService {
 
           // Add company associations for customers
           if (user.role === 'customer') {
-            const companies = await User.getUserCompanies(user.id);
+            const companies = await companiesIn(
+              scoped ? requestingUser!.tenantId : undefined,
+              user.id
+            );
             return {
               ...baseModel,
               companies,
@@ -465,11 +520,17 @@ export class UserService {
         searchQuery = searchQuery.whereNotIn('id', excludeUserIds);
       }
 
+      const scoped = isStaff(requestingUser);
       if (role) {
-        searchQuery = searchQuery.where('role', role);
+        searchQuery = scoped
+          ? byRoleIn(searchQuery, requestingUser.tenantId, role)
+          : searchQuery.where('role', role);
       }
 
-      const users = await searchQuery.limit(limit).orderBy('first_name', 'asc');
+      const users = await asSeenBy(
+        scoped ? requestingUser.tenantId : undefined,
+        await searchQuery.limit(limit).orderBy('first_name', 'asc')
+      );
 
       // Add company associations for customers
       const userModels = await Promise.all(
@@ -477,7 +538,10 @@ export class UserService {
           const baseModel = User.toModel(user);
 
           if (user.role === 'customer') {
-            const companies = await User.getUserCompanies(user.id);
+            const companies = await companiesIn(
+              scoped ? requestingUser.tenantId : undefined,
+              user.id
+            );
             return {
               ...baseModel,
               companies,
@@ -506,13 +570,18 @@ export class UserService {
     recentRegistrations: number;
   }> {
     try {
+      // Staff are members of the subscriber's own company; everyone else in it
+      // is a contact, whatever their role at another company
+      const staffSql = `SELECT sa.user_id FROM user_company_associations sa
+          JOIN users su ON su.id = sa.user_id
+         WHERE sa.company_id = ? AND su.role IN ('employee', 'team_lead', 'admin')`;
       const stats = await User.db.raw(
         `
         SELECT 
           COUNT(*) as total_users,
           COUNT(CASE WHEN is_active = true THEN 1 END) as active_users,
-          COUNT(CASE WHEN role = 'customer' THEN 1 END) as customer_count,
-          COUNT(CASE WHEN role IN ('employee', 'team_lead', 'admin') THEN 1 END) as employee_count,
+          COUNT(CASE WHEN id NOT IN (${staffSql}) THEN 1 END) as customer_count,
+          COUNT(CASE WHEN id IN (${staffSql}) THEN 1 END) as employee_count,
           COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as recent_registrations
         FROM users
         WHERE id IN (
@@ -521,7 +590,7 @@ export class UserService {
            WHERE c.id = ? OR c.subscriber_id = ?
         )
       `,
-        [tenantId, tenantId]
+        [tenantId, tenantId, tenantId, tenantId]
       );
 
       const result = stats.rows[0];
@@ -548,14 +617,18 @@ export class UserService {
     try {
       // Contacts of this subscriber's accounts only - this returned every
       // contact on the platform.
-      const customers = await User.findActiveUsers({
-        role: 'customer',
-        idsIn: tenantUserIds(tenantId),
-      });
+      // (Its contacts, whatever they are at another company: Gleason's owner
+      // can be one of Bomizzel's customers.)
+      const customers = await asSeenBy(
+        tenantId,
+        await User.findActiveUsers({
+          idsIn: tenantContactIds(tenantId).whereNotIn('tca.user_id', tenantStaffIds(tenantId)),
+        })
+      );
 
       const customersWithCompanies = await Promise.all(
         customers.map(async (customer) => {
-          const companies = await User.getUserCompanies(customer.id);
+          const companies = await companiesIn(tenantId, customer.id);
           return {
             ...User.toModel(customer),
             companies,

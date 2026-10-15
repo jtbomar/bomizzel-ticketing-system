@@ -1,4 +1,5 @@
 import { User } from '@/models/User';
+import { roleOf } from '@/utils/session';
 import { Team } from '@/models/Team';
 import { Ticket } from '@/models/Ticket';
 import { AppError } from '@/middleware/errorHandler';
@@ -57,7 +58,7 @@ export class ReportingService {
     try {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
-      if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
+      if (!user || (roleOf(user) !== 'admin' && roleOf(user) !== 'employee')) {
         throw new AppError(
           'Only employees and administrators can view reports',
           403,
@@ -202,7 +203,7 @@ export class ReportingService {
     try {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
-      if (!user || user.role !== 'admin') {
+      if (!user || roleOf(user) !== 'admin') {
         throw new AppError('Only administrators can view user reports', 403, 'ADMIN_REQUIRED');
       }
 
@@ -273,7 +274,7 @@ export class ReportingService {
     try {
       // Check if user has permission to view reports
       const user = await User.findById(requestedById);
-      if (!user || (user.role !== 'admin' && user.role !== 'employee')) {
+      if (!user || (roleOf(user) !== 'admin' && roleOf(user) !== 'employee')) {
         throw new AppError(
           'Only employees and administrators can view team reports',
           403,
@@ -352,7 +353,7 @@ export class ReportingService {
     try {
       // Check if user has permission to export data
       const user = await User.findById(requestedById);
-      if (!user || user.role !== 'admin') {
+      if (!user || roleOf(user) !== 'admin') {
         throw new AppError('Only administrators can export data', 403, 'ADMIN_REQUIRED');
       }
 

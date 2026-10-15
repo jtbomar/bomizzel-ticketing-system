@@ -3,7 +3,7 @@ import { db } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { User } from '@/models/User';
-import { STAFF_ROLES } from '@/utils/tenant';
+import { STAFF_ROLES, tenantContextFor } from '@/utils/tenant';
 import { PlanService } from './PlanService';
 
 /**
@@ -58,6 +58,7 @@ export class OwnershipService {
     actorId: string,
     change: { kind: 'edit'; role?: string; isActive?: boolean } | { kind: 'deactivate' | 'delete' }
   ): Promise<void> {
+    if (actorId !== targetId) await this.assertNotShared(targetId, actorId);
     if (!(await this.isOwner(targetId))) return;
     const removing =
       change.kind !== 'edit' ||
@@ -80,6 +81,28 @@ export class OwnershipService {
         "You're the account owner. Transfer ownership to someone else first.",
         400,
         'OWNER_MUST_TRANSFER'
+      );
+    }
+  }
+
+  /**
+   * One login can be staff of one company and a customer of others. Its
+   * email, password, role and whether it can sign in belong to the person, so
+   * one company's admins can't change them (or delete it) while it's also
+   * used at another company.
+   */
+  static async assertNotShared(targetId: string, actorId: string): Promise<void> {
+    const { tenantId } = await tenantContextFor(actorId);
+    const elsewhere = await db('user_company_associations as a')
+      .join('companies as c', 'c.id', 'a.company_id')
+      .where('a.user_id', targetId)
+      .whereRaw('coalesce(c.subscriber_id, c.id) <> ?', [tenantId || null])
+      .first('a.company_id');
+    if (elsewhere) {
+      throw new AppError(
+        'This person also signs in at another company on Bomizzel, so their login can only be changed by them. You can still move them between your accounts.',
+        403,
+        'SHARED_LOGIN'
       );
     }
   }
@@ -142,8 +165,27 @@ export class OwnershipService {
     actorId: string
   ) {
     const email = input.email.trim().toLowerCase();
-    if (await db('users').whereRaw('lower(email) = ?', [email]).first('id')) {
-      throw new AppError('Someone already has a login with that email', 409, 'USER_EXISTS');
+    const existing = await db('users').whereRaw('lower(email) = ?', [email]).first('id', 'role');
+    if (existing) {
+      // A customer somewhere (say, of Bomizzel) keeps their login and becomes
+      // this company's owner too. Staff of another company can't be.
+      if (STAFF_ROLES.includes(existing.role)) {
+        throw new AppError(
+          'That email is already a staff login at another company',
+          409,
+          'USER_EXISTS'
+        );
+      }
+      await PlanService.assertCan(tenantId, 'agent');
+      await db('users').where('id', existing.id).update({ role: 'admin', updated_at: new Date() });
+      await db('user_company_associations')
+        .insert({ user_id: existing.id, company_id: tenantId, role: 'member' })
+        .onConflict(['user_id', 'company_id'])
+        .ignore();
+      const { OrgBillingService } = await import('./OrgBillingService');
+      await OrgBillingService.syncSeats(tenantId);
+      await this.transfer(tenantId, existing.id, actorId, true);
+      return existing.id as string;
     }
     await PlanService.assertCan(tenantId, 'agent');
     const user = await User.createUser({

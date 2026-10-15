@@ -3,6 +3,7 @@ import { EmailService } from './EmailService';
 import { logger } from '@/utils/logger';
 import { supportAddress, ticketToken } from '@/utils/supportEmail';
 import { BrandingService } from './BrandingService';
+import { isStaffOfTenant } from '@/utils/tenant';
 import {
   Brand,
   brandedLayout,
@@ -94,7 +95,13 @@ const loadContext = async (ticketId: string): Promise<TicketContext | null> => {
   ]);
   // No address to reply to, or no customer to write to (staff-raised tickets
   // whose submitter is staff): nothing to send.
-  if (!subscriber?.support_email_slug || !customer || customer.role !== 'customer') return null;
+  // (Staff of this subscriber; a customer here can be staff of another company)
+  if (
+    !subscriber?.support_email_slug ||
+    !customer ||
+    (await isStaffOfTenant(ticket.submitter_id, subscriber.id))
+  )
+    return null;
   const brand = await BrandingService.forSubscriber(subscriber.id);
   return { ticket, subscriber, customer, brand };
 };
@@ -184,7 +191,7 @@ export class TicketEmailService {
     const author = await db('users')
       .where('id', note.author_id)
       .first('role', 'first_name', 'last_name');
-    if (!author || author.role === 'customer') return false;
+    if (!author || !(await isStaffOfTenant(note.author_id, context.subscriber.id))) return false;
 
     const { ticket, brand } = context;
     const ref = refFor(ticket);

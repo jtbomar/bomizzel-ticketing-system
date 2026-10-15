@@ -15,6 +15,12 @@ jest.mock('@/models/User');
 jest.mock('../src/utils/tenant', () => ({
   ...jest.requireActual('../src/utils/tenant'),
   tenantContextFor: jest.fn().mockResolvedValue({ tenantId: 'tenant-1', companies: [] }),
+  // Staff of the tenant: anyone the User mock doesn't call a customer
+  isStaffOfTenant: jest.fn(async (id: string) => {
+    const { User: U } = jest.requireMock('@/models/User');
+    const u = await U.findById(id);
+    return !!u && u.role !== 'customer';
+  }),
 }));
 
 const MockedQueue = Queue as jest.Mocked<typeof Queue>;

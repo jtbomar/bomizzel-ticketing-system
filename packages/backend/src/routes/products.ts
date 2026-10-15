@@ -122,8 +122,7 @@ router.post('/', authenticate, authorize('admin'), async (req, res) => {
     const companyId = userCompany.company_id;
 
     // Get org_id - only use if it exists in organizations table
-    const user = await db('users').where('id', req.user!.id).first();
-    let orgId = user?.current_org_id;
+    let orgId: string | null | undefined = req.user!.tenantId;
 
     // Verify org_id exists in organizations table
     if (orgId) {

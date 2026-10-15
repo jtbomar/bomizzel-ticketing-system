@@ -6,7 +6,11 @@ import apiService from '../services/api';
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (
+    email: string,
+    password: string,
+    to?: { company: string; audience: 'staff' | 'portal' }
+  ) => Promise<void>;
   logout: () => void;
   register: (userData: {
     email: string;
@@ -48,11 +52,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string,
+    to?: { company: string; audience: 'staff' | 'portal' }
+  ) => {
     setIsLoading(true);
     try {
       // Use the backend API for authentication
-      const response = await apiService.login(email, password);
+      const response = await apiService.login(email, password, to);
       const { token, refreshToken, user: backendUser } = response;
 
       // Store the tokens. The refresh token renews the login when the access

@@ -1,6 +1,6 @@
 import { db } from '@/config/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '@/utils/errors';
-import { STAFF_ROLES, tenantUserIds } from '@/utils/tenant';
+import { STAFF_ROLES, tenantStaffIds } from '@/utils/tenant';
 import { sanitizeNoteHtml, noteHtmlToText } from '@/utils/richText';
 import { TicketService } from './TicketService';
 import { FieldService } from './FieldService';
@@ -103,7 +103,7 @@ export class MacroService {
   static async options(tenantId: string) {
     const [agents, departments] = await Promise.all([
       db('users')
-        .whereIn('id', tenantUserIds(tenantId))
+        .whereIn('id', tenantStaffIds(tenantId))
         .whereIn('role', STAFF_ROLES)
         .where('is_active', true)
         .orderBy(['first_name', 'last_name'])
@@ -156,7 +156,7 @@ export class MacroService {
           (await db('users')
             .where('id', a.assignTo)
             .whereIn('role', STAFF_ROLES)
-            .whereIn('id', tenantUserIds(caller.tenantId))
+            .whereIn('id', tenantStaffIds(caller.tenantId))
             .first('id'));
         if (!agent) throw new ValidationError('Unknown agent');
       }

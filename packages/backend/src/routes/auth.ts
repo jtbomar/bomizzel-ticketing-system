@@ -37,6 +37,25 @@ router.post(
       // Staff adding a contact (the create-ticket form uses this endpoint) send
       // an invitation instead of a verification email.
       const byStaff = !!req.user && isStaff(req.user);
+
+      // Someone who already has a login on Bomizzel (staff of another company,
+      // or a customer of one): staff add that same login to their account
+      // next, and it isn't changed here.
+      if (byStaff) {
+        const existing = await db('users')
+          .whereRaw('lower(email) = ?', [String(req.body.email).trim().toLowerCase()])
+          .first();
+        if (existing) {
+          const model = User.toModel(existing);
+          res.status(200).json({
+            message: 'This person already has a login',
+            existing: true,
+            user: { ...model, role: 'customer' },
+          });
+          return;
+        }
+      }
+
       const { user } = await AuthService.register(req.body, { sendVerificationEmail: !byStaff });
       // A contact an agent adds may see their company's tickets on the portal
       if (byStaff && user.role === 'customer') {

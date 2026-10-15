@@ -113,7 +113,12 @@ class ApiService {
   }
 
   // Auth endpoints
-  async login(email: string, password: string): Promise<any> {
+  // `to`: sign in to one company (its portal name), as staff or on its customer portal
+  async login(
+    email: string,
+    password: string,
+    to?: { company: string; audience: 'staff' | 'portal' }
+  ): Promise<any> {
     try {
       console.log('[ApiService] Attempting login with baseURL:', this.client.defaults.baseURL);
 
@@ -126,7 +131,7 @@ class ApiService {
         },
       });
 
-      const response = await loginClient.post('/auth/login', { email, password });
+      const response = await loginClient.post('/auth/login', { email, password, ...to });
       console.log('[ApiService] Login successful:', response.data);
       return response.data;
     } catch (error: any) {

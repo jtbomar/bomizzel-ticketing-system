@@ -1,4 +1,5 @@
 import { User } from '@/models/User';
+import { roleOf } from '@/utils/session';
 import { Team } from '@/models/Team';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
@@ -112,7 +113,7 @@ export class UserRoleService {
     try {
       // Check if updater is admin
       const updater = await User.findById(updatedById);
-      if (!updater || updater.role !== 'admin') {
+      if (!updater || roleOf(updater) !== 'admin') {
         throw new AppError('Only administrators can update user roles', 403, 'ADMIN_REQUIRED');
       }
 
@@ -154,7 +155,7 @@ export class UserRoleService {
     try {
       // Check if updater is admin
       const updater = await User.findById(updatedById);
-      if (!updater || updater.role !== 'admin') {
+      if (!updater || roleOf(updater) !== 'admin') {
         throw new AppError('Only administrators can update user status', 403, 'ADMIN_REQUIRED');
       }
 
@@ -327,7 +328,7 @@ export class UserRoleService {
     try {
       // Check if creator is admin
       const creator = await User.findById(userData.createdById);
-      if (!creator || creator.role !== 'admin') {
+      if (!creator || roleOf(creator) !== 'admin') {
         throw new AppError('Only administrators can create users', 403, 'ADMIN_REQUIRED');
       }
 
@@ -416,7 +417,7 @@ export class UserRoleService {
     try {
       // Check if updater is admin
       const updater = await User.findById(updatedById);
-      if (!updater || updater.role !== 'admin') {
+      if (!updater || roleOf(updater) !== 'admin') {
         throw new AppError('Only administrators can update users', 403, 'ADMIN_REQUIRED');
       }
 

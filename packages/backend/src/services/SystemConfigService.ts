@@ -1,4 +1,5 @@
 import { SystemSetting } from '@/models/SystemSetting';
+import { roleOf } from '@/utils/session';
 import { User } from '@/models/User';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
@@ -68,7 +69,7 @@ export class SystemConfigService {
     try {
       // Check if user is admin
       const user = await User.findById(updatedById);
-      if (!user || user.role !== 'admin') {
+      if (!user || roleOf(user) !== 'admin') {
         throw new AppError('Only administrators can update system settings', 403, 'ADMIN_REQUIRED');
       }
 
@@ -100,7 +101,7 @@ export class SystemConfigService {
     try {
       // Check if user is admin
       const user = await User.findById(deletedById);
-      if (!user || user.role !== 'admin') {
+      if (!user || roleOf(user) !== 'admin') {
         throw new AppError('Only administrators can delete system settings', 403, 'ADMIN_REQUIRED');
       }
 
@@ -226,7 +227,7 @@ export class SystemConfigService {
     try {
       // Check if user is admin
       const user = await User.findById(importedById);
-      if (!user || user.role !== 'admin') {
+      if (!user || roleOf(user) !== 'admin') {
         throw new AppError(
           'Only administrators can import system configuration',
           403,

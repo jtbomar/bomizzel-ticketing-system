@@ -6,6 +6,10 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: string;
+  // The subscriber this sign-in is for, and whether as staff or on its
+  // customer portal (see utils/session.ts). Older tokens have neither.
+  tid?: string;
+  aud?: 'staff' | 'portal';
   type: 'access' | 'refresh';
 }
 

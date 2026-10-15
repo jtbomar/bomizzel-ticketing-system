@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { slug } = useParams<{ slug?: string }>();
-  const { login, logout, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const [company, setCompany] = useState<CompanyBrand | null>(null);
   const [companyMissing, setCompanyMissing] = useState(false);
 
@@ -83,7 +83,12 @@ const LoginPage: React.FC = () => {
 
     try {
       console.log('Attempting login for:', formData.email);
-      await login(formData.email, formData.password);
+      // On a company's own sign-in, as its staff: the server refuses anyone else
+      await login(
+        formData.email,
+        formData.password,
+        slug ? { company: company?.portalName || slug, audience: 'staff' } : undefined
+      );
 
       // Get the user from localStorage to determine redirect
       const userStr = localStorage.getItem('user');
@@ -99,13 +104,6 @@ const LoginPage: React.FC = () => {
       if (userStr) {
         const user = JSON.parse(userStr);
         console.log('User role:', user.role);
-
-        // A customer on a company's staff sign-in: their place is its customer portal
-        if (slug && user.role === 'customer') {
-          logout();
-          window.location.assign(`${customerPortal}/login`);
-          return;
-        }
 
         // Small delay to ensure localStorage is updated
         setTimeout(() => {

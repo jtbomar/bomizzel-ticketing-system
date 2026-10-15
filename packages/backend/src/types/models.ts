@@ -256,6 +256,9 @@ export interface CreateUserRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  // The company's portal name, and staff or customer-portal sign-in
+  company?: string;
+  audience?: 'staff' | 'portal';
 }
 
 export interface LoginResponse {

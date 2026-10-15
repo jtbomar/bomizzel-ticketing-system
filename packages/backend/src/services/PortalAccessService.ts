@@ -5,7 +5,7 @@ import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { EmailService } from './EmailService';
 import { BOMIZZEL_BRAND, brandedLayout, button, escapeHtml } from '@/utils/brandedEmail';
-import { isCompanyInTenant } from '@/utils/tenant';
+import { isCompanyInTenant, isStaffOfTenant, isUserInTenant } from '@/utils/tenant';
 
 /**
  * Asking to see your company's tickets on the portal. Someone who signs up
@@ -88,8 +88,13 @@ export class PortalAccessService {
     companyId: string | null,
     companyName?: string | null
   ) {
-    const user = await db('users').where('id', userId).first('portal_scope', 'role');
-    if (!user || user.role !== 'customer')
+    // A contact of this subscriber (whatever they are at other companies)
+    const user = await db('users').where('id', userId).first('portal_scope');
+    if (
+      !user ||
+      !(await isUserInTenant(userId, tenantId)) ||
+      (await isStaffOfTenant(userId, tenantId))
+    )
       throw new AppError('Contacts only', 403, 'CONTACTS_ONLY');
     if (user.portal_scope === 'company') return null; // already has it
     const pending = await db('portal_access_requests')
@@ -257,9 +262,8 @@ export class PortalAccessService {
    * Any pending request of theirs is approved with it.
    */
   static async grant(tenantId: string, userId: string, companyId: string | null, adminId: string) {
-    const user = await db('users').where('id', userId).first('role');
-    if (!user || user.role !== 'customer')
-      throw new AppError('Contact not found', 404, 'NOT_FOUND');
+    // A contact here: checked below by their accounts, not users.role (staff
+    // of another company can be a customer of this one)
     const accounts = db('companies').select('id').where('subscriber_id', tenantId);
     const current = await db('user_company_associations')
       .where('user_id', userId)
@@ -305,7 +309,6 @@ export class PortalAccessService {
     const member = await db('user_company_associations as a')
       .join('users as u', 'u.id', 'a.user_id')
       .where('a.user_id', userId)
-      .where('u.role', 'customer')
       .whereIn('a.company_id', accounts)
       .first('u.portal_scope');
     if (!member) throw new AppError('Contact not found', 404, 'NOT_FOUND');
@@ -336,8 +339,6 @@ export class PortalAccessService {
       .whereIn('company_id', accounts)
       .first('company_id');
     if (!member) throw new AppError('Contact not found', 404, 'NOT_FOUND');
-    await db('users')
-      .where({ id: userId, role: 'customer' })
-      .update({ portal_scope: 'own', updated_at: new Date() });
+    await db('users').where({ id: userId }).update({ portal_scope: 'own', updated_at: new Date() });
   }
 }

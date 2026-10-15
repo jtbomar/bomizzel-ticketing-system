@@ -4,7 +4,7 @@ import { User } from '@/models/User';
 import { QueueMetrics, Queue as QueueModel } from '@/types/models';
 import { QueueTable } from '@/types/database';
 import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors';
-import { tenantContextFor } from '@/utils/tenant';
+import { isStaffOfTenant, tenantContextFor } from '@/utils/tenant';
 
 /**
  * Team roles that carry lead authority. Mirrors Team.isTeamLead, which has
@@ -55,7 +55,7 @@ export class QueueService {
     // Validate assignee if provided
     if (queueData.assignedToId) {
       const assignee = await User.findById(queueData.assignedToId);
-      if (!assignee || assignee.role === 'customer') {
+      if (!assignee || !(await isStaffOfTenant(assignee.id, (team as any).org_id))) {
         throw new ValidationError('Invalid assignee - must be an employee');
       }
 
@@ -174,7 +174,7 @@ export class QueueService {
 
     // Validate assignee
     const assignee = await User.findById(assignedToId);
-    if (!assignee || assignee.role === 'customer') {
+    if (!assignee || !(await isStaffOfTenant(assignee.id, (queue as any).org_id))) {
       throw new ValidationError('Invalid assignee - must be an employee');
     }
 

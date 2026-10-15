@@ -1,8 +1,8 @@
-import { isOwnTicketsOnly } from '@/utils/tenant';
 import { Request, Response, NextFunction } from 'express';
 import { JWTUtils, JWTPayload } from '@/utils/jwt';
 import { isTokenRevoked } from '@/utils/tokenBlocklist';
 import { User } from '@/models/User';
+import { resolveSession, sessionStore, Session } from '@/utils/session';
 import { AppError } from './errorHandler';
 import { logger } from '@/utils/logger';
 
@@ -28,22 +28,6 @@ declare global {
     }
   }
 }
-
-/**
- * The subscriber (SaaS account) a user belongs to.
- *
- * Staff belong to their subscriber's company directly; contacts belong to
- * accounts, whose subscriber_id names the subscriber. Worked out from the
- * user's memberships, not from users.current_org_id, which only picks between
- * them when there is more than one.
- */
-export const resolveTenantId = (
-  currentOrgId: string | null | undefined,
-  userCompanies: Array<{ companyId: string; subscriberId?: string | null }>
-): string | undefined => {
-  const tenantIds = [...new Set(userCompanies.map((uc) => uc.subscriberId || uc.companyId))];
-  return currentOrgId && tenantIds.includes(currentOrgId) ? currentOrgId : tenantIds[0];
-};
 
 /**
  * Middleware to authenticate requests using JWT tokens
@@ -83,28 +67,28 @@ export const authenticate = async (
       throw new AppError('Account is deactivated', 401, 'ACCOUNT_DEACTIVATED');
     }
 
-    // Get user's organization for tenant isolation
-    const organizationId = user.organization_id;
-    const userCompanies = await User.getUserCompanies(user.id);
-    const companyIds = userCompanies.map((uc) => uc.companyId);
+    // The subscriber this sign-in is for and their role there (utils/session).
+    // A token for a subscriber they no longer belong to is refused.
+    const session = await resolveSession(user as any, payload.tid, payload.aud);
+    if (!session) {
+      throw new AppError('You no longer have access here', 401, 'SESSION_INVALID');
+    }
 
-    const tenantId = resolveTenantId(user.current_org_id, userCompanies);
-
-    // Attach user info to request with organization and company context
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: session.role,
       isActive: user.is_active,
-      organizationId: organizationId, // Organization for service provider employees
-      companyId: companyIds[0], // Primary company for customers
-      companies: companyIds, // All associated companies for customers
-      tenantId,
+      organizationId: user.organization_id, // Organization for service provider employees
+      companyId: session.companies[0], // Primary company for customers
+      companies: session.companies, // Their companies in this tenant
+      tenantId: session.tenantId,
       // A contact not approved for their company's tickets sees only their own
-      ownTicketsOnly: isOwnTicketsOnly(user as any),
+      ownTicketsOnly: session.ownTicketsOnly,
     };
 
-    next();
+    // Services handed only a user id find this session (tenantContextFor, roleOf)
+    sessionStore.run(session, () => next());
   } catch (error) {
     if (error instanceof AppError) {
       next(error);
@@ -160,17 +144,20 @@ export const optionalAuth = async (
     if (payload && !(await isTokenRevoked(token))) {
       const user = await User.findById(payload.userId);
 
-      if (user && user.is_active) {
-        const userCompanies = await User.getUserCompanies(user.id);
+      const session: Session | null =
+        user && user.is_active ? await resolveSession(user as any, payload.tid, payload.aud) : null;
+      if (user && session) {
         req.user = {
           id: user.id,
           email: user.email,
-          role: user.role,
+          role: session.role,
           isActive: user.is_active,
-          companies: userCompanies.map((uc) => uc.companyId),
-          tenantId: resolveTenantId(user.current_org_id, userCompanies),
-          ownTicketsOnly: isOwnTicketsOnly(user as any),
+          companies: session.companies,
+          tenantId: session.tenantId,
+          ownTicketsOnly: session.ownTicketsOnly,
         };
+        sessionStore.run(session, () => next());
+        return;
       }
     }
 

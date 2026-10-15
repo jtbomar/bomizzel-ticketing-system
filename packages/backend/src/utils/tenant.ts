@@ -1,5 +1,6 @@
 import { db } from '@/config/database';
 import { AppError } from '@/middleware/errorHandler';
+import { currentSessionFor, resolveSession } from '@/utils/session';
 
 /**
  * Tenant isolation helpers.
@@ -136,27 +137,59 @@ export const assertQueueInTenant = async (queueId: string, tenantId: string): Pr
 
 /**
  * Tenant context for a user id, for services that are handed a user id rather
- * than req.user. Same rule as `authenticate`: staff belong to their
- * subscriber's company, contacts to accounts whose subscriber_id names it.
+ * than req.user. The signed-in user's is their session's (the subscriber they
+ * signed in to); anyone else's is worked out as `authenticate` does for a
+ * sign-in that names no company.
  */
 export const tenantContextFor = async (
   userId: string
-): Promise<{ tenantId?: string; companies: string[]; ownTicketsOnly: boolean }> => {
-  const [user, rows] = await Promise.all([
-    db('users').where('id', userId).first('current_org_id', 'role', 'portal_scope'),
-    db('user_company_associations as a')
-      .join('companies as c', 'c.id', 'a.company_id')
-      .where('a.user_id', userId)
-      .select('a.company_id', 'c.subscriber_id'),
-  ]);
-  const companies = rows.map((r: any) => r.company_id);
-  const tenants = [...new Set(rows.map((r: any) => r.subscriber_id || r.company_id))] as string[];
-  const tenantId =
-    user?.current_org_id && tenants.includes(user.current_org_id)
-      ? user.current_org_id
-      : tenants[0];
-  return { tenantId, companies, ownTicketsOnly: isOwnTicketsOnly(user) };
+): Promise<{ tenantId?: string; role?: string; companies: string[]; ownTicketsOnly: boolean }> => {
+  const current = currentSessionFor(userId);
+  if (current) return current;
+  const user = await db('users')
+    .where('id', userId)
+    .first('id', 'current_org_id', 'role', 'portal_scope');
+  const s = user && (await resolveSession(user));
+  return s || { companies: [], ownTicketsOnly: false };
 };
+
+/** Is this user staff of this tenant (a member of the subscriber's own company)? */
+export const isStaffOfTenant = async (userId: string, tenantId: string): Promise<boolean> => {
+  if (!userId || !tenantId) return false;
+  const row = await db('user_company_associations as a')
+    .join('users as u', 'u.id', 'a.user_id')
+    .where({ 'a.user_id': userId, 'a.company_id': tenantId })
+    .whereIn('u.role', STAFF_ROLES)
+    .first('a.user_id');
+  return !!row;
+};
+
+/**
+ * Staff of a tenant: staff logins on the subscriber's own company. Not its
+ * contacts, even ones who are staff of another subscriber. Use as a subquery.
+ */
+export const tenantStaffIds = (tenantId: string) =>
+  db('user_company_associations as tsa')
+    .join('users as tsu', 'tsu.id', 'tsa.user_id')
+    .where('tsa.company_id', tenantId)
+    .whereIn('tsu.role', STAFF_ROLES)
+    .select('tsa.user_id');
+
+/**
+ * Contacts of a tenant: members of its accounts, whatever their staff role
+ * elsewhere (and any non-staff login on the subscriber's own company). Use as
+ * a subquery.
+ */
+export const tenantContactIds = (tenantId: string) =>
+  db('user_company_associations as tca')
+    .join('companies as tcc', 'tcc.id', 'tca.company_id')
+    .join('users as tcu', 'tcu.id', 'tca.user_id')
+    .where((q) =>
+      q
+        .where('tcc.subscriber_id', tenantId)
+        .orWhere((own) => own.where('tcc.id', tenantId).whereNotIn('tcu.role', STAFF_ROLES))
+    )
+    .select('tca.user_id');
 
 /** A contact who may see only the tickets they opened (not approved for their company's). */
 export const isOwnTicketsOnly = (user?: { role?: string; portal_scope?: string } | null): boolean =>

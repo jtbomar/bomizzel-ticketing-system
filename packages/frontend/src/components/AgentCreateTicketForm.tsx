@@ -430,8 +430,16 @@ const AgentCreateTicketForm: React.FC = () => {
       // Associate user with company
       await apiService.addUserToCompany(newUser.id, selectedAccount.id, 'member');
 
-      // Send invitation email if requested
-      if (sendInvitation) {
+      // They already had a Bomizzel login (staff of another company, or a
+      // customer of one): the same login is now your customer too. They sign
+      // in with the password they have, so there's nothing to invite them to.
+      if (response.existing) {
+        alert(
+          `${newUser.email} already has a Bomizzel login, so it was added to ` +
+            `${selectedAccount.name} as your customer.\n\n` +
+            `They sign in to your customer portal with the password they already use.`
+        );
+      } else if (sendInvitation) {
         try {
           await apiService.sendCustomerInvitation(newUser.id);
           alert(

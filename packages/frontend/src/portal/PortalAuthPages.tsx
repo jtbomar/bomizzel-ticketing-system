@@ -72,7 +72,7 @@ const Alert: React.FC<{ kind?: 'error' | 'ok'; children: React.ReactNode }> = ({
 );
 
 export const PortalLogin: React.FC = () => {
-  const { brand, session, signIn, path } = usePortal();
+  const { brand, slug, session, signIn, path } = usePortal();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');
@@ -90,7 +90,13 @@ export const PortalLogin: React.FC = () => {
     setBusy(true);
     setError('');
     try {
-      const res = await portalApi.post('/auth/login', { email: email.trim(), password });
+      // As a customer of this company: one login can be staff somewhere else
+      const res = await portalApi.post('/auth/login', {
+        email: email.trim(),
+        password,
+        company: slug,
+        audience: 'portal',
+      });
       await signIn(res.data.token, res.data.refreshToken);
       navigate(next, { replace: true });
     } catch (err: any) {
@@ -173,6 +179,7 @@ export const PortalSignup: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [joined, setJoined] = useState(false);
   const [busy, setBusy] = useState(false);
   const set = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -184,13 +191,15 @@ export const PortalSignup: React.FC = () => {
     setBusy(true);
     setError('');
     try {
-      await portalApi.post(`/portal/${encodeURIComponent(slug)}/signup`, {
+      const res = await portalApi.post(`/portal/${encodeURIComponent(slug)}/signup`, {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         companyName: form.companyName.trim(),
         password: form.password,
       });
+      // Already had a Bomizzel login (and gave its password): added here, no email to confirm
+      setJoined(!!res.data?.joined);
       setDone(true);
     } catch (err) {
       setError(portalError(err, 'Sign-up failed.'));
@@ -198,6 +207,27 @@ export const PortalSignup: React.FC = () => {
       setBusy(false);
     }
   };
+
+  if (done && joined) {
+    return (
+      <Card title="You're signed up">
+        <p className="text-sm text-gray-700">
+          You already had a login on Bomizzel, so sign in here with the same email and password.
+        </p>
+        <p className="mt-3 text-sm text-gray-600">
+          You can open and follow your own tickets straight away. To see your company's tickets too,
+          {` ${brand.name}`} will approve your account.
+        </p>
+        <Link
+          to={path('login')}
+          className="mt-5 inline-block text-sm font-medium hover:underline"
+          style={{ color: brand.color }}
+        >
+          Go to sign in
+        </Link>
+      </Card>
+    );
+  }
 
   if (done) {
     return (
