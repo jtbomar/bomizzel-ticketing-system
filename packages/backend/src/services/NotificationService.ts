@@ -1,5 +1,10 @@
 import { Server, Socket } from 'socket.io';
 import { logger } from '../utils/logger';
+import { db } from '@/config/database';
+import { JWTUtils } from '@/utils/jwt';
+import { isTokenRevoked } from '@/utils/tokenBlocklist';
+import { resolveSession, Session } from '@/utils/session';
+import { isStaff } from '@/utils/tenant';
 import { Ticket, User, Queue, QueueMetrics } from '../types/models';
 
 export interface NotificationPayload {
@@ -47,6 +52,32 @@ export interface UserNotification extends NotificationPayload {
 
 export type RealTimeNotification = TicketNotification | QueueNotification | UserNotification;
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The session for an API access token, as `authenticate` works it out, or null. */
+export const sessionForToken = async (token: unknown): Promise<Session | null> => {
+  if (typeof token !== 'string' || !token) return null;
+  const payload = JWTUtils.verifyAccessToken(token);
+  if (!payload || (await isTokenRevoked(token))) return null;
+  const user = await db('users')
+    .where('id', payload.userId)
+    .first('id', 'role', 'is_active', 'current_org_id', 'portal_scope');
+  if (!user || !user.is_active) return null;
+  return resolveSession(user, payload.tid, payload.aud);
+};
+
+/** May this session watch this team or queue: staff of the company that owns it. */
+export const mayWatch = async (
+  session: Session | undefined,
+  table: 'teams' | 'queues',
+  id: unknown
+): Promise<boolean> => {
+  if (!session?.tenantId || !isStaff(session) || typeof id !== 'string' || !UUID.test(id)) {
+    return false;
+  }
+  return !!(await db(table).where({ id, org_id: session.tenantId }).first('id'));
+};
+
 class NotificationService {
   private io: Server | null = null;
   private userSockets: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
@@ -64,11 +95,19 @@ class NotificationService {
     this.io.on('connection', (socket: Socket) => {
       logger.info(`Socket connected: ${socket.id}`);
 
-      // Handle user authentication
-      socket.on('authenticate', (data: { userId: string; token: string }) => {
+      // Sign in with the same token as the API. The user id the client sends
+      // is ignored: who they are, and which company and role, come from the
+      // token (anyone could claim any id before and get that user's
+      // notifications).
+      socket.on('authenticate', async (data: { userId?: string; token?: string }) => {
         try {
-          // TODO: Verify JWT token here
-          const { userId } = data;
+          const session = await sessionForToken(data?.token);
+          if (!session) {
+            socket.emit('authenticated', { success: false, error: 'Authentication failed' });
+            return;
+          }
+          const userId = session.userId;
+          socket.data.session = session;
 
           // Store user-socket mapping
           if (!this.userSockets.has(userId)) {
@@ -88,16 +127,20 @@ class NotificationService {
         }
       });
 
-      // Handle joining team rooms
-      socket.on('join_team', (teamId: string) => {
-        socket.join(`team:${teamId}`);
-        logger.info(`Socket ${socket.id} joined team room: ${teamId}`);
+      // Team and queue rooms carry every ticket in them: staff of the
+      // company that owns the team or queue only.
+      socket.on('join_team', async (teamId: string) => {
+        if (await mayWatch(socket.data.session, 'teams', teamId)) {
+          socket.join(`team:${teamId}`);
+          logger.info(`Socket ${socket.id} joined team room: ${teamId}`);
+        }
       });
 
-      // Handle joining queue rooms
-      socket.on('join_queue', (queueId: string) => {
-        socket.join(`queue:${queueId}`);
-        logger.info(`Socket ${socket.id} joined queue room: ${queueId}`);
+      socket.on('join_queue', async (queueId: string) => {
+        if (await mayWatch(socket.data.session, 'queues', queueId)) {
+          socket.join(`queue:${queueId}`);
+          logger.info(`Socket ${socket.id} joined queue room: ${queueId}`);
+        }
       });
 
       // Handle leaving rooms
@@ -151,14 +194,6 @@ class NotificationService {
 
     this.io.to(`queue:${queueId}`).emit('notification', notification);
     logger.info(`Notification sent to queue ${queueId}:`, notification.type);
-  }
-
-  // Send notification to all connected users
-  notifyAll(notification: RealTimeNotification) {
-    if (!this.io) return;
-
-    this.io.emit('notification', notification);
-    logger.info(`Broadcast notification sent:`, notification.type);
   }
 
   // Ticket-related notifications
