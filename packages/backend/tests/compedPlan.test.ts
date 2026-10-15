@@ -279,6 +279,35 @@ describe('give a subscriber a free plan', () => {
     expect(names(first)).not.toEqual(names(second));
   });
 
+  it('renames a subscriber’s portal from BSI; the old name still finds them', async () => {
+    const { subscriberForPortalName } = await import('../src/utils/portalName');
+    await db('companies').where('id', SUB).update({ support_email_slug: 'gleason-cp-old' });
+    const url = (id: string) => `/api/admin/provisioning/companies/${id}/portal-name`;
+    const check = await request(app)
+      .get(`${url(SUB)}?name=gleason-cp`)
+      .set('Authorization', `Bearer ${platformToken}`);
+    expect(check.body.data).toMatchObject({ name: 'gleason-cp', available: true });
+
+    const res = await request(app)
+      .put(url(SUB))
+      .set('Authorization', `Bearer ${platformToken}`)
+      .send({ name: 'gleason-cp' });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ portalName: 'gleason-cp' });
+    expect((await listed()).portalName).toBe('gleason-cp');
+    expect(await subscriberForPortalName('gleason-cp-old')).toMatchObject({
+      id: SUB,
+      renamed: true,
+    });
+
+    // Reserved, accounts, and customers' own admins are refused
+    const put = (id: string, name: string, token = platformToken) =>
+      request(app).put(url(id)).set('Authorization', `Bearer ${token}`).send({ name });
+    expect((await put(SUB, 'portal')).status).toBe(400);
+    expect((await put(ACME, 'acme-cp')).status).toBe(404);
+    expect((await put(SUB, 'mine-now', ownerToken)).status).toBe(403);
+  });
+
   it("won't let a customer's own admin give themselves a free plan", async () => {
     const res = await put(SUB, { plan: 'professional' }, ownerToken);
     expect(res.status).toBe(403);

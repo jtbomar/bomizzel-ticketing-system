@@ -1,3 +1,5 @@
+import { portalUrl, renamePortal } from '@/utils/portalName';
+import { supportAddress } from '@/utils/supportEmail';
 import { CustomerSubscription } from '@/models/CustomerSubscription';
 import { SubscriptionPlan } from '@/models/SubscriptionPlan';
 import { Company } from '@/models/Company';
@@ -377,6 +379,7 @@ export class AdminProvisioningService {
           'c.id as company_id',
           'c.name as company_name',
           'c.domain',
+          'c.support_email_slug',
           'c.is_active',
           'c.is_trial',
           'c.trial_ends_at',
@@ -469,6 +472,9 @@ export class AdminProvisioningService {
           limits: effectiveLimits(row, current.plan),
           planLimits: current.plan.limits,
           limitOverrides: cleanOverrides(row.limit_overrides),
+          // Its customer portal and support email name
+          portalName: row.support_email_slug || null,
+          portalUrl: row.support_email_slug ? portalUrl(row.support_email_slug) : null,
           currentPeriod: {
             start: row.current_period_start || row.created_at,
             end: row.current_period_end || (current.source === 'trial' ? row.trial_ends_at : null),
@@ -570,6 +576,32 @@ export class AdminProvisioningService {
       companyId,
       compedPlan: plan,
       plan: { key: current.plan.key, name: current.plan.name, source: current.source },
+    };
+  }
+
+  /**
+   * Rename a subscriber's portal (and support email name) from BSI. The old
+   * name keeps working - see renamePortal.
+   */
+  static async setPortalName(companyId: string, name: string, changedBy: string) {
+    const db = CustomerSubscription.db;
+    const company = await db('companies')
+      .where('id', companyId)
+      .first('name', 'subscriber_id', 'support_email_slug');
+    if (!company || company.subscriber_id) throw new AppError('Subscriber not found', 404);
+    const slug = await renamePortal(companyId, name);
+    logger.warn('Portal name changed from BSI', {
+      companyId,
+      company: company.name,
+      from: company.support_email_slug,
+      to: slug,
+      changedBy,
+    });
+    return {
+      companyId,
+      portalName: slug,
+      portalUrl: portalUrl(slug),
+      supportAddress: supportAddress(slug),
     };
   }
 

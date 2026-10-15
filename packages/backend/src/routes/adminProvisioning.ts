@@ -8,6 +8,7 @@ import { authenticate } from '../middleware/auth';
 import { requirePlatformAdmin } from '../middleware/platformAdmin';
 import { validate } from '../utils/validation';
 import Joi from 'joi';
+import { checkPortalName, portalUrl } from '../utils/portalName';
 import { logger } from '../utils/logger';
 
 const router = Router();
@@ -285,6 +286,52 @@ router.put(
  * ticketsPerMonth: null, customModules: true, ... } }. Leave a key out to
  * follow the plan; { overrides: {} } goes back to the plan's limits.
  */
+/**
+ * GET /api/admin/provisioning/companies/:companyId/portal-name?name=gleason
+ * Is a portal name free for this subscriber (its own current and old names count as free)?
+ * PUT the same path { name } renames it; the old name keeps working.
+ */
+router.get(
+  '/companies/:companyId/portal-name',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const check = await checkPortalName(req.query['name'], req.params['companyId']);
+      res.json({
+        success: true,
+        data: {
+          ...check,
+          url: portalUrl(check.available ? check.name : check.suggestion || check.name),
+        },
+      });
+    } catch (error: any) {
+      res
+        .status(error?.statusCode || 500)
+        .json({ success: false, message: 'Failed to check the name' });
+    }
+  }
+);
+
+router.put(
+  '/companies/:companyId/portal-name',
+  validate(Joi.object({ name: Joi.string().max(64).required() })),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const data = await AdminProvisioningService.setPortalName(
+        req.params['companyId']!,
+        req.body.name,
+        req.user!.id
+      );
+      res.json({ success: true, data });
+    } catch (error: any) {
+      logger.error('Failed to change portal name', { error });
+      res.status(error?.statusCode || 500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to change the portal name',
+      });
+    }
+  }
+);
+
 const count = Joi.number().integer().min(0).allow(null);
 router.put(
   '/companies/:companyId/limits',

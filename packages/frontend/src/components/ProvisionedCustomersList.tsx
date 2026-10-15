@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getApiBaseUrl } from '../services/api';
 import type { PlanInfo } from '../utils/plans';
+import PortalNameInput from './PortalNameInput';
 
 // A subscriber: a company that signed up at bomizzel.com or was provisioned
 // here. Sign-ups have no subscription row yet, so subscriptionId is null and
@@ -47,6 +48,9 @@ interface Customer {
   limits: Limits;
   planLimits: Limits;
   limitOverrides: Partial<Limits>;
+  // Customer portal and support email name
+  portalName: string | null;
+  portalUrl: string | null;
   currentPeriod: {
     start: string;
     end: string | null;
@@ -109,6 +113,39 @@ const ProvisionedCustomersList: React.FC = () => {
   const [compSaving, setCompSaving] = useState(false);
   // Removing a free plan: also end the trial, straight to Free
   const [endTrial, setEndTrial] = useState(false);
+  // Renaming a subscriber's portal
+  const [renameFor, setRenameFor] = useState<Customer | null>(null);
+  const [newPortalName, setNewPortalName] = useState('');
+  const [portalNameOk, setPortalNameOk] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState('');
+
+  const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+  const openRename = (customer: Customer) => {
+    setRenameFor(customer);
+    setNewPortalName(customer.portalName || '');
+    setRenameError('');
+  };
+
+  const savePortalName = async () => {
+    if (!renameFor) return;
+    setRenaming(true);
+    setRenameError('');
+    try {
+      await axios.put(
+        `${getApiBaseUrl()}/admin/provisioning/companies/${renameFor.company.id}/portal-name`,
+        { name: newPortalName },
+        { headers: authHeaders() }
+      );
+      setRenameFor(null);
+      fetchCustomers();
+    } catch (err: any) {
+      setRenameError(err.response?.data?.message || 'Could not change the name');
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   // Search once typing pauses
   useEffect(() => {
@@ -473,6 +510,16 @@ const ProvisionedCustomersList: React.FC = () => {
                         )}
                       </div>
                       <div className="text-gray-500">{customer.company.domain}</div>
+                      {customer.portalUrl && (
+                        <a
+                          href={customer.portalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-blue-700 hover:underline"
+                        >
+                          {customer.portalUrl.replace(/^https?:\/\//, '')}
+                        </a>
+                      )}
                       <div className="text-gray-400 text-xs">
                         {customer.source === 'signup' ? 'Signed up' : 'Provisioned'}{' '}
                         {new Date(customer.createdAt).toLocaleDateString()} · {customer.staffCount}{' '}
@@ -548,6 +595,12 @@ const ProvisionedCustomersList: React.FC = () => {
                             className="text-purple-700 hover:text-purple-900"
                           >
                             Limits…
+                          </button>
+                          <button
+                            onClick={() => openRename(customer)}
+                            className="text-blue-700 hover:text-blue-900"
+                          >
+                            Portal name…
                           </button>
                           {customer.subscriptionId ? (
                             <>
@@ -704,6 +757,62 @@ const ProvisionedCustomersList: React.FC = () => {
                     {compSaving ? 'Saving…' : compFor.compedPlan ? 'Change plan' : 'Give free plan'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Portal and support email name */}
+      {renameFor && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75"
+              onClick={() => !renaming && setRenameFor(null)}
+            ></div>
+            <div className="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl sm:max-w-lg w-full sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Portal name for {renameFor.company.name}
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                Their customer portal and support email name. The old name ({renameFor.portalName})
+                keeps working for links and email, and nobody else can take it.
+              </p>
+              <div className="mt-4">
+                <PortalNameInput
+                  id="bsiPortalName"
+                  value={newPortalName}
+                  onChange={setNewPortalName}
+                  check={async (name) =>
+                    (
+                      await axios.get(
+                        `${getApiBaseUrl()}/admin/provisioning/companies/${renameFor.company.id}/portal-name`,
+                        { params: { name }, headers: authHeaders() }
+                      )
+                    ).data.data
+                  }
+                  onStatus={setPortalNameOk}
+                />
+              </div>
+              {renameError && <p className="mt-2 text-sm text-red-600">{renameError}</p>}
+              <div className="mt-5 flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={renaming}
+                  onClick={() => setRenameFor(null)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={renaming || !portalNameOk || newPortalName === renameFor.portalName}
+                  onClick={savePortalName}
+                  className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {renaming ? 'Saving…' : 'Change name'}
+                </button>
               </div>
             </div>
           </div>
