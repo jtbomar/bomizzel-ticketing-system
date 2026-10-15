@@ -82,6 +82,8 @@ const allowedOrigins = [
   /^http:\/\/192\.168\.0\.\d+:3002$/,
   'https://www.bomizzel.com',
   'https://bomizzel.com',
+  // Customer portals (portal.bomizzel.com/<name>)
+  'https://portal.bomizzel.com',
   'https://bomizzel-ticketing-system-frontend.vercel.app',
   /^https:\/\/bomizzel-ticketing-system-.*\.vercel\.app$/,
 ];
