@@ -349,7 +349,7 @@ const ProvisionedCustomersList: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+        <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
           <table className="min-w-full divide-y divide-gray-300">
             <thead className="bg-gray-50">
               <tr>
@@ -443,11 +443,12 @@ const ProvisionedCustomersList: React.FC = () => {
                         : ''}
                     </div>
                   </td>
-                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium space-x-2">
+                  <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium align-top">
                     {customer.isOwnAccount ? (
                       <span className="text-gray-400 font-normal">—</span>
                     ) : (
-                      <>
+                      // One action per line keeps the column narrow
+                      <div className="flex flex-col items-end gap-1.5">
                         <button
                           onClick={() => openCompModal(customer)}
                           className="text-green-700 hover:text-green-900"
@@ -484,10 +485,8 @@ const ProvisionedCustomersList: React.FC = () => {
                               Delete
                             </button>
                           </>
-                        ) : (
-                          <span className="text-gray-400 font-normal">No subscription yet</span>
-                        )}
-                      </>
+                        ) : null}
+                      </div>
                     )}
                   </td>
                 </tr>
