@@ -29,17 +29,18 @@ const SuperAdminDashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       const apiUrl = getApiBaseUrl();
 
-      // Fetch customer list to calculate stats
+      // The list's counts cover every subscriber (the list itself is paged)
       const response = await axios.get(`${apiUrl}/admin/provisioning/customers`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: { limit: 1 },
       });
 
-      const customers = response.data.data.customers;
+      const counts = response.data.data.counts || {};
 
       setStats({
-        totalCustomers: customers.length,
-        activeSubscriptions: customers.filter((c: any) => c.status === 'active').length,
-        trialSubscriptions: customers.filter((c: any) => c.status === 'trial').length,
+        totalCustomers: counts.total || 0,
+        activeSubscriptions: counts.active || 0,
+        trialSubscriptions: counts.trial || 0,
         totalRevenue: 0, // Calculate from pricing data
       });
     } catch (error) {

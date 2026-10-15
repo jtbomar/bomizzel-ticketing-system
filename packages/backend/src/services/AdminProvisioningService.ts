@@ -332,6 +332,37 @@ export class AdminProvisioningService {
    * contact), or when it has a provisioned (is_custom) subscription. Sign-ups
    * don't create a subscription row, so those fields come from the company.
    */
+  /**
+   * The subscriber list: newest first, optionally searched (company name,
+   * domain, admin name or email) and filtered by status. Status is worked out
+   * from the plan here, not stored, so the filtering and paging happen after
+   * the search - fine for thousands of subscribers. counts are by status over
+   * every subscriber, whatever the search.
+   */
+  static async getSubscriberPage(
+    options: { search?: string; status?: string; limit?: number; offset?: number } = {}
+  ) {
+    const all = await this.getProvisionedCustomers({ limit: 100000 });
+    const counts: Record<string, number> = { total: all.length };
+    for (const c of all) counts[c.status] = (counts[c.status] || 0) + 1;
+
+    const q = (options.search || '').trim().toLowerCase();
+    const matches = all.filter((c: any) => {
+      if (options.status && c.status !== options.status) return false;
+      if (!q) return true;
+      return [c.company.name, c.company.domain, c.admin?.email, c.admin?.name]
+        .filter(Boolean)
+        .some((v: string) => v.toLowerCase().includes(q));
+    });
+    const limit = Math.min(Math.max(options.limit || 25, 1), 200);
+    const offset = Math.max(options.offset || 0, 0);
+    return {
+      customers: matches.slice(offset, offset + limit),
+      pagination: { limit, offset, total: matches.length },
+      counts,
+    };
+  }
+
   static async getProvisionedCustomers(
     options: {
       limit?: number;

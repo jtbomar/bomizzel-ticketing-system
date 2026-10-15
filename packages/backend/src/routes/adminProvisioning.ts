@@ -107,27 +107,18 @@ router.post(
  */
 router.get('/customers', async (req: Request, res: Response): Promise<void> => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-    const status = req.query.status as string | undefined;
-
-    const customers = await AdminProvisioningService.getProvisionedCustomers({
-      limit,
-      offset,
-      status,
+    // ?search=&status=&limit=&offset= - total is the number matching
+    const num = (v: unknown) =>
+      typeof v === 'string' && /^\d+$/.test(v) ? parseInt(v) : undefined;
+    const data = await AdminProvisioningService.getSubscriberPage({
+      search: typeof req.query.search === 'string' ? req.query.search : undefined,
+      status:
+        typeof req.query.status === 'string' && req.query.status ? req.query.status : undefined,
+      limit: num(req.query.limit),
+      offset: num(req.query.offset),
     });
 
-    res.json({
-      success: true,
-      data: {
-        customers,
-        pagination: {
-          limit,
-          offset,
-          total: customers.length,
-        },
-      },
-    });
+    res.json({ success: true, data });
   } catch (error) {
     logger.error('Failed to get provisioned customers', { error });
     res.status(500).json({

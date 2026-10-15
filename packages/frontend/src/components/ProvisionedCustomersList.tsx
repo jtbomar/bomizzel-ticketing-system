@@ -73,9 +73,28 @@ const PLAN_SOURCE_LABEL: Record<Customer['plan']['source'], string> = {
   free: 'Free tier',
 };
 
+const PAGE_SIZE = 25;
+
+const STATUS_FILTERS: [string, string][] = [
+  ['', 'All statuses'],
+  ['active', 'Active'],
+  ['trial', 'Trial'],
+  ['trial_expired', 'Trial expired'],
+  ['past_due', 'Payment failed'],
+  ['suspended', 'Suspended'],
+];
+
 const ProvisionedCustomersList: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  // Search, status filter and paging happen on the server
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [allCount, setAllCount] = useState(0);
+  const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [limitsFor, setLimitsFor] = useState<Customer | null>(null);
   const [counts, setCounts] = useState<Record<CountKey, CountChoice>>(
@@ -91,11 +110,21 @@ const ProvisionedCustomersList: React.FC = () => {
   // Removing a free plan: also end the trial, straight to Free
   const [endTrial, setEndTrial] = useState(false);
 
+  // Search once typing pauses
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [query, statusFilter, page]);
 
   const fetchCustomers = async () => {
+    setFetching(true);
     try {
       const token = localStorage.getItem('token');
       const apiUrl = getApiBaseUrl();
@@ -103,11 +132,22 @@ const ProvisionedCustomersList: React.FC = () => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        params: {
+          search: query || undefined,
+          status: statusFilter || undefined,
+          limit: PAGE_SIZE,
+          offset: page * PAGE_SIZE,
+        },
       });
-      setCustomers(response.data.data.customers);
+      const data = response.data.data;
+      setCustomers(data.customers);
+      setTotal(data.pagination?.total ?? data.customers.length);
+      setAllCount(data.counts?.total ?? data.customers.length);
+      setError(null);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load customers');
     } finally {
+      setFetching(false);
       setLoading(false);
     }
   };
@@ -308,27 +348,66 @@ const ProvisionedCustomersList: React.FC = () => {
 
   return (
     <div>
-      <div className="mb-4 flex justify-between items-center">
+      <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
         <h2 className="text-lg font-medium text-gray-900">
-          {customers.length} Subscriber{customers.length !== 1 ? 's' : ''}
+          {allCount} Subscriber{allCount !== 1 ? 's' : ''}
         </h2>
-        <button
-          onClick={fetchCustomers}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search company, domain, admin…"
+            aria-label="Search subscribers"
+            className="w-64 rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(0);
+            }}
+            aria-label="Filter by status"
+            className="rounded-md border-gray-300 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            {STATUS_FILTERS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={fetchCustomers}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {customers.length === 0 ? (
+      {customers.length === 0 && (query || statusFilter) ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <h3 className="text-sm font-medium text-gray-900">No subscribers match</h3>
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setStatusFilter('');
+            }}
+            className="mt-2 text-sm text-blue-600 hover:text-blue-800"
+          >
+            Clear search and filter
+          </button>
+        </div>
+      ) : customers.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <svg
             className="mx-auto h-12 w-12 text-gray-400"
@@ -349,151 +428,188 @@ const ProvisionedCustomersList: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-          <table className="min-w-full divide-y divide-gray-300">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
-                  Company
-                </th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Admin</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Status
-                </th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Plan</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Limits
-                </th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Period
-                </th>
-                <th className="relative py-3.5 pl-3 pr-4">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {customers.map((customer) => (
-                <tr key={customer.company.id}>
-                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
-                    <div className="font-medium text-gray-900">
-                      {customer.company.name}
-                      {customer.isOwnAccount && (
-                        <span className="ml-2 inline-flex rounded-full bg-indigo-100 px-2 text-xs font-semibold leading-5 text-indigo-800">
-                          Your account
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-gray-500">{customer.company.domain}</div>
-                    <div className="text-gray-400 text-xs">
-                      {customer.source === 'signup' ? 'Signed up' : 'Provisioned'}{' '}
-                      {new Date(customer.createdAt).toLocaleDateString()} · {customer.staffCount}{' '}
-                      staff
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>{customer.admin?.name || '—'}</div>
-                    <div className="text-gray-400">{customer.admin?.email}</div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    <span
-                      className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                        customer.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : customer.status === 'trial'
-                            ? 'bg-blue-100 text-blue-800'
-                            : customer.status === 'suspended'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {customer.status}
-                    </span>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm">
-                    <div className="font-medium text-gray-900">{customer.plan.name}</div>
-                    <div
-                      className={
-                        customer.plan.source === 'comped'
-                          ? 'text-green-700 text-xs font-semibold'
-                          : 'text-gray-400 text-xs'
-                      }
-                    >
-                      {PLAN_SOURCE_LABEL[customer.plan.source]}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-xs text-gray-500">
-                    {COUNT_LIMITS.map(([key, label]) => {
-                      const custom = key in (customer.limitOverrides || {});
-                      return (
-                        <div key={key} className={custom ? 'text-purple-700 font-semibold' : ''}>
-                          {label}: {showCount(customer.limits[key])}
-                        </div>
-                      );
-                    })}
-                    {Object.keys(customer.limitOverrides || {}).length > 0 && (
-                      <div className="text-purple-700">Custom limits set</div>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>{new Date(customer.currentPeriod.start).toLocaleDateString()}</div>
-                    <div className="text-gray-400">
-                      {customer.currentPeriod.end
-                        ? `to ${new Date(customer.currentPeriod.end).toLocaleDateString()}`
-                        : ''}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium align-top">
-                    {customer.isOwnAccount ? (
-                      <span className="text-gray-400 font-normal">—</span>
-                    ) : (
-                      // One action per line keeps the column narrow
-                      <div className="flex flex-col items-end gap-1.5">
-                        <button
-                          onClick={() => openCompModal(customer)}
-                          className="text-green-700 hover:text-green-900"
-                        >
-                          {customer.compedPlan ? 'Free plan…' : 'Give free plan'}
-                        </button>
-                        <button
-                          onClick={() => openLimitsModal(customer)}
-                          className="text-purple-700 hover:text-purple-900"
-                        >
-                          Limits…
-                        </button>
-                        {customer.subscriptionId ? (
-                          <>
-                            {customer.status === 'suspended' ? (
-                              <button
-                                onClick={() => handleEnableCustomer(customer.subscriptionId!)}
-                                className="text-green-600 hover:text-green-900"
-                              >
-                                Enable
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleDisableCustomer(customer.subscriptionId!)}
-                                className="text-yellow-600 hover:text-yellow-900"
-                              >
-                                Disable
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteCustomer(customer.subscriptionId!)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        ) : null}
-                      </div>
-                    )}
-                  </td>
+        <>
+          <div
+            className={`overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg ${
+              fetching ? 'opacity-60' : ''
+            }`}
+          >
+            <table className="min-w-full divide-y divide-gray-300">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">
+                    Company
+                  </th>
+                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Admin
+                  </th>
+                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Status
+                  </th>
+                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Plan
+                  </th>
+                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Limits
+                  </th>
+                  <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Period
+                  </th>
+                  <th className="relative py-3.5 pl-3 pr-4">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {customers.map((customer) => (
+                  <tr key={customer.company.id}>
+                    <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm">
+                      <div className="font-medium text-gray-900">
+                        {customer.company.name}
+                        {customer.isOwnAccount && (
+                          <span className="ml-2 inline-flex rounded-full bg-indigo-100 px-2 text-xs font-semibold leading-5 text-indigo-800">
+                            Your account
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-gray-500">{customer.company.domain}</div>
+                      <div className="text-gray-400 text-xs">
+                        {customer.source === 'signup' ? 'Signed up' : 'Provisioned'}{' '}
+                        {new Date(customer.createdAt).toLocaleDateString()} · {customer.staffCount}{' '}
+                        staff
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <div>{customer.admin?.name || '—'}</div>
+                      <div className="text-gray-400">{customer.admin?.email}</div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                      <span
+                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                          customer.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : customer.status === 'trial'
+                              ? 'bg-blue-100 text-blue-800'
+                              : customer.status === 'suspended'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {customer.status}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm">
+                      <div className="font-medium text-gray-900">{customer.plan.name}</div>
+                      <div
+                        className={
+                          customer.plan.source === 'comped'
+                            ? 'text-green-700 text-xs font-semibold'
+                            : 'text-gray-400 text-xs'
+                        }
+                      >
+                        {PLAN_SOURCE_LABEL[customer.plan.source]}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-xs text-gray-500">
+                      {COUNT_LIMITS.map(([key, label]) => {
+                        const custom = key in (customer.limitOverrides || {});
+                        return (
+                          <div key={key} className={custom ? 'text-purple-700 font-semibold' : ''}>
+                            {label}: {showCount(customer.limits[key])}
+                          </div>
+                        );
+                      })}
+                      {Object.keys(customer.limitOverrides || {}).length > 0 && (
+                        <div className="text-purple-700">Custom limits set</div>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <div>{new Date(customer.currentPeriod.start).toLocaleDateString()}</div>
+                      <div className="text-gray-400">
+                        {customer.currentPeriod.end
+                          ? `to ${new Date(customer.currentPeriod.end).toLocaleDateString()}`
+                          : ''}
+                      </div>
+                    </td>
+                    <td className="whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium align-top">
+                      {customer.isOwnAccount ? (
+                        <span className="text-gray-400 font-normal">—</span>
+                      ) : (
+                        // One action per line keeps the column narrow
+                        <div className="flex flex-col items-end gap-1.5">
+                          <button
+                            onClick={() => openCompModal(customer)}
+                            className="text-green-700 hover:text-green-900"
+                          >
+                            {customer.compedPlan ? 'Free plan…' : 'Give free plan'}
+                          </button>
+                          <button
+                            onClick={() => openLimitsModal(customer)}
+                            className="text-purple-700 hover:text-purple-900"
+                          >
+                            Limits…
+                          </button>
+                          {customer.subscriptionId ? (
+                            <>
+                              {customer.status === 'suspended' ? (
+                                <button
+                                  onClick={() => handleEnableCustomer(customer.subscriptionId!)}
+                                  className="text-green-600 hover:text-green-900"
+                                >
+                                  Enable
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleDisableCustomer(customer.subscriptionId!)}
+                                  className="text-yellow-600 hover:text-yellow-900"
+                                >
+                                  Disable
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDeleteCustomer(customer.subscriptionId!)}
+                                className="text-red-600 hover:text-red-900"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Pages of PAGE_SIZE */}
+          <div className="mt-3 flex items-center justify-between text-sm text-gray-600">
+            <span>
+              {page * PAGE_SIZE + 1}–{page * PAGE_SIZE + customers.length} of {total}
+              {total !== allCount ? ` matching (${allCount} in all)` : ''}
+            </span>
+            {total > PAGE_SIZE && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={page === 0 || fetching}
+                  onClick={() => setPage(page - 1)}
+                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={(page + 1) * PAGE_SIZE >= total || fetching}
+                  onClick={() => setPage(page + 1)}
+                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Give free plan */}

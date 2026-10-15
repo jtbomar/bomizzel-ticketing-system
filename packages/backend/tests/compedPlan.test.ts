@@ -248,6 +248,37 @@ describe('give a subscriber a free plan', () => {
     });
   });
 
+  it('searches, filters by status and pages the list, with counts over everything', async () => {
+    const get = (query: string) =>
+      request(app)
+        .get(`/api/admin/provisioning/customers?${query}`)
+        .set('Authorization', `Bearer ${platformToken}`);
+    const names = (res: any) => res.body.data.customers.map((c: any) => c.company.name).sort();
+
+    const all = await get('');
+    expect(all.status).toBe(200);
+    expect(all.body.data.counts.total).toBe(2);
+    expect(all.body.data.pagination.total).toBe(2);
+
+    // By company name, domain or admin email; case doesn't matter
+    expect(names(await get('search=GLEASON'))).toEqual(['Gleason CP']);
+    expect(names(await get('search=bomizzel-cp.example'))).toEqual(['Bomizzel CP']);
+    expect(names(await get('search=owner@gleason'))).toEqual(['Gleason CP']);
+    const none = await get('search=nothing-like-this');
+    expect(none.body.data.customers).toEqual([]);
+    expect(none.body.data.counts.total).toBe(2);
+
+    // Gleason is on its trial, your own company is active
+    expect(names(await get('status=trial'))).toEqual(['Gleason CP']);
+    expect(names(await get('status=active'))).toEqual(['Bomizzel CP']);
+
+    const first = await get('limit=1&offset=0');
+    const second = await get('limit=1&offset=1');
+    expect(first.body.data.customers).toHaveLength(1);
+    expect(first.body.data.pagination).toEqual({ limit: 1, offset: 0, total: 2 });
+    expect(names(first)).not.toEqual(names(second));
+  });
+
   it("won't let a customer's own admin give themselves a free plan", async () => {
     const res = await put(SUB, { plan: 'professional' }, ownerToken);
     expect(res.status).toBe(403);
