@@ -196,11 +196,7 @@ router.post(
   requireUserInTenant(),
   async (req, res, next) => {
     try {
-      const company = await db('companies').where('id', req.user!.tenantId).first('name');
-      const sent = await AuthService.sendInvitation(
-        req.params.userId as string,
-        company?.name || 'Your support team'
-      );
+      const sent = await AuthService.sendInvitation(req.params.userId as string, req.user!.id);
       if (!sent) {
         throw new AppError(
           "The invitation couldn't be emailed - email isn't set up yet",

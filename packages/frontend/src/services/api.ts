@@ -1163,8 +1163,33 @@ class ApiService {
     primaryColor?: string;
     secondaryColor?: string;
     accentColor?: string;
+    emailSignature?: string;
+    autoInviteContacts?: boolean;
   }): Promise<any> {
     const response = await this.client.put('/company-registration/branding', data);
+    return response.data;
+  }
+
+  // Branded email to customers: an agent's own signature, and previews
+  async getMySignature(): Promise<{ html: string }> {
+    const response = await this.client.get('/email-branding/my-signature');
+    return response.data;
+  }
+
+  async saveMySignature(html: string): Promise<{ html: string }> {
+    const response = await this.client.put('/email-branding/my-signature', { html });
+    return response.data;
+  }
+
+  async getEmailPreview(
+    kind: 'welcome' | 'reply' | 'receipt',
+    signature?: string,
+    mine?: boolean
+  ): Promise<{ subject: string; html: string; from: string }> {
+    const params: Record<string, string> = { kind };
+    if (signature !== undefined) params['signature'] = signature;
+    if (mine) params['mine'] = '1';
+    const response = await this.client.get('/email-branding/preview', { params });
     return response.data;
   }
 

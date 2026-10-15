@@ -1,64 +1,149 @@
 import { EmailService } from './EmailService';
 import { logger } from '@/utils/logger';
+import { supportAddress } from '@/utils/supportEmail';
+import {
+  Brand,
+  BOMIZZEL_BRAND,
+  brandedLayout,
+  button,
+  escapeHtml,
+  signatureHtml,
+  signatureText,
+} from '@/utils/brandedEmail';
 
 /**
  * The account emails: verify your address, reset your password, and the
- * invitation a subscriber's staff send a new contact. Links point at the
- * frontend (FRONTEND_URL), which calls the matching /api/auth endpoint.
+ * welcome a subscriber's staff send a new contact (choose your password).
+ * Links point at the frontend (FRONTEND_URL), which calls the matching
+ * /api/auth endpoint.
  *
- * When SMTP isn't configured nothing can be sent. That's logged, not thrown,
- * so a missing mail setting can't turn a sign-up into a 500 - but the person
- * won't get their link, so production needs the SMTP_* variables set.
+ * A subscriber's customers get them in the subscriber's brand, sent as the
+ * subscriber from its support address, so a reply opens a ticket with them.
+ * Bomizzel accounts (staff, owners) get Bomizzel's.
+ *
+ * When email isn't configured nothing can be sent. That's logged, not thrown,
+ * so a missing mail setting can't turn a sign-up into a 500.
  */
-
 const frontendUrl = (): string =>
   (process.env['FRONTEND_URL'] || 'https://www.bomizzel.com').replace(/\/+$/, '');
 
-const escapeHtml = (value: string): string =>
-  value.replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string
-  );
+export interface EmailContent {
+  subject: string;
+  html: string;
+  text: string;
+}
 
-const layout = (
-  heading: string,
-  paragraphs: string[],
-  buttonLabel: string,
-  link: string
-): string => `
-<!doctype html>
-<html>
-  <body style="margin:0;padding:24px;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:8px;">
-      <tr><td style="padding:32px;">
-        <h1 style="margin:0 0 16px;font-size:20px;">${escapeHtml(heading)}</h1>
-        ${paragraphs.map((p) => `<p style="margin:0 0 16px;line-height:1.5;">${p}</p>`).join('\n        ')}
-        <p style="margin:24px 0;">
-          <a href="${link}" style="background:#2563eb;color:#ffffff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block;">${escapeHtml(buttonLabel)}</a>
-        </p>
-        <p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">
-          If the button doesn't work, copy this link into your browser:<br>
-          <a href="${link}" style="color:#2563eb;word-break:break-all;">${link}</a>
-        </p>
-      </td></tr>
-    </table>
-    <p style="max-width:560px;margin:16px auto 0;font-size:12px;color:#9ca3af;text-align:center;">Bomizzel</p>
-  </body>
-</html>`;
+const linkFallback = (brand: Brand, link: string) =>
+  `<p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">If the button doesn't work, copy this link into your browser:<br><a href="${escapeHtml(link)}" style="color:${brand.color};word-break:break-all;">${escapeHtml(link)}</a></p>`;
+
+const hi = (firstName?: string) => (firstName ? `Hi ${firstName},` : 'Hi,');
+const isSubscriber = (brand: Brand) => !!brand.companyId;
+
+/** What each email says, in a brand. Kept apart from sending for the previews. */
+export const accountEmails = {
+  verification(brand: Brand, firstName: string | undefined, link: string): EmailContent {
+    const where = isSubscriber(brand) ? `${brand.name}'s support portal` : 'Bomizzel';
+    return {
+      subject: `Confirm your email for ${where}`,
+      html: brandedLayout(
+        brand,
+        `<h1 style="margin:0 0 16px;font-size:20px;">Confirm your email address</h1>
+<p style="margin:0 0 14px;line-height:1.55;">${escapeHtml(hi(firstName))}</p>
+<p style="margin:0 0 14px;line-height:1.55;">Please confirm this is your email address so you can sign in to ${escapeHtml(where)}. The link works for 24 hours.</p>
+${button(brand, 'Confirm email', link)}${linkFallback(brand, link)}`,
+        { preheader: 'Confirm your email address to sign in.' }
+      ),
+      text: `${hi(firstName)}\n\nPlease confirm your email address so you can sign in to ${where}:\n${link}\n\nThe link works for 24 hours. If you didn't sign up, you can ignore this email.`,
+    };
+  },
+
+  passwordReset(brand: Brand, firstName: string | undefined, link: string): EmailContent {
+    const where = isSubscriber(brand)
+      ? `your ${brand.name} support account`
+      : 'your Bomizzel account';
+    return {
+      subject: isSubscriber(brand)
+        ? `Reset your password for ${brand.name} support`
+        : 'Reset your Bomizzel password',
+      html: brandedLayout(
+        brand,
+        `<h1 style="margin:0 0 16px;font-size:20px;">Reset your password</h1>
+<p style="margin:0 0 14px;line-height:1.55;">${escapeHtml(hi(firstName))}</p>
+<p style="margin:0 0 14px;line-height:1.55;">Someone asked to reset the password for ${escapeHtml(where)}. The link works for 1 hour. If it wasn't you, ignore this email and your password stays the same.</p>
+${button(brand, 'Choose a new password', link)}${linkFallback(brand, link)}`,
+        { preheader: 'A link to choose a new password.' }
+      ),
+      text: `${hi(firstName)}\n\nTo reset the password for ${where}, open:\n${link}\n\nThe link works for 1 hour. If you didn't ask for this, ignore this email.`,
+    };
+  },
+
+  /** The welcome a new contact gets: what the portal is, and choose a password. */
+  welcome(
+    brand: Brand,
+    firstName: string | undefined,
+    link: string,
+    signature: string | null
+  ): EmailContent {
+    const name = brand.name;
+    const canReply = !!brand.supportSlug;
+    const lines = [
+      `${name} has set up an account for you on our support portal. You can use it to see your support requests, follow their progress and reply, or open a new one.`,
+      'To get started, choose a password. The link works for 7 days.',
+    ];
+    return {
+      subject: `Welcome to ${name} support`,
+      html: brandedLayout(
+        brand,
+        `<h1 style="margin:0 0 16px;font-size:22px;">Welcome to ${escapeHtml(name)} support</h1>
+<p style="margin:0 0 14px;line-height:1.55;">${escapeHtml(hi(firstName))}</p>
+${lines.map((l) => `<p style="margin:0 0 14px;line-height:1.55;">${escapeHtml(l)}</p>`).join('\n')}
+${button(brand, 'Choose my password', link)}
+${canReply ? `<p style="margin:0 0 14px;line-height:1.55;">Need help now? Just reply to this email and it reaches our support team.</p>` : ''}
+${signatureHtml(signature)}
+<div style="margin-top:24px;">${linkFallback(brand, link)}</div>`,
+        { preheader: `Your ${name} support account is ready.` }
+      ),
+      text: `${hi(firstName)}\n\n${lines.join('\n\n')}\n\nChoose your password: ${link}\n${canReply ? '\nNeed help now? Just reply to this email and it reaches our support team.\n' : ''}${signatureText(signature)}\n`,
+    };
+  },
+};
 
 const send = async (
   to: string,
-  subject: string,
-  html: string,
-  text: string,
+  brand: Brand,
+  content: EmailContent,
   type: string
 ): Promise<boolean> => {
   if (!EmailService.isInitialized()) {
-    logger.warn(`Account email not sent (SMTP not configured): ${type}`, { to });
+    logger.warn(`Account email not sent (email not configured): ${type}`, { to });
     return false;
   }
+  const message = {
+    to: [to],
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+    headers: { 'X-Notification-Type': type },
+  };
   try {
-    await EmailService.sendNotificationEmail([to], subject, html, text, { type });
+    if (brand.companyId && brand.supportSlug) {
+      // As the subscriber, from its support address (replies open a ticket).
+      // If the provider won't send as that domain, the platform address with
+      // Reply-To instead.
+      const address = supportAddress(brand.supportSlug);
+      const branded = { ...message, fromName: brand.name, replyTo: address };
+      try {
+        await EmailService.send({ ...branded, fromAddress: address });
+      } catch (error) {
+        logger.warn('Could not send from the support address; using the platform address', {
+          type,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        await EmailService.send(branded);
+      }
+    } else {
+      await EmailService.send({ ...message, fromName: brand.companyId ? brand.name : undefined });
+    }
     logger.info(`Account email sent: ${type}`, { to });
     return true;
   } catch (error) {
@@ -71,72 +156,46 @@ const send = async (
 };
 
 export class AccountEmailService {
-  static async sendVerification(user: { email: string; first_name?: string }, token: string) {
+  static async sendVerification(
+    user: { email: string; first_name?: string },
+    token: string,
+    brand: Brand = BOMIZZEL_BRAND
+  ) {
     const link = `${frontendUrl()}/verify-email?token=${encodeURIComponent(token)}`;
-    const name = user.first_name ? `Hi ${escapeHtml(user.first_name)},` : 'Hi,';
-    const textName = user.first_name ? `Hi ${user.first_name},` : 'Hi,';
     return send(
       user.email,
-      'Confirm your email for Bomizzel',
-      layout(
-        'Confirm your email address',
-        [
-          name,
-          'Please confirm this is your email address so you can sign in to Bomizzel.',
-          'The link works for 24 hours.',
-        ],
-        'Confirm email',
-        link
-      ),
-      `${textName}\n\nPlease confirm your email address so you can sign in to Bomizzel:\n${link}\n\nThe link works for 24 hours. If you didn't sign up, you can ignore this email.`,
+      brand,
+      accountEmails.verification(brand, user.first_name, link),
       'email_verification'
     );
   }
 
-  static async sendPasswordReset(user: { email: string; first_name?: string }, token: string) {
+  static async sendPasswordReset(
+    user: { email: string; first_name?: string },
+    token: string,
+    brand: Brand = BOMIZZEL_BRAND
+  ) {
     const link = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
-    const name = user.first_name ? `Hi ${escapeHtml(user.first_name)},` : 'Hi,';
-    const textName = user.first_name ? `Hi ${user.first_name},` : 'Hi,';
     return send(
       user.email,
-      'Reset your Bomizzel password',
-      layout(
-        'Reset your password',
-        [
-          name,
-          'Someone asked to reset the password for this Bomizzel account.',
-          "The link works for 1 hour. If it wasn't you, ignore this email and your password stays the same.",
-        ],
-        'Choose a new password',
-        link
-      ),
-      `${textName}\n\nTo reset your Bomizzel password, open:\n${link}\n\nThe link works for 1 hour. If you didn't ask for this, ignore this email.`,
+      brand,
+      accountEmails.passwordReset(brand, user.first_name, link),
       'password_reset'
     );
   }
 
+  /** The welcome email: a contact's link to choose their password. */
   static async sendInvitation(
     user: { email: string; first_name?: string },
     token: string,
-    companyName: string
+    brand: Brand,
+    signature: string | null
   ) {
     const link = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}&invite=1`;
-    const name = user.first_name ? `Hi ${escapeHtml(user.first_name)},` : 'Hi,';
-    const textName = user.first_name ? `Hi ${user.first_name},` : 'Hi,';
     return send(
       user.email,
-      `${companyName} invited you to their support portal`,
-      layout(
-        `You're invited to ${companyName}'s support portal`,
-        [
-          name,
-          `${escapeHtml(companyName)} has set up an account for you so you can follow and reply to your support tickets.`,
-          'Choose a password to get started. The link works for 7 days.',
-        ],
-        'Set my password',
-        link
-      ),
-      `${textName}\n\n${companyName} has set up a support portal account for you. Choose a password to get started:\n${link}\n\nThe link works for 7 days.`,
+      brand,
+      accountEmails.welcome(brand, user.first_name, link, signature),
       'invitation'
     );
   }

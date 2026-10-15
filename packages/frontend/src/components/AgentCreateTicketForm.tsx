@@ -83,7 +83,14 @@ const AgentCreateTicketForm: React.FC = () => {
     lastName: '',
     email: '',
   });
-  const [sendInvitation, setSendInvitation] = useState(true);
+  // Ticked when the company has "Welcome new contacts automatically" on
+  const [sendInvitation, setSendInvitation] = useState(false);
+  useEffect(() => {
+    apiService
+      .getBranding()
+      .then((res: any) => setSendInvitation(!!res?.data?.autoInviteContacts))
+      .catch(() => undefined);
+  }, []);
 
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
   // Left empty, the ticket goes to the subscriber's default department.
@@ -1112,11 +1119,11 @@ const AgentCreateTicketForm: React.FC = () => {
                     htmlFor="sendInvitation"
                     className="font-medium text-gray-900 cursor-pointer"
                   >
-                    Send invitation email
+                    Send welcome email
                   </label>
                   <p className="text-sm text-gray-600 mt-1">
-                    Customer will receive an email to set their password and access the support
-                    portal. If unchecked, you can send the invitation later.
+                    They get a welcome email in your company's branding with a link to choose a
+                    password for the support portal. If unchecked, you can send it later.
                   </p>
                 </div>
               </div>

@@ -184,6 +184,8 @@ app.get(
             primaryColor: branding.primary_color,
             secondaryColor: branding.secondary_color,
             accentColor: branding.accent_color,
+            emailSignature: branding.email_signature_html || '',
+            autoInviteContacts: !!branding.auto_invite_contacts,
           },
         });
       } else {
@@ -199,6 +201,8 @@ app.get(
             primaryColor: '#3B82F6',
             secondaryColor: '#1E40AF',
             accentColor: '#10B981',
+            emailSignature: '',
+            autoInviteContacts: false,
           },
         });
       }
@@ -225,7 +229,10 @@ app.put(
         primaryColor,
         secondaryColor,
         accentColor,
+        emailSignature,
+        autoInviteContacts,
       } = req.body;
+      const { cleanSignature } = await import('./services/BrandingService');
 
       const fields = {
         logo,
@@ -236,6 +243,11 @@ app.put(
         primary_color: primaryColor,
         secondary_color: secondaryColor,
         accent_color: accentColor,
+        // Left out of the request: unchanged
+        email_signature_html:
+          typeof emailSignature === 'string' ? cleanSignature(emailSignature) : undefined,
+        auto_invite_contacts:
+          typeof autoInviteContacts === 'boolean' ? autoInviteContacts : undefined,
       };
 
       const existingProfile = await db('company_profiles').where('company_id', tenantId).first();

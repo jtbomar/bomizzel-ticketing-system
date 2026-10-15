@@ -11,6 +11,7 @@ import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
 import { db } from '@/config/database';
 import bcrypt from 'bcryptjs';
+import { BrandingService } from './BrandingService';
 import { AccountEmailService } from './AccountEmailService';
 
 export class AuthService {
@@ -309,15 +310,17 @@ export class AuthService {
     await User.setEmailVerificationToken(user.id, token, expiresAt);
     await AccountEmailService.sendVerification(
       { email: user.email, first_name: user.first_name },
-      token
+      token,
+      await BrandingService.forUser(user.id)
     );
   }
 
   /**
-   * Invite a contact to set their password (and so confirm their address).
-   * The link is a password-reset link that lasts 7 days.
+   * Send a contact the welcome email: choose a password (which also confirms
+   * their address), in their subscriber's brand, signed by the agent who sent
+   * it (or the company). The link is a password-reset link that lasts 7 days.
    */
-  static async sendInvitation(userId: string, companyName: string): Promise<boolean> {
+  static async sendInvitation(userId: string, senderId?: string | null): Promise<boolean> {
     const user = await User.findById(userId);
     if (!user || !user.is_active) {
       throw new AppError('User not found', 404, 'USER_NOT_FOUND');
@@ -325,10 +328,12 @@ export class AuthService {
     const { token } = CryptoUtils.generatePasswordResetToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await User.setPasswordResetToken(user.id, token, expiresAt);
+    const brand = await BrandingService.forUser(user.id);
     return AccountEmailService.sendInvitation(
       { email: user.email, first_name: user.first_name },
       token,
-      companyName
+      brand,
+      await BrandingService.signatureFor(brand, senderId)
     );
   }
 
@@ -354,7 +359,8 @@ export class AuthService {
 
       await AccountEmailService.sendPasswordReset(
         { email: user.email, first_name: user.first_name },
-        token
+        token,
+        await BrandingService.forUser(user.id)
       );
       logger.info(`Password reset requested for user: ${user.email}`);
     } catch (error) {

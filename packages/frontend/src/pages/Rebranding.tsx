@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/api';
+import CustomerEmailSettings from '../components/CustomerEmailSettings';
 
 interface BrandingData {
   logo: string;
@@ -883,6 +884,13 @@ const Rebranding: React.FC = () => {
                 </div>
               </div>
             </div>
+          )}
+
+          {!loading && (
+            <CustomerEmailSettings
+              brandKey={JSON.stringify(brandingData)}
+              hasLogo={!!brandingData.logo}
+            />
           )}
         </div>
       </div>

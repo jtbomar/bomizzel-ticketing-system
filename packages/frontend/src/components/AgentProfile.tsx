@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
+import MyEmailSignature from './MyEmailSignature';
 
 interface AgentProfileProps {
   onClose: () => void;
@@ -41,7 +42,9 @@ const AgentProfile: React.FC<AgentProfileProps> = ({
     confirmPassword: '',
   });
 
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'signature' | 'preferences'>(
+    'profile'
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -207,6 +210,7 @@ const AgentProfile: React.FC<AgentProfileProps> = ({
             {[
               { id: 'profile', label: 'Profile', icon: '👤' },
               { id: 'security', label: 'Security', icon: '🔒' },
+              { id: 'signature', label: 'Email signature', icon: '✉️' },
               { id: 'preferences', label: 'Preferences', icon: '⚙️' },
             ].map((tab) => (
               <button
@@ -435,6 +439,7 @@ const AgentProfile: React.FC<AgentProfileProps> = ({
             )}
           </div>
         )}
+        {activeTab === 'signature' && <MyEmailSignature />}
         {activeTab === 'preferences' && (
           <div className="space-y-8">
             {/* Board Settings */}
@@ -631,7 +636,12 @@ const AgentProfile: React.FC<AgentProfileProps> = ({
           </div>
         )}
 
-        <div className="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        {/* The signature tab saves on its own */}
+        <div
+          className={`mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700 ${
+            activeTab === 'signature' ? 'hidden' : ''
+          }`}
+        >
           <button
             onClick={onClose}
             className="px-6 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
