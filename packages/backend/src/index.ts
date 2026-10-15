@@ -170,6 +170,7 @@ app.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { db } = await import('./config/database');
+      const { portalBackgroundUrl } = await import('./services/BrandingService');
       const tenantId = requireTenantId(req.user);
 
       const branding = await db('company_profiles').where('company_id', tenantId).first();
@@ -188,6 +189,10 @@ app.get(
             accentColor: branding.accent_color,
             emailSignature: branding.email_signature_html || '',
             autoInviteContacts: !!branding.auto_invite_contacts,
+            // The customer portal's look (the picture by link: it can be large)
+            portalBackgroundUrl: portalBackgroundUrl(tenantId, branding),
+            portalWelcomeTitle: branding.portal_welcome_title || '',
+            portalWelcomeText: branding.portal_welcome_text || '',
           },
         });
       } else {
@@ -205,6 +210,9 @@ app.get(
             accentColor: '#10B981',
             emailSignature: '',
             autoInviteContacts: false,
+            portalBackgroundUrl: null,
+            portalWelcomeTitle: '',
+            portalWelcomeText: '',
           },
         });
       }
@@ -233,8 +241,26 @@ app.put(
         accentColor,
         emailSignature,
         autoInviteContacts,
+        portalBackground,
+        portalWelcomeTitle,
+        portalWelcomeText,
       } = req.body;
-      const { cleanSignature } = await import('./services/BrandingService');
+      const { cleanSignature, portalBackgroundOf, MAX_BACKGROUND_CHARS } =
+        await import('./services/BrandingService');
+      // A picture (png, jpeg or webp, about 3MB at most), or '' to remove it
+      if (
+        typeof portalBackground === 'string' &&
+        portalBackground !== '' &&
+        (portalBackground.length > MAX_BACKGROUND_CHARS || !portalBackgroundOf(portalBackground))
+      ) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'The background must be a PNG, JPEG or WebP picture under 3MB' },
+        });
+        return;
+      }
+      const text = (value: unknown, max: number) =>
+        typeof value === 'string' ? value.trim().slice(0, max) || null : undefined;
 
       const fields = {
         logo,
@@ -250,6 +276,10 @@ app.put(
           typeof emailSignature === 'string' ? cleanSignature(emailSignature) : undefined,
         auto_invite_contacts:
           typeof autoInviteContacts === 'boolean' ? autoInviteContacts : undefined,
+        portal_background:
+          typeof portalBackground === 'string' ? portalBackground || null : undefined,
+        portal_welcome_title: text(portalWelcomeTitle, 120),
+        portal_welcome_text: text(portalWelcomeText, 500),
       };
 
       const existingProfile = await db('company_profiles').where('company_id', tenantId).first();

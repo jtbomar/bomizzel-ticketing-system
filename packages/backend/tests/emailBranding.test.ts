@@ -135,6 +135,41 @@ describe('branded customer email', () => {
     expect(icon.headers['content-type']).toBe('image/png');
   });
 
+  it('sets the portal’s background and welcome, and the portal shows them', async () => {
+    const put = (body: object) => as(adminToken).put('/company-registration/branding', body);
+    expect((await put({ portalBackground: 'data:image/gif;base64,R0lGOD' })).status).toBe(400);
+    expect((await put({ portalBackground: 'https://example.com/x.jpg' })).status).toBe(400);
+    const res = await put({
+      portalBackground: `data:image/png;base64,${PNG}`,
+      portalWelcomeTitle: '  Welcome to Gleason support  ',
+      portalWelcomeText: 'Call us for emergencies.',
+    });
+    expect(res.status).toBe(200);
+
+    const portal = (await request(app).get('/api/portal/gleason-eb')).body;
+    expect(portal.backgroundUrl).toContain(`/api/public/portal-background/${SUB}`);
+    expect(portal).toMatchObject({
+      welcomeTitle: 'Welcome to Gleason support',
+      welcomeText: 'Call us for emergencies.',
+    });
+    const pic = await request(app).get(`/api/public/portal-background/${SUB}`);
+    expect(pic.status).toBe(200);
+    expect(pic.headers['content-type']).toBe('image/png');
+    const branding = (await as(agentToken).get('/company-registration/branding')).body.data;
+    expect(branding.portalBackgroundUrl).toContain('/portal-background/');
+    // The picture isn't sent back whole with the branding
+    expect(JSON.stringify(branding)).not.toContain(PNG.slice(0, 40) + 'X');
+
+    // Saving other branding leaves it alone; '' removes it
+    await put({ tagline: 'Power when you need it' });
+    expect((await request(app).get('/api/portal/gleason-eb')).body.backgroundUrl).toBeTruthy();
+    await put({ portalBackground: '', portalWelcomeTitle: '' });
+    const after = (await request(app).get('/api/portal/gleason-eb')).body;
+    expect(after.backgroundUrl).toBeNull();
+    expect(after.welcomeTitle).toBeNull();
+    expect((await request(app).get(`/api/public/portal-background/${SUB}`)).status).toBe(404);
+  });
+
   it('saves the company signature and the auto-welcome setting (cleaned)', async () => {
     const res = await as(adminToken).put('/company-registration/branding', {
       emailSignature: '<p>The Gleason Team<script>alert(1)</script></p>',

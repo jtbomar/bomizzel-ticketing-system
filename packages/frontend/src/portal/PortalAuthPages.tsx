@@ -30,6 +30,31 @@ const Card: React.FC<{ title: string; subtitle?: string; children: React.ReactNo
   </div>
 );
 
+/** The welcome title and message a company sets for its sign-in page. */
+const Welcome: React.FC = () => {
+  const { brand } = usePortal();
+  if (!brand.welcomeTitle && !brand.welcomeText) return null;
+  const onPicture = !!brand.backgroundUrl;
+  return (
+    <div
+      className={`max-w-xl mx-auto mt-4 text-center ${onPicture ? 'text-white' : 'text-gray-900'}`}
+    >
+      {brand.welcomeTitle && (
+        <h1 className={`text-2xl sm:text-3xl font-bold ${onPicture ? 'drop-shadow' : ''}`}>
+          {brand.welcomeTitle}
+        </h1>
+      )}
+      {brand.welcomeText && (
+        <p
+          className={`mt-2 text-sm sm:text-base whitespace-pre-line ${onPicture ? 'text-white/90 drop-shadow' : 'text-gray-600'}`}
+        >
+          {brand.welcomeText}
+        </p>
+      )}
+    </div>
+  );
+};
+
 const Alert: React.FC<{ kind?: 'error' | 'ok'; children: React.ReactNode }> = ({
   kind = 'error',
   children,
@@ -79,57 +104,60 @@ export const PortalLogin: React.FC = () => {
   };
 
   return (
-    <Card
-      title={`Sign in to ${brand.name} support`}
-      subtitle="See and reply to your support requests."
-    >
-      <form onSubmit={submit} className="space-y-4">
-        {error && <Alert>{error}</Alert>}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <BrandButton type="submit" disabled={busy} className="w-full">
-          {busy ? 'Signing in…' : 'Sign in'}
-        </BrandButton>
-        <div className="flex justify-between text-sm">
-          <Link to={path('forgot-password')} className="text-gray-600 hover:underline">
-            Forgot password?
-          </Link>
-          <Link
-            to={path('signup')}
-            className="font-medium hover:underline"
-            style={{ color: brand.color }}
-          >
-            Create an account
-          </Link>
-        </div>
-      </form>
-    </Card>
+    <>
+      <Welcome />
+      <Card
+        title={`Sign in to ${brand.name} support`}
+        subtitle="See and reply to your support requests."
+      >
+        <form onSubmit={submit} className="space-y-4">
+          {error && <Alert>{error}</Alert>}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <BrandButton type="submit" disabled={busy} className="w-full">
+            {busy ? 'Signing in…' : 'Sign in'}
+          </BrandButton>
+          <div className="flex justify-between text-sm">
+            <Link to={path('forgot-password')} className="text-gray-600 hover:underline">
+              Forgot password?
+            </Link>
+            <Link
+              to={path('signup')}
+              className="font-medium hover:underline"
+              style={{ color: brand.color }}
+            >
+              Create an account
+            </Link>
+          </div>
+        </form>
+      </Card>
+    </>
   );
 };
 

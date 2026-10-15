@@ -8,6 +8,7 @@ import {
   cleanSignature,
   faviconOf,
   parseDataUri,
+  portalBackgroundOf,
 } from '@/services/BrandingService';
 import { accountEmails } from '@/services/AccountEmailService';
 import { ticketEmails } from '@/services/TicketEmailService';
@@ -129,6 +130,32 @@ publicBrandingRouter.get('/brand-favicon/:companyId', async (req, res, next) => 
     }
     const profile = await db('company_profiles').where('company_id', companyId).first('favicon');
     const image = faviconOf(profile?.favicon);
+    if (!image) {
+      res.status(404).end();
+      return;
+    }
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Content-Type', image.type);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.send(image.data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** Public: a subscriber's portal background picture. */
+publicBrandingRouter.get('/portal-background/:companyId', async (req, res, next) => {
+  try {
+    const { companyId } = req.params;
+    if (!/^[0-9a-f-]{36}$/i.test(companyId || '')) {
+      res.status(404).end();
+      return;
+    }
+    const profile = await db('company_profiles')
+      .where('company_id', companyId)
+      .first('portal_background');
+    const image = portalBackgroundOf(profile?.portal_background);
     if (!image) {
       res.status(404).end();
       return;

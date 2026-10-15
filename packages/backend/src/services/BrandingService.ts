@@ -58,6 +58,19 @@ export const portalIconUrl = (companyId: string, profile: any): string | null =>
   return logoUrlFor(companyId, profile);
 };
 
+// Portal backgrounds are photos: no gif
+const BACKGROUND_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+export const MAX_BACKGROUND_CHARS = 4 * 1024 * 1024; // the data: URI, about 3MB of picture
+
+export const portalBackgroundOf = (value: unknown) => parseDataUri(value, BACKGROUND_TYPES);
+
+/** The portal's background picture, if one is set. */
+export const portalBackgroundUrl = (companyId: string, profile: any): string | null => {
+  if (!portalBackgroundOf(profile?.portal_background)) return null;
+  const version = profile?.updated_at ? new Date(profile.updated_at).getTime() : 0;
+  return `${publicApiUrl()}/api/public/portal-background/${companyId}?v=${version}`;
+};
+
 export const cleanSignature = (html: unknown): string | null => {
   const clean = sanitizeNoteHtml(String(html || ''));
   // An editor left empty sends "<p></p>"

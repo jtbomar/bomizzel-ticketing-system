@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { apiService } from '../services/api';
 import CustomerEmailSettings from '../components/CustomerEmailSettings';
+import PortalAppearanceSettings from '../components/PortalAppearanceSettings';
 
 interface BrandingData {
   logo: string;
@@ -887,10 +888,17 @@ const Rebranding: React.FC = () => {
           )}
 
           {!loading && (
-            <CustomerEmailSettings
-              brandKey={JSON.stringify(brandingData)}
-              hasLogo={!!brandingData.logo}
-            />
+            <>
+              <PortalAppearanceSettings
+                color={brandingData.primaryColor}
+                logo={brandingData.logo}
+                name={brandingData.companyName}
+              />
+              <CustomerEmailSettings
+                brandKey={JSON.stringify(brandingData)}
+                hasLogo={!!brandingData.logo}
+              />
+            </>
           )}
         </div>
       </div>

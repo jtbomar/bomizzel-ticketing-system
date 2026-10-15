@@ -1172,6 +1172,9 @@ class ApiService {
     accentColor?: string;
     emailSignature?: string;
     autoInviteContacts?: boolean;
+    portalBackground?: string;
+    portalWelcomeTitle?: string;
+    portalWelcomeText?: string;
   }): Promise<any> {
     const response = await this.client.put('/company-registration/branding', data);
     return response.data;

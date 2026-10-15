@@ -25,6 +25,10 @@ export interface PortalBrand {
   color: string;
   logoUrl: string | null;
   iconUrl?: string | null;
+  // Their own look (Rebranding page): a background picture and a welcome
+  backgroundUrl?: string | null;
+  welcomeTitle?: string | null;
+  welcomeText?: string | null;
 }
 
 export interface PortalSession {
@@ -83,10 +87,24 @@ const SignedIn: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const PortalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { brand, session, signOut, path } = usePortal();
   const navigate = useNavigate();
+  // Signed out (sign-in, sign-up...): their picture fills the page. Signed
+  // in: it's a banner, so ticket pages stay easy to read.
+  const fullBackground = !!brand.backgroundUrl && !session;
   return (
     <div
-      className="min-h-screen bg-gray-50 text-gray-900"
-      style={{ ['--brand' as any]: brand.color, ['--on-brand' as any]: textOn(brand.color) }}
+      className="min-h-screen bg-gray-50 text-gray-900 flex flex-col"
+      style={{
+        ['--brand' as any]: brand.color,
+        ['--on-brand' as any]: textOn(brand.color),
+        ...(fullBackground
+          ? {
+              backgroundImage: `linear-gradient(rgba(17,24,39,0.45), rgba(17,24,39,0.55)), url("${brand.backgroundUrl}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
+            }
+          : {}),
+      }}
     >
       <header
         className="bg-white border-b border-gray-200"
@@ -102,7 +120,7 @@ const PortalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
               <img
                 src={brand.logoUrl}
                 alt={brand.name}
-                className="h-10 max-w-[180px] object-contain"
+                className="h-12 max-w-[200px] object-contain"
               />
             ) : (
               <span className="text-lg font-bold truncate" style={{ color: brand.color }}>
@@ -129,8 +147,26 @@ const PortalLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           )}
         </div>
       </header>
-      <main className="max-w-4xl mx-auto px-4 py-6">{children}</main>
-      <footer className="max-w-4xl mx-auto px-4 pb-8 text-center text-xs text-gray-400">
+      {session && brand.backgroundUrl && (
+        <div
+          className="h-28 sm:h-36 bg-cover bg-center"
+          style={{
+            backgroundImage: `linear-gradient(rgba(17,24,39,0.35), rgba(17,24,39,0.55)), url("${brand.backgroundUrl}")`,
+          }}
+        >
+          <div className="max-w-4xl mx-auto h-full px-4 flex items-end pb-4">
+            <p className="text-white text-xl sm:text-2xl font-semibold drop-shadow">
+              {brand.welcomeTitle || `${brand.name} Support`}
+            </p>
+          </div>
+        </div>
+      )}
+      <main className="max-w-4xl w-full mx-auto px-4 py-6 flex-1">{children}</main>
+      <footer
+        className={`max-w-4xl mx-auto px-4 pb-8 text-center text-xs ${
+          fullBackground ? 'text-white/80' : 'text-gray-400'
+        }`}
+      >
         {brand.name}
         {brand.tagline ? ` · ${brand.tagline}` : ''}
       </footer>
