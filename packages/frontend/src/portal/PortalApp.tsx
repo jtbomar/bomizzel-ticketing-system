@@ -24,6 +24,7 @@ export interface PortalBrand {
   website: string;
   color: string;
   logoUrl: string | null;
+  iconUrl?: string | null;
 }
 
 export interface PortalSession {
@@ -161,6 +162,12 @@ const PortalApp: React.FC = () => {
         }
         setBrand(r.data);
         document.title = `${r.data.name} Support`;
+        // The company's own icon in the browser tab instead of Bomizzel's
+        if (r.data.iconUrl) {
+          document
+            .querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]')
+            .forEach((link) => link.setAttribute('href', r.data.iconUrl));
+        }
       })
       .catch(() => !cancelled && setMissing(true));
     return () => {

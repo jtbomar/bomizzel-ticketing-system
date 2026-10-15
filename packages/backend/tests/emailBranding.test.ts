@@ -119,6 +119,20 @@ describe('branded customer email', () => {
     expect(res.headers['cross-origin-resource-policy']).toBe('cross-origin');
     expect((await request(app).get(`/api/public/brand-logo/${ACME}`)).status).toBe(404);
     expect((await request(app).get('/api/public/brand-logo/nope')).status).toBe(404);
+
+    // The portal's tab icon: no favicon uploaded, so the logo
+    const portal = await request(app).get('/api/portal/gleason-eb');
+    expect(portal.body.iconUrl).toContain(`/api/public/brand-logo/${SUB}`);
+    expect((await request(app).get(`/api/public/brand-favicon/${SUB}`)).status).toBe(404);
+    await db('company_profiles')
+      .where('company_id', SUB)
+      .update({ favicon: `data:image/png;base64,${PNG}` });
+    expect((await request(app).get('/api/portal/gleason-eb')).body.iconUrl).toContain(
+      `/api/public/brand-favicon/${SUB}`
+    );
+    const icon = await request(app).get(`/api/public/brand-favicon/${SUB}`);
+    expect(icon.status).toBe(200);
+    expect(icon.headers['content-type']).toBe('image/png');
   });
 
   it('saves the company signature and the auto-welcome setting (cleaned)', async () => {

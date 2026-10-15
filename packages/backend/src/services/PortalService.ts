@@ -3,7 +3,7 @@ import { AppError } from '@/middleware/errorHandler';
 import { User } from '@/models/User';
 import { CryptoUtils } from '@/utils/crypto';
 import { subscriberForPortalName } from '@/utils/portalName';
-import { BrandingService } from './BrandingService';
+import { BrandingService, portalIconUrl } from './BrandingService';
 import { AccountEmailService } from './AccountEmailService';
 import { PortalAccessService } from './PortalAccessService';
 import { PlanService } from './PlanService';
@@ -27,7 +27,10 @@ export class PortalService {
   /** What the portal shows before sign-in: name, logo, colours. Public. */
   static async info(slug: string) {
     const s = await subscriberOrThrow(slug);
-    const brand = await BrandingService.forSubscriber(s.id);
+    const [brand, profile] = await Promise.all([
+      BrandingService.forSubscriber(s.id),
+      db('company_profiles').where('company_id', s.id).first('logo', 'favicon', 'updated_at'),
+    ]);
     return {
       portalName: s.slug,
       // An old name: the portal should move to the current one
@@ -37,6 +40,8 @@ export class PortalService {
       website: brand.website,
       color: brand.color,
       logoUrl: brand.logoUrl,
+      // For the browser tab
+      iconUrl: portalIconUrl(s.id, profile),
     };
   }
 

@@ -13,9 +13,15 @@ import { Brand, BOMIZZEL_BRAND, safeColor } from '@/utils/brandedEmail';
 // apps won't show, so emails link to them here instead.
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
-export const parseDataUri = (value: unknown): { type: string; data: Buffer } | null => {
+// Favicons may also be .ico
+const ICON_TYPES = [...LOGO_TYPES, 'image/x-icon', 'image/vnd.microsoft.icon'];
+
+export const parseDataUri = (
+  value: unknown,
+  types: string[] = LOGO_TYPES
+): { type: string; data: Buffer } | null => {
   const m = String(value || '').match(/^data:([a-z]+\/[a-z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)$/i);
-  if (!m || !LOGO_TYPES.includes(m[1]!.toLowerCase())) return null;
+  if (!m || !types.includes(m[1]!.toLowerCase())) return null;
   return { type: m[1]!.toLowerCase(), data: Buffer.from(m[2]!, 'base64') };
 };
 
@@ -34,6 +40,22 @@ const logoUrlFor = (companyId: string, profile: any): string | null => {
   if (!parseDataUri(logo)) return null;
   const version = profile.updated_at ? new Date(profile.updated_at).getTime() : 0;
   return `${publicApiUrl()}/api/public/brand-logo/${companyId}?v=${version}`;
+};
+
+/** The favicon from the Rebranding page, if there is one. */
+export const faviconOf = (value: unknown) => parseDataUri(value, ICON_TYPES);
+
+/**
+ * The browser tab icon for a subscriber's portal: its favicon, else its logo
+ * (browsers scale it down), else none (the portal keeps Bomizzel's).
+ */
+export const portalIconUrl = (companyId: string, profile: any): string | null => {
+  const favicon = String(profile?.favicon || '').trim();
+  const version = profile?.updated_at ? new Date(profile.updated_at).getTime() : 0;
+  if (/^https:\/\/[^\s"'<>]+$/i.test(favicon)) return favicon;
+  if (faviconOf(favicon))
+    return `${publicApiUrl()}/api/public/brand-favicon/${companyId}?v=${version}`;
+  return logoUrlFor(companyId, profile);
 };
 
 export const cleanSignature = (html: unknown): string | null => {
