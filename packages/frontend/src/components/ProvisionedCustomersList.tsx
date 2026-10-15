@@ -1,12 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getApiBaseUrl } from '../services/api';
+import type { PlanInfo } from '../utils/plans';
 
 // A subscriber: a company that signed up at bomizzel.com or was provisioned
 // here. Sign-ups have no subscription row yet, so subscriptionId is null and
 // the Update / Disable / Delete actions (which work on a subscription) are hidden.
-// "Give free plan" works on any subscriber.
+// "Give free plan" and "Limits" work on any subscriber.
 type CompPlan = 'standard' | 'professional';
+type Limits = PlanInfo['limits'];
+type CountKey = 'agents' | 'ticketsPerMonth' | 'departments' | 'macros' | 'ticketFields';
+type FeatureKey = 'assignmentRules' | 'roundRobin' | 'recordFields' | 'customModules';
+
+const COUNT_LIMITS: [CountKey, string][] = [
+  ['agents', 'Agents'],
+  ['ticketsPerMonth', 'Tickets a month'],
+  ['departments', 'Departments'],
+  ['macros', 'Macros'],
+  ['ticketFields', 'Custom ticket fields'],
+];
+const FEATURE_LIMITS: [FeatureKey, string][] = [
+  ['assignmentRules', 'Assignment rules'],
+  ['roundRobin', 'Round-robin'],
+  ['recordFields', 'Account/contact fields'],
+  ['customModules', 'Custom modules'],
+];
+
+// In the Limits editor: follow the plan, or set a number / no limit / on / off
+type CountChoice = { mode: 'plan' | 'set' | 'none'; value: string };
+type FeatureChoice = 'plan' | 'on' | 'off';
+
+const showCount = (v: number | null) => (v === null ? 'No limit' : String(v));
 
 interface Customer {
   subscriptionId: string | null;
@@ -17,11 +41,10 @@ interface Customer {
   billingStatus: string | null;
   source: 'signup' | 'provisioned';
   status: string;
-  limits: {
-    maxUsers: number | null;
-    maxActiveTickets: number | null;
-    storageQuotaGB: number | null;
-  };
+  // Enforced limits (plan's plus overrides), the plan's own, and the overrides
+  limits: Limits;
+  planLimits: Limits;
+  limitOverrides: Partial<Limits>;
   currentPeriod: {
     start: string;
     end: string | null;
@@ -52,14 +75,14 @@ const ProvisionedCustomersList: React.FC = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [updateLimits, setUpdateLimits] = useState({
-    maxUsers: 0,
-    storageQuotaGB: 0,
-    maxActiveTickets: 0,
-    reason: '',
-  });
+  const [limitsFor, setLimitsFor] = useState<Customer | null>(null);
+  const [counts, setCounts] = useState<Record<CountKey, CountChoice>>(
+    {} as Record<CountKey, CountChoice>
+  );
+  const [features, setFeatures] = useState<Record<FeatureKey, FeatureChoice>>(
+    {} as Record<FeatureKey, FeatureChoice>
+  );
+  const [limitsSaving, setLimitsSaving] = useState(false);
   const [compFor, setCompFor] = useState<Customer | null>(null);
   const [compPlan, setCompPlan] = useState<CompPlan>('professional');
   const [compSaving, setCompSaving] = useState(false);
@@ -82,27 +105,6 @@ const ProvisionedCustomersList: React.FC = () => {
       setError(err.response?.data?.message || 'Failed to load customers');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleUpdateLimits = async (subscriptionId: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      const apiUrl = getApiBaseUrl();
-      await axios.put(
-        `${apiUrl}/admin/provisioning/subscriptions/${subscriptionId}/limits`,
-        updateLimits,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setShowUpdateModal(false);
-      fetchCustomers(); // Refresh list
-      alert('Limits updated successfully!');
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to update limits');
     }
   };
 
@@ -225,15 +227,59 @@ const ProvisionedCustomersList: React.FC = () => {
     }
   };
 
-  const openUpdateModal = (customer: Customer) => {
-    setSelectedCustomer(customer.subscriptionId);
-    setUpdateLimits({
-      maxUsers: customer.limits.maxUsers ?? 0,
-      storageQuotaGB: customer.limits.storageQuotaGB ?? 0,
-      maxActiveTickets: customer.limits.maxActiveTickets ?? 0,
-      reason: '',
-    });
-    setShowUpdateModal(true);
+  const openLimitsModal = (customer: Customer) => {
+    const o = customer.limitOverrides || {};
+    const c = {} as Record<CountKey, CountChoice>;
+    for (const [key] of COUNT_LIMITS) {
+      if (!(key in o)) c[key] = { mode: 'plan', value: '' };
+      else if (o[key] === null) c[key] = { mode: 'none', value: '' };
+      else c[key] = { mode: 'set', value: String(o[key]) };
+    }
+    const f = {} as Record<FeatureKey, FeatureChoice>;
+    for (const [key] of FEATURE_LIMITS) {
+      f[key] = !(key in o) ? 'plan' : o[key] ? 'on' : 'off';
+    }
+    setCounts(c);
+    setFeatures(f);
+    setLimitsFor(customer);
+  };
+
+  const saveLimits = async (clearAll = false) => {
+    if (!limitsFor) return;
+    const overrides: Record<string, number | boolean | null> = {};
+    if (!clearAll) {
+      for (const [key, label] of COUNT_LIMITS) {
+        const c = counts[key];
+        if (c.mode === 'none') overrides[key] = null;
+        else if (c.mode === 'set') {
+          const n = Number(c.value);
+          if (c.value.trim() === '' || !Number.isInteger(n) || n < 0) {
+            alert(`${label}: enter a whole number, 0 or more`);
+            return;
+          }
+          overrides[key] = n;
+        }
+      }
+      for (const [key] of FEATURE_LIMITS) {
+        if (features[key] !== 'plan') overrides[key] = features[key] === 'on';
+      }
+    }
+    setLimitsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const apiUrl = getApiBaseUrl();
+      await axios.put(
+        `${apiUrl}/admin/provisioning/companies/${limitsFor.company.id}/limits`,
+        { overrides },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setLimitsFor(null);
+      fetchCustomers();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to change the limits');
+    } finally {
+      setLimitsSaving(false);
+    }
   };
 
   if (loading) {
@@ -368,15 +414,18 @@ const ProvisionedCustomersList: React.FC = () => {
                       {PLAN_SOURCE_LABEL[customer.plan.source]}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <div>Users: {customer.limits.maxUsers ?? '—'}</div>
-                    <div>Tickets: {customer.limits.maxActiveTickets ?? '—'}</div>
-                    <div>
-                      Storage:{' '}
-                      {customer.limits.storageQuotaGB != null
-                        ? `${customer.limits.storageQuotaGB}GB`
-                        : '—'}
-                    </div>
+                  <td className="whitespace-nowrap px-3 py-4 text-xs text-gray-500">
+                    {COUNT_LIMITS.map(([key, label]) => {
+                      const custom = key in (customer.limitOverrides || {});
+                      return (
+                        <div key={key} className={custom ? 'text-purple-700 font-semibold' : ''}>
+                          {label}: {showCount(customer.limits[key])}
+                        </div>
+                      );
+                    })}
+                    {Object.keys(customer.limitOverrides || {}).length > 0 && (
+                      <div className="text-purple-700">Custom limits set</div>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     <div>{new Date(customer.currentPeriod.start).toLocaleDateString()}</div>
@@ -397,14 +446,14 @@ const ProvisionedCustomersList: React.FC = () => {
                         >
                           {customer.compedPlan ? 'Free plan…' : 'Give free plan'}
                         </button>
+                        <button
+                          onClick={() => openLimitsModal(customer)}
+                          className="text-purple-700 hover:text-purple-900"
+                        >
+                          Limits…
+                        </button>
                         {customer.subscriptionId ? (
                           <>
-                            <button
-                              onClick={() => openUpdateModal(customer)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Update
-                            </button>
                             {customer.status === 'suspended' ? (
                               <button
                                 onClick={() => handleEnableCustomer(customer.subscriptionId!)}
@@ -522,96 +571,129 @@ const ProvisionedCustomersList: React.FC = () => {
         </div>
       )}
 
-      {/* Update Limits Modal */}
-      {showUpdateModal && (
+      {/* Limits for one company */}
+      {limitsFor && (
         <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <div className="flex items-center justify-center min-h-screen px-4 py-8">
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-              onClick={() => setShowUpdateModal(false)}
+              className="fixed inset-0 bg-gray-500 bg-opacity-75"
+              onClick={() => !limitsSaving && setLimitsFor(null)}
             ></div>
+            <div className="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl sm:max-w-xl w-full sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Limits for {limitsFor.company.name}
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                They're on {limitsFor.plan.name}. Anything left on "{limitsFor.plan.name}'s" follows
+                their plan, even if the plan changes. Anything you set stays until you change it
+                here.
+              </p>
 
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div>
-                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                  Update Subscription Limits
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Max Users</label>
-                    <input
-                      type="number"
-                      value={updateLimits.maxUsers}
-                      onChange={(e) =>
-                        setUpdateLimits({
-                          ...updateLimits,
-                          maxUsers: parseInt(e.target.value),
-                        })
-                      }
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Max Active Tickets
-                    </label>
-                    <input
-                      type="number"
-                      value={updateLimits.maxActiveTickets}
-                      onChange={(e) =>
-                        setUpdateLimits({
-                          ...updateLimits,
-                          maxActiveTickets: parseInt(e.target.value),
-                        })
-                      }
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Storage Quota (GB)
-                    </label>
-                    <input
-                      type="number"
-                      value={updateLimits.storageQuotaGB}
-                      onChange={(e) =>
-                        setUpdateLimits({
-                          ...updateLimits,
-                          storageQuotaGB: parseInt(e.target.value),
-                        })
-                      }
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Reason for Update
-                    </label>
-                    <textarea
-                      value={updateLimits.reason}
-                      onChange={(e) => setUpdateLimits({ ...updateLimits, reason: e.target.value })}
-                      rows={3}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="e.g., Customer requested storage upgrade"
-                    />
-                  </div>
+              <table className="mt-4 w-full text-sm">
+                <tbody className="divide-y divide-gray-100">
+                  {COUNT_LIMITS.map(([key, label]) => {
+                    const c = counts[key];
+                    return (
+                      <tr key={key}>
+                        <td className="py-2 pr-3 font-medium text-gray-900">{label}</td>
+                        <td className="py-2 pr-3">
+                          <select
+                            value={c.mode}
+                            onChange={(e) =>
+                              setCounts({
+                                ...counts,
+                                [key]: { ...c, mode: e.target.value as CountChoice['mode'] },
+                              })
+                            }
+                            className="rounded-md border-gray-300 text-sm"
+                          >
+                            <option value="plan">
+                              {limitsFor.plan.name}'s ({showCount(limitsFor.planLimits[key])})
+                            </option>
+                            <option value="set">Set a number</option>
+                            <option value="none">No limit</option>
+                          </select>
+                        </td>
+                        <td className="py-2 w-24">
+                          {c.mode === 'set' && (
+                            <input
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={c.value}
+                              onChange={(e) =>
+                                setCounts({ ...counts, [key]: { ...c, value: e.target.value } })
+                              }
+                              className="w-24 rounded-md border-gray-300 text-sm"
+                              aria-label={label}
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {FEATURE_LIMITS.map(([key, label]) => (
+                    <tr key={key}>
+                      <td className="py-2 pr-3 font-medium text-gray-900">{label}</td>
+                      <td className="py-2 pr-3" colSpan={2}>
+                        <select
+                          value={features[key]}
+                          onChange={(e) =>
+                            setFeatures({ ...features, [key]: e.target.value as FeatureChoice })
+                          }
+                          className="rounded-md border-gray-300 text-sm"
+                        >
+                          <option value="plan">
+                            {limitsFor.plan.name}'s ({limitsFor.planLimits[key] ? 'Yes' : 'No'})
+                          </option>
+                          <option value="on">Yes</option>
+                          <option value="off">No</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Agent limits here don't change billing: a paying company is still charged per agent.
+                Lowering a limit doesn't remove anything they already have; it only stops new ones.
+              </p>
+
+              <div className="mt-5 flex items-center justify-between gap-3">
+                {Object.keys(limitsFor.limitOverrides || {}).length > 0 ? (
+                  <button
+                    type="button"
+                    disabled={limitsSaving}
+                    onClick={() =>
+                      confirm(`Put ${limitsFor.company.name} back on their plan's limits?`) &&
+                      saveLimits(true)
+                    }
+                    className="text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                  >
+                    Back to plan's limits
+                  </button>
+                ) : (
+                  <span />
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={limitsSaving}
+                    onClick={() => setLimitsFor(null)}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={limitsSaving}
+                    onClick={() => saveLimits()}
+                    className="rounded-md bg-purple-700 px-4 py-2 text-sm font-medium text-white hover:bg-purple-800 disabled:opacity-50"
+                  >
+                    {limitsSaving ? 'Saving…' : 'Save limits'}
+                  </button>
                 </div>
-              </div>
-              <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                <button
-                  type="button"
-                  onClick={() => selectedCustomer && handleUpdateLimits(selectedCustomer)}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:col-start-2 sm:text-sm"
-                >
-                  Update Limits
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowUpdateModal(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                >
-                  Cancel
-                </button>
               </div>
             </div>
           </div>

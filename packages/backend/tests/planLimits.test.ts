@@ -111,6 +111,7 @@ describe('plans and billing', () => {
         trial_ends_at: null,
         past_due_since: null,
         stripe_subscription_id: null,
+        limit_overrides: null,
         ...values,
       });
   const api = () => ({
@@ -239,10 +240,9 @@ describe('plans and billing', () => {
     ).toBe(402);
   });
 
-  it('Free: 100 tickets a month from the web', async () => {
-    await setCompany({});
-    await db('tickets').insert(
-      Array.from({ length: 100 }, (_, i) => ({
+  const addTickets = (n: number) =>
+    db('tickets').insert(
+      Array.from({ length: n }, (_, i) => ({
         title: `T${i}`,
         description: 'd',
         submitter_id: CONTACT,
@@ -254,15 +254,75 @@ describe('plans and billing', () => {
         priority: 0,
       }))
     );
-    const res = await api().post('/tickets', {
+  const newTicket = () =>
+    api().post('/tickets', {
       title: 'One too many',
       description: 'd',
       companyId: ACME,
       teamId: TEAM,
       submitterId: CONTACT,
     });
+
+  it('Free: 50 tickets a month from the web', async () => {
+    await setCompany({});
+    await addTickets(50);
+    const res = await newTicket();
     expect(res.status).toBe(402);
-    expect(res.body.error.message).toContain('100 tickets a month');
+    expect(res.body.error.message).toContain('The Free plan includes 50 tickets a month');
+  });
+
+  it('Standard: 100 tickets a month, 2 departments, 10 macros and ticket fields', async () => {
+    await setCompany({ plan: 'standard', subscription_status: 'active' });
+    expect((await newTicket()).status).toBe(201); // 51 of 100
+    await addTickets(49);
+    const res = await newTicket();
+    expect(res.status).toBe(402);
+    expect(res.body.error.message).toContain('The Standard plan includes 100 tickets a month');
+
+    // Free left 5 macros and 5 ticket fields; Standard takes 5 more of each
+    expect((await api().post('/departments', { name: 'Second' })).status).toBe(201);
+    expect((await api().post('/departments', { name: 'Third' })).status).toBe(402);
+    for (let i = 5; i < 10; i++) {
+      expect((await api().post('/macros', { name: `M${i}`, replyHtml: '<p>x</p>' })).status).toBe(
+        201
+      );
+      expect((await api().post('/fields/tickets', { label: `F${i}`, type: 'text' })).status).toBe(
+        201
+      );
+    }
+    expect((await api().post('/macros', { name: 'M11', replyHtml: '<p>x</p>' })).status).toBe(402);
+    expect((await api().post('/fields/tickets', { label: 'F11', type: 'text' })).status).toBe(402);
+  });
+
+  it("a company's own limits win over its plan's", async () => {
+    await setCompany({
+      plan: 'standard',
+      subscription_status: 'active',
+      limit_overrides: JSON.stringify({ ticketsPerMonth: null, macros: 11, customModules: true }),
+    });
+    expect((await newTicket()).status).toBe(201); // past Standard's 100
+    expect((await api().post('/macros', { name: 'M11', replyHtml: '<p>x</p>' })).status).toBe(201);
+    const twelfth = await api().post('/macros', { name: 'M12', replyHtml: '<p>x</p>' });
+    expect(twelfth.status).toBe(402);
+    expect(twelfth.body.error.message).toContain('Your account includes 11 macros');
+    // Not set for them: still Standard's
+    expect((await api().post('/departments', { name: 'Third' })).status).toBe(402);
+    expect((await api().post('/modules', { name: 'Contracts' })).status).toBe(201);
+
+    const summary = (await api().get('/org-billing')).body;
+    expect(summary.plan).toBe('standard');
+    expect(summary.limits).toMatchObject({ ticketsPerMonth: null, macros: 11, departments: 2 });
+    expect(summary.customLimits.sort()).toEqual(['customModules', 'macros', 'ticketsPerMonth']);
+
+    // Taking a feature away
+    await setCompany({ comped_plan: 'professional', limit_overrides: { roundRobin: false } });
+    const rr = await api().post('/assignment-rules', {
+      name: 'RR',
+      method: 'round_robin',
+      agentIds: [ADMIN],
+    });
+    expect(rr.status).toBe(402);
+    expect(rr.body.error.message).toContain("aren't included in your account");
   });
 
   it('rules stop running on Free, and round-robin needs Professional', async () => {

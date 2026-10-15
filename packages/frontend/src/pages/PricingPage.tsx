@@ -174,9 +174,10 @@ const PricingPage: React.FC = () => {
                 What happens when I reach my ticket limit?
               </h3>
               <p className="text-gray-600 text-sm">
-                On the Free plan, once 100 tickets have come in through the web that month, new ones
-                wait until next month or until you upgrade. Tickets your customers email in always
-                get through, and paid plans have no ticket limit.
+                Free includes 50 tickets a month and Standard 100. Once that many have come in
+                through the web that month, new ones wait until next month or until you upgrade.
+                Tickets your customers email in always get through, and Professional has no ticket
+                limit.
               </p>
             </div>
 

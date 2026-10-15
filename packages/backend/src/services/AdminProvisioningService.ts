@@ -6,7 +6,16 @@ import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { ensureSupportSlug } from '@/utils/supportEmail';
-import { effectivePlan, planByKey, PlanKey } from '@/services/PlanService';
+import {
+  cleanOverrides,
+  effectiveLimits,
+  effectivePlan,
+  FEATURE_LIMITS,
+  LimitOverrides,
+  NUMBER_LIMITS,
+  planByKey,
+  PlanKey,
+} from '@/services/PlanService';
 import { getPlatformAdminEmails } from '@/middleware/platformAdmin';
 
 export interface CustomSubscriptionLimits {
@@ -344,6 +353,7 @@ export class AdminProvisioningService {
           'c.max_tickets_per_month',
           'c.created_at',
           'c.comped_plan',
+          'c.limit_overrides',
           'c.plan',
           'c.subscription_status as billing_status',
           'c.past_due_since',
@@ -419,11 +429,10 @@ export class AdminProvisioningService {
           billingStatus: row.billing_status || null,
           source: row.subscription_id ? 'provisioned' : 'signup',
           status,
-          limits: row.limits || {
-            maxUsers: row.max_users,
-            maxActiveTickets: row.max_tickets_per_month,
-            storageQuotaGB: null,
-          },
+          // The limits enforced: the plan's, with any set for this company on top
+          limits: effectiveLimits(row, current.plan),
+          planLimits: current.plan.limits,
+          limitOverrides: cleanOverrides(row.limit_overrides),
           currentPeriod: {
             start: row.current_period_start || row.created_at,
             end: row.current_period_end || (current.source === 'trial' ? row.trial_ends_at : null),
@@ -512,6 +521,44 @@ export class AdminProvisioningService {
       companyId,
       compedPlan: plan,
       plan: { key: current.plan.key, name: current.plan.name, source: current.source },
+    };
+  }
+
+  /**
+   * Set a subscriber's own limits over its plan's ({} clears them). Keys left
+   * out follow the plan, whatever plan it moves to; null means no limit.
+   */
+  static async setLimitOverrides(companyId: string, overrides: LimitOverrides, changedBy: string) {
+    const db = CustomerSubscription.db;
+    const company = await db('companies').where('id', companyId).first();
+    if (!company || company.subscriber_id) throw new AppError('Subscriber not found', 404);
+    await this.refuseOwnAccount(companyId);
+    const known: string[] = [...NUMBER_LIMITS, ...FEATURE_LIMITS];
+    const unknown = Object.keys(overrides || {}).filter((k) => !known.includes(k));
+    if (unknown.length) throw new AppError(`Unknown limit: ${unknown.join(', ')}`, 400);
+    const clean = cleanOverrides(overrides);
+    if (Object.keys(clean).length !== Object.keys(overrides || {}).length) {
+      throw new AppError('Counts must be a whole number or null; features true or false', 400);
+    }
+
+    const stored = Object.keys(clean).length ? JSON.stringify(clean) : null;
+    await db('companies')
+      .where('id', companyId)
+      .update({ limit_overrides: stored, updated_at: new Date() });
+
+    logger.warn('Company limits changed', {
+      companyId,
+      company: company.name,
+      from: cleanOverrides(company.limit_overrides),
+      to: clean,
+      changedBy,
+    });
+
+    const current = effectivePlan(company);
+    return {
+      companyId,
+      limitOverrides: clean,
+      limits: effectiveLimits({ limit_overrides: clean }, current.plan),
     };
   }
 

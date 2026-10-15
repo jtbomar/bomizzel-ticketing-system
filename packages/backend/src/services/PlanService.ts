@@ -42,7 +42,7 @@ export const PLANS: Plan[] = [
     yearly: 0,
     limits: {
       agents: 2,
-      ticketsPerMonth: 100,
+      ticketsPerMonth: 50,
       departments: 1,
       macros: 5,
       ticketFields: 5,
@@ -59,10 +59,10 @@ export const PLANS: Plan[] = [
     yearly: 10,
     limits: {
       agents: null,
-      ticketsPerMonth: null,
-      departments: 5,
-      macros: null,
-      ticketFields: null,
+      ticketsPerMonth: 100,
+      departments: 2,
+      macros: 10,
+      ticketFields: 10,
       assignmentRules: true,
       roundRobin: false,
       recordFields: false,
@@ -117,6 +117,56 @@ export const effectivePlan = (
   return { plan: planByKey('free'), source: 'free' };
 };
 
+export type Limits = Plan['limits'];
+export type LimitOverrides = Partial<Limits>;
+export const NUMBER_LIMITS = [
+  'agents',
+  'ticketsPerMonth',
+  'departments',
+  'macros',
+  'ticketFields',
+] as const;
+export const FEATURE_LIMITS = [
+  'assignmentRules',
+  'roundRobin',
+  'recordFields',
+  'customModules',
+] as const;
+
+/**
+ * A company's own limits (companies.limit_overrides), keeping only known keys
+ * of the right type: a whole number or null (no limit) for counts, true/false
+ * for features.
+ */
+export const cleanOverrides = (raw: unknown): LimitOverrides => {
+  let src: unknown = raw;
+  if (typeof src === 'string') {
+    try {
+      src = JSON.parse(src);
+    } catch {
+      return {};
+    }
+  }
+  if (!src || typeof src !== 'object' || Array.isArray(src)) return {};
+  const o = src as Record<string, unknown>;
+  const out: Record<string, number | boolean | null> = {};
+  for (const key of NUMBER_LIMITS) {
+    if (!(key in o)) continue;
+    const v = o[key];
+    if (v === null || (Number.isInteger(v) && (v as number) >= 0)) out[key] = v as number | null;
+  }
+  for (const key of FEATURE_LIMITS) {
+    if (typeof o[key] === 'boolean') out[key] = o[key] as boolean;
+  }
+  return out as LimitOverrides;
+};
+
+/** The limits a company really has: its plan's, with its own limits on top. */
+export const effectiveLimits = (company: any, plan: Plan): Limits => ({
+  ...plan.limits,
+  ...cleanOverrides(company?.limit_overrides),
+});
+
 /** Active agents (staff) of a subscriber - what it pays for. */
 export const agentCount = async (orgId: string): Promise<number> => {
   const row = await db('users as u')
@@ -165,32 +215,38 @@ const enforcing = () => process.env['PLAN_LIMITS'] !== 'off';
 export class PlanService {
   static async companyPlan(orgId: string) {
     const company = await db('companies').where('id', orgId).first();
-    return { company, ...effectivePlan(company) };
+    const current = effectivePlan(company);
+    const overrides = cleanOverrides(company?.limit_overrides);
+    return { company, ...current, limits: effectiveLimits(company, current.plan), overrides };
   }
 
   /** Does the company's plan include this feature (for things that run, like rules)? */
   static async allows(orgId: string, feature: 'assignmentRules' | 'roundRobin'): Promise<boolean> {
     if (!enforcing()) return true;
-    const { plan } = await this.companyPlan(orgId);
-    return plan.limits[feature];
+    const { limits } = await this.companyPlan(orgId);
+    return limits[feature];
   }
 
-  /** Refuse (402 PLAN_LIMIT) adding one more of something past the plan's limit. */
+  /** Refuse (402 PLAN_LIMIT) adding one more of something past the company's limit. */
   static async assertCan(orgId: string, check: Check): Promise<void> {
     if (!enforcing() || !orgId) return;
-    const { plan } = await this.companyPlan(orgId);
-    const l = plan.limits;
+    const { plan, limits: l, overrides } = await this.companyPlan(orgId);
+    // A limit set for this company alone isn't the plan's
+    const includes = (key: keyof Limits) =>
+      key in overrides ? 'Your account includes' : `The ${plan.name} plan includes`;
+    const notIncluded = (key: keyof Limits, what: string, planText: string) =>
+      upgrade(key in overrides ? `${what} aren't included in your account.` : planText);
     const count = async (table: string, where: Record<string, unknown>) =>
       Number((await db(table).where(where).count('* as n').first())?.n) || 0;
 
     switch (check) {
       case 'agent':
         if (l.agents !== null && (await agentCount(orgId)) >= l.agents)
-          throw upgrade(`The ${plan.name} plan includes up to ${l.agents} agents.`);
+          throw upgrade(`${includes('agents')} up to ${l.agents} agents.`);
         return;
       case 'ticket':
         if (l.ticketsPerMonth !== null && (await ticketsThisMonth(orgId)) >= l.ticketsPerMonth)
-          throw upgrade(`The ${plan.name} plan includes ${l.ticketsPerMonth} tickets a month.`);
+          throw upgrade(`${includes('ticketsPerMonth')} ${l.ticketsPerMonth} tickets a month.`);
         return;
       case 'department': {
         if (l.departments === null) return;
@@ -205,40 +261,59 @@ export class PlanService {
         );
         if (n >= l.departments)
           throw upgrade(
-            `The ${plan.name} plan includes ${l.departments} department${l.departments === 1 ? '' : 's'}.`
+            `${includes('departments')} ${l.departments} department${l.departments === 1 ? '' : 's'}.`
           );
         return;
       }
       case 'macro':
         if (l.macros !== null && (await count('macros', { org_id: orgId })) >= l.macros)
-          throw upgrade(`The ${plan.name} plan includes ${l.macros} macros.`);
+          throw upgrade(`${includes('macros')} ${l.macros} macros.`);
         return;
       case 'ticketField':
         if (
           l.ticketFields !== null &&
           (await count('module_fields', { org_id: orgId, module: 'tickets' })) >= l.ticketFields
         )
-          throw upgrade(`The ${plan.name} plan includes ${l.ticketFields} custom ticket fields.`);
+          throw upgrade(`${includes('ticketFields')} ${l.ticketFields} custom ticket fields.`);
         return;
       case 'recordField':
         if (!l.recordFields)
-          throw upgrade(`Custom fields on accounts and contacts are part of Professional.`);
+          throw notIncluded(
+            'recordFields',
+            'Custom fields on accounts and contacts',
+            'Custom fields on accounts and contacts are part of Professional.'
+          );
         return;
       case 'customModule':
-        if (!l.customModules) throw upgrade(`Custom modules are part of Professional.`);
+        if (!l.customModules)
+          throw notIncluded(
+            'customModules',
+            'Custom modules',
+            'Custom modules are part of Professional.'
+          );
         return;
       case 'assignmentRule':
-        if (!l.assignmentRules) throw upgrade(`Assignment rules start with Standard.`);
+        if (!l.assignmentRules)
+          throw notIncluded(
+            'assignmentRules',
+            'Assignment rules',
+            'Assignment rules start with Standard.'
+          );
         return;
       case 'roundRobin':
-        if (!l.roundRobin) throw upgrade(`Round-robin assignment is part of Professional.`);
+        if (!l.roundRobin)
+          throw notIncluded(
+            'roundRobin',
+            'Round-robin rules',
+            'Round-robin assignment is part of Professional.'
+          );
         return;
     }
   }
 
   /** What Settings > Billing shows: the plan, why, the trial, and usage against limits. */
   static async summary(orgId: string) {
-    const { company, plan, source } = await this.companyPlan(orgId);
+    const { company, plan, source, limits, overrides } = await this.companyPlan(orgId);
     const [agents, tickets, departments, macros, ticketFields] = await Promise.all([
       agentCount(orgId),
       ticketsThisMonth(orgId),
@@ -269,6 +344,9 @@ export class PlanService {
           ? new Date(new Date(company.past_due_since).getTime() + GRACE_DAYS * 86400000)
           : null,
       hasStripeCustomer: !!company?.stripe_customer_id,
+      // What the company really gets: the plan's limits, or ones set for it
+      limits,
+      customLimits: Object.keys(overrides),
       usage: {
         agents,
         ticketsThisMonth: tickets,

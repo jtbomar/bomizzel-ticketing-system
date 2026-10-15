@@ -23,6 +23,9 @@ interface Summary {
   trialDaysLeft: number | null;
   graceEndsAt: string | null;
   hasStripeCustomer: boolean;
+  // The limits this company really has (the plan's, or ones set for it)
+  limits?: PlanInfo['limits'];
+  customLimits?: string[];
   usage: {
     agents: number;
     ticketsThisMonth: number;
@@ -106,6 +109,7 @@ const Billing: React.FC = () => {
 
   if (!data) return <div className="p-8 text-gray-500">Loading billing…</div>;
   const current = data.plans.find((p) => p.key === data.plan)!;
+  const limits = data.limits || current.limits;
   const paying = data.source === 'paid' || data.source === 'grace';
   const limit = (used: number, max: number | null) =>
     max === null ? `${used}` : `${used} of ${max}`;
@@ -177,14 +181,11 @@ const Billing: React.FC = () => {
         </div>
         <dl className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-sm">
           {[
-            ['Agents', limit(data.usage.agents, current.limits.agents)],
-            [
-              'Tickets this month',
-              limit(data.usage.ticketsThisMonth, current.limits.ticketsPerMonth),
-            ],
-            ['Departments', limit(data.usage.departments, current.limits.departments)],
-            ['Macros', limit(data.usage.macros, current.limits.macros)],
-            ['Ticket fields', limit(data.usage.ticketFields, current.limits.ticketFields)],
+            ['Agents', limit(data.usage.agents, limits.agents)],
+            ['Tickets this month', limit(data.usage.ticketsThisMonth, limits.ticketsPerMonth)],
+            ['Departments', limit(data.usage.departments, limits.departments)],
+            ['Macros', limit(data.usage.macros, limits.macros)],
+            ['Ticket fields', limit(data.usage.ticketFields, limits.ticketFields)],
           ].map(([label, value]) => (
             <div key={label} className="rounded-md bg-gray-50 dark:bg-gray-900/40 px-3 py-2">
               <dt className="text-xs text-gray-500">{label}</dt>
@@ -192,6 +193,11 @@ const Billing: React.FC = () => {
             </div>
           ))}
         </dl>
+        {!!data.customLimits?.length && (
+          <p className="mt-3 text-xs text-gray-500">
+            Some of these limits were set for your account and differ from the {current.name} plan.
+          </p>
+        )}
       </section>
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">

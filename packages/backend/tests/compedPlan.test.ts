@@ -166,6 +166,67 @@ describe('give a subscriber a free plan', () => {
     expect(await db('companies').where('id', OWN).first()).toMatchObject({ is_active: true });
   });
 
+  describe('limits for one company', () => {
+    const putLimits = (companyId: string, body: any, token = platformToken) =>
+      request(app)
+        .put(`/api/admin/provisioning/companies/${companyId}/limits`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(body);
+
+    it('lists the plan limits until some are set', async () => {
+      await db('companies').where('id', SUB).update({ comped_plan: 'standard' });
+      const row = await listed();
+      expect(row.limitOverrides).toEqual({});
+      expect(row.limits).toMatchObject({ ticketsPerMonth: 100, departments: 2, macros: 10 });
+      expect(row.planLimits).toEqual(row.limits);
+    });
+
+    it('sets them, and the list shows them on top of the plan', async () => {
+      const res = await putLimits(SUB, {
+        overrides: { agents: 10, ticketsPerMonth: null, customModules: true },
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.data.limits).toMatchObject({
+        agents: 10,
+        ticketsPerMonth: null,
+        departments: 2,
+        customModules: true,
+      });
+      const row = await listed();
+      expect(row.limitOverrides).toEqual({
+        agents: 10,
+        ticketsPerMonth: null,
+        customModules: true,
+      });
+      expect(row.limits).toMatchObject({ agents: 10, ticketsPerMonth: null, macros: 10 });
+      expect(row.planLimits.ticketsPerMonth).toBe(100);
+    });
+
+    it('clears them with {}', async () => {
+      expect((await putLimits(SUB, { overrides: {} })).status).toBe(200);
+      expect((await db('companies').where('id', SUB).first()).limit_overrides).toBeNull();
+      expect((await listed()).limitOverrides).toEqual({});
+    });
+
+    it('refuses bad values, accounts, your own company and non-platform admins', async () => {
+      expect((await putLimits(SUB, { overrides: { agents: -1 } })).status).toBe(400);
+      expect((await putLimits(SUB, { overrides: { agents: 2.5 } })).status).toBe(400);
+      expect((await putLimits(SUB, { overrides: { roundRobin: 'yes' } })).status).toBe(400);
+      expect((await putLimits(SUB, {})).status).toBe(400);
+      expect((await putLimits(ACME, { overrides: { agents: 5 } })).status).toBe(404);
+      expect((await putLimits(OWN, { overrides: { agents: 5 } })).status).toBe(400);
+      expect((await putLimits(SUB, { overrides: { agents: 99 } }, ownerToken)).status).toBe(403);
+      expect((await db('companies').where('id', SUB).first()).limit_overrides).toBeNull();
+
+      // Unknown limits are dropped, like any unknown field
+      expect((await putLimits(SUB, { overrides: { agents: 5, storage: 5 } })).status).toBe(200);
+      expect((await db('companies').where('id', SUB).first()).limit_overrides).toEqual({
+        agents: 5,
+      });
+      await db('companies').where('id', SUB).update({ comped_plan: null, limit_overrides: null });
+    });
+  });
+
   it("won't let a customer's own admin give themselves a free plan", async () => {
     const res = await put(SUB, { plan: 'professional' }, ownerToken);
     expect(res.status).toBe(403);

@@ -283,6 +283,48 @@ router.put(
   }
 );
 
+/**
+ * PUT /api/admin/provisioning/companies/:companyId/limits
+ * Set a subscriber's own limits over its plan's: { overrides: { agents: 10,
+ * ticketsPerMonth: null, customModules: true, ... } }. Leave a key out to
+ * follow the plan; { overrides: {} } goes back to the plan's limits.
+ */
+const count = Joi.number().integer().min(0).allow(null);
+router.put(
+  '/companies/:companyId/limits',
+  validate(
+    Joi.object({
+      overrides: Joi.object({
+        agents: count,
+        ticketsPerMonth: count,
+        departments: count,
+        macros: count,
+        ticketFields: count,
+        assignmentRules: Joi.boolean(),
+        roundRobin: Joi.boolean(),
+        recordFields: Joi.boolean(),
+        customModules: Joi.boolean(),
+      }).required(),
+    })
+  ),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const data = await AdminProvisioningService.setLimitOverrides(
+        req.params.companyId!,
+        req.body.overrides,
+        req.user!.id
+      );
+      res.json({ success: true, data });
+    } catch (error: any) {
+      logger.error('Failed to change company limits', { error });
+      res.status(error?.statusCode || 500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to change limits',
+      });
+    }
+  }
+);
+
 export default router;
 
 /**
