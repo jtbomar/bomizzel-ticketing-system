@@ -46,6 +46,42 @@ const isSubscriber = (brand: Brand) => !!brand.companyId;
 
 /** What each email says, in a brand. Kept apart from sending for the previews. */
 export const accountEmails = {
+  /** A new staff login (an agent or admin): choose a password for the help desk. */
+  staffWelcome(
+    companyName: string,
+    firstName: string | undefined,
+    link: string,
+    asOwner: boolean
+  ): EmailContent {
+    const brand = BOMIZZEL_BRAND;
+    const role = asOwner
+      ? `the owner of ${companyName}'s help desk on Bomizzel`
+      : `${companyName}'s help desk on Bomizzel`;
+    const lines = [
+      `You've been added to ${role}.`,
+      ...(asOwner
+        ? [
+            'As the owner you can do everything an admin can, and you are the only one who can hand ownership to someone else.',
+          ]
+        : []),
+      'Choose a password to sign in. The link works for 7 days.',
+    ];
+    return {
+      subject: asOwner
+        ? `You're the owner of ${companyName} on Bomizzel`
+        : `You've been added to ${companyName} on Bomizzel`,
+      html: brandedLayout(
+        brand,
+        `<h1 style="margin:0 0 16px;font-size:20px;">Welcome to Bomizzel</h1>
+<p style="margin:0 0 14px;line-height:1.55;">${escapeHtml(hi(firstName))}</p>
+${lines.map((l) => `<p style="margin:0 0 14px;line-height:1.55;">${escapeHtml(l)}</p>`).join('\n')}
+${button(brand, 'Choose my password', link)}${linkFallback(brand, link)}`,
+        { preheader: `Your ${companyName} login is ready.` }
+      ),
+      text: `${hi(firstName)}\n\n${lines.join('\n\n')}\n\nChoose your password: ${link}\n`,
+    };
+  },
+
   verification(brand: Brand, firstName: string | undefined, link: string): EmailContent {
     const where = isSubscriber(brand) ? `${brand.name}'s support portal` : 'Bomizzel';
     return {
@@ -186,6 +222,22 @@ export class AccountEmailService {
       brand,
       accountEmails.passwordReset(brand, user.first_name, link),
       'password_reset'
+    );
+  }
+
+  /** A new staff member's link to choose their password (on the app, not a portal). */
+  static async sendStaffInvitation(
+    user: { email: string; first_name?: string },
+    token: string,
+    companyName: string,
+    asOwner: boolean
+  ) {
+    const link = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}&invite=1`;
+    return send(
+      user.email,
+      BOMIZZEL_BRAND,
+      accountEmails.staffWelcome(companyName, user.first_name, link, asOwner),
+      'staff_invitation'
     );
   }
 

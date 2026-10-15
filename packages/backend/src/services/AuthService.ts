@@ -10,6 +10,7 @@ import { CreateUserRequest, LoginRequest, LoginResponse, User as UserModel } fro
 import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
 import { db } from '@/config/database';
+import { tenantContextFor } from '@/utils/tenant';
 import bcrypt from 'bcryptjs';
 import { BrandingService } from './BrandingService';
 import { PortalAccessService } from './PortalAccessService';
@@ -344,6 +345,18 @@ export class AuthService {
     const { token } = CryptoUtils.generatePasswordResetToken();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await User.setPasswordResetToken(user.id, token, expiresAt);
+    // Staff get the help desk's welcome, not a customer portal's
+    if (user.role !== 'customer') {
+      const { tenantId } = await tenantContextFor(user.id);
+      const company = tenantId ? await db('companies').where('id', tenantId).first('name') : null;
+      const { OwnershipService } = await import('./OwnershipService');
+      return AccountEmailService.sendStaffInvitation(
+        { email: user.email, first_name: user.first_name },
+        token,
+        company?.name || 'your company',
+        await OwnershipService.isOwner(user.id)
+      );
+    }
     const brand = await BrandingService.forUser(user.id);
     return AccountEmailService.sendInvitation(
       { email: user.email, first_name: user.first_name },

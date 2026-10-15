@@ -332,6 +332,94 @@ router.put(
   }
 );
 
+/**
+ * A subscriber's owner, from BSI:
+ *   GET  /companies/:companyId/staff   its staff and who owns it
+ *   PUT  /companies/:companyId/owner   { userId } make a staff member the owner
+ *   POST /companies/:companyId/owner   { firstName, lastName, email, sendWelcome }
+ *        add someone new as the owner (an admin login), and email them a link
+ *        to choose a password
+ */
+const subscriberOr404 = async (companyId: string) => {
+  const { db } = await import('../config/database');
+  const company = await db('companies').where('id', companyId).first('id', 'subscriber_id');
+  if (!company || company.subscriber_id) {
+    const { AppError } = await import('../middleware/errorHandler');
+    throw new AppError('Subscriber not found', 404);
+  }
+};
+
+router.get('/companies/:companyId/staff', async (req: Request, res: Response): Promise<void> => {
+  try {
+    await subscriberOr404(req.params['companyId']!);
+    const { OwnershipService } = await import('../services/OwnershipService');
+    res.json({
+      success: true,
+      data: { staff: await OwnershipService.staff(req.params['companyId']!) },
+    });
+  } catch (error: any) {
+    res
+      .status(error?.statusCode || 500)
+      .json({ success: false, message: error?.message || 'Failed' });
+  }
+});
+
+router.put(
+  '/companies/:companyId/owner',
+  validate(Joi.object({ userId: Joi.string().uuid().required() })),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      await subscriberOr404(req.params['companyId']!);
+      const { OwnershipService } = await import('../services/OwnershipService');
+      const owner = await OwnershipService.transfer(
+        req.params['companyId']!,
+        req.body.userId,
+        req.user!.id,
+        true
+      );
+      res.json({ success: true, data: { owner } });
+    } catch (error: any) {
+      res
+        .status(error?.statusCode || 500)
+        .json({ success: false, message: error?.message || 'Failed' });
+    }
+  }
+);
+
+router.post(
+  '/companies/:companyId/owner',
+  validate(
+    Joi.object({
+      firstName: Joi.string().trim().min(1).max(50).required(),
+      lastName: Joi.string().trim().min(1).max(50).required(),
+      email: Joi.string().trim().email().max(254).required(),
+      sendWelcome: Joi.boolean().default(true),
+    })
+  ),
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      await subscriberOr404(req.params['companyId']!);
+      const { OwnershipService } = await import('../services/OwnershipService');
+      const { AuthService } = await import('../services/AuthService');
+      const userId = await OwnershipService.addOwner(
+        req.params['companyId']!,
+        req.body,
+        req.user!.id
+      );
+      const emailed = req.body.sendWelcome ? await AuthService.sendInvitation(userId) : false;
+      res.status(201).json({
+        success: true,
+        data: { owner: await OwnershipService.owner(req.params['companyId']!), emailed },
+      });
+    } catch (error: any) {
+      logger.error('Failed to add owner', { error });
+      res
+        .status(error?.statusCode || 500)
+        .json({ success: false, message: error?.message || 'Failed' });
+    }
+  }
+);
+
 const count = Joi.number().integer().min(0).allow(null);
 router.put(
   '/companies/:companyId/limits',

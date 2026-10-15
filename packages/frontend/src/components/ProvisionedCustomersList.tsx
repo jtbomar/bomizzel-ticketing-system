@@ -113,6 +113,65 @@ const ProvisionedCustomersList: React.FC = () => {
   const [compSaving, setCompSaving] = useState(false);
   // Removing a free plan: also end the trial, straight to Free
   const [endTrial, setEndTrial] = useState(false);
+  // A subscriber's owner: pick one of its staff, or add someone new
+  const [ownerFor, setOwnerFor] = useState<Customer | null>(null);
+  const [ownerStaff, setOwnerStaff] = useState<
+    { id: string; name: string; email: string; isActive: boolean; isOwner: boolean }[]
+  >([]);
+  const [ownerPick, setOwnerPick] = useState('');
+  const [newOwner, setNewOwner] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    sendWelcome: true,
+  });
+  const [ownerMode, setOwnerMode] = useState<'pick' | 'add'>('pick');
+  const [ownerBusy, setOwnerBusy] = useState(false);
+  const [ownerError, setOwnerError] = useState('');
+
+  const openOwner = async (customer: Customer) => {
+    setOwnerFor(customer);
+    setOwnerMode('pick');
+    setOwnerPick('');
+    setOwnerError('');
+    setNewOwner({ firstName: '', lastName: '', email: '', sendWelcome: true });
+    try {
+      const r = await axios.get(
+        `${getApiBaseUrl()}/admin/provisioning/companies/${customer.company.id}/staff`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      setOwnerStaff(r.data.data.staff || []);
+    } catch (err: any) {
+      setOwnerError(err.response?.data?.message || "Couldn't load their staff");
+    }
+  };
+
+  const saveOwner = async () => {
+    if (!ownerFor) return;
+    const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` };
+    const url = `${getApiBaseUrl()}/admin/provisioning/companies/${ownerFor.company.id}/owner`;
+    setOwnerBusy(true);
+    setOwnerError('');
+    try {
+      if (ownerMode === 'pick') {
+        await axios.put(url, { userId: ownerPick }, { headers });
+      } else {
+        const r = await axios.post(url, newOwner, { headers });
+        if (newOwner.sendWelcome && !r.data.data.emailed) {
+          alert(
+            'They\'re the owner now, but the welcome email couldn\'t be sent. They can use "Forgot password" on the login page.'
+          );
+        }
+      }
+      setOwnerFor(null);
+      fetchCustomers();
+    } catch (err: any) {
+      setOwnerError(err.response?.data?.message || "Couldn't change the owner");
+    } finally {
+      setOwnerBusy(false);
+    }
+  };
+
   // Renaming a subscriber's portal
   const [renameFor, setRenameFor] = useState<Customer | null>(null);
   const [newPortalName, setNewPortalName] = useState('');
@@ -602,6 +661,12 @@ const ProvisionedCustomersList: React.FC = () => {
                           >
                             Portal name…
                           </button>
+                          <button
+                            onClick={() => openOwner(customer)}
+                            className="text-amber-700 hover:text-amber-900"
+                          >
+                            Owner…
+                          </button>
                           {customer.subscriptionId ? (
                             <>
                               {customer.status === 'suspended' ? (
@@ -757,6 +822,130 @@ const ProvisionedCustomersList: React.FC = () => {
                     {compSaving ? 'Saving…' : compFor.compedPlan ? 'Change plan' : 'Give free plan'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* The subscriber's owner */}
+      {ownerFor && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75"
+              onClick={() => !ownerBusy && setOwnerFor(null)}
+            ></div>
+            <div className="relative bg-white rounded-lg px-4 pt-5 pb-4 text-left shadow-xl sm:max-w-lg w-full sm:p-6">
+              <h3 className="text-lg font-medium text-gray-900">
+                Owner of {ownerFor.company.name}
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                The owner is an admin no one else at the company can demote, switch off or delete,
+                and the only one who can transfer ownership. The current owner stays an admin.
+              </p>
+              <p className="mt-3 text-sm text-gray-900">
+                Now:{' '}
+                <strong>
+                  {ownerStaff.find((s) => s.isOwner)
+                    ? `${ownerStaff.find((s) => s.isOwner)!.name} (${ownerStaff.find((s) => s.isOwner)!.email})`
+                    : 'nobody'}
+                </strong>
+              </p>
+
+              <div
+                role="tablist"
+                className="mt-4 inline-flex rounded-md border border-gray-300 overflow-hidden text-sm"
+              >
+                {(['pick', 'add'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    role="tab"
+                    aria-selected={ownerMode === m}
+                    onClick={() => setOwnerMode(m)}
+                    className={`px-3 py-1.5 ${ownerMode === m ? 'bg-gray-900 text-white' : 'bg-white text-gray-700'}`}
+                  >
+                    {m === 'pick' ? 'Someone on their staff' : 'Add a new person'}
+                  </button>
+                ))}
+              </div>
+
+              {ownerMode === 'pick' ? (
+                <select
+                  value={ownerPick}
+                  onChange={(e) => setOwnerPick(e.target.value)}
+                  className="mt-3 block w-full rounded-md border-gray-300 text-sm"
+                >
+                  <option value="">Choose…</option>
+                  {ownerStaff
+                    .filter((s) => s.isActive && !s.isOwner)
+                    .map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} ({s.email})
+                      </option>
+                    ))}
+                </select>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      placeholder="First name"
+                      value={newOwner.firstName}
+                      onChange={(e) => setNewOwner({ ...newOwner, firstName: e.target.value })}
+                      className="block w-full rounded-md border-gray-300 text-sm"
+                    />
+                    <input
+                      placeholder="Last name"
+                      value={newOwner.lastName}
+                      onChange={(e) => setNewOwner({ ...newOwner, lastName: e.target.value })}
+                      className="block w-full rounded-md border-gray-300 text-sm"
+                    />
+                  </div>
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={newOwner.email}
+                    onChange={(e) => setNewOwner({ ...newOwner, email: e.target.value })}
+                    className="block w-full rounded-md border-gray-300 text-sm"
+                  />
+                  <label className="flex items-start gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={newOwner.sendWelcome}
+                      onChange={(e) => setNewOwner({ ...newOwner, sendWelcome: e.target.checked })}
+                    />
+                    Email them now with a link to choose their password
+                  </label>
+                </div>
+              )}
+
+              {ownerError && <p className="mt-3 text-sm text-red-600">{ownerError}</p>}
+              <div className="mt-5 flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={ownerBusy}
+                  onClick={() => setOwnerFor(null)}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={
+                    ownerBusy ||
+                    (ownerMode === 'pick'
+                      ? !ownerPick
+                      : !newOwner.firstName.trim() ||
+                        !newOwner.lastName.trim() ||
+                        !newOwner.email.trim())
+                  }
+                  onClick={saveOwner}
+                  className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {ownerBusy ? 'Saving…' : ownerMode === 'pick' ? 'Make owner' : 'Add as owner'}
+                </button>
               </div>
             </div>
           </div>

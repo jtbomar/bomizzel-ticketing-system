@@ -11,6 +11,7 @@ import {
   PaginatedResponse,
 } from '@/types/models';
 import { PlanService } from './PlanService';
+import { OwnershipService } from './OwnershipService';
 import { OrgBillingService } from './OrgBillingService';
 
 export class UserService {
@@ -220,6 +221,12 @@ export class UserService {
       if (!user) {
         throw new AppError('User not found', 404, 'USER_NOT_FOUND');
       }
+      // The account owner's access is theirs to change (or to hand over)
+      await OwnershipService.assertMayChange(userId, updatedById, {
+        kind: 'edit',
+        ...(updateData.role !== undefined ? { role: updateData.role } : {}),
+        ...(updateData.isActive !== undefined ? { isActive: updateData.isActive } : {}),
+      });
 
       // Prepare update data
       const updateFields: any = {};
@@ -293,6 +300,7 @@ export class UserService {
       if (!user.is_active) {
         throw new AppError('User is already deactivated', 400, 'USER_ALREADY_DEACTIVATED');
       }
+      await OwnershipService.assertMayChange(userId, deactivatedById, { kind: 'deactivate' });
 
       await User.update(userId, { is_active: false });
       await this.syncSeatsFor(user);
@@ -691,6 +699,8 @@ export class UserService {
       if (!user) {
         throw new AppError('User not found', 404, 'USER_NOT_FOUND');
       }
+
+      await OwnershipService.assertMayChange(userId, deletedById, { kind: 'delete' });
 
       // Check if user has any active tickets or important associations
       // This is a safety check - in a real system you'd want to handle this more carefully

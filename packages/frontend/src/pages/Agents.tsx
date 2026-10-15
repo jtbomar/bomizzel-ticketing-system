@@ -39,7 +39,48 @@ const Agents: React.FC = () => {
     mustChangePassword: true, // Force password change on first login
   });
 
+  // The account owner: protected, and the only one who can hand ownership over
+  const [ownerId, setOwnerId] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [transferTo, setTransferTo] = useState('');
+  const [transferring, setTransferring] = useState(false);
+
+  const fetchOwnership = async () => {
+    try {
+      const r = await apiService.client.get('/ownership');
+      setOwnerId(r.data.owner?.id || null);
+      setIsOwner(!!r.data.isOwner);
+    } catch {
+      setOwnerId(null);
+    }
+  };
+
+  const transferOwnership = async () => {
+    const to = users.find((u) => u.id === transferTo);
+    if (!to) return;
+    if (
+      !confirm(
+        `Make ${to.firstName} ${to.lastName} the account owner? You'll stay an admin, but only they will be able to transfer ownership after this.`
+      )
+    ) {
+      return;
+    }
+    setTransferring(true);
+    try {
+      await apiService.client.post('/ownership/transfer', { userId: transferTo });
+      setShowTransfer(false);
+      setTransferTo('');
+      await Promise.all([fetchOwnership(), fetchUsers()]);
+    } catch (error: any) {
+      alert(error.response?.data?.error?.message || 'Ownership could not be transferred');
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   useEffect(() => {
+    fetchOwnership();
     fetchUsers();
     fetchDepartments();
     fetchOrganizationalRoles();
@@ -295,12 +336,22 @@ const Agents: React.FC = () => {
                 <p className="text-sm text-gray-600 mt-1">Manage support agents and their access</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-            >
-              Add Agent
-            </button>
+            <div className="flex items-center gap-2">
+              {isOwner && (
+                <button
+                  onClick={() => setShowTransfer(true)}
+                  className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50"
+                >
+                  Transfer ownership
+                </button>
+              )}
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                Add Agent
+              </button>
+            </div>
           </div>
         </div>
 
@@ -371,11 +422,17 @@ const Agents: React.FC = () => {
                       >
                         {roleLabel(agent.role)}
                       </span>
+                      {agent.id === ownerId && (
+                        <span className="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+                          Owner
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => toggleStatus(agent.id, agent.isActive)}
-                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        disabled={agent.id === ownerId}
+                        className={`px-2 py-1 text-xs font-semibold rounded-full disabled:cursor-default ${
                           agent.isActive
                             ? 'bg-green-100 text-green-800 hover:bg-green-200'
                             : 'bg-red-100 text-red-800 hover:bg-red-200'
@@ -414,7 +471,11 @@ const Agents: React.FC = () => {
                           them apart. The guarded one is the only way to
                           deactivate now; the toggle is left to reactivate.
                         */}
-                        {agent.isActive ? (
+                        {agent.id === ownerId ? (
+                          <span className="px-3 py-1 text-xs text-gray-500">
+                            {isOwner ? 'You own this account' : 'Account owner'}
+                          </span>
+                        ) : agent.isActive ? (
                           <button
                             onClick={() => deactivateAgent(agent.id)}
                             className="px-3 py-1 bg-yellow-600 text-white rounded text-xs font-medium hover:bg-yellow-700"
@@ -764,7 +825,11 @@ const Agents: React.FC = () => {
                 <select
                   value={editingUser.role}
                   onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  disabled={editingUser.id === ownerId}
+                  title={
+                    editingUser.id === ownerId ? 'The account owner is always an admin' : undefined
+                  }
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 disabled:bg-gray-100"
                 >
                   {Object.entries(ROLE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -798,6 +863,50 @@ const Agents: React.FC = () => {
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showTransfer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900">Transfer ownership</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              The owner is an admin no one else can demote, switch off or delete, and the only one
+              who can transfer ownership. You'll stay an admin.
+            </p>
+            <label className="mt-4 block text-sm font-medium text-gray-700">
+              New owner
+              <select
+                value={transferTo}
+                onChange={(e) => setTransferTo(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              >
+                <option value="">Choose someone…</option>
+                {agents
+                  .filter((a) => a.isActive && a.id !== ownerId)
+                  .map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.firstName} {a.lastName} ({a.email})
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowTransfer(false)}
+                disabled={transferring}
+                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={transferOwnership}
+                disabled={!transferTo || transferring}
+                className="rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {transferring ? 'Transferring…' : 'Transfer ownership'}
               </button>
             </div>
           </div>
