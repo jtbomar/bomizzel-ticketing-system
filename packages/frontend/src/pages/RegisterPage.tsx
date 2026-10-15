@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import apiService from '../services/api';
+import PortalNameInput from '../components/PortalNameInput';
 
 /**
  * Sign up (/register): a business creates its Bomizzel account - the
@@ -25,6 +26,10 @@ const RegisterPage: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+  // The portal name follows the company name until they type their own
+  const [portalName, setPortalName] = useState('');
+  const [portalEdited, setPortalEdited] = useState(false);
+  const [portalOk, setPortalOk] = useState(false);
   const [trialDays, setTrialDays] = useState(14);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -38,6 +43,17 @@ const RegisterPage: React.FC = () => {
       .catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    if (portalEdited || form.companyName.trim().length < 2) return;
+    const timer = setTimeout(() => {
+      apiService
+        .checkPortalName({ company: form.companyName.trim() })
+        .then((r) => setPortalName(r.available ? r.name : r.suggestion || r.name))
+        .catch(() => undefined);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [form.companyName, portalEdited]);
+
   const set = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
     setError('');
@@ -47,9 +63,11 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     if (form.password.length < 8) return setError('Use a password of at least 8 characters.');
     if (form.password !== form.confirmPassword) return setError("The passwords don't match.");
+    if (!portalOk) return setError('Choose a portal name that is available.');
     setSubmitting(true);
     try {
       await apiService.registerCompany({
+        portalName,
         companyName: form.companyName.trim(),
         adminFirstName: form.firstName.trim(),
         adminLastName: form.lastName.trim(),
@@ -110,6 +128,24 @@ const RegisterPage: React.FC = () => {
               value={form.companyName}
               onChange={set}
               className={field}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="portalName" className="block text-sm font-medium text-gray-700">
+              Portal name
+            </label>
+            <p className="text-xs text-gray-500">
+              Where your customers sign in, and your support email name. You can change it later.
+            </p>
+            <PortalNameInput
+              value={portalName}
+              onChange={(v) => {
+                setPortalName(v);
+                setPortalEdited(true);
+              }}
+              check={(name) => apiService.checkPortalName({ name })}
+              onStatus={setPortalOk}
             />
           </div>
 

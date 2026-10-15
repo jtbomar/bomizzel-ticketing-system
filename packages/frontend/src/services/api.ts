@@ -725,7 +725,14 @@ class ApiService {
   }
 
   /** A business signs up: its company and owner. The owner confirms their email to sign in. */
+  /** Is a portal name free (sign-up, no login needed)? With company only, a suggestion. */
+  async checkPortalName(params: { name?: string; company?: string }): Promise<any> {
+    const response = await this.client.get('/company-registration/portal-name', { params });
+    return response.data;
+  }
+
   async registerCompany(data: {
+    portalName?: string;
     companyName: string;
     adminFirstName: string;
     adminLastName: string;

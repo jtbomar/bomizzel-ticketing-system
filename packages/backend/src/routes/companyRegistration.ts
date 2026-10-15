@@ -3,12 +3,14 @@ import { CompanyRegistrationService } from '@/services/CompanyRegistrationServic
 import { authenticate } from '@/middleware/auth';
 import { validate } from '@/utils/validation';
 import Joi from 'joi';
+import { checkPortalName, portalNameFrom, portalUrl } from '@/utils/portalName';
 
 const router = Router();
 
 // Company registration schema
 const companyRegistrationSchema = Joi.object({
   // Company info
+  portalName: Joi.string().max(64).optional(),
   companyName: Joi.string().min(2).max(100).required().messages({
     'string.min': 'Company name must be at least 2 characters',
     'string.max': 'Company name cannot exceed 100 characters',
@@ -107,6 +109,26 @@ const companyProfileUpdateSchema = Joi.object({
  * POST /api/company-registration/register
  * Register a new company with admin user
  */
+/**
+ * GET /company-registration/portal-name?name=gleason  (or ?company=Gleason Power)
+ * For the sign-up form: is a portal name free, and if not, why and what
+ * instead. With only a company name, suggests one. Public.
+ */
+router.get('/portal-name', async (req, res, next) => {
+  try {
+    const wanted =
+      typeof req.query['name'] === 'string' && req.query['name']
+        ? req.query['name']
+        : portalNameFrom(typeof req.query['company'] === 'string' ? req.query['company'] : '');
+    const check = await checkPortalName(wanted);
+    // A taken name's suggestion is free; so is the name itself when available
+    const shown = check.available ? check.name : check.suggestion || check.name;
+    res.json({ ...check, url: portalUrl(shown) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/register', validate(companyRegistrationSchema), async (req, res, next) => {
   try {
     const result = await CompanyRegistrationService.registerCompany(req.body);

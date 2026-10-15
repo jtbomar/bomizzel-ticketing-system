@@ -8,6 +8,7 @@ import { TicketEmailService } from './TicketEmailService';
 import { FileService } from './FileService';
 import { logger } from '@/utils/logger';
 import { inboundDomain, parseMailbox, parseSupportAddress } from '@/utils/supportEmail';
+import { subscriberForPortalName } from '@/utils/portalName';
 
 /**
  * Turns email sent to a subscriber's support address into tickets.
@@ -198,11 +199,8 @@ export class InboundEmailService {
       .find(Boolean);
     if (!target) return { outcome: 'ignored', reason: 'not a support address' };
 
-    const subscriber = await db('companies')
-      .where('support_email_slug', target.slug)
-      .whereNull('subscriber_id')
-      .where((q) => q.where('is_active', true).orWhereNull('is_active'))
-      .first('id', 'name', 'support_email_slug');
+    // Its name now, or one it used before (renamed subscribers keep their old address)
+    const subscriber = await subscriberForPortalName(target.slug);
     if (!subscriber) return { outcome: 'ignored', reason: 'unknown support address' };
     const tenantId: string = subscriber.id;
 

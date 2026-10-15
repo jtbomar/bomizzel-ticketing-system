@@ -39,14 +39,6 @@ export const parseSupportAddress = (value: string): { slug: string; token?: stri
   return { slug, token: token && /^[0-9a-f]{12}$/.test(token) ? token : undefined };
 };
 
-const slugify = (value: string): string =>
-  value
-    .toLowerCase()
-    .normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'support';
-
 /**
  * Give a subscriber its support address if it has none yet (new sign-ups and
  * provisioned customers). Returns the slug.
@@ -58,11 +50,9 @@ export const ensureSupportSlug = async (companyId: string): Promise<string> => {
   if (!company) throw new Error(`Company ${companyId} not found`);
   if (company.support_email_slug) return company.support_email_slug;
 
-  const base = slugify((company.domain || '').split('.')[0] || company.name || 'support');
-  let slug = base;
-  for (let n = 2; await db('companies').where('support_email_slug', slug).first('id'); n++) {
-    slug = `${base}-${n}`;
-  }
+  // A free portal name from the company name (avoiding reserved and old names)
+  const { freePortalName } = await import('./portalName');
+  const slug = await freePortalName(company.name || (company.domain || '').split('.')[0] || 'help');
   await db('companies').where('id', companyId).update({ support_email_slug: slug });
   return slug;
 };

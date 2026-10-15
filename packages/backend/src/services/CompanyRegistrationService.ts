@@ -8,11 +8,15 @@ import { TicketStatus } from '@/models/TicketStatus';
 import { AccountEmailService } from './AccountEmailService';
 import { CryptoUtils } from '@/utils/crypto';
 import { ensureSupportSlug } from '@/utils/supportEmail';
+import { checkPortalName } from '@/utils/portalName';
 import { planByKey, planFeatureLines, TRIAL_DAYS } from './PlanService';
 
 export interface CompanyRegistrationData {
   // Company basic info
   companyName: string;
+  // Portal and support email name (portal.bomizzel.com/<name>); one is
+  // made from the company name when it's left out
+  portalName?: string;
   domain?: string;
   description?: string;
 
@@ -109,6 +113,20 @@ export class CompanyRegistrationService {
         if (existingCompany) {
           throw new AppError('Company domain already exists', 400, 'DOMAIN_EXISTS');
         }
+      }
+
+      // The portal name they picked must be free before anything is made
+      let portalName: string | null = null;
+      if (data.portalName) {
+        const check = await checkPortalName(data.portalName);
+        if (!check.available) {
+          throw new AppError(
+            `Portal name: ${check.reason}${check.suggestion ? ` How about "${check.suggestion}"?` : ''}`,
+            400,
+            'PORTAL_NAME'
+          );
+        }
+        portalName = check.name;
       }
 
       const existingCompanyByName = await Company.findByName(data.companyName);
@@ -300,7 +318,12 @@ export class CompanyRegistrationService {
 
       await trx.commit();
 
-      // The subscriber's support address (<slug>@support.bomizzel.com).
+      // The subscriber's portal and support address name (<slug>@support.bomizzel.com).
+      if (portalName) {
+        await db('companies')
+          .where('id', createdCompany.id)
+          .update({ support_email_slug: portalName });
+      }
       await ensureSupportSlug(createdCompany.id);
 
       await AccountEmailService.sendVerification(

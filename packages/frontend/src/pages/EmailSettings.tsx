@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
+import PortalNameInput from '../components/PortalNameInput';
 
 /**
  * Settings → Email: the subscriber's support address. Email sent there
@@ -14,6 +15,13 @@ const EmailSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  // Portal and email name (one name for both)
+  const [portalName, setPortalName] = useState('');
+  const [portalUrl, setPortalUrl] = useState('');
+  const [newName, setNewName] = useState('');
+  const [nameOk, setNameOk] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState('');
 
   useEffect(() => {
     apiService.client
@@ -21,12 +29,37 @@ const EmailSettings: React.FC = () => {
       .then((res: any) => {
         setAddress(res.data.data.address);
         setEmailEnabled(res.data.data.emailEnabled);
+        setPortalName(res.data.data.portalName || '');
+        setPortalUrl(res.data.data.portalUrl || '');
+        setNewName(res.data.data.portalName || '');
       })
       .catch((err: any) =>
         setError(err.response?.data?.error?.message || 'Could not load your support address.')
       )
       .finally(() => setLoading(false));
   }, []);
+
+  const rename = async () => {
+    if (
+      !confirm(
+        `Change your name to "${newName}"? Your portal moves to portal.bomizzel.com/${newName} and your support email to ${newName}@support.bomizzel.com. The old link and address keep working.`
+      )
+    ) {
+      return;
+    }
+    setRenaming(true);
+    setRenameError('');
+    try {
+      const res = await apiService.client.put('/email/portal-name', { name: newName });
+      setPortalName(res.data.data.portalName);
+      setPortalUrl(res.data.data.portalUrl);
+      setAddress(res.data.data.address);
+    } catch (err: any) {
+      setRenameError(err.response?.data?.error?.message || 'Could not change the name.');
+    } finally {
+      setRenaming(false);
+    }
+  };
 
   const copy = async () => {
     try {
@@ -95,6 +128,46 @@ const EmailSettings: React.FC = () => {
                     by email until it is.
                   </p>
                 )}
+              </section>
+
+              <section>
+                <h2 className="text-lg font-medium text-gray-900 mb-2">
+                  Customer portal and email name
+                </h2>
+                <p className="text-sm text-gray-600 mb-3">
+                  Your customers sign in at{' '}
+                  <a
+                    href={portalUrl}
+                    className="text-blue-700 underline"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {portalUrl}
+                  </a>
+                  . The same name is used for your support address. If you change it, the old link
+                  and address keep working.
+                </p>
+                <div className="max-w-lg">
+                  <PortalNameInput
+                    id="newPortalName"
+                    value={newName}
+                    onChange={setNewName}
+                    check={async (name) =>
+                      (await apiService.client.get('/email/portal-name', { params: { name } })).data
+                        .data
+                    }
+                    onStatus={setNameOk}
+                  />
+                  <button
+                    type="button"
+                    onClick={rename}
+                    disabled={renaming || !nameOk || newName === portalName}
+                    className="mt-2 px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {renaming ? 'Changing…' : 'Change name'}
+                  </button>
+                  {renameError && <p className="mt-2 text-sm text-red-600">{renameError}</p>}
+                </div>
               </section>
 
               <section>

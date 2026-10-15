@@ -6,6 +6,7 @@ import { authenticate } from '@/middleware/auth';
 import { requirePlatformAdmin } from '@/middleware/platformAdmin';
 import { getTicketInTenant, isStaff } from '@/utils/tenant';
 import { ensureSupportSlug, supportAddress } from '@/utils/supportEmail';
+import { checkPortalName, portalUrl, renamePortal } from '@/utils/portalName';
 import { AppError } from '@/middleware/errorHandler';
 import { validateRequest } from '@/utils/validation';
 
@@ -215,7 +216,45 @@ emailRouter.get('/support-address', async (req: Request, res: Response, next: Ne
       data: {
         address: supportAddress(slug),
         emailEnabled: EmailService.isInitialized(),
+        portalName: slug,
+        portalUrl: portalUrl(slug),
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /email/portal-name?name=...  is a new name free (yours counts as free)
+ * PUT /email/portal-name { name }   change it (admins). The old name keeps
+ * working for email and portal links.
+ */
+emailRouter.get('/portal-name', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const check = await checkPortalName(req.query.name, req.user?.tenantId);
+    res.json({
+      success: true,
+      data: {
+        ...check,
+        url: portalUrl(check.available ? check.name : check.suggestion || check.name),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+emailRouter.put('/portal-name', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (req.user?.role !== 'admin')
+      throw new AppError('Only admins can change this', 403, 'ADMIN_ONLY');
+    const tenantId = req.user?.tenantId;
+    if (!tenantId) throw new AppError('No subscriber account for this user', 403, 'NO_TENANT');
+    const slug = await renamePortal(tenantId, req.body?.name);
+    res.json({
+      success: true,
+      data: { portalName: slug, portalUrl: portalUrl(slug), address: supportAddress(slug) },
     });
   } catch (error) {
     next(error);
