@@ -665,7 +665,10 @@ export class UserService {
         role: 'member',
       });
       if (!isContact) await OrgBillingService.syncSeats(tenantId);
-      await User.db('users').where('id', newUser.id).update({ current_org_id: tenantId });
+      // Added by an admin: a contact may see their company's tickets on the portal
+      await User.db('users')
+        .where('id', newUser.id)
+        .update({ current_org_id: tenantId, ...(isContact ? { portal_scope: 'company' } : {}) });
 
       logger.info(`User ${newUser.id} created by ${createdById}`);
 

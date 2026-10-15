@@ -61,7 +61,7 @@ export type InboundResult =
 
 // Mail from these providers comes from people, not organisations, so their
 // domain says nothing about which account they belong to.
-const PERSONAL_DOMAINS = new Set([
+export const PERSONAL_DOMAINS = new Set([
   'gmail.com',
   'googlemail.com',
   'yahoo.com',

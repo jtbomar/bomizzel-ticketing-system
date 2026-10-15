@@ -213,6 +213,8 @@ export class TicketService {
       }
 
       searchOptions.companyIds = companyIds;
+      // Not approved for the company's tickets yet: only their own
+      if (tenant.ownTicketsOnly) searchOptions.submitterId = userId;
 
       // If specific company requested, validate access
       if (options.companyId) {
@@ -901,7 +903,9 @@ export class TicketService {
 
     if (userRole === 'customer') {
       // Customers can only access tickets from their companies
-      const hasAccess = tenant.companies.includes(ticket.company_id);
+      const hasAccess =
+        tenant.companies.includes(ticket.company_id) &&
+        (!tenant.ownTicketsOnly || ticket.submitter_id === userId);
 
       if (!hasAccess) {
         throw new ForbiddenError('Access denied to ticket');

@@ -131,6 +131,10 @@ const makeTenant = async (tag: 'a' | 'b'): Promise<Tenant> => {
   const contact1Id = await makeUser(`contact1@acct-${tag}1.test`, 'customer', subscriberId);
   const coworkerId = await makeUser(`coworker@acct-${tag}1.test`, 'customer', subscriberId);
   const contact2Id = await makeUser(`contact2@acct-${tag}2.test`, 'customer', subscriberId);
+  // Approved for their company's tickets on the portal
+  await db('users')
+    .whereIn('id', [contact1Id, coworkerId, contact2Id])
+    .update({ portal_scope: 'company' });
   await db('user_company_associations').insert([
     { user_id: contact1Id, company_id: account1Id, role: 'member' },
     { user_id: coworkerId, company_id: account1Id, role: 'member' },

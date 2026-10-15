@@ -203,7 +203,10 @@ noteRouter.get(
       // the platform.
       const tenantId = requireTenantId(user);
       let ticketScope = db('tickets').select('id').where('org_id', tenantId);
-      if (!isStaff(user)) ticketScope = ticketScope.whereIn('company_id', user.companies || []);
+      if (!isStaff(user)) {
+        ticketScope = ticketScope.whereIn('company_id', user.companies || []);
+        if (user.ownTicketsOnly) ticketScope = ticketScope.where('submitter_id', user.id);
+      }
 
       const searchOptions: any = {
         ticketScope,

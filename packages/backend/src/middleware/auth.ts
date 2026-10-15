@@ -1,3 +1,4 @@
+import { isOwnTicketsOnly } from '@/utils/tenant';
 import { Request, Response, NextFunction } from 'express';
 import { JWTUtils, JWTPayload } from '@/utils/jwt';
 import { isTokenRevoked } from '@/utils/tokenBlocklist';
@@ -21,6 +22,8 @@ declare global {
         // tenant data must filter on it. Undefined when the user belongs to no
         // subscriber - such a user must see no tenant data at all.
         tenantId?: string;
+        // A contact not approved for their company's tickets: only their own
+        ownTicketsOnly?: boolean;
       };
     }
   }
@@ -97,6 +100,8 @@ export const authenticate = async (
       companyId: companyIds[0], // Primary company for customers
       companies: companyIds, // All associated companies for customers
       tenantId,
+      // A contact not approved for their company's tickets sees only their own
+      ownTicketsOnly: isOwnTicketsOnly(user as any),
     };
 
     next();
@@ -164,6 +169,7 @@ export const optionalAuth = async (
           isActive: user.is_active,
           companies: userCompanies.map((uc) => uc.companyId),
           tenantId: resolveTenantId(user.current_org_id, userCompanies),
+          ownTicketsOnly: isOwnTicketsOnly(user as any),
         };
       }
     }

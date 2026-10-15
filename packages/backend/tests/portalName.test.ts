@@ -12,7 +12,7 @@ import { app } from '../src/index';
 import { db } from '../src/config/database';
 import { JWTUtils } from '../src/utils/jwt';
 import { resetDatabase } from './helpers/db';
-import { portalNameFrom, subscriberForPortalName } from '../src/utils/portalName';
+import { portalNameFrom, portalUrl, subscriberForPortalName } from '../src/utils/portalName';
 
 /**
  * A subscriber's name - its portal (portal.bomizzel.com/<name>) and support
@@ -55,7 +55,7 @@ describe('portal names', () => {
     expect((await check('name=acme-heating')).body).toMatchObject({
       name: 'acme-heating',
       available: true,
-      url: 'https://portal.bomizzel.com/acme-heating',
+      url: portalUrl('acme-heating'),
     });
     const taken = (await check('name=gleason')).body;
     expect(taken).toMatchObject({ available: false, reason: 'That name is taken.' });
@@ -110,7 +110,7 @@ describe('portal names', () => {
     expect(res.status).toBe(200);
     expect(res.body.data).toMatchObject({
       portalName: 'acme-heating',
-      portalUrl: 'https://portal.bomizzel.com/acme-heating',
+      portalUrl: portalUrl('acme-heating'),
     });
     expect(res.body.data.address).toMatch(/^acme-heating@/);
 

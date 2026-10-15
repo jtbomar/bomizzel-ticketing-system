@@ -160,6 +160,7 @@ export class AdvancedSearchService {
       }
 
       dbQuery = dbQuery.whereIn('t.company_id', userCompanyIds);
+      if (tenant.ownTicketsOnly) dbQuery = dbQuery.where('t.submitter_id', userId);
     } else if (userRole === 'employee') {
       const userTeams = await User.getUserTeams(userId);
       const teamIds = userTeams.map((ut) => ut.teamId);

@@ -57,9 +57,15 @@ const RESERVED = new Set([
   'www',
 ]);
 
-/** Where a subscriber's customers sign in. */
+/**
+ * Where a subscriber's customers sign in: PORTAL_URL (https://portal.bomizzel.com
+ * once that name points at the frontend), else the main site's /portal.
+ */
 export const portalBaseUrl = (): string =>
-  (process.env['PORTAL_URL'] || 'https://portal.bomizzel.com').replace(/\/+$/, '');
+  (
+    process.env['PORTAL_URL'] ||
+    `${(process.env['FRONTEND_URL'] || 'https://bomizzel.com').replace(/\/+$/, '')}/portal`
+  ).replace(/\/+$/, '');
 
 export const portalUrl = (name: string): string => `${portalBaseUrl()}/${name}`;
 

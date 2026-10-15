@@ -12,6 +12,19 @@ import { EmailService } from './EmailService';
 import { db } from '@/config/database';
 import bcrypt from 'bcryptjs';
 import { BrandingService } from './BrandingService';
+import { PortalAccessService } from './PortalAccessService';
+
+// Never fails the sign-in step it rides on
+const notifyPortalAdmins = async (userId: string) => {
+  try {
+    await PortalAccessService.notifyAdmins(userId);
+  } catch (error) {
+    logger.error('Portal access notification failed', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+};
 import { AccountEmailService } from './AccountEmailService';
 
 export class AuthService {
@@ -287,6 +300,9 @@ export class AuthService {
       }
 
       await User.verifyEmail(user.id);
+      // A portal sign-up's request for their company's tickets goes to the
+      // admins now that the address is real
+      await notifyPortalAdmins(user.id);
 
       logger.info(`Email verified for user: ${user.email}`);
     } catch (error) {
@@ -385,7 +401,10 @@ export class AuthService {
       await User.updatePassword(user.id, newPassword);
       // The link came to their inbox, so the address is theirs. This is also
       // how an invited contact becomes verified.
-      if (!user.email_verified) await User.verifyEmail(user.id);
+      if (!user.email_verified) {
+        await User.verifyEmail(user.id);
+        await notifyPortalAdmins(user.id);
+      }
 
       logger.info(`Password reset successfully for user: ${user.email}`);
     } catch (error) {

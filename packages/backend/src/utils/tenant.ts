@@ -23,6 +23,8 @@ type TenantUser = {
   role: string;
   tenantId?: string;
   companies?: string[];
+  // A contact not yet approved for their company's tickets: only their own
+  ownTicketsOnly?: boolean;
 };
 
 export const STAFF_ROLES = ['admin', 'employee', 'team_lead'];
@@ -56,11 +58,13 @@ const notFound = (what: string): AppError =>
  */
 export const canAccessTicket = (
   user: TenantUser | undefined,
-  ticket: { org_id?: string | null; company_id?: string | null }
+  ticket: { org_id?: string | null; company_id?: string | null; submitter_id?: string | null }
 ): boolean => {
   if (!user?.tenantId || !ticket || ticket.org_id !== user.tenantId) return false;
   if (isStaff(user)) return true;
-  return !!ticket.company_id && (user.companies || []).includes(ticket.company_id);
+  if (!ticket.company_id || !(user.companies || []).includes(ticket.company_id)) return false;
+  // Not approved for the company's tickets yet: only the ones they opened
+  return !user.ownTicketsOnly || ticket.submitter_id === user.id;
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -137,9 +141,9 @@ export const assertQueueInTenant = async (queueId: string, tenantId: string): Pr
  */
 export const tenantContextFor = async (
   userId: string
-): Promise<{ tenantId?: string; companies: string[] }> => {
+): Promise<{ tenantId?: string; companies: string[]; ownTicketsOnly: boolean }> => {
   const [user, rows] = await Promise.all([
-    db('users').where('id', userId).first('current_org_id'),
+    db('users').where('id', userId).first('current_org_id', 'role', 'portal_scope'),
     db('user_company_associations as a')
       .join('companies as c', 'c.id', 'a.company_id')
       .where('a.user_id', userId)
@@ -151,8 +155,12 @@ export const tenantContextFor = async (
     user?.current_org_id && tenants.includes(user.current_org_id)
       ? user.current_org_id
       : tenants[0];
-  return { tenantId, companies };
+  return { tenantId, companies, ownTicketsOnly: isOwnTicketsOnly(user) };
 };
+
+/** A contact who may see only the tickets they opened (not approved for their company's). */
+export const isOwnTicketsOnly = (user?: { role?: string; portal_scope?: string } | null): boolean =>
+  !!user && user.role === 'customer' && user.portal_scope !== 'company';
 
 /**
  * Express middleware for /:userId routes: the target user must be the caller

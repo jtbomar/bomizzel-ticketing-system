@@ -7,7 +7,8 @@ import { ValidationError, NotFoundError, ForbiddenError } from '../utils/errors'
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { canAccessTicket, tenantContextFor } from '@/utils/tenant';
+import { canAccessTicket, isStaff, tenantContextFor } from '@/utils/tenant';
+import { db } from '@/config/database';
 // sharp is loaded lazily inside generateThumbnail(), NOT at module scope.
 //
 // sharp is a native module and fails to load when its platform binary is
@@ -51,7 +52,15 @@ export class FileService {
     this.validateFile(file);
 
     // Check if ticket exists and user has access
-    await this.validateTicketAccess(ticketId, uploadedById);
+    const staff = await this.validateTicketAccess(ticketId, uploadedById);
+    // A note it's attached to must be on this ticket, and a contact can't
+    // attach to an internal note
+    if (noteId) {
+      const note = await db('ticket_notes')
+        .where({ id: noteId, ticket_id: ticketId })
+        .first('is_internal');
+      if (!note || (note.is_internal && !staff)) throw new NotFoundError('Note not found');
+    }
 
     // Ensure upload directory exists
     await this.ensureUploadDirectory();
@@ -124,8 +133,9 @@ export class FileService {
       throw new NotFoundError('File attachment not found');
     }
 
-    // Check if user has access to the ticket
-    await this.validateTicketAccess(attachment.ticket_id, userId);
+    // Check if user has access to the ticket (and, for contacts, that it isn't
+    // on an internal note)
+    await this.assertAttachmentVisible(attachment, userId);
 
     const filePath = attachment.storage_path;
 
@@ -158,8 +168,7 @@ export class FileService {
       throw new ValidationError('Thumbnail not available for this file');
     }
 
-    // Check if user has access to the ticket
-    await this.validateTicketAccess(attachment.ticket_id, userId);
+    await this.assertAttachmentVisible(attachment, userId);
 
     // Check if thumbnail exists on disk
     try {
@@ -239,9 +248,21 @@ export class FileService {
     userId: string
   ): Promise<FileAttachmentModel[]> {
     // Check if user has access to the ticket
-    await this.validateTicketAccess(ticketId, userId);
+    const staff = await this.validateTicketAccess(ticketId, userId);
 
     const attachments = await FileAttachment.findByTicket(ticketId);
+    // Contacts never see files on internal notes (they used to: only the
+    // note text was hidden)
+    if (!staff) {
+      const internal = new Set(
+        (
+          await db('ticket_notes').where({ ticket_id: ticketId, is_internal: true }).select('id')
+        ).map((n: any) => n.id)
+      );
+      return attachments
+        .filter((a: any) => !a.note_id || !internal.has(a.note_id))
+        .map(FileAttachment.toModel);
+    }
     return attachments.map(FileAttachment.toModel);
   }
 
@@ -276,7 +297,17 @@ export class FileService {
   /**
    * Validate user has access to ticket
    */
-  private static async validateTicketAccess(ticketId: string, userId: string): Promise<void> {
+  /** Ticket access, and for contacts, the file isn't on an internal note. */
+  private static async assertAttachmentVisible(attachment: any, userId: string): Promise<void> {
+    const staff = await this.validateTicketAccess(attachment.ticket_id, userId);
+    if (!staff && attachment.note_id) {
+      const note = await db('ticket_notes').where('id', attachment.note_id).first('is_internal');
+      if (note?.is_internal) throw new NotFoundError('File attachment not found');
+    }
+  }
+
+  /** Throws unless the user may see the ticket; true for staff. */
+  private static async validateTicketAccess(ticketId: string, userId: string): Promise<boolean> {
     const ticket = await Ticket.findById(ticketId);
     if (!ticket) {
       throw new NotFoundError('Ticket not found');
@@ -294,6 +325,7 @@ export class FileService {
     if (!canAccessTicket({ id: userId, role: user.role, ...tenant }, ticket as any)) {
       throw new NotFoundError('Ticket not found');
     }
+    return isStaff(user);
   }
 
   /**

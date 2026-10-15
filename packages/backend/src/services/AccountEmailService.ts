@@ -1,6 +1,7 @@
 import { EmailService } from './EmailService';
 import { logger } from '@/utils/logger';
 import { supportAddress } from '@/utils/supportEmail';
+import { portalUrl } from '@/utils/portalName';
 import {
   Brand,
   BOMIZZEL_BRAND,
@@ -26,6 +27,10 @@ import {
  */
 const frontendUrl = (): string =>
   (process.env['FRONTEND_URL'] || 'https://www.bomizzel.com').replace(/\/+$/, '');
+
+// A subscriber's customers finish on its portal; Bomizzel accounts on the app
+const linkBase = (brand: Brand): string =>
+  brand.companyId && brand.supportSlug ? portalUrl(brand.supportSlug) : frontendUrl();
 
 export interface EmailContent {
   subject: string;
@@ -161,7 +166,7 @@ export class AccountEmailService {
     token: string,
     brand: Brand = BOMIZZEL_BRAND
   ) {
-    const link = `${frontendUrl()}/verify-email?token=${encodeURIComponent(token)}`;
+    const link = `${linkBase(brand)}/verify-email?token=${encodeURIComponent(token)}`;
     return send(
       user.email,
       brand,
@@ -175,7 +180,7 @@ export class AccountEmailService {
     token: string,
     brand: Brand = BOMIZZEL_BRAND
   ) {
-    const link = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+    const link = `${linkBase(brand)}/reset-password?token=${encodeURIComponent(token)}`;
     return send(
       user.email,
       brand,
@@ -191,7 +196,7 @@ export class AccountEmailService {
     brand: Brand,
     signature: string | null
   ) {
-    const link = `${frontendUrl()}/reset-password?token=${encodeURIComponent(token)}&invite=1`;
+    const link = `${linkBase(brand)}/reset-password?token=${encodeURIComponent(token)}&invite=1`;
     return send(
       user.email,
       brand,

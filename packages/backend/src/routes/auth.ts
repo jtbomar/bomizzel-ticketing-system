@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { db } from '@/config/database';
 import { AuthService } from '@/services/AuthService';
 import { User } from '@/models/User';
 import { authenticate, optionalAuth } from '@/middleware/auth';
@@ -37,6 +38,10 @@ router.post(
       // an invitation instead of a verification email.
       const byStaff = !!req.user && isStaff(req.user);
       const { user } = await AuthService.register(req.body, { sendVerificationEmail: !byStaff });
+      // A contact an agent adds may see their company's tickets on the portal
+      if (byStaff && user.role === 'customer') {
+        await db('users').where('id', user.id).update({ portal_scope: 'company' });
+      }
 
       // No tokens: the new account can't sign in until its email is confirmed.
       res.status(201).json({
