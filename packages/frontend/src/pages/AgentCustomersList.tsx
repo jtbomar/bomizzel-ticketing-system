@@ -9,6 +9,7 @@ import {
   EnvelopeIcon,
 } from '@heroicons/react/24/outline';
 import { apiService } from '../services/api';
+import { PortalAccessRequests } from '../components/PortalAccess';
 
 interface Customer {
   id: string;
@@ -117,6 +118,8 @@ const AgentCustomersList: React.FC = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* People who signed up on the portal, waiting to see their company's tickets */}
+        <PortalAccessRequests />
         {/* Search Bar */}
         <div className="mb-6">
           <div className="relative">

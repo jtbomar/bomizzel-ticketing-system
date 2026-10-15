@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import RecordFields from '../components/RecordFields';
 import RelatedLists from '../components/RelatedLists';
+import { PortalAccessCard } from '../components/PortalAccess';
 import {
   UserIcon,
   ArrowLeftIcon,
@@ -202,12 +203,13 @@ const AgentCustomerDetail: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Fields from the contacts layout (Settings > Layouts), edited in place */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <RecordFields
               module="contacts"
               recordId={customerId!}
               onSaved={() => loadCustomerDetails()}
             />
+            <PortalAccessCard contactId={customerId!} onChanged={() => loadCustomerDetails()} />
           </div>
 
           {/* Tickets */}

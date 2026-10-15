@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { isPortalHost } from './portal/portalApi';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -14,6 +15,8 @@ import RegisterPage from './pages/RegisterPage';
 
 // Lazy load heavy components
 const PricingPage = lazy(() => import('./pages/PricingPage'));
+const PortalApp = lazy(() => import('./portal/PortalApp'));
+const PortalAccessDecision = lazy(() => import('./pages/PortalAccessDecision'));
 const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
@@ -70,6 +73,33 @@ const LoadingSpinner = () => (
 );
 
 function App() {
+  const location = useLocation();
+  // A customer portal: portal.bomizzel.com/<name>, or /portal/<name> here.
+  // It has its own sign-in and look, so none of the app's providers.
+  if (isPortalHost() || location.pathname.startsWith('/portal/')) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path={isPortalHost() ? '/:slug/*' : '/portal/:slug/*'} element={<PortalApp />} />
+            <Route
+              path="*"
+              element={
+                isPortalHost() ? (
+                  <div className="min-h-screen flex items-center justify-center p-6 text-center text-gray-600">
+                    Use the support portal link your provider gave you.
+                  </div>
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -97,6 +127,8 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                     <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    {/* An admin's Approve / Deny link for portal access */}
+                    <Route path="/portal-access" element={<PortalAccessDecision />} />
                     {/* One sign-up page; old links to the long form go there */}
                     <Route path="/company-register" element={<Navigate to="/register" replace />} />
                     <Route
