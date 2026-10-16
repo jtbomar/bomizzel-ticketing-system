@@ -51,6 +51,8 @@ describe('one login: staff of one company, customer of another', () => {
       .send({ email: 'darrell@gleason.example.com', password: PASSWORD, ...body });
 
   beforeAll(async () => {
+    saved.portalUrl = process.env['PORTAL_URL'];
+    process.env['PORTAL_URL'] = 'https://help.bomizzel.com';
     const svc = EmailService as any;
     saved.transporter = svc.transporter;
     saved.config = svc.config;
@@ -121,10 +123,13 @@ describe('one login: staff of one company, customer of another', () => {
   });
 
   afterAll(() => {
-    Object.assign(EmailService as any, saved);
+    const { portalUrl, ...email } = saved;
+    Object.assign(EmailService as any, email);
+    if (portalUrl === undefined) delete process.env['PORTAL_URL'];
+    else process.env['PORTAL_URL'] = portalUrl;
   });
 
-  it('Bomizzel staff can add Gleason\'s admin to an account as a customer', async () => {
+  it("Bomizzel staff can add Gleason's admin to an account as a customer", async () => {
     // The create-ticket form's "new customer": the login already exists
     const reg = await jeff().post('/auth/register', {
       firstName: 'Darrell',
@@ -154,7 +159,7 @@ describe('one login: staff of one company, customer of another', () => {
     expect(add.status).toBe(404);
   });
 
-  it('he signs in to Gleason as its admin, and to Bomizzel\'s portal as a customer', async () => {
+  it("he signs in to Gleason as its admin, and to Bomizzel's portal as a customer", async () => {
     const staff = await signIn({ company: 'gleason', audience: 'staff' });
     expect(staff.status).toBe(200);
     expect(staff.body.user.role).toBe('admin');
@@ -247,7 +252,9 @@ describe('one login: staff of one company, customer of another', () => {
 
   it("a token for a company he's been removed from stops working", async () => {
     const portal = await signIn({ company: 'bsi', audience: 'portal' });
-    await db('user_company_associations').where({ user_id: DARRELL, company_id: GLEASON_ACCT }).del();
+    await db('user_company_associations')
+      .where({ user_id: DARRELL, company_id: GLEASON_ACCT })
+      .del();
     const res = await as(portal.body.token).get('/portal/bsi/session');
     expect(res.status).toBe(401);
     await db('user_company_associations').insert({
@@ -274,5 +281,43 @@ describe('one login: staff of one company, customer of another', () => {
       password: 'not-their-password',
     });
     expect(wrong.status).toBe(409);
+  });
+
+  it('signing in on bomizzel.com hands off to the company address, once', async () => {
+    const staff = await signIn({});
+    expect(staff.status).toBe(200);
+    expect(staff.body.company).toMatchObject({ id: GLEASON, portalName: 'gleason' });
+
+    const h = await as(staff.body.token).post('/auth/handoff');
+    expect(h.status).toBe(200);
+    expect(h.body.url).toMatch(/^https:\/\/portal\.bomizzel\.com\/gleason\/agent#handoff=/);
+    const code = h.body.url.split('#handoff=')[1];
+
+    // Not a login token in its own right
+    expect((await as(code).get('/tickets')).status).toBe(401);
+
+    const first = await request(app).post('/api/auth/handoff/exchange').send({ code });
+    expect(first.status).toBe(200);
+    expect(first.body.user.role).toBe('admin');
+    expect(JWTUtils.verifyAccessToken(first.body.token)?.tid).toBe(GLEASON);
+
+    const again = await request(app).post('/api/auth/handoff/exchange').send({ code });
+    expect(again.status).toBe(401);
+    // And an access token can't be spent as a hand-off
+    const swap = await request(app)
+      .post('/api/auth/handoff/exchange')
+      .send({ code: staff.body.token });
+    expect(swap.status).toBe(401);
+  });
+
+  it('a customer sign-in hands off to their customer portal', async () => {
+    const portal = await signIn({ company: 'bsi', audience: 'portal' });
+    const h = await as(portal.body.token).post('/auth/handoff');
+    expect(h.body.url).toMatch(/^https:\/\/help\.bomizzel\.com\/bsi#handoff=/);
+    const res = await request(app)
+      .post('/api/auth/handoff/exchange')
+      .send({ code: h.body.url.split('#handoff=')[1] });
+    expect(res.body.user.role).toBe('customer');
+    expect(JWTUtils.verifyAccessToken(res.body.token)).toMatchObject({ tid: BSI, aud: 'portal' });
   });
 });

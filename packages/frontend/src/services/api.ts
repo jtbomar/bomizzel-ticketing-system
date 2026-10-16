@@ -70,12 +70,23 @@ class ApiService {
           }
         }
         if (error.response?.status === 401 && !isTokenCall) {
+          // Back to the sign-in for the same company (portal.bomizzel.com/<company>/login)
+          let company = '';
+          try {
+            const c = JSON.parse(localStorage.getItem('company') || 'null');
+            if (/^portal\./i.test(window.location.hostname) && c?.portalName) {
+              company = `/${c.portalName}`;
+            }
+          } catch {
+            // no company kept
+          }
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
           localStorage.removeItem('user');
+          localStorage.removeItem('company');
           window.location.href = window.location.pathname.startsWith('/bsi')
             ? '/bsi/login'
-            : '/login';
+            : `${company}/login`;
         }
         return Promise.reject(error);
       }
@@ -173,6 +184,12 @@ class ApiService {
 
   async refreshToken(refreshToken: string): Promise<any> {
     const response = await this.client.post('/auth/refresh', { refreshToken });
+    return response.data;
+  }
+
+  /** A one-time link to this sign-in on the company's own address. */
+  async handoff(): Promise<{ url: string }> {
+    const response = await this.client.post('/auth/handoff');
     return response.data;
   }
 

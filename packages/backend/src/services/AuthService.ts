@@ -11,8 +11,8 @@ import { SubscriptionService } from './SubscriptionService';
 import { EmailService } from './EmailService';
 import { db } from '@/config/database';
 import { tenantContextFor } from '@/utils/tenant';
-import { resolveSession } from '@/utils/session';
-import { subscriberForPortalName } from '@/utils/portalName';
+import { resolveSession, Session } from '@/utils/session';
+import { portalUrl, staffLoginUrl, subscriberForPortalName } from '@/utils/portalName';
 import bcrypt from 'bcryptjs';
 import { BrandingService } from './BrandingService';
 import { PortalAccessService } from './PortalAccessService';
@@ -227,17 +227,40 @@ export class AuthService {
         );
       }
 
-      // Generate JWT tokens
-      const tokens = JWTUtils.generateTokenPair({
-        userId: user.id,
-        email: user.email,
-        role: session.role,
-        ...(session.tenantId ? { tid: session.tenantId } : {}),
-        ...(loginData.audience ? { aud: loginData.audience } : {}),
-      });
+      logger.info(`User logged in successfully: ${user.email}`);
+      return this.signedIn(user, session, loginData.audience);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error('Login error:', error);
+      throw new AppError('Login failed', 500, 'LOGIN_FAILED');
+    }
+  }
 
-      // Convert to API model format manually (bypassing User.toModel)
-      const userModel = {
+  /**
+   * Tokens and the user (with their role there) for a session, plus the
+   * company it's for: where its desk or portal lives.
+   */
+  static async signedIn(
+    user: any,
+    session: Session,
+    audience?: 'staff' | 'portal'
+  ): Promise<LoginResponse> {
+    const tokens = JWTUtils.generateTokenPair({
+      userId: user.id,
+      email: user.email,
+      role: session.role,
+      ...(session.tenantId ? { tid: session.tenantId } : {}),
+      ...(audience ? { aud: audience } : {}),
+    });
+    const company = session.tenantId
+      ? await db('companies')
+          .where('id', session.tenantId)
+          .first('id', 'name', 'support_email_slug')
+      : null;
+    return {
+      user: {
         id: user.id,
         email: user.email,
         firstName: user.first_name,
@@ -248,22 +271,58 @@ export class AuthService {
         preferences: user.preferences || {},
         createdAt: user.created_at,
         updatedAt: user.updated_at,
-      };
+      },
+      token: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      company: company
+        ? { id: company.id, name: company.name, portalName: company.support_email_slug || null }
+        : null,
+    };
+  }
 
-      logger.info(`User logged in successfully: ${user.email}`);
-
-      return {
-        user: userModel,
-        token: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-      };
-    } catch (error) {
-      if (error instanceof AppError) {
-        throw error;
-      }
-      logger.error('Login error:', error);
-      throw new AppError('Login failed', 500, 'LOGIN_FAILED');
+  /**
+   * A one-time link that signs this session in on the company's own address:
+   * its staff desk (portal.bomizzel.com/<name>) or customer portal
+   * (help.bomizzel.com/<name>). The link carries the code after '#', so it
+   * never reaches a server log.
+   */
+  static async handoff(userId: string, tenantId: string | undefined, role: string) {
+    if (!tenantId) throw new AppError('No company for this sign-in', 403, 'NO_TENANT');
+    const company = await db('companies').where('id', tenantId).first('support_email_slug');
+    if (!company?.support_email_slug) {
+      throw new AppError('This company has no address yet', 409, 'NO_PORTAL_NAME');
     }
+    const aud = role === 'customer' ? 'portal' : 'staff';
+    const code = JWTUtils.generateHandoffToken({ userId, tid: tenantId, aud });
+    const url =
+      aud === 'staff'
+        ? staffLoginUrl(company.support_email_slug).replace(/\/login$/, '/agent')
+        : portalUrl(company.support_email_slug);
+    return { code, url: `${url}#handoff=${code}` };
+  }
+
+  /** Spend a hand-off code: the sign-in it carries, on this site. */
+  static async exchangeHandoff(code: string): Promise<LoginResponse> {
+    const payload = JWTUtils.verifyHandoffToken(code);
+    if (!payload || (await isTokenRevoked(code))) {
+      throw new AppError(
+        'This sign-in link has expired. Please sign in again.',
+        401,
+        'HANDOFF_INVALID'
+      );
+    }
+    await revokeToken(code);
+    const user = await db('users').where('id', payload.userId).first();
+    if (!user || !user.is_active) {
+      throw new AppError(
+        'This sign-in link has expired. Please sign in again.',
+        401,
+        'HANDOFF_INVALID'
+      );
+    }
+    const session = await resolveSession(user, payload.tid, payload.aud);
+    if (!session) throw new AppError('You no longer have access here', 401, 'SESSION_INVALID');
+    return this.signedIn(user, session, payload.aud);
   }
 
   /**

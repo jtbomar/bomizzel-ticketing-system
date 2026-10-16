@@ -1,18 +1,17 @@
 import React from 'react';
-import { Navigate, useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { customerPortalBase } from '../portal/portalApi';
+import { companyInAddress } from '../utils/companyAddress';
 
 /**
- * portal.bomizzel.com/<name> is the company's staff sign-in. The bare name
- * goes to /<name>/login; anything deeper is an old customer portal link
- * (tickets, sign-up, password reset...), which now lives on help.bomizzel.com.
+ * Old customer portal links on portal.bomizzel.com/<name>/... (tickets,
+ * sign-up): the customer portal lives on help.bomizzel.com now.
  */
 const StaffPortalRedirect: React.FC = () => {
-  const { slug = '' } = useParams();
   const location = useLocation();
-  const rest = location.pathname.replace(/^\/+[^/]+\/?/, '');
-  if (!rest) return <Navigate to={`/${slug}/login`} replace />;
-  window.location.replace(`${customerPortalBase()}${location.pathname}${location.search}`);
+  window.location.replace(
+    `${customerPortalBase()}/${companyInAddress()}${location.pathname}${location.search}`
+  );
   return null;
 };
 

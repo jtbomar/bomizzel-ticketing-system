@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { isPortalHost, isStaffPortalHost } from './portal/portalApi';
+import { companyInAddress } from './utils/companyAddress';
+import CompanyAddressGuard from './components/CompanyAddressGuard';
 import FindPortal from './components/FindPortal';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -115,6 +117,7 @@ function App() {
         <ToastProvider>
           <SocketProvider>
             <div className="App">
+              <CompanyAddressGuard />
               <ErrorBoundary>
                 <Suspense fallback={<LoadingSpinner />}>
                   <Routes>
@@ -125,11 +128,11 @@ function App() {
                         isStaffPortalHost() ? <Navigate to="/login" replace /> : <HomePage />
                       }
                     />
-                    {/* portal.bomizzel.com/<name>/login: a company's own staff sign-in */}
-                    {isStaffPortalHost() && (
+                    {/* portal.bomizzel.com/<name>/...: old customer portal links */}
+                    {isStaffPortalHost() && companyInAddress() && (
                       <>
-                        <Route path="/:slug/login" element={<LoginPage />} />
-                        <Route path="/:slug/*" element={<StaffPortalRedirect />} />
+                        <Route path="/tickets/*" element={<StaffPortalRedirect />} />
+                        <Route path="/signup" element={<StaffPortalRedirect />} />
                       </>
                     )}
                     <Route path="/pricing" element={<PricingPage />} />

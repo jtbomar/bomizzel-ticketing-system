@@ -210,7 +210,8 @@ class NotificationService {
       if (!ticket) return;
       const event = { ticketId, by: byUserId || null, at: new Date() };
       if (ticket.org_id) this.io.to(`org:${ticket.org_id}`).emit('ticket:changed', event);
-      if (ticket.submitter_id) this.io.to(`user:${ticket.submitter_id}`).emit('ticket:changed', event);
+      if (ticket.submitter_id)
+        this.io.to(`user:${ticket.submitter_id}`).emit('ticket:changed', event);
     } catch (error) {
       logger.warn('Ticket change notification failed', { ticketId, error });
     }

@@ -115,3 +115,9 @@ export const customerPortalBase = (): string => {
 };
 export const portalPath = (slug: string, path = ''): string =>
   `${isPortalHost() ? '' : '/portal'}/${slug}${path ? `/${path.replace(/^\//, '')}` : ''}`;
+
+/** The company's staff sign-in: portal.bomizzel.com/<name>/login (here, on a dev machine). */
+export const staffSignInUrl = (slug: string): string =>
+  /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname)
+    ? '/login'
+    : `https://portal.bomizzel.com/${slug}/login`;

@@ -265,6 +265,8 @@ export interface LoginResponse {
   user: User;
   token: string;
   refreshToken: string;
+  // The company this sign-in is for, and its address name
+  company?: { id: string; name: string; portalName: string | null } | null;
 }
 
 export interface CreateTicketRequest {

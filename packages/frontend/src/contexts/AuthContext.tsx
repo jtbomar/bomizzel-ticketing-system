@@ -10,7 +10,7 @@ interface AuthContextType {
     email: string,
     password: string,
     to?: { company: string; audience: 'staff' | 'portal' }
-  ) => Promise<void>;
+  ) => Promise<any>;
   logout: () => void;
   register: (userData: {
     email: string;
@@ -31,6 +31,51 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+/**
+ * Keep a sign-in (from /auth/login or a hand-off): its tokens and the user,
+ * with their role at the company it's for. Returns the user.
+ */
+export const storeSignIn = (response: any): User => {
+  const { token, refreshToken, user: backendUser } = response;
+
+  // Store the tokens. The refresh token renews the login when the access
+  // token expires; it wasn't kept, so every login lasted 15 minutes.
+  localStorage.setItem('token', token);
+  if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+
+  // Convert backend user to frontend User type
+  const frontendUser: User = {
+    id: backendUser.id,
+    email: backendUser.email,
+    firstName: backendUser.firstName,
+    lastName: backendUser.lastName,
+    role: backendUser.role as 'customer' | 'employee' | 'team_lead' | 'admin',
+    isActive: true,
+    emailVerified: true,
+    preferences: {
+      theme: 'light',
+      notifications: {
+        email: true,
+        browser: true,
+        ticketAssigned: true,
+        ticketUpdated: true,
+        ticketResolved: true,
+      },
+      dashboard: {
+        defaultView: 'kanban',
+        ticketsPerPage: 25,
+      },
+    },
+    createdAt: new Date(backendUser.createdAt || Date.now()),
+    updatedAt: new Date(backendUser.updatedAt || Date.now()),
+  };
+  localStorage.setItem('user', JSON.stringify(frontendUser));
+  // The company it's for: its address is portal.bomizzel.com/<portalName>
+  if (response.company) localStorage.setItem('company', JSON.stringify(response.company));
+  else localStorage.removeItem('company');
+  return frontendUser;
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -61,42 +106,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Use the backend API for authentication
       const response = await apiService.login(email, password, to);
-      const { token, refreshToken, user: backendUser } = response;
-
-      // Store the tokens. The refresh token renews the login when the access
-      // token expires; it wasn't kept, so every login lasted 15 minutes.
-      localStorage.setItem('token', token);
-      if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
-
-      // Convert backend user to frontend User type
-      const frontendUser: User = {
-        id: backendUser.id,
-        email: backendUser.email,
-        firstName: backendUser.firstName,
-        lastName: backendUser.lastName,
-        role: backendUser.role as 'customer' | 'employee' | 'team_lead' | 'admin',
-        isActive: true,
-        emailVerified: true,
-        preferences: {
-          theme: 'light',
-          notifications: {
-            email: true,
-            browser: true,
-            ticketAssigned: true,
-            ticketUpdated: true,
-            ticketResolved: true,
-          },
-          dashboard: {
-            defaultView: 'kanban',
-            ticketsPerPage: 25,
-          },
-        },
-        createdAt: new Date(backendUser.createdAt || Date.now()),
-        updatedAt: new Date(backendUser.updatedAt || Date.now()),
-      };
-
-      setUser(frontendUser);
-      localStorage.setItem('user', JSON.stringify(frontendUser));
+      setUser(storeSignIn(response));
+      return response;
     } catch (error: any) {
       // The API returns `{ error: { code, message } }`. /auth/login used to be
       // the one endpoint that returned `error` as a bare string, and the
@@ -126,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('company');
     localStorage.removeItem('refreshToken');
     navigate('/login');
   };

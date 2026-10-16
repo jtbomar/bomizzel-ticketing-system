@@ -89,6 +89,34 @@ export class JWTUtils {
     }
   }
 
+  /**
+   * A one-time sign-in hand-off: carries a sign-in from one site to another
+   * (bomizzel.com to the company's own address, or back from Google, Microsoft
+   * or Facebook). Lives 60 seconds, is spent on first use (tokenBlocklist), and
+   * can't be used as an access token.
+   */
+  static generateHandoffToken(payload: {
+    userId: string;
+    tid?: string;
+    aud: 'staff' | 'portal';
+  }): string {
+    return jwt.sign({ ...payload, type: 'handoff' }, JWT_SECRET, {
+      expiresIn: '60s',
+      jwtid: randomUUID(),
+    } as jwt.SignOptions);
+  }
+
+  static verifyHandoffToken(
+    token: string
+  ): { userId: string; tid?: string; aud: 'staff' | 'portal' } | null {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      return decoded?.type === 'handoff' ? decoded : null;
+    } catch {
+      return null;
+    }
+  }
+
   static extractTokenFromHeader(authHeader: string | undefined): string | null {
     if (!authHeader) return null;
 

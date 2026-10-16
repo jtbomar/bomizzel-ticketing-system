@@ -119,11 +119,45 @@ router.post('/login', authRateLimiter, validate(loginSchema), async (req, res, n
       user: result.user,
       token: result.token,
       refreshToken: result.refreshToken,
+      company: result.company ?? null,
     });
     return;
   } catch (error) {
     next(error);
     return;
+  }
+});
+
+/**
+ * POST /auth/handoff
+ * A one-time link that carries this sign-in to the company's own address
+ * (bomizzel.com -> portal.bomizzel.com/<name>/agent, or its customer portal).
+ */
+router.post('/handoff', authenticate, async (req, res, next) => {
+  try {
+    res.json(await AuthService.handoff(req.user!.id, req.user!.tenantId, req.user!.role));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /auth/handoff/exchange { code }
+ * Spend a hand-off code for a sign-in on this site.
+ */
+router.post('/handoff/exchange', authRateLimiter, async (req, res, next) => {
+  try {
+    const code = typeof req.body?.code === 'string' ? req.body.code : '';
+    const result = await AuthService.exchangeHandoff(code);
+    res.json({
+      message: 'Login successful',
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
+      company: result.company ?? null,
+    });
+  } catch (error) {
+    next(error);
   }
 });
 

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import FindPortal from '../components/FindPortal';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService, getApiBaseUrl } from '../services/api';
-import { customerPortalBase } from '../portal/portalApi';
+import { customerPortalBase, isStaffPortalHost } from '../portal/portalApi';
+import { companyInAddress, onBomizzelSite } from '../utils/companyAddress';
 
 interface CompanyBrand {
   portalName: string;
@@ -23,7 +24,8 @@ interface CompanyBrand {
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { slug } = useParams<{ slug?: string }>();
+  // portal.bomizzel.com/<company>/login: that company's own sign-in
+  const slug = companyInAddress() || undefined;
   const { login, isLoading } = useAuth();
   const [company, setCompany] = useState<CompanyBrand | null>(null);
   const [companyMissing, setCompanyMissing] = useState(false);
@@ -38,7 +40,7 @@ const LoginPage: React.FC = () => {
         const brand: CompanyBrand = r.data;
         // An old name: move to the current one
         if (brand.renamed && brand.portalName !== slug) {
-          navigate(`/${brand.portalName}/login${location.search}`, { replace: true });
+          window.location.replace(`/${brand.portalName}/login${location.search}`);
           return;
         }
         setCompany(brand);
@@ -84,11 +86,31 @@ const LoginPage: React.FC = () => {
     try {
       console.log('Attempting login for:', formData.email);
       // On a company's own sign-in, as its staff: the server refuses anyone else
-      await login(
+      const result = await login(
         formData.email,
         formData.password,
         slug ? { company: company?.portalName || slug, audience: 'staff' } : undefined
       );
+
+      // Signed in on bomizzel.com (or portal.bomizzel.com with no company):
+      // on to their company's own address - staff to
+      // portal.bomizzel.com/<company>/agent, customers to its customer portal
+      const theirs = result?.company?.portalName;
+      if (!slug && theirs && onBomizzelSite()) {
+        if (isStaffPortalHost() && result.user?.role !== 'customer') {
+          window.location.assign(`/${theirs}/agent`);
+          return;
+        }
+        try {
+          const { url } = await apiService.handoff();
+          // This site's copy of the sign-in isn't needed: it continues there
+          ['token', 'refreshToken', 'user', 'company'].forEach((k) => localStorage.removeItem(k));
+          window.location.assign(url);
+          return;
+        } catch {
+          // No address for their company yet: carry on here
+        }
+      }
 
       // Get the user from localStorage to determine redirect
       const userStr = localStorage.getItem('user');
@@ -193,9 +215,9 @@ const LoginPage: React.FC = () => {
                 {companyMissing ? (
                   <>
                     There's no company at this address.{' '}
-                    <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                    <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
                       Go to the Bomizzel sign-in
-                    </Link>
+                    </a>
                   </>
                 ) : (
                   <>

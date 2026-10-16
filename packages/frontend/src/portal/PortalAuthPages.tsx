@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { portalApi, portalError } from './portalApi';
+import { portalApi, portalError, staffSignInUrl } from './portalApi';
 import { usePortal } from './PortalApp';
 
 /** Sign in, sign up, forgot / reset password and confirm email, on a portal. */
@@ -162,6 +162,16 @@ export const PortalLogin: React.FC = () => {
             </Link>
           </div>
         </form>
+        <p className="mt-6 border-t border-gray-100 pt-4 text-center text-sm text-gray-600">
+          Work at {brand.name}?{' '}
+          <a
+            href={staffSignInUrl(slug)}
+            className="font-medium hover:underline"
+            style={{ color: brand.color }}
+          >
+            Agent sign-in
+          </a>
+        </p>
       </Card>
     </>
   );
