@@ -1568,6 +1568,21 @@ class ApiService {
     return response.data.record;
   }
 
+  /**
+   * An account's or contact's page: overview (counts, channels, handling
+   * times), tickets (?filter=all|open|on_hold), people (contacts / accounts),
+   * history and attachments.
+   */
+  async getRecordPart(
+    module: 'accounts' | 'contacts',
+    id: string,
+    part: 'overview' | 'tickets' | 'people' | 'history' | 'attachments',
+    params: Record<string, string | number> = {}
+  ): Promise<any> {
+    const response = await this.client.get(`/records/${module}/${id}/${part}`, { params });
+    return response.data;
+  }
+
   async updateRecord(
     module: string,
     id: string,

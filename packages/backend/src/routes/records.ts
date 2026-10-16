@@ -4,6 +4,7 @@ import { requireStaff, requireTenantId } from '@/utils/tenant';
 import { authorize } from '@/middleware/auth';
 import { LookupService } from '@/services/LookupService';
 import { RecordService } from '@/services/RecordService';
+import { CustomerModule, CustomerOverviewService } from '@/services/CustomerOverviewService';
 
 /**
  * Accounts and contacts through their layouts:
@@ -82,6 +83,54 @@ router.delete('/:module/:id', authorize('admin'), async (req, res, next) => {
     }
     await RecordService.remove(requireTenantId(req.user), module, req.params.id);
     res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * The account and contact pages' overview (CustomerOverviewService):
+ *   GET /:module/:id/overview      counts, channels, happiness, handling times
+ *   GET /:module/:id/tickets       ?filter=all|open|on_hold&page=
+ *   GET /:module/:id/people        an account's contacts / a contact's accounts
+ *   GET /:module/:id/history       what happened on their tickets
+ *   GET /:module/:id/attachments   files on their tickets
+ */
+const customerModule = (name: string): CustomerModule | null =>
+  name === 'accounts' || name === 'contacts' ? name : null;
+
+router.get('/:module/:id/:part', async (req, res, next) => {
+  try {
+    const module = customerModule(req.params.module);
+    if (!module) {
+      res.status(404).json({ error: 'Unknown module' });
+      return;
+    }
+    const tenantId = requireTenantId(req.user);
+    const id = req.params.id;
+    switch (req.params.part) {
+      case 'overview':
+        res.json(await CustomerOverviewService.overview(tenantId, module, id));
+        return;
+      case 'tickets': {
+        const f = String(req.query['filter'] || 'all');
+        const filter = f === 'open' || f === 'on_hold' ? f : 'all';
+        const page = Math.max(1, parseInt(String(req.query['page'] || '1'), 10) || 1);
+        res.json(await CustomerOverviewService.tickets(tenantId, module, id, filter, page));
+        return;
+      }
+      case 'people':
+        res.json(await CustomerOverviewService.people(tenantId, module, id));
+        return;
+      case 'history':
+        res.json(await CustomerOverviewService.history(tenantId, module, id));
+        return;
+      case 'attachments':
+        res.json(await CustomerOverviewService.attachments(tenantId, module, id));
+        return;
+      default:
+        res.status(404).json({ error: 'Not found' });
+    }
   } catch (error) {
     next(error);
   }
