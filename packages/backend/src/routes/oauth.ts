@@ -3,6 +3,7 @@ import { authRateLimiter } from '@/middleware/rateLimiter';
 import { AppError } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { OAUTH_COOKIE, OAuthService } from '@/services/OAuthService';
+import { publicApiUrl } from '@/services/BrandingService';
 
 /**
  * Sign in with Google, Microsoft or Facebook (services/OAuthService.ts).
@@ -37,6 +38,17 @@ router.get('/providers', (_req, res) => {
 
 router.get('/:provider/start', authRateLimiter, (req, res, next) => {
   try {
+    // Start on the API's public address (PUBLIC_API_URL, e.g. api.bomizzel.com),
+    // where the provider sends them back - the browser check cookie lives there
+    const pub = new URL(publicApiUrl());
+    if (
+      process.env['NODE_ENV'] === 'production' &&
+      req.get('host') &&
+      req.get('host') !== pub.host
+    ) {
+      res.redirect(302, `${pub.origin}${req.originalUrl}`);
+      return;
+    }
     const { redirect, nonce } = OAuthService.start(req.params.provider!, req.query);
     setCookie(res, nonce, 600);
     res.redirect(302, redirect);
