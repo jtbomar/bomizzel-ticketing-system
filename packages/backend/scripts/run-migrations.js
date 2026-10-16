@@ -45,7 +45,7 @@ try {
       const countScript =
         "const k=require('knex')(require('./knexfile.js')[process.argv[1]]);" +
         "k('users').count({c:'*'}).first().then(r=>{console.log(Number(r.c));return k.destroy()})" +
-        ".catch(e=>{console.error(e.message);process.exit(1)})";
+        '.catch(e=>{console.error(e.message);process.exit(1)})';
       const userCount = Number(
         execSync(`node -e "${countScript}" ${env}`, { cwd: backendDir, encoding: 'utf-8' }).trim()
       );

@@ -26,7 +26,13 @@ describe('token renewal', () => {
           })
         );
       }
-      return { data: { ok: true, url: config.url }, status: 200, statusText: 'OK', headers: {}, config };
+      return {
+        data: { ok: true, url: config.url },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      };
     };
     Object.defineProperty(window, 'location', {
       value: { href: '/agent', pathname: '/agent' },

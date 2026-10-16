@@ -18,10 +18,7 @@ describe('moving a product between departments', () => {
   let foreign: number;
 
   const put = (id: number, body: Record<string, unknown>) =>
-    request(app)
-      .put(`/api/products/${id}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send(body);
+    request(app).put(`/api/products/${id}`).set('Authorization', `Bearer ${token}`).send(body);
   const newProduct = async (code: string, departmentId: number) => {
     const [row] = await db('products')
       .insert({
@@ -79,9 +76,7 @@ describe('moving a product between departments', () => {
     const row = await db('products').where('id', product.id).first();
     expect(row).toMatchObject({ department_id: support, name: 'Moved' });
 
-    const list = await request(app)
-      .get('/api/products')
-      .set('Authorization', `Bearer ${token}`);
+    const list = await request(app).get('/api/products').set('Authorization', `Bearer ${token}`);
     expect(list.body.map((p: any) => p.product_code)).toContain('MOVE-1');
   });
 

@@ -406,8 +406,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # What ships: dev-only tools (test runners, file watchers) don't run in
+      # production, and their advisories sometimes have no fix for weeks.
       - name: Run npm audit
-        run: npm audit --audit-level=high
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Run Snyk security scan
         uses: snyk/actions/node@master

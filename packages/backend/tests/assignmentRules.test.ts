@@ -182,9 +182,7 @@ describe('assignment rules', () => {
     await rule({ name: 'Everything else', method: 'specific', agentIds: [AGENT1] });
 
     expect(await assigneeAfterRules({ title: 'Wrong INVOICE amount' })).toBe(AGENT2);
-    expect(await assigneeAfterRules({ description: '<p>I want a <b>refund</b></p>' })).toBe(
-      AGENT2
-    );
+    expect(await assigneeAfterRules({ description: '<p>I want a <b>refund</b></p>' })).toBe(AGENT2);
     expect(await assigneeAfterRules({ title: 'Login problem' })).toBe(AGENT1);
   });
 

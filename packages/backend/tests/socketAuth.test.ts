@@ -116,7 +116,7 @@ describe('notification sockets', () => {
     expect(await got).toBe(false);
   });
 
-  it("gets their own notifications from their token, whatever id they claim", async () => {
+  it('gets their own notifications from their token, whatever id they claim', async () => {
     const s = client();
     const res = await signIn(s, { userId: OUTSIDER, token: token(AGENT, 'employee', SUB) });
     expect(res.success).toBe(true);

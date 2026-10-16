@@ -19,10 +19,7 @@ import { Request, Response } from 'express';
 import { app } from '../src/index';
 import { User } from '../src/models/User';
 import { JWTUtils } from '../src/utils/jwt';
-import {
-  isPlatformAdmin,
-  requireDangerousRoutesEnabled,
-} from '../src/middleware/platformAdmin';
+import { isPlatformAdmin, requireDangerousRoutesEnabled } from '../src/middleware/platformAdmin';
 
 const CUSTOMER_ADMIN = {
   id: '22222222-2222-4222-8222-222222222222',
@@ -41,7 +38,11 @@ const PLATFORM_ADMIN = {
 };
 
 const tokenFor = (user: { id: string; email: string; role: string }): string => {
-  (User.findById as jest.Mock).mockResolvedValue({ ...user, is_active: true, organization_id: null });
+  (User.findById as jest.Mock).mockResolvedValue({
+    ...user,
+    is_active: true,
+    organization_id: null,
+  });
   (User.findWithCompanies as jest.Mock).mockResolvedValue({
     ...user,
     is_active: true,
@@ -110,21 +111,30 @@ describe('Platform admin guard', () => {
 
   describe('dangerous database routes', () => {
     it.each(DANGEROUS_POSTS)('refuses a customer admin: %s', async (path) => {
-      const res = await request(app).post(path).set('Authorization', `Bearer ${tokenFor(CUSTOMER_ADMIN)}`);
+      const res = await request(app)
+        .post(path)
+        .set('Authorization', `Bearer ${tokenFor(CUSTOMER_ADMIN)}`);
       expect(res.status).toBe(403);
     });
 
     it.each(DANGEROUS_POSTS)('refuses a look-alike email: %s', async (path) => {
-      const res = await request(app).post(path).set('Authorization', `Bearer ${tokenFor(LOOKS_LIKE_US)}`);
+      const res = await request(app)
+        .post(path)
+        .set('Authorization', `Bearer ${tokenFor(LOOKS_LIKE_US)}`);
       expect(res.status).toBe(403);
     });
 
-    it.each(DANGEROUS_POSTS)('is switched off in production even for a platform admin: %s', async (path) => {
-      process.env.NODE_ENV = 'production';
-      delete process.env.ALLOW_DANGEROUS_DB_ROUTES;
-      const res = await request(app).post(path).set('Authorization', `Bearer ${tokenFor(PLATFORM_ADMIN)}`);
-      expect(res.status).toBe(404);
-    });
+    it.each(DANGEROUS_POSTS)(
+      'is switched off in production even for a platform admin: %s',
+      async (path) => {
+        process.env.NODE_ENV = 'production';
+        delete process.env.ALLOW_DANGEROUS_DB_ROUTES;
+        const res = await request(app)
+          .post(path)
+          .set('Authorization', `Bearer ${tokenFor(PLATFORM_ADMIN)}`);
+        expect(res.status).toBe(404);
+      }
+    );
 
     it.each(DANGEROUS_POSTS)('still requires sign-in: %s', async (path) => {
       const res = await request(app).post(path);
@@ -167,14 +177,18 @@ describe('Platform admin guard', () => {
 
   describe('/auth/verify', () => {
     it('reports isPlatformAdmin true for a platform admin', async () => {
-      const res = await request(app).get('/api/auth/verify').set('Authorization', `Bearer ${tokenFor(PLATFORM_ADMIN)}`);
+      const res = await request(app)
+        .get('/api/auth/verify')
+        .set('Authorization', `Bearer ${tokenFor(PLATFORM_ADMIN)}`);
       expect(res.status).toBe(200);
       expect(res.body.isPlatformAdmin).toBe(true);
     });
 
     it('reports isPlatformAdmin false for a customer admin and a look-alike', async () => {
       for (const user of [CUSTOMER_ADMIN, LOOKS_LIKE_US]) {
-        const res = await request(app).get('/api/auth/verify').set('Authorization', `Bearer ${tokenFor(user)}`);
+        const res = await request(app)
+          .get('/api/auth/verify')
+          .set('Authorization', `Bearer ${tokenFor(user)}`);
         expect(res.status).toBe(200);
         expect(res.body.isPlatformAdmin).toBe(false);
       }
@@ -183,12 +197,16 @@ describe('Platform admin guard', () => {
 
   describe('platform-only seed and check routes', () => {
     it.each(PLATFORM_ONLY)('refuses a customer admin: %s %s', async (method, path) => {
-      const res = await request(app)[method](path).set('Authorization', `Bearer ${tokenFor(CUSTOMER_ADMIN)}`);
+      const res = await request(app)
+        [method](path)
+        .set('Authorization', `Bearer ${tokenFor(CUSTOMER_ADMIN)}`);
       expect(res.status).toBe(403);
     });
 
     it.each(PLATFORM_ONLY)('refuses a look-alike email: %s %s', async (method, path) => {
-      const res = await request(app)[method](path).set('Authorization', `Bearer ${tokenFor(LOOKS_LIKE_US)}`);
+      const res = await request(app)
+        [method](path)
+        .set('Authorization', `Bearer ${tokenFor(LOOKS_LIKE_US)}`);
       expect(res.status).toBe(403);
     });
   });

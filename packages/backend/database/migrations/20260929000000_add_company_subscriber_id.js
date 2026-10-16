@@ -33,7 +33,12 @@ exports.up = async function (knex) {
   if (!(await knex.schema.hasColumn('companies', 'subscriber_id'))) {
     await knex.schema.alterTable('companies', (table) => {
       // RESTRICT: removing a subscriber must deal with its accounts on purpose.
-      table.uuid('subscriber_id').nullable().references('id').inTable('companies').onDelete('RESTRICT');
+      table
+        .uuid('subscriber_id')
+        .nullable()
+        .references('id')
+        .inTable('companies')
+        .onDelete('RESTRICT');
       table.index(['subscriber_id']);
     });
   }
@@ -56,7 +61,9 @@ exports.up = async function (knex) {
        AND acct.id NOT IN (${SUBSCRIBERS})
        AND pick.subscriber_id <> acct.id
   `);
-  console.log(`✅ companies: linked ${byContacts.rowCount} account(s) to a subscriber via contacts`);
+  console.log(
+    `✅ companies: linked ${byContacts.rowCount} account(s) to a subscriber via contacts`
+  );
 
   // Any account still unlinked, while there is exactly one subscriber, belongs
   // to it. With more than one there is no safe guess, so leave it and say so.
@@ -78,7 +85,9 @@ exports.up = async function (knex) {
           .orderBy('created_at')
           .limit(1)
           .update({ company_id: only });
-        console.log(`✅ company_profiles: gave ${moved} unowned branding row to the only subscriber`);
+        console.log(
+          `✅ company_profiles: gave ${moved} unowned branding row to the only subscriber`
+        );
       }
     }
   } else {
@@ -86,7 +95,9 @@ exports.up = async function (knex) {
       `SELECT count(*)::int n FROM companies WHERE subscriber_id IS NULL AND id NOT IN (${SUBSCRIBERS})`
     );
     if (left.rows[0].n > 0) {
-      console.warn(`⚠️  companies: ${left.rows[0].n} account(s) have no subscriber - set subscriber_id by hand`);
+      console.warn(
+        `⚠️  companies: ${left.rows[0].n} account(s) have no subscriber - set subscriber_id by hand`
+      );
     }
   }
 
