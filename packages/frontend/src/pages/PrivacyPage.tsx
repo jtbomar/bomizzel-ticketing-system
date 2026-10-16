@@ -9,7 +9,7 @@ import Logo from '../components/Logo';
  */
 
 const EFFECTIVE = 'October 16, 2026';
-const CONTACT = 'jeff@bomizzel.com';
+const CONTACT = 'privacy@bomizzel.com';
 
 const Section: React.FC<{ id?: string; title: string; children: React.ReactNode }> = ({
   id,
