@@ -13,10 +13,10 @@ import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import KanbanTemplates, { Template } from '../components/KanbanTemplates';
 import { apiService } from '../services/api';
 import { useTicketChanges } from '../contexts/SocketContext';
+import { boardCollision } from '../utils/boardCollision';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
   PointerSensor,
   useSensor,
   useSensors,
@@ -1307,7 +1307,7 @@ const AgentDashboard: React.FC = () => {
       <div className="space-y-6">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={boardCollision}
           onDragStart={handleDndDragStart}
           onDragOver={handleDndDragOver}
           onDragEnd={handleDndDragEnd}
