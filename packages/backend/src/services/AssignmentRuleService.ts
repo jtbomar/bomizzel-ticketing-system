@@ -1,4 +1,5 @@
 import { db } from '@/config/database';
+import { notificationService } from './NotificationService';
 import { logger } from '@/utils/logger';
 import { ValidationError, NotFoundError } from '@/utils/errors';
 import { STAFF_ROLES, tenantStaffIds } from '@/utils/tenant';
@@ -339,6 +340,7 @@ export class AssignmentRuleService {
           new_value: agentId,
           metadata: JSON.stringify({ automatic: true, ruleId: rule.id, ruleName: rule.name }),
         });
+        void notificationService.ticketChanged(ticketId, null);
         return { agentId, ruleId: rule.id };
       }
       return null;

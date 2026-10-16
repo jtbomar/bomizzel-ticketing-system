@@ -146,6 +146,51 @@ describe('notification sockets', () => {
     expect(await queue).toBe(true);
   });
 
+  it("a ticket change reaches its company's staff and its customer, and nobody else", async () => {
+    const [q] = await db('queues').where('id', QUEUE).select('id');
+    const [t] = await db('tickets')
+      .insert({
+        title: 'Generator',
+        description: 'd',
+        submitter_id: CUSTOMER,
+        company_id: ACCT,
+        org_id: SUB,
+        team_id: TEAM,
+        queue_id: q.id,
+        status: 'open',
+        priority: 0,
+      })
+      .returning('id');
+    const ticketId = t.id ?? t;
+
+    const agent = client();
+    const customer = client();
+    const outsider = client();
+    const anon = client();
+    await signIn(agent, { token: token(AGENT, 'employee', SUB) });
+    await signIn(customer, { token: token(CUSTOMER, 'customer', SUB) });
+    await signIn(outsider, { token: token(OUTSIDER, 'admin', OTHER) });
+    await settle();
+
+    const changed = (s: ClientSocket) =>
+      new Promise<any>((resolve) => {
+        const timer = setTimeout(() => resolve(null), 400);
+        s.once('ticket:changed', (e: any) => {
+          clearTimeout(timer);
+          resolve(e);
+        });
+      });
+    const heard = [agent, customer, outsider, anon].map(changed);
+    await notificationService.ticketChanged(ticketId, AGENT);
+    const [a, c, o, n] = await Promise.all(heard);
+    expect(a).toMatchObject({ ticketId, by: AGENT });
+    expect(c).toMatchObject({ ticketId });
+    // Only the id: no ticket data travels on the socket
+    expect(Object.keys(a).sort()).toEqual(['at', 'by', 'ticketId']);
+    expect(o).toBeNull();
+    expect(n).toBeNull();
+  });
+
   it("nobody else can: not signed in, another company's admin, or a customer", async () => {
     const anon = client();
     const outsider = client();

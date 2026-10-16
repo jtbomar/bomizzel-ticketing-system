@@ -1,4 +1,5 @@
 import { db } from '@/config/database';
+import { notificationService } from './NotificationService';
 import { logger } from '@/utils/logger';
 
 /**
@@ -52,6 +53,7 @@ export class TicketAutoCloseJob {
           new_value: 'closed',
           metadata: JSON.stringify({ automatic: true, afterDays: days }),
         });
+        void notificationService.ticketChanged(ticket.id, null);
       }
       if (closed.length) logger.info(`Auto-closed ${closed.length} resolved ticket(s)`, { days });
       return closed.length;

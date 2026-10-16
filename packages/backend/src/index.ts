@@ -1,4 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
+import { Server as SocketServer } from 'socket.io';
+import { notificationService } from './services/NotificationService';
 import helmet from 'helmet';
 import { requestId } from './middleware/requestId';
 import { ipFilter, requestTimeout, validateUserAgent } from './middleware/security';
@@ -400,6 +402,14 @@ if (!process.env.JEST_WORKER_ID) {
     console.log(`🌐 Network access available at http://0.0.0.0:${PORT}`);
   });
 
+  // Live updates: socket.io on the same port, for the same sites as the API.
+  // Sockets sign in with the API token (NotificationService); staff hear
+  // "ticket changed" for their company and reload it through the API.
+  const io = new SocketServer(server, {
+    cors: { origin: allowedOrigins, credentials: true },
+  });
+  notificationService.initialize(io);
+
   // Railway stops the old copy with SIGTERM whenever a new one is deployed
   // (each push, each variable change). With no handler the process died on
   // the signal, npx reported "command failed", and Railway emailed
@@ -412,6 +422,7 @@ if (!process.env.JEST_WORKER_ID) {
     console.log(`${signal} received - shutting down`);
     const force = setTimeout(() => process.exit(0), 10_000);
     force.unref();
+    io.close();
     server.close(async () => {
       try {
         const { db } = await import('./config/database');

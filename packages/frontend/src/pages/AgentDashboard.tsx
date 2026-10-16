@@ -12,6 +12,7 @@ import { ticketMatchesView, type SavedView } from '../utils/views';
 import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import KanbanTemplates, { Template } from '../components/KanbanTemplates';
 import { apiService } from '../services/api';
+import { useTicketChanges } from '../contexts/SocketContext';
 import {
   DndContext,
   DragOverlay,
@@ -389,7 +390,25 @@ const AgentDashboard: React.FC = () => {
     }
   }, [user]); // Only run when user becomes available
 
-  // Fetch real tickets from API only on initial load or filter change
+  // Live updates: someone else changed a ticket - reload the board, but not
+  // in the middle of a drag or a resolution prompt (then once they finish)
+  const [liveTick, setLiveTick] = useState(0);
+  const liveMissed = useRef(false);
+  const boardBusy = activeDragId !== null || pendingResolution !== null;
+  const boardBusyRef = useRef(boardBusy);
+  boardBusyRef.current = boardBusy;
+  useTicketChanges(() => {
+    if (boardBusyRef.current) liveMissed.current = true;
+    else setLiveTick((n) => n + 1);
+  });
+  useEffect(() => {
+    if (!boardBusy && liveMissed.current) {
+      liveMissed.current = false;
+      setLiveTick((n) => n + 1);
+    }
+  }, [boardBusy]);
+
+  // Fetch real tickets from API on load, filter change and live updates
   useEffect(() => {
     const fetchTickets = async () => {
       // Only fetch if user is authenticated
@@ -479,7 +498,7 @@ const AgentDashboard: React.FC = () => {
     };
 
     fetchTickets();
-  }, [user, showOnlyMyTickets, selectedDepartmentId]); // Re-fetch when the user, filter or department changes
+  }, [user, showOnlyMyTickets, selectedDepartmentId, liveTick]); // Re-fetch when the user, filter or department changes, or a ticket changed elsewhere
 
   // Fetch team statuses from API
   useEffect(() => {

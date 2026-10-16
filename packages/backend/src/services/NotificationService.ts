@@ -118,6 +118,8 @@ class NotificationService {
 
           // Join user-specific room
           socket.join(`user:${userId}`);
+          // Staff hear about every ticket in their company (the board refreshes)
+          if (session.tenantId && isStaff(session)) socket.join(`org:${session.tenantId}`);
 
           logger.info(`User ${userId} authenticated on socket ${socket.id}`);
           socket.emit('authenticated', { success: true });
@@ -194,6 +196,24 @@ class NotificationService {
 
     this.io.to(`queue:${queueId}`).emit('notification', notification);
     logger.info(`Notification sent to queue ${queueId}:`, notification.type);
+  }
+
+  /**
+   * "This ticket changed" to the staff of its company and to its customer,
+   * so open boards and ticket lists reload it. Carries no ticket data: they
+   * fetch it through the API, which decides what each of them may see.
+   */
+  async ticketChanged(ticketId: string, byUserId?: string | null) {
+    if (!this.io) return;
+    try {
+      const ticket = await db('tickets').where('id', ticketId).first('org_id', 'submitter_id');
+      if (!ticket) return;
+      const event = { ticketId, by: byUserId || null, at: new Date() };
+      if (ticket.org_id) this.io.to(`org:${ticket.org_id}`).emit('ticket:changed', event);
+      if (ticket.submitter_id) this.io.to(`user:${ticket.submitter_id}`).emit('ticket:changed', event);
+    } catch (error) {
+      logger.warn('Ticket change notification failed', { ticketId, error });
+    }
   }
 
   // Ticket-related notifications

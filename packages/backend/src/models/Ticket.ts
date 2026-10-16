@@ -316,6 +316,11 @@ export class Ticket extends BaseModel {
       new_value: newValue,
       metadata,
     });
+    // Anything worth recording changed the ticket: tell open boards (live
+    // updates). Loaded here, not imported, to keep models free of services.
+    void import('@/services/NotificationService')
+      .then(({ notificationService }) => notificationService.ticketChanged(ticketId, userId))
+      .catch(() => undefined);
   }
 
   static async getTicketHistory(ticketId: string): Promise<any[]> {
