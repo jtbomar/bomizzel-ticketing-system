@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { portalApi, portalError, staffSignInUrl } from './portalApi';
+import SocialSignIn, { takeOAuthError } from '../components/SocialSignIn';
 import { usePortal } from './PortalApp';
 
 /** Sign in, sign up, forgot / reset password and confirm email, on a portal. */
@@ -77,7 +78,8 @@ export const PortalLogin: React.FC = () => {
   const [params] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  // An error sent back from Google / Microsoft / Facebook sign-in
+  const [error, setError] = useState(() => takeOAuthError());
   const [busy, setBusy] = useState(false);
   const next = params.get('next') || path();
 
@@ -162,6 +164,7 @@ export const PortalLogin: React.FC = () => {
             </Link>
           </div>
         </form>
+        <SocialSignIn company={slug} audience="portal" className="mt-5" />
         <p className="mt-6 border-t border-gray-100 pt-4 text-center text-sm text-gray-600">
           Work at {brand.name}?{' '}
           <a
@@ -288,6 +291,12 @@ export const PortalSignup: React.FC = () => {
       title={`Create your ${brand.name} support account`}
       subtitle="Open tickets and follow them here."
     >
+      <SocialSignIn
+        company={slug}
+        audience="portal"
+        label="Sign up using"
+        className="mb-5 border-b border-gray-100 pb-5"
+      />
       <form onSubmit={submit} className="space-y-4">
         {error && <Alert>{error}</Alert>}
         <div className="grid grid-cols-2 gap-3">

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import FindPortal from '../components/FindPortal';
+import SocialSignIn, { takeOAuthError } from '../components/SocialSignIn';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { useAuth } from '../contexts/AuthContext';
@@ -57,7 +58,8 @@ const LoginPage: React.FC = () => {
     email: '',
     password: '',
   });
-  const [error, setError] = useState('');
+  // An error sent back from Google / Microsoft / Facebook sign-in
+  const [error, setError] = useState(() => takeOAuthError());
   // Set when the account exists but its email isn't confirmed yet.
   const [unverified, setUnverified] = useState(false);
   const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
@@ -338,6 +340,8 @@ const LoginPage: React.FC = () => {
                   </button>
                 </div>
               </form>
+
+              <SocialSignIn company={slug} audience={slug ? 'staff' : undefined} className="mt-6" />
 
               {/* Customers of a company on Bomizzel sign in on its portal, not here */}
               {!slug && <FindPortal className="mt-8 pt-6 border-t border-gray-200" />}

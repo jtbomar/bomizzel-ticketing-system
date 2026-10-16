@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { dangerousDatabaseRoute } from '../middleware/platformAdmin';
 import authRoutes from './auth';
+import oauthRoutes from './oauth';
 import userRoutes from './users';
 import companyRoutes from './companies';
 import departmentRoutes from './departments';
@@ -61,6 +62,8 @@ import inboundEmailRoutes from './inboundEmail';
 const router = Router();
 
 // Mount route modules
+// Sign in with Google, Microsoft or Facebook
+router.use('/auth/oauth', oauthRoutes);
 router.use('/auth', authRoutes);
 router.use('/company-registration', companyRegistrationRoutes);
 router.use('/admin/provisioning', adminProvisioningRoutes); // Admin provisioning endpoints

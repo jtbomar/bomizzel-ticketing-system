@@ -4,6 +4,8 @@ import { User } from '@/models/User';
 import { CryptoUtils } from '@/utils/crypto';
 import { currentSessionFor } from '@/utils/session';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import { isStaffOfTenant } from '@/utils/tenant';
 import { subscriberForPortalName } from '@/utils/portalName';
 import { BrandingService, portalBackgroundUrl, portalIconUrl } from './BrandingService';
 import { AccountEmailService } from './AccountEmailService';
@@ -138,6 +140,51 @@ export class PortalService {
       await BrandingService.forSubscriber(s.id)
     );
     return { userId: user.id };
+  }
+
+  /**
+   * Signed in with Google, Microsoft or Facebook on this portal: the provider
+   * has confirmed the address. Someone new becomes a customer here (like
+   * signing up, but already confirmed); someone with a login elsewhere on
+   * Bomizzel joins too. Staff of this company and existing customers are left
+   * as they are.
+   */
+  static async joinFromProvider(
+    subscriberId: string,
+    input: { email: string; firstName: string; lastName: string }
+  ): Promise<void> {
+    const email = input.email.trim().toLowerCase();
+    let user = await db('users').whereRaw('lower(email) = ?', [email]).first('id');
+    if (!user) {
+      const created = await User.createUser({
+        email,
+        // They sign in with the provider; "Forgot password" sets one if they want
+        password: crypto.randomBytes(24).toString('base64url'),
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: 'customer',
+        emailVerified: true,
+      });
+      await db('users')
+        .where('id', created.id)
+        .update({ current_org_id: subscriberId, portal_scope: 'own' });
+      user = { id: created.id };
+    } else {
+      if (await isStaffOfTenant(user.id, subscriberId)) return;
+      const already = await db('user_company_associations as a')
+        .join('companies as c', 'c.id', 'a.company_id')
+        .where({ 'a.user_id': user.id, 'c.subscriber_id': subscriberId })
+        .first('a.company_id');
+      if (already) return;
+    }
+    const companyId = await this.accountFor(subscriberId, email, input);
+    await db('user_company_associations').insert({
+      user_id: user.id,
+      company_id: companyId,
+      role: 'member',
+    });
+    await PortalAccessService.request(subscriberId, user.id, companyId, null);
+    await PortalAccessService.notifyAdmins(user.id);
   }
 
   /** The subscriber's account for this email's domain, or a new one with the name they gave. */
