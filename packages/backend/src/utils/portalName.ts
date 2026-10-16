@@ -43,6 +43,7 @@ const RESERVED = new Set([
   'pop',
   'portal',
   'postmaster',
+  'privacy',
   'root',
   'security',
   'send',

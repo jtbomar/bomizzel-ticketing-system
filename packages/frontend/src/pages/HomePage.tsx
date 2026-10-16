@@ -356,7 +356,10 @@ const HomePage: React.FC = () => {
             </nav>
           </div>
           <p className="mt-10 border-t border-gray-100 pt-6 text-sm text-gray-500">
-            © {new Date().getFullYear()} Bomizzel
+            © {new Date().getFullYear()} Bomizzel ·{' '}
+            <Link to="/privacy" className="hover:text-gray-900">
+              Privacy
+            </Link>
           </p>
         </div>
       </footer>

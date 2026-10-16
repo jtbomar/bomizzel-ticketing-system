@@ -28,6 +28,7 @@ const APP_PAGES = new Set([
   'portal',
   'portal-access',
   'pricing',
+  'privacy',
   'register',
   'reports',
   'reset-password',

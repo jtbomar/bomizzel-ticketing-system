@@ -21,6 +21,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const PortalApp = lazy(() => import('./portal/PortalApp'));
 const PortalAccessDecision = lazy(() => import('./pages/PortalAccessDecision'));
 const StaffPortalRedirect = lazy(() => import('./components/StaffPortalRedirect'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const CustomerDashboard = lazy(() => import('./pages/CustomerDashboard'));
 const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
 const SimpleAdminDashboard = lazy(() => import('./pages/SimpleAdminDashboard'));
@@ -136,6 +137,7 @@ function App() {
                       </>
                     )}
                     <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
 
                     {/* Customer Routes - For customers using the ticketing system */}
                     <Route path="/login" element={<LoginPage />} />
