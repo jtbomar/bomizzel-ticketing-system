@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { apiService } from '../services/api';
 import { errorText } from './ui';
 
-type Kind = 'welcome' | 'reply' | 'receipt';
+type Kind = 'welcome' | 'reply' | 'receipt' | 'update';
 
 const KINDS: [Kind, string][] = [
   ['welcome', 'Welcome'],
   ['reply', 'Ticket reply'],
   ['receipt', 'Ticket received'],
+  ['update', 'Ticket update'],
 ];
 
 /**
@@ -21,7 +22,7 @@ const EmailPreview: React.FC<{
   // The signature is an agent's own (empty means the company's is used)
   mine?: boolean;
   refreshKey?: string | number;
-}> = ({ kinds = ['welcome', 'reply', 'receipt'], signature, mine, refreshKey }) => {
+}> = ({ kinds = ['welcome', 'reply', 'receipt', 'update'], signature, mine, refreshKey }) => {
   const [kind, setKind] = useState<Kind>(kinds[0]!);
   const [preview, setPreview] = useState<{ subject: string; html: string; from: string } | null>(
     null

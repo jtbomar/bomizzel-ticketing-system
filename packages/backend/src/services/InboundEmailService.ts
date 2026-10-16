@@ -9,6 +9,7 @@ import { FileService } from './FileService';
 import { logger } from '@/utils/logger';
 import { inboundDomain, parseMailbox, parseSupportAddress } from '@/utils/supportEmail';
 import { subscriberForPortalName } from '@/utils/portalName';
+import { resolveSession, sessionStore } from '@/utils/session';
 
 /**
  * Turns email sent to a subscriber's support address into tickets.
@@ -258,7 +259,9 @@ export class InboundEmailService {
           );
         }
         await this.log(email, ticket.id, tenantId, sender.email, subject, note.id);
-        await this.saveAttachments(email, ticket.id, author.id, note.id);
+        await this.asSender(author.id, tenantId, () =>
+          this.saveAttachments(email, ticket.id, author.id, note.id)
+        );
         logger.info('Email added to ticket', { ticketId: ticket.id, from: sender.email });
         return { outcome: 'note_added', ticketId: ticket.id };
       }
@@ -283,7 +286,9 @@ export class InboundEmailService {
     if (!created) return { outcome: 'ignored', reason: 'subscriber has no team' };
 
     await this.log(email, created.id, tenantId, sender.email, subject, null);
-    await this.saveAttachments(email, created.id, contact.userId);
+    await this.asSender(contact.userId, tenantId, () =>
+      this.saveAttachments(email, created.id, contact.userId)
+    );
     logger.info('Email created ticket', { ticketId: created.id, from: sender.email });
 
     // Tell them we have it, and give them the address that replies on it.
@@ -458,6 +463,19 @@ export class InboundEmailService {
    * and the sender's access to the ticket. A file that fails is skipped, not
    * fatal - the ticket or reply still goes in.
    */
+  /**
+   * Run as the sender at this subscriber. Email has no sign-in, and one login
+   * can be staff of one company and a customer of another, so file uploads
+   * (which check the uploader's access) need to know which they are here.
+   */
+  private static async asSender<T>(userId: string, tenantId: string, fn: () => Promise<T>) {
+    const user = await db('users')
+      .where('id', userId)
+      .first('id', 'role', 'current_org_id', 'portal_scope');
+    const session = user && (await resolveSession(user, tenantId));
+    return session ? sessionStore.run(session, fn) : fn();
+  }
+
   private static async saveAttachments(
     email: ReceivedEmail,
     ticketId: string,

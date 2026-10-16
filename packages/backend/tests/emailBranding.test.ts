@@ -5,6 +5,7 @@ import { JWTUtils } from '../src/utils/jwt';
 import { EmailService } from '../src/services/EmailService';
 import { TicketEmailService } from '../src/services/TicketEmailService';
 import { TicketStatus } from '../src/models/TicketStatus';
+import { Team } from '../src/models/Team';
 import { resetDatabase } from './helpers/db';
 
 /**
@@ -298,5 +299,85 @@ describe('branded customer email', () => {
     expect((await as(contactToken).put('/email-branding/my-signature', { html: 'x' })).status).toBe(
       403
     );
+  });
+
+  describe('ticket emails to the customer', () => {
+    // Ticket emails go out in the background: wait for the next one to Pat
+    const nextMailTo = async (to: string, after: number) => {
+      for (let i = 0; i < 40; i++) {
+        const m = mails.slice(after).find((x) => String(x.to).includes(to));
+        if (m) return m;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      return null;
+    };
+    let ticketId: string;
+
+    it('a ticket raised for them gets a branded receipt with a button and reply note', async () => {
+      // Gus works the Support team's tickets
+      await Team.addUserToTeam(AGENT, TEAM);
+      const before = mails.length;
+      const res = await as(agentToken).post('/tickets', {
+        title: 'Generator will not start',
+        description: 'Cranks but no start',
+        companyId: ACME,
+        teamId: TEAM,
+        submitterId: CONTACT,
+      });
+      expect(res.status).toBe(201);
+      ticketId = res.body.data?.id ?? res.body.id;
+      const mail = await nextMailTo('pat@acme-eb.example.com', before);
+      expect(mail).toBeTruthy();
+      expect(mail.from).toContain('Gleason Power Services Support');
+      expect(mail.html).toContain('#0f766e');
+      expect(mail.html).toContain('View your ticket');
+      expect(mail.html).toContain(`/gleason-eb/tickets/${ticketId}`);
+      expect(mail.html).toContain('Or simply reply to this email');
+      expect(mail.html).toContain('Generator will not start');
+      expect(mail.text).toContain(`/gleason-eb/tickets/${ticketId}`);
+    });
+
+    it('a status change tells them in plain words, with the new status', async () => {
+      const before = mails.length;
+      const res = await as(agentToken).put(`/tickets/${ticketId}`, { status: 'resolved' });
+      expect(res.status).toBe(200);
+      const mail = await nextMailTo('pat@acme-eb.example.com', before);
+      expect(mail.text).toContain("We've marked your ticket as resolved");
+      expect(mail.html).toContain('>Resolved<');
+      expect(mail.subject).toMatch(/^Re: \[#\d+\] Generator will not start$/);
+    });
+
+    it('an agent taking the ticket names them', async () => {
+      const before = mails.length;
+      await as(agentToken).put(`/tickets/${ticketId}`, { assignedToId: AGENT });
+      const mail = await nextMailTo('pat@acme-eb.example.com', before);
+      expect(mail.html).toContain(
+        'Gus Test from Gleason Power Services is now handling your ticket'
+      );
+    });
+
+    it('nothing when the customer made the change, or nothing changed', async () => {
+      expect(
+        await TicketEmailService.sendUpdate(
+          ticketId,
+          { kind: 'status', from: 'open', to: 'closed' },
+          CONTACT
+        )
+      ).toBe(false);
+      expect(
+        await TicketEmailService.sendUpdate(
+          ticketId,
+          { kind: 'status', from: 'open', to: 'open' },
+          AGENT
+        )
+      ).toBe(false);
+    });
+
+    it('the Rebranding page can preview the update email', async () => {
+      const res = await as(adminToken).get('/email-branding/preview?kind=update');
+      expect(res.status).toBe(200);
+      expect(res.body.html).toContain('View your ticket');
+      expect(res.body.html).toContain('Resolved');
+    });
   });
 });

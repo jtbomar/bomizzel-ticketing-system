@@ -20,6 +20,7 @@ import { QueryPerformanceMonitor } from '@/middleware/performanceMonitoring';
 import { CacheService, CacheKeys, CacheConfigs } from '@/utils/cache';
 import { UsageTrackingService } from './UsageTrackingService';
 import { logger } from '@/utils/logger';
+import { TicketEmailService } from './TicketEmailService';
 import { isCompanyInTenant, isStaffOfTenant, tenantContextFor } from '@/utils/tenant';
 import { sessionStore } from '@/utils/session';
 
@@ -131,16 +132,12 @@ export class TicketService {
       submitter ? User.toModel(submitter) : undefined
     );
 
-    // Send email notification to customer
-    if (EmailService.isInitialized() && submitter) {
-      try {
-        await EmailService.sendTicketNotification(createdTicket.id, 'created', [submitter.email], {
-          customerName: `${submitter.first_name} ${submitter.last_name}`,
-        });
-      } catch (error) {
-        console.error('Failed to send ticket creation email:', error);
-        // Don't fail the ticket creation if email fails
-      }
+    // "We've received your request", in the company's brand (portal or
+    // staff-raised tickets; email ones get theirs from InboundEmailService)
+    if (submitter) {
+      TicketEmailService.sendReceipt(createdTicket.id).catch((error) =>
+        logger.error('Failed to send ticket receipt email', { ticketId: createdTicket.id, error })
+      );
     }
 
     // Update queue metrics
@@ -429,25 +426,23 @@ export class TicketService {
       );
     }
 
-    // Send email notification to customer about assignment
-    if (EmailService.isInitialized()) {
-      try {
-        const submitter = await User.findById(updatedTicket.submitterId);
-        if (submitter && assignedToUser) {
-          await EmailService.sendTicketNotification(
-            updatedTicket.id,
-            'assigned',
-            [submitter.email],
-            {
-              assigneeName: `${assignedToUser.first_name} ${assignedToUser.last_name}`,
-              customerName: `${submitter.first_name} ${submitter.last_name}`,
-            }
-          );
-        }
-      } catch (error) {
-        console.error('Failed to send ticket assignment email:', error);
-        // Don't fail the assignment if email fails
-      }
+    // Tell the customer who is handling their ticket (company-branded)
+    if (assignedToUser) {
+      TicketEmailService.sendUpdate(
+        updatedTicket.id,
+        {
+          kind: 'assigned',
+          agentName: [assignedToUser.first_name, assignedToUser.last_name]
+            .filter(Boolean)
+            .join(' '),
+        },
+        assignedById
+      ).catch((error) =>
+        logger.error('Failed to send ticket assignment email', {
+          ticketId: updatedTicket.id,
+          error,
+        })
+      );
     }
 
     // Update queue metrics for both old and new queues
@@ -572,36 +567,15 @@ export class TicketService {
       updatedBy ? User.toModel(updatedBy) : undefined
     );
 
-    // Send email notification for significant status changes
-    if (EmailService.isInitialized() && oldStatus !== status) {
-      try {
-        const submitter = await User.findById(updatedTicket.submitterId);
-        if (submitter) {
-          let notificationType: 'updated' | 'resolved' | 'closed' = 'updated';
-
-          // Determine notification type based on status
-          if (status.toLowerCase() === 'resolved') {
-            notificationType = 'resolved';
-          } else if (status.toLowerCase() === 'closed') {
-            notificationType = 'closed';
-          }
-
-          await EmailService.sendTicketNotification(
-            updatedTicket.id,
-            notificationType,
-            [submitter.email],
-            {
-              oldStatus,
-              newStatus: status,
-              customerName: `${submitter.first_name} ${submitter.last_name}`,
-              updatedBy: updatedBy ? `${updatedBy.first_name} ${updatedBy.last_name}` : 'System',
-            }
-          );
-        }
-      } catch (error) {
-        console.error('Failed to send ticket status update email:', error);
-        // Don't fail the status update if email fails
-      }
+    // Tell the customer, in the company's brand (not when they did it themselves)
+    if (oldStatus !== status) {
+      TicketEmailService.sendUpdate(
+        updatedTicket.id,
+        { kind: 'status', from: oldStatus, to: status },
+        updatedById
+      ).catch((error) =>
+        logger.error('Failed to send ticket status email', { ticketId: updatedTicket.id, error })
+      );
     }
 
     // Update queue metrics

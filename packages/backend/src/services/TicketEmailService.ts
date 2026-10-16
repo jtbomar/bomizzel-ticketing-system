@@ -4,9 +4,11 @@ import { logger } from '@/utils/logger';
 import { supportAddress, ticketToken } from '@/utils/supportEmail';
 import { BrandingService } from './BrandingService';
 import { isStaffOfTenant } from '@/utils/tenant';
+import { portalUrl } from '@/utils/portalName';
 import {
   Brand,
   brandedLayout,
+  button,
   escapeHtml,
   paragraphs,
   signatureHtml,
@@ -24,40 +26,112 @@ import {
 
 const REPLY_MARKER = '— Reply above this line to add to your ticket —';
 
-const layout = (brand: Brand, body: string, ticketRef: string) =>
+const layout = (brand: Brand, body: string, ticketRef: string, preheader?: string) =>
   brandedLayout(brand, body, {
     topNote: REPLY_MARKER,
     footerNote: `${brand.name} Support · Ticket ${ticketRef}`,
+    preheader,
   });
+
+/** What a ticket email shows about the ticket, and where it opens. */
+export interface TicketSummary {
+  title: string;
+  ref: string;
+  // Display label of its status ("In Progress")
+  status: string;
+  // The ticket on the customer portal (help.bomizzel.com/<company>/tickets/<id>)
+  link: string | null;
+}
+
+// Status colours on the card, by status name
+const STATUS_COLORS: Record<string, string> = {
+  open: '#2563eb',
+  in_progress: '#d97706',
+  waiting: '#7c3aed',
+  resolved: '#059669',
+  closed: '#4b5563',
+};
+
+/** The ticket at a glance: number, subject and status. */
+const ticketCard = (brand: Brand, t: TicketSummary, statusName?: string) => {
+  const pill = STATUS_COLORS[statusName || ''] || brand.color;
+  return (
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 4px;background:#f9fafb;border:1px solid #e5e7eb;border-left:4px solid ${brand.color};border-radius:6px;">` +
+    `<tr><td style="padding:14px 16px;">` +
+    `<div style="font-size:12px;color:#6b7280;letter-spacing:.02em;">TICKET ${escapeHtml(t.ref)}</div>` +
+    `<div style="margin-top:4px;font-size:16px;font-weight:bold;color:#111827;">${escapeHtml(t.title)}</div>` +
+    `<div style="margin-top:10px;"><span style="display:inline-block;padding:3px 10px;border-radius:999px;background:${pill};color:#ffffff;font-size:12px;font-weight:bold;">${escapeHtml(t.status)}</span></div>` +
+    `</td></tr></table>`
+  );
+};
+
+/** "View your ticket", and that a reply (with attachments) goes on the ticket. */
+const actions = (brand: Brand, t: TicketSummary) =>
+  (t.link ? button(brand, 'View your ticket', t.link) : '<div style="height:16px;"></div>') +
+  `<p style="margin:0;font-size:13px;color:#6b7280;line-height:1.5;">Or simply reply to this email to update your ticket. Attachments you include are added to it too.</p>`;
+
+const actionsText = (t: TicketSummary) =>
+  `${t.link ? `View your ticket: ${t.link}\n` : ''}Or reply to this email to update your ticket (attachments are added too).`;
+
+const cardText = (t: TicketSummary) => `Ticket ${t.ref}: ${t.title}\nStatus: ${t.status}`;
+
+/** What changed, for an update email. */
+export type TicketChange =
+  | { kind: 'status'; from: string; to: string }
+  | { kind: 'assigned'; agentName: string };
+
+/** The message for a change, in the customer's terms. */
+const changeMessage = (brand: Brand, change: TicketChange, t: TicketSummary): string => {
+  if (change.kind === 'assigned') {
+    return `${change.agentName} from ${brand.name} is now handling your ticket and will be in touch.`;
+  }
+  switch (change.to) {
+    case 'open':
+      return ['resolved', 'closed'].includes(change.from)
+        ? "Your ticket has been reopened. We'll pick it back up shortly."
+        : 'Your ticket is open and in our queue.';
+    case 'in_progress':
+      return "We're working on your ticket now.";
+    case 'waiting':
+      return 'We need a little more information from you to keep going. Please reply to this email with the details.';
+    case 'resolved':
+      return "We've marked your ticket as resolved. If anything still isn't right, just reply to this email and we'll reopen it.";
+    case 'closed':
+      return 'Your ticket is now closed. Thank you for contacting us. If you need more help, reply to this email.';
+    default:
+      return `Your ticket's status is now ${t.status}.`;
+  }
+};
 
 /** What the emails say, kept apart from sending for the previews. */
 export const ticketEmails = {
   receipt(
     brand: Brand,
-    ticket: { title: string },
-    ref: string,
+    t: TicketSummary,
     firstName: string | undefined,
-    signature: string | null
+    signature: string | null,
+    statusName = 'open'
   ) {
     const hi = firstName ? `Hi ${firstName},` : 'Hi,';
-    const message = `${hi}\n\nThanks for getting in touch. We've received your request and someone from ${brand.name} will get back to you soon.\n\nYou can reply to this email to add anything else.`;
+    const message = `${hi}\n\nThanks for getting in touch. We've received your request and someone from ${brand.name} will get back to you soon.`;
     const body =
       paragraphs(message) +
-      `<p style="margin:16px 0 0;padding:12px;background:#f9fafb;border-left:3px solid ${brand.color};border-radius:4px;font-size:14px;"><strong>${escapeHtml(ticket.title)}</strong><br><span style="color:#6b7280;">Ticket ${escapeHtml(ref)}</span></p>` +
+      ticketCard(brand, t, statusName) +
+      actions(brand, t) +
       signatureHtml(signature);
     return {
-      html: layout(brand, body, ref),
-      text: `${REPLY_MARKER}\n\n${message}\n\n${ticket.title}\nTicket ${ref}${signatureText(signature)}\n`,
+      html: layout(brand, body, t.ref, `We've received your request ${t.ref}`),
+      text: `${REPLY_MARKER}\n\n${message}\n\n${cardText(t)}\n\n${actionsText(t)}${signatureText(signature)}\n`,
     };
   },
 
   reply(
     brand: Brand,
-    ticket: { title: string },
-    ref: string,
+    t: TicketSummary,
     note: { content: string; content_html?: string | null },
     agentName: string,
-    signature: string | null
+    signature: string | null,
+    statusName?: string
   ) {
     // No signature set anywhere: the agent's name and the company, as before
     const sign =
@@ -68,10 +142,43 @@ export const ticketEmails = {
     const body =
       (note.content_html
         ? `<div style="line-height:1.55;">${note.content_html}</div>`
-        : paragraphs(note.content)) + signatureHtml(sign);
+        : paragraphs(note.content)) +
+      signatureHtml(sign) +
+      ticketCard(brand, t, statusName) +
+      actions(brand, t);
     return {
-      html: layout(brand, body, ref),
-      text: `${REPLY_MARKER}\n\n${note.content}${signatureText(sign)}\n\nTicket ${ref}: ${ticket.title}\n`,
+      html: layout(
+        brand,
+        body,
+        t.ref,
+        `${agentName || brand.name} replied to your ticket ${t.ref}`
+      ),
+      text: `${REPLY_MARKER}\n\n${note.content}${signatureText(sign)}\n\n${cardText(t)}\n\n${actionsText(t)}\n`,
+    };
+  },
+
+  update(
+    brand: Brand,
+    t: TicketSummary,
+    change: TicketChange,
+    firstName: string | undefined,
+    signature: string | null,
+    statusName?: string
+  ) {
+    const hi = firstName ? `Hi ${firstName},` : 'Hi,';
+    const message = `${hi}\n\n${changeMessage(brand, change, t)}`;
+    const body =
+      paragraphs(message) +
+      ticketCard(brand, t, statusName) +
+      actions(brand, t) +
+      signatureHtml(signature);
+    const preheader =
+      change.kind === 'assigned'
+        ? `${change.agentName} is handling your ticket ${t.ref}`
+        : `Your ticket ${t.ref} is now ${t.status}`;
+    return {
+      html: layout(brand, body, t.ref, preheader),
+      text: `${REPLY_MARKER}\n\n${message}\n\n${cardText(t)}\n\n${actionsText(t)}${signatureText(signature)}\n`,
     };
   },
 };
@@ -84,6 +191,8 @@ interface TicketContext {
 }
 
 const loadContext = async (ticketId: string): Promise<TicketContext | null> => {
+  // Email not set up: nothing to send, so don't look anything up either
+  if (!EmailService.isInitialized()) return null;
   const ticket = await db('tickets').where('id', ticketId).first();
   if (!ticket?.org_id) return null;
   const [subscriber, customer] = await Promise.all([
@@ -162,20 +271,40 @@ const refFor = (ticket: any) =>
 
 const subjectFor = (ticket: any) => `[${refFor(ticket)}] ${ticket.title}`;
 
+/** The ticket as its emails show it: number, subject, status label, portal link. */
+const summaryFor = async (context: TicketContext): Promise<TicketSummary> => {
+  const { ticket, subscriber } = context;
+  const status = await db('ticket_statuses')
+    .where({ team_id: ticket.team_id, name: ticket.status })
+    .first('label');
+  const label =
+    status?.label ||
+    String(ticket.status || '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c: string) => c.toUpperCase());
+  return {
+    title: ticket.title,
+    ref: refFor(ticket),
+    status: label,
+    link: subscriber.support_email_slug
+      ? `${portalUrl(subscriber.support_email_slug)}/tickets/${ticket.id}`
+      : null,
+  };
+};
+
 export class TicketEmailService {
-  /** "We've received your request" for a ticket opened by email. */
+  /** "We've received your request": a new ticket, by email, on the portal or raised by staff. */
   static async sendReceipt(ticketId: string): Promise<boolean> {
     const context = await loadContext(ticketId);
     if (!context) return false;
     const { ticket, customer, brand } = context;
-    const ref = refFor(ticket);
     // Automatic: the company's signature
     const { html, text } = ticketEmails.receipt(
       brand,
-      ticket,
-      ref,
+      await summaryFor(context),
       customer.first_name,
-      brand.signatureHtml
+      brand.signatureHtml,
+      ticket.status
     );
     return send(context, `Re: ${subjectFor(ticket)}`, html, text, null);
   }
@@ -194,16 +323,40 @@ export class TicketEmailService {
     if (!author || !(await isStaffOfTenant(note.author_id, context.subscriber.id))) return false;
 
     const { ticket, brand } = context;
-    const ref = refFor(ticket);
     const agentName = [author.first_name, author.last_name].filter(Boolean).join(' ');
     const { html, text } = ticketEmails.reply(
       brand,
-      ticket,
-      ref,
+      await summaryFor(context),
       note,
       agentName,
-      await BrandingService.signatureFor(brand, note.author_id)
+      await BrandingService.signatureFor(brand, note.author_id),
+      ticket.status
     );
     return send(context, `Re: ${subjectFor(ticket)}`, html, text, note.id);
+  }
+
+  /**
+   * The ticket's status changed, or an agent took it: tell its customer. Not
+   * when the customer made the change themselves (closing it on the portal).
+   */
+  static async sendUpdate(
+    ticketId: string,
+    change: TicketChange,
+    actorId?: string | null
+  ): Promise<boolean> {
+    if (change.kind === 'status' && change.from === change.to) return false;
+    const context = await loadContext(ticketId);
+    if (!context) return false;
+    const { ticket, customer, brand } = context;
+    if (actorId && actorId === ticket.submitter_id) return false;
+    const { html, text } = ticketEmails.update(
+      brand,
+      await summaryFor(context),
+      change,
+      customer.first_name,
+      brand.signatureHtml,
+      ticket.status
+    );
+    return send(context, `Re: ${subjectFor(ticket)}`, html, text, null);
   }
 }

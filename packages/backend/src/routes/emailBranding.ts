@@ -17,7 +17,7 @@ import { ticketEmails } from '@/services/TicketEmailService';
  * Branded email to customers:
  *   GET  /api/email-branding/my-signature   an agent's own signature
  *   PUT  /api/email-branding/my-signature   { html } ('' removes it)
- *   GET  /api/email-branding/preview?kind=welcome|reply|receipt[&signature=html][&mine=1]
+ *   GET  /api/email-branding/preview?kind=welcome|reply|receipt|update[&signature=html][&mine=1]
  *        what a customer would get, in the caller's subscriber's brand (mine:
  *        the signature is an agent's own, so an empty one falls back to the
  *        company's)
@@ -63,24 +63,41 @@ router.get('/preview', authenticate, requireStaff, async (req, res, next) => {
         : await BrandingService.signatureFor(brand, kind === 'reply' ? req.user!.id : null);
     const ticket = { title: 'Generator making a knocking noise' };
     const link = '#';
+    const summary = { title: ticket.title, ref: '#1001', status: 'In Progress', link: '#' };
 
     let content: { subject: string; html: string };
     if (kind === 'reply') {
       const reply = ticketEmails.reply(
         brand,
-        ticket,
-        '#1001',
+        summary,
         {
           content:
             'Thanks for the details. A technician can come out Thursday morning to take a look - does that work for you?',
         },
         [me?.first_name, me?.last_name].filter(Boolean).join(' '),
-        signature
+        signature,
+        'in_progress'
       );
       content = { subject: `Re: [#1001] ${ticket.title}`, html: reply.html };
     } else if (kind === 'receipt') {
-      const receipt = ticketEmails.receipt(brand, ticket, '#1001', 'Alex', signature);
+      const receipt = ticketEmails.receipt(
+        brand,
+        { ...summary, status: 'Open' },
+        'Alex',
+        signature,
+        'open'
+      );
       content = { subject: `Re: [#1001] ${ticket.title}`, html: receipt.html };
+    } else if (kind === 'update') {
+      const update = ticketEmails.update(
+        brand,
+        { ...summary, status: 'Resolved' },
+        { kind: 'status', from: 'in_progress', to: 'resolved' },
+        'Alex',
+        signature,
+        'resolved'
+      );
+      content = { subject: `Re: [#1001] ${ticket.title}`, html: update.html };
     } else {
       const welcome = accountEmails.welcome(brand, 'Alex', link, signature);
       content = { subject: welcome.subject, html: welcome.html };

@@ -1214,7 +1214,7 @@ class ApiService {
   }
 
   async getEmailPreview(
-    kind: 'welcome' | 'reply' | 'receipt',
+    kind: 'welcome' | 'reply' | 'receipt' | 'update',
     signature?: string,
     mine?: boolean
   ): Promise<{ subject: string; html: string; from: string }> {
