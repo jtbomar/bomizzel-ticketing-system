@@ -218,6 +218,16 @@ describe('Ticket Notes API', () => {
       expect(response.body.pagination.limit).toBe(1);
     });
 
+    it('accepts the limit the ticket page and portal ask for', async () => {
+      // Both load a whole conversation with limit=200
+      const response = await request(app)
+        .get(`/api/tickets/${ticketId}/notes?includeInternal=true&limit=200`)
+        .set('Authorization', `Bearer ${employeeToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.pagination.limit).toBe(200);
+    });
+
     it('should require authentication', async () => {
       const response = await request(app).get(`/api/tickets/${ticketId}/notes`);
 

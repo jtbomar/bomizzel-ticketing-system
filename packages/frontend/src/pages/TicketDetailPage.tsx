@@ -269,9 +269,16 @@ const TicketDetailPage: React.FC = () => {
       setDraftText('');
       setPendingFiles([]);
       setNotice('');
-      await loadNotes();
     } catch (error: any) {
       alert(`Couldn't send: ${errorText(error)}`);
+      setSending(false);
+      return;
+    }
+    // It was sent; a failed refresh shouldn't say otherwise
+    try {
+      await loadNotes();
+    } catch (error: any) {
+      alert(`Sent, but the conversation didn't refresh: ${errorText(error)}`);
     } finally {
       setSending(false);
     }

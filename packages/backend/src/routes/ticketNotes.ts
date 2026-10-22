@@ -111,7 +111,10 @@ router.get(
     query: {
       includeInternal: { type: 'boolean', required: false },
       page: { type: 'number', required: false, min: 1 },
-      limit: { type: 'number', required: false, min: 1, max: 100 },
+      // The ticket page and the customer portal load a whole conversation at
+      // once (limit=200). A cap of 100 answered both with 400, so the notes
+      // never loaded and every reply looked like it failed to send.
+      limit: { type: 'number', required: false, min: 1, max: 500 },
     },
   }),
   async (req: Request, res: Response, next: NextFunction) => {
