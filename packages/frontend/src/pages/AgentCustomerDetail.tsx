@@ -10,6 +10,7 @@ interface Contact {
   lastName: string;
   email: string;
   isActive: boolean;
+  lastLoginAt?: string | null;
 }
 
 /** A contact: Zoho-style properties, overview and tabs, plus their portal access. */
@@ -80,6 +81,15 @@ const AgentCustomerDetail: React.FC = () => {
           ))}
           {accounts.length > 0 && <span>·</span>}
           <span>{contact.email}</span>
+          <span>·</span>
+          <span>
+            {contact.lastLoginAt
+              ? `Last signed in ${new Date(contact.lastLoginAt).toLocaleString(undefined, {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}`
+              : 'Never signed in'}
+          </span>
           {!contact.isActive && (
             <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               Inactive

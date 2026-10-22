@@ -14,6 +14,7 @@ export interface UserTable {
   password_reset_token?: string;
   password_reset_expires_at?: Date;
   preferences: Record<string, any>;
+  last_login_at?: Date | null;
   created_at: Date;
   updated_at: Date;
 }

@@ -247,6 +247,12 @@ export class AuthService {
     session: Session,
     audience?: 'staff' | 'portal'
   ): Promise<LoginResponse> {
+    // Best effort: a failed write shouldn't stop anyone signing in.
+    try {
+      await db('users').where('id', user.id).update({ last_login_at: new Date() });
+    } catch (err: any) {
+      logger.warn(`Couldn't record sign-in for ${user.id}: ${err?.message}`);
+    }
     const tokens = JWTUtils.generateTokenPair({
       userId: user.id,
       email: user.email,

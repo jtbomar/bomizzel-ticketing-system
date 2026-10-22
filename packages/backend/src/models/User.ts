@@ -245,6 +245,7 @@ export class User extends BaseModel {
       isActive: user.is_active,
       emailVerified: user.email_verified,
       preferences: user.preferences,
+      lastLoginAt: user.last_login_at ?? null,
       createdAt: user.created_at,
       updatedAt: user.updated_at,
     };

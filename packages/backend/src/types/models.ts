@@ -9,6 +9,7 @@ export interface User {
   isActive: boolean;
   emailVerified: boolean;
   preferences: UserPreferences;
+  lastLoginAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

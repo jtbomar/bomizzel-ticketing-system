@@ -99,6 +99,29 @@ describe('Authentication Endpoints', () => {
       expect(response.body.refreshToken).toBeDefined();
     });
 
+    it('records when the user signed in', async () => {
+      const before = await db('users').where('email', 'test@example.com').first('last_login_at');
+      expect(before.last_login_at).toBeNull();
+
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com', password: 'password123' })
+        .expect(200);
+
+      const after = await db('users').where('email', 'test@example.com').first('last_login_at');
+      expect(after.last_login_at).toBeInstanceOf(Date);
+    });
+
+    it('does not record a failed sign-in', async () => {
+      await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com', password: 'wrongpassword' })
+        .expect(401);
+
+      const row = await db('users').where('email', 'test@example.com').first('last_login_at');
+      expect(row.last_login_at).toBeNull();
+    });
+
     it('should not login with invalid credentials', async () => {
       const response = await request(app)
         .post('/api/auth/login')
@@ -185,6 +208,16 @@ describe('Authentication Endpoints', () => {
       expect(response.body.message).toBe('Token refreshed successfully');
       expect(response.body.token).toBeDefined();
       expect(response.body.refreshToken).toBeDefined();
+    });
+
+    it('does not count a refresh as a sign-in', async () => {
+      const signedIn = new Date('2026-01-01T00:00:00Z');
+      await db('users').where('email', 'test@example.com').update({ last_login_at: signedIn });
+
+      await request(app).post('/api/auth/refresh').send({ refreshToken }).expect(200);
+
+      const row = await db('users').where('email', 'test@example.com').first('last_login_at');
+      expect(row.last_login_at.toISOString()).toBe(signedIn.toISOString());
     });
 
     it('should not refresh with invalid token', async () => {
