@@ -5,7 +5,7 @@ import { defineRailway, github, project, service, volume } from 'railway/iac';
 export const partial = 'backend';
 export default defineRailway(() => {
   // Uploaded files live here (/data); keep it attached
-  const backendVolume = volume('backend-volume', { region: 'us-west2', sizeMB: 5000 });
+  const backendVolume = volume('backend-volume', { region: 'us-east4-eqdc4a', sizeMB: 5000 });
   const backend = service('backend', {
     source: github('jtbomar/bomizzel-ticketing-system', {
       branch: 'main',
@@ -21,7 +21,7 @@ export default defineRailway(() => {
     start: 'node -r ts-node/register/transpile-only -r tsconfig-paths/register src/index.ts',
     preDeploy: [],
     // Restart policy: Railway's default (on failure, up to 10 restarts), as railway.json had
-    replicas: { 'us-west2': 1 },
+    replicas: { 'us-east4-eqdc4a': 1 },
     volumeMounts: { '/data': backendVolume },
   });
 
