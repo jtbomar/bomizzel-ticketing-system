@@ -4,6 +4,7 @@ import { app } from '../src/index';
 import { db } from '../src/config/database';
 import { JWTUtils } from '../src/utils/jwt';
 import { EmailService } from '../src/services/EmailService';
+import { UserService } from '../src/services/UserService';
 import { TicketStatus } from '../src/models/TicketStatus';
 import { resetDatabase } from './helpers/db';
 
@@ -319,5 +320,43 @@ describe('one login: staff of one company, customer of another', () => {
       .send({ code: h.body.url.split('#handoff=')[1] });
     expect(res.body.user.role).toBe('customer');
     expect(JWTUtils.verifyAccessToken(res.body.token)).toMatchObject({ tid: BSI, aud: 'portal' });
+  });
+
+  it("an admin can't look up another company's people", async () => {
+    // Someone who is only on Bomizzel's side (Jeff isn't any more: an earlier
+    // test signed him up on Gleason's portal, which made him its customer)
+    const BSI_AGENT = '00000000-0000-4000-8000-0000000ee010';
+    await db('users').insert({
+      id: BSI_AGENT,
+      email: 'agent@bsi.example.com',
+      password_hash: 'x',
+      first_name: 'Agent',
+      last_name: 'Test',
+      role: 'employee',
+      is_active: true,
+      email_verified: true,
+    });
+    await db('user_company_associations').insert({
+      user_id: BSI_AGENT,
+      company_id: BSI,
+      role: 'member',
+    });
+    const darrell = as(
+      JWTUtils.generateAccessToken({
+        userId: DARRELL,
+        email: 'darrell@gleason.example.com',
+        role: 'admin',
+        tid: GLEASON,
+        aud: 'staff',
+      })
+    );
+    expect((await darrell.get(`/admin/users/${BSI_AGENT}`)).status).toBe(404);
+    expect((await darrell.get(`/users/${BSI_AGENT}`)).status).toBe(404);
+    // ...while Jeff can see his own agent
+    expect((await jeff().get(`/admin/users/${BSI_AGENT}`)).status).toBe(200);
+    // And the service holds the line by itself, without the route's check
+    await expect(
+      UserService.getUserById(BSI_AGENT, { id: DARRELL, role: 'admin', tenantId: GLEASON })
+    ).rejects.toMatchObject({ statusCode: 404 });
   });
 });

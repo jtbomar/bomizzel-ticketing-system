@@ -6,6 +6,7 @@ import { logger } from '@/utils/logger';
 import {
   isCompanyInTenant,
   isStaff,
+  isUserInTenant,
   STAFF_ROLES,
   tenantContactIds,
   tenantContextFor,
@@ -216,12 +217,11 @@ export class UserService {
       if (requestingUser) {
         let hasAccess = requestingUser.id === userId; // User can see their own profile
 
-        // Global admins. The route guards this with authorizeOwnerOrAdmin, so
-        // it already intends admins to have access, but the checks below only
-        // covered organization or shared-company membership - so an admin with
-        // no company in common with the target got "User not found".
-        if (!hasAccess && requestingUser.role === 'admin') {
-          hasAccess = true;
+        // Admins see the people of their own subscriber, not the whole
+        // platform. The routes check this too (requireUserInTenant); this
+        // keeps it true for any caller that forgets to.
+        if (!hasAccess && requestingUser.role === 'admin' && requestingUser.tenantId) {
+          hasAccess = await isUserInTenant(userId, requestingUser.tenantId);
         }
 
         if (!hasAccess && requestingUser.organizationId) {
